@@ -1,22 +1,32 @@
 # TinyRSI research and implementation
 
-The improvement object is a typed tinyhivemind hive package and its pinned
-memory snapshot. An external host proposes, shadow-evaluates and requests
-human approval; private verifiers decide which design is selected.
+The improvement object is a typed tinyhivemind hive package and its exact pinned
+memory image. An external host observes real work, generates proposals,
+shadow-evaluates them against immutable private checks, and requests human
+approval before live deployment. Selected lineage and deployed runtime state are
+recorded separately.
 
 - [Framework](specs/rsi-framework.md): epoch, ownership and phase boundaries.
-- [Phase status and acceptance](phases.md): implemented components, outstanding
-  host integrations and experimental follow-ups for P1–P6.
-- [Verified decomposition](specs/way-of-working.md): runtime blueprint and
-  host-observed verification.
-- [Scoring](specs/scoring.md): eval-owned checkpoints, family normalization,
-  bootstrap uncertainty and anchor progress.
-- [Implementation contract](specs/orchestrator.md): durable lineage and gates.
+- [Phase status](phases.md): implemented P1–P6 mechanisms and experimental limits.
+- [Host runtime](../specs/host-runtime.md): durable deployment, compensation,
+  exact memory restoration and the supported runner boundary.
+- [Host implementation map](../plans/host-runtime.md): source and regression tests.
+- [Verified decomposition](specs/way-of-working.md): blueprint and verification model.
+- [Scoring](specs/scoring.md): checkpoints, normalization, uncertainty and anchors.
+- [Implementation contract](specs/orchestrator.md): lineage and proposal gates.
+- [Bounded experiment](../specs/ignition.md): preregistration, ablations and verdicts.
+- [Experiment implementation](../plans/ignition.md).
 - [Survey](rsi-survey.md): literature and citation-verification status.
-- [OpenHuman substrate](openhuman-substrate.md): earlier integration research.
-- [Implementation plan](../plans/2026-10-10-rsi-orchestrator.md).
+- [OpenHuman substrate](openhuman-substrate.md): integration research; this work
+  uses existing APIs without modifying the vendored OpenHuman engine.
+- [Original implementation plan](../plans/2026-10-10-rsi-orchestrator.md).
+- [Measured arithmetic smoke](live-smoke.md): earlier connectivity evidence.
 
-The live OpenRouter arithmetic example validates wiring. It does not establish
-research-benchmark improvements or recursive ignition.
+The host feature now includes real coordinator evaluation, immutable local memory,
+durable Engine epochs and attempts, human-gated activation, compensation and
+rollback. The bounded experiment completed with an inconclusive 24-attempt
+comparison. Neither the arithmetic smoke nor the implemented harness establishes
+recursive ignition or general research-benchmark improvement.
 
-See [the measured OpenRouter smoke run](live-smoke.md) for integration evidence.
+See the [complete local integration results](complete-live.md) for all measured
+failures, the separate accepted deployment validation and experimental limits.

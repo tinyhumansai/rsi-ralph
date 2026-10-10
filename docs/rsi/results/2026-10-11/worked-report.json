@@ -1,0 +1,309 @@
+{
+  "approval": "denied; baseline preserved",
+  "baseline": "deliberately impaired integration calibration, not representative benchmark",
+  "comparisons": [],
+  "generated": 57,
+  "invalid": 33,
+  "meter": {
+    "attempted_calls": 129,
+    "cap": 3000000,
+    "denied_calls": 0,
+    "failed_calls": 0,
+    "input_tokens": 131516,
+    "output_tokens": 27762,
+    "reserved_tokens": 1746558
+  },
+  "model": "openai/gpt-4.1-mini",
+  "outcomes": {
+    "candidates": [
+      {
+        "candidate_id": null,
+        "proposal_index": 0,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 1,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 2,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 3,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 4,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 5,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 6,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 7,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 8,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 9,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 10,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 11,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 12,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 13,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 14,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 15,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 16,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 17,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 18,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 19,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 20,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 21,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 22,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 23,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 24,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 25,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 26,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 27,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 28,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 29,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 30,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 31,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 32,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 33,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 34,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 35,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 36,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 37,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 38,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 39,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 40,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 41,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 42,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 43,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 44,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 45,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 46,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 47,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 48,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 49,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 50,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 51,
+        "reason": "WRONG_CLASS"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 52,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 53,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 54,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 55,
+        "reason": "UNGROUNDED"
+      },
+      {
+        "candidate_id": null,
+        "proposal_index": 56,
+        "reason": "UNGROUNDED"
+      }
+    ],
+    "complete": true,
+    "epoch": 1
+  },
+  "source": "live"
+}

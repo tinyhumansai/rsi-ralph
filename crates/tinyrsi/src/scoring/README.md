@@ -83,3 +83,10 @@ sequential alpha spending, canary ownership, calibrated health-rate uncertainty,
 and the worked experiment with at least twenty real proposals remain host or
 future work. Family references and health-rate definitions must be curated
 before real progress claims are made.
+
+`ScoringPolicy::spec()` exports frozen settings as `ScoringPolicySpec` for exact
+archive replay. The serializable specification is trusted host configuration;
+`build()` revalidates it through the immutable policy constructor. Deserializing
+a specification alone never makes malformed anchors or bootstrap settings valid.
+Normalized proposal evaluation persists the effective prediction-adjusted policy
+and compares H directly, preserving the bootstrap meaning in human approval.

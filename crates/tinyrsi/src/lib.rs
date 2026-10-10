@@ -56,14 +56,25 @@
 
 mod archive;
 mod blueprint;
+#[cfg(feature = "host")]
+mod epoch_driver;
 mod error;
 mod evaluation;
+mod experiment;
+#[cfg(feature = "host")]
+mod host;
 mod lineage;
+mod memory;
+mod model;
 mod observation;
 mod orchestrator;
 mod retreat;
+mod retreat_memory;
 mod scoring;
+#[cfg(feature = "host")]
+mod suites;
 mod tinybus_module;
+mod verification;
 
 pub use error::{Error, Result};
 pub use lineage::Lineage;
@@ -126,3 +137,22 @@ pub use scoring::{
 };
 
 pub use retreat::{generate_retreat_with_engine, typed_retreat_request};
+
+pub use archive::NormalizedEvaluationEvent;
+#[cfg(feature = "host")]
+pub use host::*;
+pub use retreat_memory::*;
+pub use scoring::ScoringPolicySpec;
+pub use verification::*;
+
+#[cfg(feature = "host")]
+pub use epoch_driver::*;
+pub use experiment::*;
+pub use memory::SnapshotMemoryStore;
+pub use model::*;
+#[cfg(feature = "host")]
+pub use suites::*;
+
+pub use archive::NormalizedApprovalEvent;
+
+pub use archive::NormalizedDeclarationEvent;

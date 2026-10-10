@@ -11,13 +11,36 @@ neither the module nor `tinybus` itself.
 
 ## What the module does
 
-The Rust API observes coordinator transcripts, builds failure dossiers, guards
-typed hive patches, compares budget-matched multi-seed evaluations and requires
-fresh confirmation plus a human gate. `Archive` persists packages, exact
-hive-language records, per-task evidence, rejected proposals and reversions.
-The host supplies model execution, private verifiers, isolated memory snapshots
-and live activation. See [the framework](docs/rsi/specs/rsi-framework.md) for
-phase boundaries.
+The Rust API runs a host-controlled improvement loop: persist redacted epoch
+observations, generate typed proposals, freeze normalized evaluation policy and
+private suite identities, evaluate in isolated coordinator episodes, and ask a
+human to approve the exact confirmed candidate. `Archive` retains original
+language `Record` and `Package` values, prepared snapshots, declarations, paired
+runs, recomputed comparisons, explicit decisions and final outcomes. Selection
+and live deployment remain separate durable facts.
+
+The optional `host` feature supplies `CoordinatorHost` over real tinyhivemind
+storage, including SQLite, and `DeploymentStore` for activation, compensation,
+restart and parent rollback. `SnapshotMemoryStore` provides immutable local
+memory images. `VerifiedRunner` settles work only through immutable host checks;
+`CoordinatorEvaluator` runs frozen private suites with fresh coordinator storage
+per task, seed and arm. `EpochJournal` preserves real retreat attempts and
+prevents completed generation/evaluation from repeating after restart.
+
+The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
+adapter. It installs supported prompts, context, recall and conduct caps, and
+rejects unsupported models, tools, MCP and policies explicitly. A custom
+`RunnerFactory` owns broader deployment capabilities. Multi-seat verified DAG
+execution is exercised separately. These adapters use existing upstream APIs;
+this repository does not modify OpenHuman or provide a CortexDB memory adapter.
+
+`ExperimentProtocol` and `run_experiment` preregister original/evolved arms,
+private draws, equal total caps, ablations and an aggregate reporting rule.
+The [complete live run](docs/rsi/complete-live.md) passed separate acceptance and
+SQLite deployment/rollback validation; its 24-attempt comparison was inconclusive.
+These public toy fixtures do not establish positive RSI or ignition.
+See [phase status](docs/rsi/phases.md), [host runtime](docs/specs/host-runtime.md)
+and [the experiment protocol](docs/specs/ignition.md).
 
 The existing bus API remains compatible:
 
@@ -50,12 +73,19 @@ crates/
     ├── src/
     │   ├── lib.rs      # crate docs + public surface, re-exporting the contract
     │   ├── error/      # crate-wide `Error` and `Result<T>`
-    │   ├── lineage/    # the ledger behavior
+    │   ├── lineage/    # the compatible bus ledger
+    │   ├── archive/    # replay-validated proposals and evaluation evidence
+    │   ├── observation/, evaluation/, orchestrator/  # epoch and approval funnel
+    │   ├── scoring/, verification/  # normalized scores and real host checks
+    │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
+    │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
+    │   ├── host/, model/, suites/   # deployment and isolated model evaluation
+    │   ├── experiment/ # preregistered paired trial ledger
     │   └── tinybus_module/   # TinyBus interface, ABI exports, integration tests
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinybus/         # pinned TinyBus host types and module SDK
-vendor/tinyhivemind/    # pinned language and read-only coordinator APIs
+vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
@@ -123,6 +153,25 @@ baseline and candidate on paired arithmetic tasks, confirms on fresh draws,
 checks denied approval preserves the baseline, and reopens durable evidence.
 It spends real API tokens. Passing proves integration, not general improvement.
 
+## Complete host experiment
+
+The optional example combines durable observation, actual tinybackrooms retreat,
+isolated code/reference/schema/Lean verification and the preregistered
+original/evolved experiment with memory-off and retreat-off ablations. The separate
+controlled path below exercises normalized confirmation, approval and deployment:
+
+```sh
+TINYRSI_LIVE_OPENROUTER=1 TINYRSI_LEAN=/absolute/path/to/lean \
+  cargo run -p tinyrsi --features host --example complete_openrouter
+```
+
+It requires inherited `OPENROUTER_API_KEY` and an actual stock Lean executable.
+`OPENROUTER_MODEL` chooses the model. `TINYRSI_COMPLETE_DIR` chooses a fresh
+host-private directory (default `target/rsi-complete-live`); existing directories
+are refused to preserve preregistration. The example spends real API tokens.
+It writes protocol and aggregate experiment reports without publishing private
+suite contents. A negative or inconclusive report is a valid result.
+
 ## Releasing
 
 Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or
@@ -141,3 +190,18 @@ stable native matrix covers Ubuntu 22.04 and 24.04 on x86_64 and ARM64; Fedora
 43 and 44 on x86_64 and ARM64; rolling Arch Linux on its officially supported
 x86_64 architecture; macOS 15 and 26 on Intel and Apple Silicon; Windows Server
 2022 and 2025 on x86_64; and Windows 11 on ARM64.
+
+The separate acceptance/deployment validation uses a model-authored, schema-bound
+context repair outside the preregistered comparison:
+
+```sh
+TINYRSI_LIVE_OPENROUTER=1 TINYRSI_CONTROLLED_ONLY=1 \
+  TINYRSI_COMPLETE_DIR=target/rsi-controlled-live \
+  TINYRSI_LEAN=/absolute/path/to/lean \
+  cargo run -p tinyrsi --all-features --example complete_openrouter
+```
+
+It checks all three normalized evaluation stages, both sandbox gate decisions,
+a verified turn on the accepted SQLite deployment, exact parent rollback and
+reopening the deployment, archive and runtime. It does not contribute observations
+to the frozen original/evolved comparison.

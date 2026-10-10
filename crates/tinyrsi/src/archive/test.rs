@@ -188,7 +188,7 @@ fn rejects_replayed_duplicates_and_invalid_activation() {
     fs::write(&path, serde_json::to_vec(&snapshot).unwrap()).unwrap();
     assert!(matches!(Archive::open(&path), Err(Error::ArchiveCorrupt)));
     let mut snapshot: Snapshot = serde_json::from_slice(&original).unwrap();
-    snapshot.version = 2;
+    snapshot.version = 3;
     fs::write(&path, serde_json::to_vec(&snapshot).unwrap()).unwrap();
     assert!(matches!(Archive::open(&path), Err(Error::ArchiveCorrupt)));
 }

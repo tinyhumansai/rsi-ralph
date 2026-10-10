@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Prediction {
-    /// The supported objective, currently `verified_quality`.
+    /// Objective: `verified_quality` for the raw runner or `normalized_h` for H epochs.
     pub metric: String,
     /// Positive minimum expected quality gain.
     pub minimum_gain: f64,

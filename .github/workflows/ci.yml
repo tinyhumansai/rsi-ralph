@@ -50,6 +50,9 @@ jobs:
       - name: Test
         run: cargo test --all-features
 
+      - name: Test frozen code checker grammar
+        run: python3 -m unittest discover -s crates/tinyrsi/examples/complete -p test_check_code.py
+
       - name: Test default features
         run: cargo test
 

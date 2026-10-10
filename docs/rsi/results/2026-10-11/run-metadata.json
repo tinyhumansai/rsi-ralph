@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-11",
+  "model": "openai/gpt-4.1-mini",
+  "lean": "4.34.1",
+  "docker_image": "python@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a",
+  "experiment_wall_seconds": 343.28,
+  "contamination_canary_scan": {
+    "stores": 51,
+    "matches": 0
+  },
+  "earlier_runs": "v1-v5 development failures; v6 withdrawn before completing comparison after verifier review. None pooled with the frozen v7 experiment. Controlled v1 superseded by v2 durable-reopen and deployed-turn validation.",
+  "scope": "public toy fixtures; oracle bytes not sent to proposer; not an undisclosed benchmark, accepted learned orchestrator, CortexDB integration, production deployment or ignition result"
+}

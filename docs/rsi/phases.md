@@ -1,230 +1,150 @@
-# RSI phase status and remaining acceptance
+# RSI phase status and evidence
 
-This page separates implemented library components from a deployed improvement
-loop and from evidence of improvement. It tracks
-[umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1) and
-[scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2).
-The [framework](specs/rsi-framework.md) defines the epoch and ownership rules.
+This page tracks [umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1)
+and [scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2). The
+[framework](specs/rsi-framework.md) defines ownership; the
+[host runtime specification](../specs/host-runtime.md) defines deployed behavior.
+Implemented mechanisms and experimental efficacy are separate claims.
 
-| Phase | Current status | Remaining proof of completion |
-|---|---|---|
-| P1 — Observe and record | Observer, dossier and durable archive implemented | Host epoch collection and restart/replay demonstration |
-| P2 — Human-gated shadow loop | Evaluation, approval and memory ports implemented | Private-suite host runner, snapshot provider and live restoration |
-| P3 — Verified decomposition | Runtime DAG and explicit verifier reports implemented | Actual completion gate and code/Lean suites |
-| P4 — Creative retreat | Actual tinybackrooms engine integrated | Durable retreat memory and measured proposer ablation |
-| P5 — Structural edits | Activation granularity mapping implemented | Host roster/replacement/restart execution and rollback |
-| P6 — Ignition | Research objective documented | Preregistered experiment and independent results |
+| Phase | Implemented mechanism | Evidence boundary |
+| --- | --- | --- |
+| P1 — Observe and record | Durable redacted observations, dossiers, prepared snapshots and replay-validated archive | Host owns actual usage callbacks and admission exclusion |
+| P2 — Human-gated shadow loop | Normalized preregistration, isolated private suites, exact memory pinning, fresh confirmation and explicit approval | Private configuration and host checker trust remain external |
+| P3 — Verified decomposition | Real Coordinator-backed verification/completion gate, executable/schema/reference/Lean checks and multi-seat DAG integration | Executing generated code requires a host sandbox; stock Lean is required for proof claims |
+| P4 — Creative retreat | Actual tinybackrooms Engine, durable scoped memory, epoch journal and complete typed attempt capture | Failed calls and invalid formatting remain failures/counters |
+| P5 — Structural edits | Durable selected/deployed separation, coordinator rebuild, fencing, compensation and exact parent rollback | Supplied factory is single-seat and rejects unsupported capabilities; custom factories own broader support |
+| P6 — Ignition | Immutable preregistered original/evolved trial harness, matched caps, ablations and aggregate uncertainty | 24 live attempts, inconclusive; no accepted learned orchestrator or ignition claim |
 
-None of P2–P6 is complete merely because its API exists. The live arithmetic
-smoke has passed through the real model-backed retreat and evaluation funnel;
-it establishes integration only. It does not establish gains on private code,
-Lean or research suites. A selected archive head records a design decision,
-not evidence that a live coordinator applied that design.
+## P1 — Durable observations and evidence
 
-## Phase trackers
+`DeploymentStore::observe` persists redacted transcript references and episode
+phases together with the observation cursor and epoch. Reopening the store
+retains those windows and avoids counting settled episodes again.
+`Dossier::build` combines observations with measured host token/turn and verifier
+callbacks; message bodies, failure text and private oracle contents are omitted.
 
-- P1: https://github.com/tinyhumansai/tinyrsi/issues/3
-- P2: https://github.com/tinyhumansai/tinyrsi/issues/4
-- P3: https://github.com/tinyhumansai/tinyrsi/issues/5
-- P4: https://github.com/tinyhumansai/tinyrsi/issues/6
-- P5: https://github.com/tinyhumansai/tinyrsi/issues/7
-- P6: https://github.com/tinyhumansai/tinyrsi/issues/8
-- Language: https://github.com/tinyhumansai/tinyhivemind/issues/122
+`Archive` uses the language's original `Record` and `Package`, validates
+ancestry/content identities, and preserves prepared unscored states. It retains
+proposals, raw paired outcomes, normalized policies, comparisons and approval
+evidence. `conclude` commits the graded record and final outcome atomically.
+Replay recomputes normalized comparisons and rejects approval/confirmation
+bypasses. Archive pointer revert alone changes selection; live restoration uses
+`DeploymentStore::rollback`.
 
-The typed-verifier follow-up extends the merged language issue #112.
+## P2 — Private normalized selection
 
-## P1 — Read-only observation and durable evidence
+`run_proposal_h` writes normalized preregistration before memory pinning or any
+evaluator callback. Frozen Screen, Selection and Confirmation fingerprints bind
+the epoch; margins derive from the frozen host policy and exact proposal.
+Language guards, read-only memory checks, grounded references, class boundaries
+and duplicate suppression precede evaluation. Valid candidates are prepared
+before model execution. Confirmation reuses neither tasks nor seeds from earlier
+stages. The exact human decision is persisted; only valid positive confirmation
+plus approval permits accepted normalized lineage.
 
-Implemented components:
+`PrivateSuites` fingerprints actual private prompts, checker settings and seeds.
+`CoordinatorEvaluator` runs each arm/task/seed with fresh coordinator storage,
+owned pinned memory and a real `VerifiedRunner`. Provider usage is measured
+outside model artifacts. `SnapshotMemoryStore` stores immutable local images,
+checks learning preconditions/canaries, and keeps old versions for exact rollback.
+It is not a CortexDB adapter, and shadow evaluation does not merge its writes
+into live memory. `compare_h`, `QualityRubric` and `AnchorLedger` supply normalized
+quality, verifier weighting, bootstrap uncertainty and independent anchor checks.
 
-- `Observer::snapshot` reads incremental transcript references and retained
-  episode phases. Its cursor advances after both reads succeed. It discards
-  message text and private failure reasons; the separate reads are not atomic.
-- `Dossier::build` deterministically aggregates host-supplied token usage,
-  wasted turns, failed/open nodes and memory-health counters.
-- `Archive` persists the language's exact `Record`, candidate `Package`, memory
-  watermarks, typed proposal declarations, outcomes and paired evidence. Replay
-  validates identity and ancestry; `prepare` preserves unscored candidates;
-  `conclude` commits a candidate and its final outcome together.
-- `Archive::revert` changes the selected design pointer to its accepted parent
-  without deleting history. It does not restore a live runtime or memory store.
+## P3 — Real verification and completion
 
-Remaining acceptance for the host integration:
+`VerifierRegistry` freezes host checks. `VerifiedRunner` binds an artifact to its
+active episode, seat, node and transcript references, then submits completion
+only after required DAG nodes verify. Failed, forged or incomplete evidence
+parks work without success credit. Tests exercise multi-seat dependencies with
+actual coordinator settlement and host releases when parked dependencies become
+ready. Self-created nodes do not become evaluation scoring checkpoints.
 
-1. Collect complete epoch windows from `Coordinator::subscribe`, the observer
-   cursor and actual host turn/verifier callbacks without scheduling agents.
-2. Persist the epoch boundary and redacted dossier so restart resumes without
-   losing or counting the same measured turn twice.
-3. Demonstrate manual grading, reopen/replay, rejected-history queries and
-   one-step pointer revert in an offline host example with recorded evidence.
-4. Keep every public artifact free of transcript bodies, private task text and
-   oracle answers. Document storage locking and crash-recovery limitations.
+Process checks run a configured direct executable with bounded time/output and
+a cleared environment. The host supplies any required sandbox. Schema and golden
+references remain private. Lean checks append a restricted proof to a frozen
+theorem and require a stock kernel axiom report; unavailable or failed checking
+cannot receive simulated proof credit. Process workspace files remain an
+immutable host trust boundary. No vendor code or OpenHuman completion API was
+changed by these adapters.
 
-The low-level coordinator observation API already exists. This follow-up should
-integrate it rather than request another observation API in tinyhivemind.
+## P4 — Durable real retreat attempts
 
-## P2 — Human-gated shadow selection
+`prepare_retreat_epoch` validates a genuinely persisted observation/dossier,
+normalized policy, orchestrator instructions and generation seed before calls.
+Engine mode uses the actual tinybackrooms Engine with `ModelConversant` and
+`DurableRetreatMemory`; direct mode supplies the orchestrator-alone ablation.
+Memory-off removes recall. Ranked items and every strictly decoded formatter
+occurrence are captured without deduplicating attempts. Invalid outputs remain
+counters; no fallback proposal is invented.
 
-`run_proposal` supplies class-scoped formalization, language guards, grounded
-references, exact deduplication, prepared snapshots, screening, selection,
-independent confirmation and an `ApprovalGate`. `Evaluator` is a host port;
-its memory pinning and task execution are not production providers.
+`EpochJournal` saves intent before external calls and prepared typed proposals
+after generation. Completed generation/evaluation is reused after restart;
+changed inputs reject reuse. Unknown interrupted effects fail closed rather than
+repeating potentially spent calls. `evaluate_retreat_epoch` invokes the normalized
+funnel synchronously, preserves classifications and stops after acceptance.
+Durable retreat memory recalls labelled outcomes without publishing raw outputs
+or private suite contents.
 
-`compare` implements a raw-quality paired ±2SE heuristic. `QualityRubric` and
-`JudgeCalibration` provide eval-owned checkpoint weighting; `score`, `compare_h`
-and `AnchorLedger` provide normalized bootstrap scoring and anchor monitoring.
-The host still owns suites, reference anchors, calibration data and health-rate
-denominators. Monitoring advice does not automatically roll back a runtime.
+The earlier arithmetic [live smoke](live-smoke.md) remains connectivity evidence.
+The complete live example adds real private-suite checking and the preregistered
+experiment; its [measured report](complete-live.md) is inconclusive.
 
-Remaining acceptance:
+## P5 — Safe deployment and rollback
 
-1. Implement a host runner for context, memory and prompt proposals using
-   private selection/confirmation/anchor suites, paired seeds and execution-time
-   caps. Use normalized scoring for scientific claims.
-2. Supply isolated pinned memory snapshots and check learning-entry
-   preconditions. Shadow writes must never merge into incumbent memory.
-3. Ask a human to approve the exact candidate identity after confirmation.
-   Denial, host failure and persistence failure must leave the live incumbent
-   unchanged.
-4. Restore both package and memory on revert, and test interruption/restart
-   between selection, approval and application.
-5. Report family quality, bootstrap intervals, tokens, false claims, tamper and
-   canary checks from actual runtime evidence.
+`DeploymentStore` journals exact from/to IDs before applying an accepted design.
+`CoordinatorHost` validates/configures runners before restoring memory or fencing
+a writer, then rebuilds on the same storage through existing upstream APIs.
+Activation requires queues, parked turns, running reservations and unfinished
+episodes to be quiescent; callers must stop admission. Selected archive state
+and successfully deployed state remain distinct.
 
-Reuse configured deployment work in
-[tinyhivemind #117](https://github.com/tinyhumansai/tinyhivemind/issues/117) and
-identity/memory work in
-[#119](https://github.com/tinyhumansai/tinyhivemind/issues/119). This phase owns
-RSI isolation, selection and approval integration, not a second deployment API.
+Failures leave a pending intent and block new activation/observation. Recovery
+compensates by rebuilding the prior package with its exact memory watermarks.
+First deployment without a prior snapshot retries the target. Rollback restores
+the deployed record's accepted parent and completes selection/deployment
+reconciliation after interruption. SQLite restart tests cover fencing, retained
+logical sessions, queued-work reattachment and failed compensation paths.
 
-## P3 — Verified decomposition in a running hive
+The supplied `ControlledRunnerFactory` supports a bounded artifact-only single
+seat with implemented prompt/context/recall/cap settings. Unsupported MCP, tools,
+models or policies fail explicitly. Generic `RunnerFactory` implementations own
+custom capability installation. Removed identities remain dormant; existing hive
+metadata changes are rejected. This is full rebuild support, without a promise
+of external model-process continuity.
 
-`Blueprint::new` validates a nonempty dependency DAG and rejects preverified
-nodes. `ready` exposes nodes with verified dependencies; `report` consumes an
-explicit host verifier outcome; `is_complete` requires every node verified.
-Failed prerequisites revoke dependent passes. Proof, execution, schema, private
-reference, rubric and preference are ordered; the latter two are weak evidence.
+## P6 — Bounded experiment and measured limits
 
-This state machine does not execute Lean, run tests or intercept
-`complete_episode`. It cannot authenticate an arbitrary caller's claimed pass.
+`ExperimentProtocol` freezes original/evolved orchestrator identities, identical
+starting solver hive, private fingerprints, family anchors, seed draws, caps,
+stopping count and practical margin before outputs. `run_experiment` executes
+Full, MemoryOff and RetreatOff arms with counterbalanced ordering, at least three
+independent paired draws, two anchor seeds per draw and twenty total attempts.
+The complete live example schedules 24 trial assignments after its worked run.
 
-Remaining acceptance:
+Every generation, retry, evaluation and initial/final anchor call contributes to
+total cost. `BudgetedModel` reserves hard caps before dispatch. Returned evidence
+is checked against preregistration; scores/gates and anchor comparisons are
+recomputed. The endpoint is evolved minus original anchor H gain per 1,000 total
+tokens, with a bootstrap over complete independent paired trials. Public reports
+omit private per-task rows, prompts and oracle answers. Scripted evidence is
+ProtocolOnly; missing evidence and failed gates prevent positive claims.
 
-1. Bind reports to observed checker runs with node identity, transcript sequence,
-   artifact identity, command and exit status, without exposing private oracles.
-2. Integrate the completion gate already tracked in
-   [tinyhivemind #100](https://github.com/tinyhumansai/tinyhivemind/issues/100).
-   Exercise refusal before verification and acceptance only after required
-   checks; use the same gate in hive and single-agent arms.
-3. Add a pinned code family and a private Lean slice checked by `lake build`.
-   Report eval-owned per-node credit, open/sorry nodes and verified nodes per
-   token; self-created decomposition must not create scoring checkpoints.
-4. Keep immutable verifier definitions separate from mutable runtime status.
-   Raise the remaining language contract additions on
-   [#112](https://github.com/tinyhumansai/tinyhivemind/issues/112).
+The [complete live measurements](complete-live.md) report 24 attempts with an
+inconclusive verdict. The two frozen proposer variants were human-authored, so
+an accepted learned orchestrator is not established. Even a supported
+bounded improvement would not establish open-ended RSI or ignition; independent
+replication remains necessary. See the [experiment contract](../specs/ignition.md).
 
-Do not create a second generic completion-gate issue. The new work is the RSI
-blueprint/verifier adapter and the curated evaluation suites around that gate.
+## Trackers and upstream boundaries
 
-## P4 — Creative retreat
-
-`typed_retreat_request` constructs and validates the actual vendored
-`tinybackrooms::GenerateRequest`; `generate_retreat_with_engine` runs its
-proposal/critic conversations, formatter extraction and configured scorers.
-The HTTP transport adapter remains available. Strict `Proposal` decoding counts
-invalid returned items and retains no raw model output in public artifacts.
-
-The request uses `critic_pair`, comparative/judge/originality scoring, ranked
-selection and `project:rsi-<hive>/agent:retreat`. Public package projection and
-redacted dossier evidence exclude protected host fields and raw rejected edits.
-Deterministic tests run the actual engine with `ScriptedConversant`.
-
-The opt-in `live_openrouter` example also exercised the real engine and model
-backend: five model calls used 5,249 measured tokens and produced one validated
-ranked proposal. Screening, selection and confirmation each used two paired
-seeds and measured 108 incumbent / 130 candidate tokens. The arithmetic paired
-gain was 1.0 with a raw ±2SE interval of [1.0, 1.0]. This small deterministic
-smoke is not a calibrated improvement estimate. The human gate returned
-`ApprovalDenied`; the baseline stayed selected and archive reopen passed.
-
-Remaining acceptance:
-
-1. Connect a persistent tinybackrooms `Memory` adapter scoped to the retreat,
-   and demonstrate recall of labelled accepted/rejected outcomes after restart.
-   Namespace routing alone does not provide durable memory.
-2. Invoke the retreat at epoch boundaries and retain source mode, model, run
-   identity, prediction and realized outcome without publishing private data.
-3. Compare retreat proposals against an orchestrator-alone proposer on identical
-   dossiers, proposal/evaluation budgets and seeds over independent runs.
-4. Report proposals produced, schema/guard failures, screened proposals,
-   confirmed acceptance share, verified gain and total generation/evaluation
-   cost. Include at least twenty real proposals for scoring #2's worked example.
-5. Separate arithmetic connectivity results from private-suite improvement
-   claims. A successful model call or schema-valid item is not measured gain.
-
-## P5 — Structural classes and safe activation
-
-`apply_at` maps context/memory to the next turn, prompt to agent replacement,
-roster to host management, and topology/policy/goal to a between-session boundary.
-`CandidateOutcome` returns that boundary after approval. These are instructions
-to the host, not an implementation of activation.
-
-Remaining acceptance:
-
-1. Execute approved replacement and roster edits through existing authorized
-   host APIs while preserving required session and memory identity.
-2. Restart a coordinator over the same durable storage between sessions for
-   structural policy/topology changes. Test writer fencing and interrupted
-   activation so two coordinators cannot operate the same active design.
-3. Persist application success/failure separately from selection, reconcile it
-   after restart, and restore the accepted parent package and memory on rollback.
-4. Demonstrate structural proposals in shadow mode before scheduling human
-   review. This implementation still requires approval for every live promotion;
-   it does not grant autonomous live structural edits.
-
-Reuse deployment/configuration work in
-[#115](https://github.com/tinyhumansai/tinyhivemind/issues/115),
-[#116](https://github.com/tinyhumansai/tinyhivemind/issues/116),
-[#117](https://github.com/tinyhumansai/tinyhivemind/issues/117) and
-[#118](https://github.com/tinyhumansai/tinyhivemind/issues/118), and identity
-rules in [#119](https://github.com/tinyhumansai/tinyhivemind/issues/119).
-Role scheduling and width experiments remain
-[#102](https://github.com/tinyhumansai/tinyhivemind/issues/102), not this phase.
-
-## P6 — Ignition experiment
-
-No ignition result is established. An improved task solver is not evidence that
-an evolved orchestrator improves other hives faster than its original ancestor.
-
-Remaining acceptance:
-
-1. Preregister original/evolved orchestrator identities, immutable judges,
-   private suites, seed draws, total compute caps, margins and stopping rules.
-2. Compare both orchestrators on identical starting hives and budgets over
-   several independent trials. Keep selection, confirmation and anchor draws
-   separate; match proposal generation as well as evaluation cost.
-3. Report verified anchor improvement per token, elapsed time and total cost,
-   with uncertainty, lineage and negative/inconclusive results.
-4. Include memory-off and retreat-off ablations, contamination checks and
-   human approval records. Keep the judge outside every editable surface.
-5. Publish a reproducible experiment report. Call the result inconclusive when
-   the predefined evidence cannot separate the arms; do not infer ignition from
-   one successful proposal or arithmetic smoke run.
-
-## Issue ownership and filing
-
-All six phase tracking issues belong in tinyrsi for integration and experimental
-acceptance. Their upstream blockers stay in the owning repositories: deployment,
-completion and identity in tinyhivemind; snapshot transactions in tinymemory;
-durable creative memory in tinybackrooms. Existing blockers must be linked,
-not refiled under new titles.
-
-The remaining language additions are an update on tinyhivemind #112: typed
-immutable verifier definitions, a runtime evidence boundary and explicit
-orchestrator approval constraints. Reusing its `Record` is already implemented.
-
-Draft bodies are prepared separately for P1–P6 and the #112 update. They have not
-been posted by the documentation task. Umbrella filing acceptance remains open
-until phase issue URLs and the posted #112 update are linked from #1; drafts
-alone do not satisfy it. Filing these follow-ups does not mark their phases
-complete, and this work does not close the umbrella.
+P1–P6 trackers are [#3](https://github.com/tinyhumansai/tinyrsi/issues/3),
+[#4](https://github.com/tinyhumansai/tinyrsi/issues/4),
+[#5](https://github.com/tinyhumansai/tinyrsi/issues/5),
+[#6](https://github.com/tinyhumansai/tinyrsi/issues/6),
+[#7](https://github.com/tinyhumansai/tinyrsi/issues/7), and
+[#8](https://github.com/tinyhumansai/tinyrsi/issues/8). Existing deployment,
+identity and completion work remains owned by tinyhivemind; generalized memory
+engines remain owned by their upstream projects. The remaining language contract
+is tracked in [tinyhivemind #122](https://github.com/tinyhumansai/tinyhivemind/issues/122).
+This repository implements the host integration through existing pinned APIs.

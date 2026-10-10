@@ -53,3 +53,32 @@ durability after power loss depends on the underlying filesystem.
 
 `replay.rs` owns event validation and folding. `mod.rs` owns exclusive storage
 and the public API; this split keeps integrity rules distinct from IO handling.
+
+Normalized H evidence uses dedicated `NormalizedEvaluationEvent` and
+`NormalizedApprovalEvent` events rather than converting a raw comparison. Each
+stage binds exact incumbent/candidate IDs, proposal declaration, all frozen
+suite fingerprints, budget, validated policy specification, rates, paired runs,
+and deterministic bootstrap output. Replay recomputes `compare_h`, validates
+stage order and frozen settings, and rejects altered evidence. A normalized
+accepted Record also needs independent positive confirmation, explicit approval,
+and an exact measured `normalized_h` objective. Denied or unavailable approval
+never advances the head. Archives containing these events write schema version
+two; version one histories remain readable. This validates internal consistency
+of trusted host telemetry, not external authenticity of unsigned host evidence.
+
+Normalized proposals additionally persist `NormalizedDeclarationEvent` before
+memory pinning, preparation, or evaluator callbacks. It freezes the incumbent,
+base validated H policy, exact proposal prediction, hard budget, and all three
+private suite fingerprints. The effective margin is derived from that base
+policy and the declared prediction; stage evidence cannot choose a later policy.
+Declarations in one epoch cannot contradict parent, policy, budget, or suites.
+A matching prepared/final candidate or previous attempted-proposal output blocks
+retroactive declaration. Schema 2 also covers a declaration-only crash prefix.
+
+A candidate belonging to a normalized declaration cannot bypass evaluation by
+calling `record` directly, including when it omits preparation altogether.
+Replay checks the actual package against the declared patch and requires exact
+normalized evidence and approval before accepting it. Legacy unrelated lineage
+records and schema 1 histories retain their existing behavior. A crash prefix
+remains inspectable and replayable; resuming an incomplete normalized run is a
+host decision and is not synthesized by this archive.
