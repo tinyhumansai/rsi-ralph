@@ -56,7 +56,7 @@ async fn fails_closed_on_corruption_and_bounds() {
         "h",
         MemoryLimits {
             max_entries: 1,
-            max_bytes: 20,
+            max_bytes: 128,
         },
         vec![],
     )
@@ -65,9 +65,17 @@ async fn fails_closed_on_corruption_and_bounds() {
         .store("project:rsi-h/agent:retreat", vec!["first".into()])
         .await
         .unwrap();
+    memory
+        .store(memory.namespace(), vec!["second".into()])
+        .await
+        .unwrap();
+    assert_eq!(
+        memory.recall(memory.namespace(), "", 10).await.unwrap(),
+        vec!["second"]
+    );
     assert!(
         memory
-            .store("project:rsi-h/agent:retreat", vec!["second".into()])
+            .store(memory.namespace(), vec!["x".repeat(129)])
             .await
             .is_err()
     );
@@ -284,4 +292,143 @@ fn refuses_memory_and_lock_symlinks() {
         ));
         std::fs::remove_file(target).unwrap();
     }
+}
+
+#[tokio::test]
+async fn rolling_windows_keep_latest_epochs_and_outcomes_after_reopen() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rolling");
+    let limits = MemoryLimits {
+        max_entries: 2,
+        max_bytes: 256,
+    };
+    let memory = DurableRetreatMemory::open(&path, "h", limits.clone(), vec![]).unwrap();
+    for epoch in 1..=5 {
+        memory
+            .store(memory.namespace(), vec![format!("idea-{epoch}")])
+            .await
+            .unwrap();
+        memory
+            .record_outcome(RetreatMemoryOutcome {
+                epoch,
+                candidate_id: format!("id-{epoch}"),
+                status: RetreatOutcomeStatus::Rejected,
+            })
+            .unwrap();
+    }
+    drop(memory);
+    let memory = DurableRetreatMemory::open(&path, "h", limits, vec![]).unwrap();
+    assert_eq!(
+        memory.recall(memory.namespace(), "", 10).await.unwrap(),
+        vec!["idea-4", "idea-5"]
+    );
+    assert_eq!(
+        memory
+            .outcomes()
+            .unwrap()
+            .iter()
+            .map(|o| o.epoch)
+            .collect::<Vec<_>>(),
+        vec![4, 5]
+    );
+}
+
+#[tokio::test]
+async fn byte_eviction_is_independent_and_rejects_every_incoming_protected_or_oversized_item() {
+    let dir = tempfile::tempdir().unwrap();
+    let memory = DurableRetreatMemory::open(
+        dir.path().join("rolling"),
+        "h",
+        MemoryLimits {
+            max_entries: 2,
+            max_bytes: 90,
+        },
+        vec!["SECRET".into()],
+    )
+    .unwrap();
+    memory
+        .store(memory.namespace(), vec!["a".repeat(70)])
+        .await
+        .unwrap();
+    memory
+        .store(memory.namespace(), vec!["b".repeat(70)])
+        .await
+        .unwrap();
+    assert_eq!(
+        memory.recall(memory.namespace(), "", 10).await.unwrap(),
+        vec!["b".repeat(70)]
+    );
+    for first in ["SECRET".into(), "x".repeat(129)] {
+        assert!(
+            memory
+                .store(memory.namespace(), vec![first, "one".into(), "two".into()])
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            memory.recall(memory.namespace(), "", 10).await.unwrap(),
+            vec!["b".repeat(70)]
+        );
+    }
+    for epoch in 1..=4 {
+        memory
+            .record_outcome(RetreatMemoryOutcome {
+                epoch,
+                candidate_id: format!("id-{epoch}"),
+                status: RetreatOutcomeStatus::Approved,
+            })
+            .unwrap();
+    }
+    assert_eq!(memory.outcomes().unwrap().last().unwrap().epoch, 4);
+    assert!(memory.outcomes().unwrap().len() < 2);
+    assert_eq!(
+        memory.recall(memory.namespace(), "", 10).await.unwrap(),
+        vec!["b".repeat(70)]
+    );
+    for candidate_id in ["SECRET".into(), "x".repeat(129), String::new()] {
+        assert!(
+            memory
+                .record_outcome(RetreatMemoryOutcome {
+                    epoch: 5,
+                    candidate_id,
+                    status: RetreatOutcomeStatus::Approved
+                })
+                .is_err()
+        );
+    }
+    assert_eq!(memory.outcomes().unwrap().last().unwrap().epoch, 4);
+}
+
+#[test]
+fn outcome_idempotency_is_scoped_to_the_retained_window() {
+    let dir = tempfile::tempdir().unwrap();
+    let memory = DurableRetreatMemory::open(
+        dir.path().join("rolling"),
+        "h",
+        MemoryLimits {
+            max_entries: 1,
+            max_bytes: 256,
+        },
+        vec![],
+    )
+    .unwrap();
+    let first = RetreatMemoryOutcome {
+        epoch: 1,
+        candidate_id: "one".into(),
+        status: RetreatOutcomeStatus::Rejected,
+    };
+    memory.record_outcome(first.clone()).unwrap();
+    memory.record_outcome(first.clone()).unwrap();
+    let mut changed = first;
+    changed.status = RetreatOutcomeStatus::Approved;
+    assert!(memory.record_outcome(changed.clone()).is_err());
+    memory
+        .record_outcome(RetreatMemoryOutcome {
+            epoch: 2,
+            candidate_id: "two".into(),
+            status: RetreatOutcomeStatus::Rejected,
+        })
+        .unwrap();
+    memory.record_outcome(changed.clone()).unwrap();
+    assert_eq!(memory.outcomes().unwrap(), vec![changed]);
 }

@@ -1,7 +1,9 @@
 # Immutable hive memory
 
 `SnapshotMemoryStore` stores immutable namespace/watermark images under a
-cross-process file lock. Transactions stage and fsync a replacement in the same
+cross-process file lock. Read-only transactions share the lock; writers wait for
+exclusive ownership, so concurrent readers do not become failed agent turns.
+Transactions stage and fsync a replacement in the same
 directory. Active selection is a separate atomic operation; preparing a learning
 patch never changes deployed contents. Old images remain available for exact
 rollback and paired shadow evaluation. Each read returns owned maps.

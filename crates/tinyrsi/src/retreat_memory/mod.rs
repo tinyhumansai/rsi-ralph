@@ -1,4 +1,4 @@
-//! Durable, scoped creative discovery history with separate host outcomes.
+//! Durable, scoped rolling creative recall with separate host outcome windows.
 mod types;
 use crate::{Error, Result};
 use fs2::FileExt;
@@ -105,7 +105,8 @@ impl DurableRetreatMemory {
         if state.version != 1
             || state.namespace != self.namespace
             || state.discovery.len() > self.limits.max_entries
-            || state.discovery.iter().map(String::len).sum::<usize>() > self.limits.max_bytes
+            || total_bytes(&state.discovery, |s| Ok(s.len()))? > self.limits.max_bytes
+            || total_bytes(&state.outcomes, outcome_bytes)? > self.limits.max_bytes
             || state.outcomes.len() > self.limits.max_entries
             || state.discovery.iter().any(|s| self.contaminated(s))
             || state.outcomes.iter().any(|s| {
@@ -116,6 +117,20 @@ impl DurableRetreatMemory {
         {
             return Err(Error::ArchiveCorrupt);
         }
+        Ok(())
+    }
+    fn trim<T>(&self, entries: &mut Vec<T>, size: impl Fn(&T) -> Result<usize>) -> Result<()> {
+        let sizes = entries.iter().map(size).collect::<Result<Vec<_>>>()?;
+        let mut bytes = sizes
+            .iter()
+            .try_fold(0usize, |a, b| a.checked_add(*b))
+            .ok_or(Error::InvalidProposal)?;
+        let mut removed = 0;
+        while entries.len() - removed > self.limits.max_entries || bytes > self.limits.max_bytes {
+            bytes -= sizes[removed];
+            removed += 1;
+        }
+        entries.drain(..removed);
         Ok(())
     }
     fn persist(&self, current: &mut State, next: State) -> Result<()> {
@@ -132,6 +147,7 @@ impl DurableRetreatMemory {
         temp.persist(&self.path).map_err(|_| Error::ArchiveIo)?;
         // The rename is observable even when the following directory sync fails.
         *current = next;
+        #[cfg(unix)]
         File::open(parent)
             .and_then(|f| f.sync_all())
             .map_err(|_| Error::ArchiveIo)?;
@@ -166,10 +182,19 @@ impl DurableRetreatMemory {
     pub fn namespace(&self) -> &str {
         &self.namespace
     }
-    /// Records a host outcome separately from model-ranked discovery items.
+    /// Records a host outcome in its own oldest-first bounded recall window.
+    /// Repeated labels are idempotent, and contradictory labels reject, while
+    /// the epoch/candidate pair remains retained. Archive/journal owns full history.
     /// # Errors
     /// Returns storage, bounds or protected-value errors.
     pub fn record_outcome(&self, outcome: RetreatMemoryOutcome) -> Result<()> {
+        if outcome.candidate_id.is_empty()
+            || outcome.candidate_id.len() > 256
+            || self.contaminated(&outcome.candidate_id)
+            || outcome_bytes(&outcome)? > self.limits.max_bytes
+        {
+            return Err(Error::InvalidProposal);
+        }
         let mut state = self.state.lock().map_err(|_| Error::HostFailed)?;
         if state.outcomes.contains(&outcome) {
             return Ok(());
@@ -188,6 +213,7 @@ impl DurableRetreatMemory {
             outcomes: state.outcomes.clone(),
         };
         next.outcomes.push(outcome);
+        self.trim(&mut next.outcomes, outcome_bytes)?;
         self.persist(&mut state, next)?;
         Ok(())
     }
@@ -230,6 +256,14 @@ impl Memory for DurableRetreatMemory {
             if namespace != self.namespace {
                 return Err(Error::InvalidProposal);
             }
+            // Check every incoming item before eviction, even items that would
+            // fall outside the retained suffix of a larger batch.
+            if entries
+                .iter()
+                .any(|s| self.contaminated(s) || s.len() > self.limits.max_bytes)
+            {
+                return Err(Error::InvalidProposal);
+            }
             let mut state = self.state.lock().map_err(|_| Error::HostFailed)?;
             let mut next = State {
                 version: state.version,
@@ -238,6 +272,7 @@ impl Memory for DurableRetreatMemory {
                 outcomes: state.outcomes.clone(),
             };
             next.discovery.extend(entries);
+            self.trim(&mut next.discovery, |s| Ok(s.len()))?;
             self.persist(&mut state, next)?;
             Ok(())
         })();
@@ -245,6 +280,16 @@ impl Memory for DurableRetreatMemory {
             result.map_err(|_| tinybackrooms::Error::Memory("durable store failed".into()))
         })
     }
+}
+fn outcome_bytes(outcome: &RetreatMemoryOutcome) -> Result<usize> {
+    serde_json::to_vec(outcome)
+        .map(|bytes| bytes.len())
+        .map_err(|_| Error::InvalidProposal)
+}
+fn total_bytes<T>(entries: &[T], size: impl Fn(&T) -> Result<usize>) -> Result<usize> {
+    entries.iter().try_fold(0usize, |total, entry| {
+        total.checked_add(size(entry)?).ok_or(Error::ArchiveCorrupt)
+    })
 }
 #[cfg(test)]
 mod test;

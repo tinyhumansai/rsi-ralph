@@ -1,11 +1,12 @@
 //! Bounds and host-labeled outcomes for retreat history.
 use serde::{Deserialize, Serialize};
-/// Hard discovery-history storage limits.
+/// Independent hard limits for discovery and host-outcome rolling windows.
 #[derive(Clone, Debug)]
 pub struct MemoryLimits {
-    /// Maximum discovery entries.
+    /// Maximum entries retained in each window; oldest entries are evicted.
     pub max_entries: usize,
-    /// Maximum UTF-8 bytes across discovery entries.
+    /// Maximum bytes in each window: UTF-8 discovery text or serialized outcomes.
+    /// An individual entry exceeding this bound is rejected before eviction.
     pub max_bytes: usize,
 }
 impl Default for MemoryLimits {

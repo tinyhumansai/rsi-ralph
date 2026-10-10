@@ -360,8 +360,12 @@ impl SnapshotMemoryStore {
             .truncate(false)
             .open(&self.lock)
             .map_err(|_| Error::ArchiveIo)?;
-        file.try_lock_exclusive()
-            .map_err(|_| Error::ArchiveLocked)?;
+        if write {
+            FileExt::lock_exclusive(&file)
+        } else {
+            FileExt::lock_shared(&file)
+        }
+        .map_err(|_| Error::ArchiveLocked)?;
         let _guard = Lock(file);
         let mut state = match fs::read(&self.path) {
             Ok(bytes) if bytes.len() <= self.max_bytes => {

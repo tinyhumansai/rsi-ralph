@@ -229,3 +229,21 @@ fn forks_copy_pinned_parent_and_retirement_keeps_parent_for_rollback() {
         "original"
     );
 }
+
+#[test]
+fn concurrent_readers_share_the_snapshot_lock() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SnapshotMemoryStore::open(dir.path().join("memory.json"), vec![], 100_000).unwrap();
+    let other_reader = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&store.lock)
+        .unwrap();
+    FileExt::lock_shared(&other_reader).unwrap();
+    assert_eq!(store.clone().active_watermarks().unwrap(), BTreeMap::new());
+    assert_eq!(
+        store.read(&Package::default(), &BTreeMap::new()).unwrap(),
+        BTreeMap::new()
+    );
+    FileExt::unlock(&other_reader).unwrap();
+}

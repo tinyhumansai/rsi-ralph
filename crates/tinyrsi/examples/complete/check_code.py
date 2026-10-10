@@ -17,7 +17,7 @@ def safe_source(source):
         return False
     fn = tree.body[0]
     args = fn.args
-    if (fn.name != "solve" or fn.decorator_list or fn.returns or fn.type_params
+    if (fn.name != "solve" or fn.decorator_list or fn.returns or getattr(fn, "type_params", ())
             or args.posonlyargs or args.kwonlyargs or args.defaults
             or args.kw_defaults or args.vararg or args.kwarg
             or len(args.args) != 1 or args.args[0].arg != "x"

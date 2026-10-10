@@ -28,11 +28,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if root.exists() {
         return Err("choose a fresh TINYRSI_COMPLETE_DIR to preserve preregistered trials".into());
     }
-    std::fs::create_dir_all(&root)?;
     let lean = std::env::var("TINYRSI_LEAN")?;
     let model_id =
         std::env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4.1-mini".into());
     let model: Arc<dyn ModelPort> = Arc::new(OpenRouterModel::new(model_id.clone())?);
+    validate_environment(&lean)?;
+    std::fs::create_dir_all(&root)?;
     let suites = fixtures::suites(&root, &lean)?;
     let suite_ids = suites.fingerprints();
     let mut archive = Archive::open(root.join("worked-archive.json"))?;
@@ -110,6 +111,18 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         report.attempts, report.verdict, report.generation_tokens, report.evaluation_tokens
     );
     println!("Evidence: {}", root.display());
+    Ok(())
+}
+
+fn validate_environment(lean: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    if std::env::var("OPENROUTER_API_KEY").map_or(true, |key| {
+        key.is_empty() || key.contains(['\r', '\n', '"', '\\'])
+    }) {
+        return Err("missing or invalid OpenRouter credential (value withheld)".into());
+    }
+    if !std::fs::metadata(lean)?.is_file() {
+        return Err("Lean must be an executable file".into());
+    }
     Ok(())
 }
 
