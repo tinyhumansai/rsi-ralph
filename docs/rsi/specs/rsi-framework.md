@@ -1,117 +1,89 @@
-# Spec: OpenHuman RSI Framework (draft v0)
+# TinyRSI hive orchestration
 
-Status: draft, pre-implementation. Feedback wanted before anything here is
-built. Companion docs: `../rsi-survey.md`, `../openhuman-substrate.md`.
+Related: [umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1),
+[scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2).
 
-## 1. Purpose
+## Improvement object
 
-A framework in which OpenHuman agents improve their own harness configuration
-through a recursive self-improvement loop: propose config changes, evaluate
-candidates on a selection benchmark under fixed budgets, accept only changes
-that improve a private held-out grade, and iterate. The model stays fixed;
-what evolves is the environment around it.
+TinyRSI is an external host process improving a tinyhivemind `Package`. It edits
+only typed `Patch` operations and validates through tinyhivemind-lang's atomic
+`apply` and constitution `guard`. It does not rewrite OpenHuman configuration
+or model weights. Candidate identity includes the exact package and the hive
+memory watermarks. The language `Record` is reused verbatim as a wire type.
 
-Non-goals: weight training, modifying OH core code, evolvable guardrails.
+## Epoch
 
-## 2. Definitions
+1. Observe coordinator changes with `subscribe`, `episodes`, `read_transcript`.
+   `Observer` projects message identifiers and episode state; it discards text.
+2. Diagnose using `Dossier::build`, external verifier outcomes, measured seat
+   usage and memory-health counters. The model cannot invent these counts.
+3. Retreat receives public evidence and redacted hive documents, plus labelled
+   previous attempts. `build_retreat_request` targets tinybackrooms' generation
+   API. Its output is a strict typed `Proposal`, not an instruction to execute.
+4. Formalize, guard and deduplicate. Require a positive predicted gain, existing
+   dossier nodes and actual transcript references. Freeze verifier criteria.
+5. Screen, select and confirm in isolated shadow runs. Each paired arm uses
+   identical task IDs, seeds, per-run budgets and frozen private verifiers.
+   Confirmation must use fresh task IDs and fresh seeds. The private harness
+   sends measurements rather than oracle answers to the controller.
+6. Require statistical separation and no family, health or cost regression.
+   Request human approval for the exact candidate identity.
+7. Record proposal reasons, exact per-task evidence, package, memory watermarks
+   and the language record durably. Unscored candidates retain prepared snapshots.
+8. Return the accepted design and host activation boundary. Context/memory are
+   next-turn deltas; prompt replaces an agent; roster uses host management;
+   topology, policy and goals require between-session restart. The library does
+   not silently mutate a live coordinator.
 
-- **Environment** — the total mutable surface: prompts and agent definitions,
-  skills, workflows, memory policies, tool routing and model routing config.
-  Versioned as a whole; a candidate is one full snapshot of it.
-- **Candidate** — an environment snapshot plus its provenance (parent, diff,
-  proposal rationale).
-- **Grade** — aggregate private score of a candidate across the selection
-  benchmark, multi-seed.
-- **Incumbent** — the candidate currently driving the live configuration.
-- **Loop** — the outer optimization process: propose → evaluate → accept/reject
-  → record. (We deliberately do *not* ship an inner code-optimization loop
-  like the paper's in v0; OH tasks are mostly harness-shaped already. See §8.)
+One class is chosen per epoch. The class order is context, memory, prompt,
+roster, topology, policy and goal. All live promotions remain human-gated.
+One-step `Archive::revert` restores the accepted parent design pointer without
+deleting historical decisions; the host must restore that package and memory.
 
-## 3. Architecture
+## Verification discipline
 
-Three OH sub-agents and one workflow, all generic and configurable:
+[way-of-working.md](way-of-working.md) defines the runtime blueprint. A host
+verifier reports each node outcome. A completion claim is diagnostic and never
+earns partial-credit points. Only eval-owned checkpoints contribute to quality.
+A proof kernel, deterministic execution, schema, private reference, calibrated
+rubric and preference form the verifier strength ladder. Weak evidence remains
+visible to the reader.
 
-1. **Proposer** (outer-loop agent): reads the incumbent environment snapshot,
-   the lineage record, and prior rejected proposals; emits one candidate diff
-   plus a rationale. Strongest model, pinned.
-2. **Candidate runner** (inner agent): executes the selection tasks under the
-   candidate's environment, in isolation, under a fixed budget.
-3. **Reviewer**: scores each run against held-out data; extracts score +
-   structured feedback (which the Proposer consumes next round — the
-   natural-language "gradient" from the TextGrad/GEPA line).
-4. **Loop workflow** (tinyflows): the driver. Steps: snapshot incumbent →
-   propose → shadow-run candidates → grade → apply acceptance rule → commit
-   or reject → append lineage → checkpoint. Scheduled or on-demand.
+## Memory and protected surfaces
 
-## 4. The acceptance rule (the load-bearing decision)
+Run memory is episodic. Hive memory changes only through approved, versioned
+learning deltas. Orchestrator and retreat namespaces are separate from seats.
+Evaluation namespaces, private tasks, budgets, telemetry, constitution and
+verifier settings are frozen. Held-out canaries must never reach a proposal
+model, a package document or hive learning. The language guards package/learning
+content; the host scans the actual memory store.
 
-Following the paper: candidate accepted iff `grade(candidate) > grade(incumbent)
-+ margin`, where `margin` is tuned to observed seed-to-seed noise (start with
-2 standard errors of the benchmark mean, re-estimated continuously).
+`Evaluator::pin_memory` must fork an isolated snapshot, enforce learning entry
+preconditions and expose a complete watermark map. Shared mutable memory cannot
+produce a reproducible evaluation. The host retains every snapshot until its
+design is no longer needed for replay or rollback.
 
-- Inner visible signal and outer acceptance signal stay decoupled: candidates
-  and the Proposer see public/run metrics only; the private grade is computed
-  by the Reviewer and stored in the lineage record.
-- Every rejection is logged with its public-vs-private delta; the rate of
-  "public better, private rejected" is a health metric for the loop.
-- All evaluations run under identical budget caps; gains must be efficiency,
-  not spend.
+## Scoring
 
-## 5. Selection benchmark
+[scoring.md](scoring.md) defines family-normalized `H`, bootstrap uncertainty,
+health penalties, hard constraints and frozen anchor progress. `compare` is a
+smaller raw-quality paired heuristic for early host integrations. It does not
+replace `compare_h` or the selection/anchor split in a scientific experiment.
 
-A configurable set of task families, each with: public task instances, a
-private held-out scorer, a budget cap, and N seeds per task. v0 candidates
-(task families TBD with the user — this is the biggest open design decision):
+The selection suite starts with deterministic code, formal maths, private
+informal maths/research and harness-engineering families. Humans curate oracle
+data and references. A tiny arithmetic smoke suite tests wiring only.
 
-- **Harness engineering**: tasks where the object of optimization is agent
-  behavior itself (the paper found the largest and most durable gains here).
-- **Knowledge-work automation**: multi-step research/synthesis tasks graded on
-  extracted artifacts.
-- **Coding/engineering**: repo-level tasks with test-based held-out scoring.
+## Phase boundaries
 
-Diversity across families is a requirement, not a nicety: it is what forces
-the loop toward general mechanisms (the paper's central experimental choice).
+P0 is specifications, citation audit and upstream verifier API requirements.
+P1 is read-only observation and durable evidence. P2 is human-gated shadow
+selection. P3 requires live completion gating and real Lean/code verifier
+execution in the host. P4 needs a running tinybackrooms backend and durable
+proposal memory. P5 needs host roster/replacement/restart activation. P6 is an
+experiment comparing original and evolved orchestrators on improvement per
+unit cost, with several independent trials. API wiring cannot prove ignition.
 
-## 6. Lineage and memory
-
-A dedicated memory subtree (`rsi/`) holds: environment snapshots
-(content-addressed), per-candidate grade records, proposal rationales,
-rejected-proposal archive, and a rolling summary the Proposer reads. The
-rejected archive matters — Mendel GFM's lesson is that comparative signals
-across attempts are themselves learning signal.
-
-## 7. Safety
-
-- **Frozen surfaces**: approval gates, permissions, secrets/keyring, memory
-  hygiene rules, and this spec's own constraints are outside the environment;
-  the Proposer's diff tooling must reject any diff touching them.
-- **Shadow mode default**: candidates run isolated; the live configuration
-  changes only after acceptance, and the first M accepted rewrites require
-  human approval via OH gates.
-- **Revertibility**: every accepted state has a one-command revert to its
-  parent snapshot.
-- **Canary metrics**: reward-hacking rate and cost-per-task are tracked every
-  round even though the grade doesn't optimize them (the paper's emergent
-  reward-hacking reduction shows what can drift; drift in either direction
-  is information).
-
-## 8. Phasing
-
-1. **P0 — instrument**: snapshot/restore of OH environment config; lineage
-   store; manual grading workflow. No loop.
-2. **P1 — single loop, human-gated**: Proposer + shadow evaluation +
-   acceptance rule + approval gate on commit. Small benchmark (2 families).
-3. **P2 — autonomous loop** in shadow mode with periodic human review;
-   multi-seed grading; canary metrics dashboard.
-4. **P3 — ignition**: promote an accepted agent to Proposer and compare
-   sample-efficiency against the original, per the paper's ignition test.
-
-## 9. Open decisions
-
-1. Task families and concrete benchmarks for the selection set (§5) — drives
-   everything downstream; needs the user's answer on what the OH agent should
-   get better *at*.
-2. Config snapshot mechanics in OH (export/import coverage, DB vs files) —
-   marked *verify* in the substrate doc; a P0 spike.
-3. Compute budget per round; the paper spent 8 days of frontier-model spend.
-4. Whether skills are mutable in v1 or frozen until the loop is trusted.
+The library supplies P1/P2 components and external blueprint, scoring and
+retreat contracts. Live host integration, curated benchmarks, durable memory
+backends and ignition experiments remain separate work in their owning repos.

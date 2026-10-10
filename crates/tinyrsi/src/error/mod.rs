@@ -20,6 +20,36 @@ pub enum Error {
     /// A lineage entry's step did not equal the ledger's current length.
     #[error("lineage entry's step does not continue the ledger")]
     StepOutOfOrder,
+    /// Paired evaluation data, budgets, or statistical policy are invalid.
+    #[error("invalid evaluation data or policy")]
+    InvalidEvaluation,
+    /// Archive storage could not complete its operation.
+    #[error("archive storage operation failed")]
+    ArchiveIo,
+    /// A stored archive cannot be replayed safely.
+    #[error("archive is corrupt")]
+    ArchiveCorrupt,
+    /// Another writer holds this archive.
+    #[error("archive is already locked")]
+    ArchiveLocked,
+    /// A candidate's identity, patch or ancestry is invalid.
+    #[error("invalid candidate record")]
+    InvalidRecord,
+    /// The active design has no accepted parent to restore.
+    #[error("active candidate has no accepted parent")]
+    NoParent,
+    /// A blueprint has invalid nodes, dependencies or verification order.
+    #[error("invalid blueprint or verification outcome")]
+    InvalidBlueprint,
+    /// The coordinator could not provide a complete observation.
+    #[error("coordinator observation failed")]
+    ObservationFailed,
+    /// A proposal or host configuration is incomplete.
+    #[error("invalid proposal or epoch configuration")]
+    InvalidProposal,
+    /// A host-owned evaluation or approval operation failed.
+    #[error("host operation failed")]
+    HostFailed,
 }
 
 /// The crate's standard result type.

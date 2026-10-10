@@ -17,6 +17,8 @@ publish = false
 # pull in `tinybus`, an async runtime, an HTTP client, or a native library —
 # see `src/lib.rs` for why the transport in particular is absent. CI asserts it.
 [dependencies]
+# Reuse the pure hive archive wire record rather than defining a parallel shape.
+tinyhivemind-lang = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

@@ -1,7 +1,8 @@
 # TinyRSI
 
-A TinyBus module that holds the lineage of a recursive self-improvement (RSI)
-run driven by OpenHuman agents. It is a two-crate cargo workspace:
+A host-driven orchestrator for improving tinyhivemind hives through typed
+patches, private shadow evaluations and explicit human approval. It also
+provides a TinyBus lineage module for existing hosts. It is a two-crate cargo workspace:
 `crates/tinyrsi-bus` is the wire contract — member names, payload types, and
 the contract version, with no transport and no behavior — and `crates/tinyrsi`
 is the implementation, built as both an `rlib` and the `cdylib` TinyBus loads.
@@ -10,10 +11,15 @@ neither the module nor `tinybus` itself.
 
 ## What the module does
 
-The RSI loop (see [`docs/rsi/`](docs/rsi/) for the research and the working
-spec) proposes rewrites of an agent's harness configuration, grades each
-candidate on a selection benchmark, and keeps only the changes that improve a
-private held-out grade. This module is that loop's ledger:
+The Rust API observes coordinator transcripts, builds failure dossiers, guards
+typed hive patches, compares budget-matched multi-seed evaluations and requires
+fresh confirmation plus a human gate. `Archive` persists packages, exact
+hive-language records, per-task evidence, rejected proposals and reversions.
+The host supplies model execution, private verifiers, isolated memory snapshots
+and live activation. See [the framework](docs/rsi/specs/rsi-framework.md) for
+phase boundaries.
+
+The existing bus API remains compatible:
 
 - **`Append`** records one graded candidate: its position in the lineage, the
   content address of its environment snapshot, its private grade, the verdict
@@ -49,6 +55,8 @@ crates/
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinybus/         # pinned TinyBus host types and module SDK
+vendor/tinyhivemind/    # pinned language and read-only coordinator APIs
+vendor/tinybackrooms/   # pinned creative-retreat engine
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
 ├── specs/              # behavior and architecture specifications
@@ -72,6 +80,7 @@ source of truth.
 
 ## Development
 
+Rust 1.96 or newer is required by the pinned hive and retreat libraries.
 Clone with submodules, or initialize them before building:
 
 ```sh
@@ -95,6 +104,24 @@ cargo deny check all                 # supply-chain check; see deny.toml
 cargo install cargo-llvm-cov         # once, before running the coverage gate
 .github/scripts/check-file-coverage.sh 90 coverage.json
 ```
+
+
+## Live OpenRouter smoke test
+
+With an existing `OPENROUTER_API_KEY` in your environment:
+
+```sh
+TINYRSI_LIVE_OPENROUTER=1 cargo run -p tinyrsi --example live_openrouter
+```
+
+Optional `OPENROUTER_MODEL` selects the model (default `openai/gpt-4.1-mini`).
+`TINYRSI_SMOKE_ARCHIVE` selects a new archive path under `target/`; the example
+refuses to overwrite an existing run. Credentials never enter arguments or
+logs. The test runs the tinybackrooms critic/proposer engine through OpenRouter,
+requests a typed context patch, and evaluates a deliberately weak
+baseline and candidate on paired arithmetic tasks, confirms on fresh draws,
+checks denied approval preserves the baseline, and reopens durable evidence.
+It spends real API tokens. Passing proves integration, not general improvement.
 
 ## Releasing
 

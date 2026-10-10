@@ -26,11 +26,15 @@ tinyrsi-bus = { workspace = true }
 tinybus = { workspace = true }
 tinybus-module = { workspace = true }
 thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+tinyhivemind-hives = { workspace = true }
+tinybackrooms = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
-# The GitHub release verifier passes an explicit empty module configuration.
-serde_json = { workspace = true }
+tempfile = { workspace = true }
 
 [features]
 default = []
