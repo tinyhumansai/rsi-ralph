@@ -20,7 +20,7 @@ exclude = ["vendor", "worktrees"]
 [workspace.package]
 version = "0.2.1"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.96"
 license = "GPL-3.0-only"
 repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 
@@ -45,10 +45,18 @@ tinybus-module = { path = "vendor/tinybus/crates/tinybus-module", version = "0.1
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
 thiserror = "2"
+# Pinned declarative hive editing and archive types, shared with bus consumers.
+tinyhivemind-lang = { path = "vendor/tinyhivemind/crates/tinyhivemind-lang" }
+# Read-only coordinator observations; storage and model clients remain host-owned.
+tinyhivemind-hives = { path = "vendor/tinyhivemind/crates/tinyhivemind-hives", default-features = false }
+# Creative retreat engine and its exact validated request contract.
+tinybackrooms = { path = "vendor/tinybackrooms/crates/tinybackrooms" }
+# Temporary directories exercise crash-safe archive persistence in tests.
+tempfile = "3"
 # The bus payload types are serialized into TinyBus frames.
 serde = { version = "1", features = ["derive"] }
-# Positional argument arrays and the module configuration blob.
-serde_json = "1"
+# Positional frames and durable evidence; exact floats preserve replay comparisons.
+serde_json = { version = "1", features = ["float_roundtrip"] }
 # Module integration tests exercise the real asynchronous in-memory TinyBus.
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 

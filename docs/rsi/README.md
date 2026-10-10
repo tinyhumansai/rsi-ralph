@@ -1,31 +1,22 @@
-# Research: Recursive Self-Improvement (RSI)
+# TinyRSI research and implementation
 
-Collected groundwork for building an RSI framework on OpenHuman agents.
-Status: early research, nothing here is a commitment.
+The improvement object is a typed tinyhivemind hive package and its pinned
+memory snapshot. An external host proposes, shadow-evaluates and requests
+human approval; private verifiers decide which design is selected.
 
-## Files
+- [Framework](specs/rsi-framework.md): epoch, ownership and phase boundaries.
+- [Phase status and acceptance](phases.md): implemented components, outstanding
+  host integrations and experimental follow-ups for P1–P6.
+- [Verified decomposition](specs/way-of-working.md): runtime blueprint and
+  host-observed verification.
+- [Scoring](specs/scoring.md): eval-owned checkpoints, family normalization,
+  bootstrap uncertainty and anchor progress.
+- [Implementation contract](specs/orchestrator.md): durable lineage and gates.
+- [Survey](rsi-survey.md): literature and citation-verification status.
+- [OpenHuman substrate](openhuman-substrate.md): earlier integration research.
+- [Implementation plan](../plans/2026-10-10-rsi-orchestrator.md).
 
-- `rsi-survey.md` — the landscape: the Weco RSI paper (deep dive) plus
-  Darwin Gödel Machine, GEPA, Gödel Agent, and friends.
-- `openhuman-substrate.md` — how OH's configurable components (tools,
-  workflows, memory, skills, prompts, sub-agents) map onto an evolvable
-  environment for the loop.
-- `specs/rsi-framework.md` — the working spec: a two-loop RSI system where
-  the improvement object is the OH agent's own harness configuration.
+The live OpenRouter arithmetic example validates wiring. It does not establish
+research-benchmark improvements or recursive ignition.
 
-## Core idea
-
-RSI = pointing the improvement loop at the improver. Every accepted rewrite
-becomes the thing the next round edits. The Weco result (2026) shows this is
-empirically viable at the *harness layer*: prompts, search policy, context
-management, selection rules. Not weights. That is exactly the layer OH exposes
-as user-configurable components, which is why OH is a credible host for this.
-
-## Reading list
-
-- Weco RSI paper: https://arxiv.org/html/2609.26457v1 (primary)
-- Darwin Gödel Machine: https://arxiv.org/abs/2505.22954
-- GEPA (reflective prompt evolution): https://arxiv.org/abs/2507.19457
-- Gödel Agent (self-referential framework): https://arxiv.org/abs/2410.04444
-- Mendel Gödel Machine: https://arxiv.org/html/2608.07645
-- AIDE (inner-loop ancestor): https://arxiv.org/abs/2502.13138
+See [the measured OpenRouter smoke run](live-smoke.md) for integration evidence.

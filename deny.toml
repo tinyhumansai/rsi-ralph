@@ -22,6 +22,8 @@ allow = [
     "GPL-3.0-only",
     "ISC",
     "MIT",
+    # borrow-or-share (via tinybackrooms JSON Schema) uses MIT without attribution.
+    "MIT-0",
     "MPL-2.0",
     "Unicode-3.0",
     "Zlib",

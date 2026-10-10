@@ -59,7 +59,7 @@ arXiv 2609.26457v1, Sep 2026)
 Island populations with migration, LLM-judge tournaments, restart policies,
 majority-vote ensembles (budget better spent on more search steps),
 explore-rate decay, variance-adaptive exploration, MCTS-style value backup,
-near-tie robust overrides. About a quarter of graded rewrites scored higher
+near-tie robust overrides. About a quarter of rejected, graded rewrites scored higher
 than the incumbent on the agent-visible public signal and were still rejected
 on the private grade — the decoupling did real work.
 
@@ -99,3 +99,41 @@ on the private grade — the decoupling did real work.
    else; a behavior metric never optimized for is a good canary.
 7. **Noise control is the weak point** of every system in this line; build
    multi-seed grading and acceptance margins in from day one.
+
+## Citation audit (2026-10-10)
+
+The arXiv abstract pages below were fetched and their citation-title metadata
+matched to the issue references. This verifies identifiers and titles, not every
+empirical conclusion. The Weco v1 HTML was also checked for the 100-node run,
+seven accepted improvements, 0.703→0.778 grades, 55%→32% reward-hacking rates,
+ignition discussion and rejection statistics. The quarter figure refers to
+**rejected graded rewrites**, not all proposals. These are reported results,
+not experiments independently replicated here.
+
+| Work | Verified arXiv identifier | Design use |
+| --- | --- | --- |
+| SICA | [2504.15228](https://arxiv.org/abs/2504.15228) | Improve the coding harness |
+| ADAS | [2408.08435](https://arxiv.org/abs/2408.08435) | Archive agent designs |
+| STOP | [2310.02304](https://arxiv.org/abs/2310.02304) | Bound self-referential editing |
+| MASS | [2502.02533](https://arxiv.org/abs/2502.02533) | Stage prompt and topology edits |
+| GPTSwarm | [2402.16823](https://arxiv.org/abs/2402.16823) | Typed graph optimization |
+| MaAS | [2502.04180](https://arxiv.org/abs/2502.04180) | Architecture families |
+| DyLAN | [2310.02170](https://arxiv.org/abs/2310.02170) | Diagnose seat contribution |
+| ACE | [2510.04618](https://arxiv.org/abs/2510.04618) | Itemized context deltas |
+| Dynamic Cheatsheet | [2504.07952](https://arxiv.org/abs/2504.07952) | Consolidated memory |
+| Draft-Sketch-Prove | [2210.12283](https://arxiv.org/abs/2210.12283) | Verifiable subgoals |
+| LeanDojo | [2306.15626](https://arxiv.org/abs/2306.15626) | Formal verifier execution |
+| Voyager | [2305.16291](https://arxiv.org/abs/2305.16291) | Verify before retaining a skill |
+| OMNI | [2306.01711](https://arxiv.org/abs/2306.01711) | Novelty as a search signal |
+| Promptbreeder | [2309.16797](https://arxiv.org/abs/2309.16797) | Prompt proposal diversity |
+| Sycophancy to Subterfuge | [2406.10162](https://arxiv.org/abs/2406.10162) | Track objective tampering |
+
+The Weco, DGM, GEPA and Gödel Agent identifiers in the earlier sections were
+also verified against title metadata. References without concrete links in
+the umbrella issue (including Lean blueprints, AlphaProof, CodeT, AgentVerse
+and the AI Scientist line) are conceptual pointers here; their individual
+claims need source-specific review before being used as empirical evidence.
+
+The implementation follows the three common structures: typed genotype,
+immutable external judge, durable archive. Its local arithmetic smoke run
+does not reproduce any cited research benchmark or establish ignition.

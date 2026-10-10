@@ -29,7 +29,7 @@
 //! vendored as a submodule whose manifest inherits fields from its own nested
 //! `[workspace.package]`. A crate that every workspace member can depend on has
 //! to stay transport-free, and staying transport-free is what keeps this crate
-//! down to two pure-Rust dependencies.
+//! limited to pure-Rust vocabulary dependencies.
 //!
 //! # This crate sits underneath the implementation, not beside it
 //!
@@ -76,3 +76,8 @@ pub use lineage::{
 };
 pub use names::{INTERFACE, METHODS, OBJECT_PATH};
 pub use version::{CONTRACT_VERSION, is_compatible};
+
+// These are the language's own wire definitions, not parallel payloads.
+pub use tinyhivemind_lang::Package;
+pub use tinyhivemind_lang::lineage::{Record, VersionMetadata};
+pub use tinyhivemind_lang::patch::{Operation, Patch, PatchClass};

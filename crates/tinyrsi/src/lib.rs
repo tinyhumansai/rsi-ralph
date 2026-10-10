@@ -1,5 +1,11 @@
-//! A `TinyBus` module that holds the lineage of a recursive self-improvement
-//! run.
+//! Host-driven hive improvement with durable lineage and a legacy `TinyBus` ledger.
+//!
+//! [`run_proposal`] guards a typed hive patch, shadow-evaluates paired private
+//! tasks, confirms on fresh draws and asks a host-owned human approval gate.
+//! [`Archive`] retains exact language records and packages. [`Observer`] and
+//! [`Dossier`] provide read-only evidence; [`Blueprint`] tracks host-verified
+//! dependency completion. The host supplies execution, private judges, memory
+//! forks and live activation; this library never opens a model connection.
 //!
 //! The module is the loop's ledger. Every candidate agent configuration the
 //! improvement loop produces is graded and recorded here as one
@@ -48,8 +54,15 @@
 //! # Ok::<(), tinyrsi::Error>(())
 //! ```
 
+mod archive;
+mod blueprint;
 mod error;
+mod evaluation;
 mod lineage;
+mod observation;
+mod orchestrator;
+mod retreat;
+mod scoring;
 mod tinybus_module;
 
 pub use error::{Error, Result};
@@ -89,3 +102,27 @@ pub fn append(lineage: &mut Lineage, request: LineageAppendRequest) -> Result<bo
 pub fn head(lineage: &Lineage) -> LineageHeadResponse {
     LineageHeadResponse::new(lineage.head().cloned())
 }
+
+// Host-driven orchestration is separate from the legacy bus ledger.
+pub use archive::{Archive, EvaluationEvent, ProposalDeclaration, ProposalEvent};
+pub use blueprint::*;
+pub use evaluation::{
+    Budget, Comparison, EvalDecision, EvalPolicy, EvalRun, JudgeCalibration, QualityRubric,
+    VerifierTier, compare, ensure_independent,
+};
+pub use observation::*;
+pub use orchestrator::*;
+pub use tinyhivemind_lang;
+pub use tinyrsi_bus::{Operation, Package, Patch, PatchClass, Record, VersionMetadata};
+
+pub use retreat::{
+    RetreatOutput, RetreatTransport, build_retreat_request, decode_retreat_response,
+    generate_retreat,
+};
+
+pub use scoring::{
+    AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
+    ScorePenalties, ScoringPolicy, compare_h, score,
+};
+
+pub use retreat::{generate_retreat_with_engine, typed_retreat_request};
