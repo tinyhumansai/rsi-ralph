@@ -136,5 +136,6 @@ identical starting solver state, private draws, caps and stopping rules.
 and anchors. Full, MemoryOff and RetreatOff assignments produce validated
 aggregate uncertainty over independent paired trials. Raw private task evidence
 is not serializable into the public report. Scripted runs are ProtocolOnly.
-The harness is implemented; final live results remain pending their measured
-report. No positive RSI or ignition conclusion follows from implementation alone.
+The [complete live report](../rsi/complete-live.md) records the inconclusive
+comparison and separate accepted deployment validation. No positive RSI or
+ignition conclusion follows from these toy fixtures.

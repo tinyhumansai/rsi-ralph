@@ -202,7 +202,7 @@ fn worked(
     std::fs::write(
         root.join("worked-report.json"),
         serde_json::to_vec_pretty(
-            &serde_json::json!({"source":"live","model":model_id,"baseline":"deliberately impaired integration calibration, not representative benchmark","generated":prepared.proposals.len(),"invalid":prepared.invalid_items,"meter":prepared.meter,"outcomes":outcome,"comparisons":comparisons,"approval":"denied; baseline preserved"}),
+            &serde_json::json!({"source":"live","model":model_id,"baseline":"deliberately impaired integration calibration, not representative benchmark","generated":prepared.proposals.len(),"invalid":prepared.invalid_items,"meter":prepared.meter,"outcomes":outcome,"comparisons":comparisons,"approval":if outcome.candidates.iter().any(|candidate|candidate.reason==tinyrsi::ReasonCode::ApprovalDenied){"denied; baseline preserved"}else{"not reached; baseline preserved"}}),
         )?,
     )?;
     drop(journal);

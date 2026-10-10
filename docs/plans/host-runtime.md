@@ -124,5 +124,6 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
 .github/scripts/check-file-coverage.sh 90 coverage.json
 ```
 
-The parent integration task owns the final command results and live report;
-this map describes implemented behavior, not an unrun verification claim.
+The [complete live report](../rsi/complete-live.md) records passing final checks,
+the actual bounded outcomes and their limits. This map describes implementation
+order; it does not establish positive RSI.
