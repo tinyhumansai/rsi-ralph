@@ -34,6 +34,16 @@ Formalize through the language apply/guard, reject duplicates and ungrounded
 references, and append every outcome with a reason. Select one patch class per
 epoch. Structural patches request between-session host activation.
 
+## Failed-attempt recovery
+
+Failed host attempts are also deduplicated. A prepared snapshot is retained for
+audit, not treated as a resumable evaluation checkpoint. Retrying private
+evaluation requires a separately specified recovery protocol that pins the
+incumbent, epoch, suites, seeds, budget and policy, and distinguishes unobserved
+infrastructure failures from partially observed trials. Reusing package and
+watermarks alone does not establish those invariants. This API therefore does
+not automatically retry `HostFailure` attempts; host recovery is part of P2.
+
 ## Limits
 
 A local OpenRouter smoke suite can prove API connectivity, schema conformance,
