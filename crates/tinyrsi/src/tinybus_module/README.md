@@ -1,20 +1,18 @@
-# TinyBus Adapter
+# The `tinybus_module` adapter
 
-This module is the boundary between ordinary feature code and TinyBus module
-ABI v1. `GreetingService` converts the crate's public `greet` function into the typed
-`Greet` bus method, while `setup` registers its object and claims the well-known
-interface name. Neither the name, the object path, nor the payload types are
-spelled here: they come from `template-bus`, so a rename is a compile error in
-every consumer instead of an `UnknownMethod` at runtime.
+This module turns the crate's public API into a TinyBus module. `LineageService`
+converts the crate's public `append` and `head` functions into the typed `Append`
+and `Head` bus methods, while `setup` registers its object and claims the
+well-known interface name. The names and payload types it serves are spelled
+here: they come from `tinyrsi-bus`, so a rename is a compile error in
+`crates/tinyrsi-bus/src/names/`, not a runtime surprise.
 
-`tinybus_module::module_export!` emits the descriptor, embedded manifest, and
-initialization symbols consumed by the dynamic loader. The manifest method list
-must stay aligned with the interface macro's dispatch table and with
-`template_bus::names::METHODS`; the unit tests check both relationships.
-Integration tests use TinyBus's in-memory transport, and
-`crates/template/examples/verify_module.rs` loads a compiled `cdylib` through
-the real dynamic loader before a release archive is accepted.
+The unit tests check two relationships: the served interface name equals
+`tinyrsi_bus::names::INTERFACE`, and the served member list equals
+`tinyrsi_bus::names::METHODS`; the unit tests check both relationships.
 
-Generated projects should replace the example interface, object path, and method
-declarations together — here and in `crates/template-bus/src/names/`. They must not retain Rust-owned data across the
-ABI boundary or bypass the SDK exports with an ad hoc FFI surface.
+`crates/tinyrsi/examples/verify_module.rs` loads a compiled `cdylib` through
+TinyBus's dynamic loader and calls the served methods over a real in-memory bus,
+so a change to any of the three declarations together — here and in
+`crates/tinyrsi-bus/src/names/`. They must not retain Rust-owned data across the
+bus boundary; every payload is owned, `serde`-derived data.

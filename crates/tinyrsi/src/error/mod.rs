@@ -13,9 +13,13 @@
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
-    /// A required name was empty or contained only whitespace.
-    #[error("name must not be empty")]
-    EmptyName,
+    /// A lineage entry named a snapshot address or rationale that was empty
+    /// or only whitespace.
+    #[error("lineage entry has an empty snapshot address or rationale")]
+    EmptyField,
+    /// A lineage entry's step did not equal the ledger's current length.
+    #[error("lineage entry's step does not continue the ledger")]
+    StepOutOfOrder,
 }
 
 /// The crate's standard result type.

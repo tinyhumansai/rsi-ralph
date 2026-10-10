@@ -19,7 +19,7 @@ fn every_member_is_listed_exactly_once() {
 
 #[test]
 fn the_method_table_holds_the_declared_members() {
-    assert_eq!(METHODS, [methods::GREET]);
+    assert_eq!(METHODS, [methods::APPEND, methods::HEAD]);
 }
 
 #[test]

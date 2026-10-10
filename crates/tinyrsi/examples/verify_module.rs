@@ -4,11 +4,14 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use template::{GreetRequest, GreetResponse, names};
 use tinybus::Connection;
 use tinybus::broker::Broker;
 use tinybus::module::ModuleHost;
 use tinybus::transport::memory::MemoryBus;
+use tinyrsi::{
+    GradeEntry, LineageAppendRequest, LineageAppendResponse, LineageHeadRequest,
+    LineageHeadResponse, Verdict, names,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,15 +44,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await??;
 
     let proxy = client.proxy(names::INTERFACE, names::OBJECT_PATH, names::INTERFACE)?;
-    let reply: GreetResponse = proxy
-        .call(names::methods::GREET, (GreetRequest::new("TinyBus"),))
+    let empty: LineageHeadResponse = proxy
+        .call(names::methods::HEAD, (LineageHeadRequest::new(),))
         .await?;
-    if reply.greeting != "Hello, TinyBus!" {
-        return Err(io::Error::other(format!(
-            "module returned an unexpected greeting: {}",
-            reply.greeting
-        ))
-        .into());
+    if empty.entry.is_some() {
+        return Err(io::Error::other("a fresh module reported a non-empty lineage head").into());
+    }
+
+    let entry = GradeEntry::new(
+        0,
+        "sha256:verify",
+        0.703,
+        Verdict::Accepted,
+        "release verifier",
+    );
+    let recorded: LineageAppendResponse = proxy
+        .call(names::methods::APPEND, (LineageAppendRequest::new(entry),))
+        .await?;
+    if !recorded.recorded {
+        return Err(io::Error::other("the module did not record the baseline entry").into());
     }
 
     println!(

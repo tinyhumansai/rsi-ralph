@@ -1,11 +1,15 @@
-# Implement TinyBus Module Releases
+# Plan: Ship the first TinyBus module release
 
-Linked specification: [`../specs/tinybus-module-release.md`](../specs/tinybus-module-release.md)
+1. Land the `lineage` feature area: the `Append` and `Head` members over
+   TinyBus module ABI v1.
+2. Export the lineage behavior through the module ABI and wire the ledger
+   state into the service.
+3. Verify a locally built `cdylib` through the real TinyBus dynamic loader
+   (`verify_module`), then a tagged release archive (`verify_github_release`).
+4. Replace TinyBus host bundles with tagged `tinyrsi` module archives for
+   every platform the release matrix covers.
 
-1. Add the pinned TinyBus host types and module SDK as path dependencies.
-2. Export the template greeting behavior through TinyBus module ABI v1.
-3. Exercise the declared interface over the real in-memory bus.
-4. Replace TinyBus host bundles with tagged `template` module archives for
-   every supported platform runner and distribution container.
-5. Run the repository validation and coverage contracts, push `main`, and
-   trigger a patch release.
+## Status
+
+Delivered for the Ubuntu/macOS/Windows stable matrix in the current release
+workflow; step 4 lands with the first tagged release of this repository.

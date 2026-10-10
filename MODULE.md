@@ -1,14 +1,17 @@
-# Template TinyBus Module
+# TinyRSI TinyBus Module
 
-This package contains the native `template` module for TinyBus module ABI
+This package contains the native `tinyrsi` module for TinyBus module ABI
 v1. Install only the archive matching the host operating system and
 architecture.
 
-The module claims `ai.tinyhumans.template.Greeting`, serves the object at
-`/ai/tinyhumans/template/Greeting`, and provides the `Greet` method. The
-method accepts a `GreetRequest` and returns a `GreetResponse` carrying
-`Hello, <name>!`; empty names are rejected. Both payload types, the interface
-name, the object path, and the member names are published as the `template-bus`
+The module claims `ai.tinyhumans.tinyrsi.Lineage`, serves the object at
+`/ai/tinyhumans/tinyrsi/Lineage`, and provides the `Append` and `Head`
+methods. `Append` records one graded candidate of an improvement lineage
+(a `LineageAppendRequest` carrying a `GradeEntry`) and rejects an entry whose
+step does not continue the ledger or whose snapshot address or rationale is
+empty. `Head` answers which entry is the current incumbent: the last accepted
+entry, or `None` before the first acceptance. Both payload types, the interface
+name, the object path, and the member names are published as the `tinyrsi-bus`
 crate, so a host names them from a library rather than by string literal.
 
 The archive contains one `.so`, `.dylib`, or `.dll` plus `modules.toml`. Keep
@@ -22,8 +25,8 @@ archive. Install directly from a tagged release with:
 
 ```sh
 tinybus modules load-github \
-  https://github.com/tinyhumansai/rust-template/releases/tag/v0.1.5 \
-  template-0.1.5-ubuntu-24.04-x86_64.tar.gz \
+  https://github.com/tinyhumansai/tinyrsi/releases/tag/v0.2.1 \
+  tinyrsi-0.2.1-ubuntu-24.04-x86_64.tar.gz \
   <archive-sha256>
 ```
 

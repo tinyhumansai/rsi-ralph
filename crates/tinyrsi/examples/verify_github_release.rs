@@ -4,19 +4,22 @@
 //!
 //! ```text
 //! cargo run --example verify_github_release -- \
-//!   https://github.com/tinyhumansai/template/releases/tag/v0.1.4 \
-//!   template-0.1.4-ubuntu-24.04-x86_64.tar.gz \
+//!   https://github.com/tinyhumansai/tinyrsi/releases/tag/v0.1.4 \
+//!   tinyrsi-0.1.4-ubuntu-24.04-x86_64.tar.gz \
 //!   <sha256>
 //! ```
 
 use std::io;
 use std::time::Duration;
 
-use template::{GreetRequest, GreetResponse, names};
 use tinybus::Connection;
 use tinybus::broker::Broker;
 use tinybus::module::ModuleHost;
 use tinybus::transport::memory::MemoryBus;
+use tinyrsi::{
+    GradeEntry, LineageAppendRequest, LineageAppendResponse, LineageHeadRequest,
+    LineageHeadResponse, Verdict, names,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -54,15 +57,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await??;
 
     let proxy = client.proxy(names::INTERFACE, names::OBJECT_PATH, names::INTERFACE)?;
-    let reply: GreetResponse = proxy
-        .call(names::methods::GREET, (GreetRequest::new("TinyBus"),))
+    let entry = GradeEntry::new(
+        0,
+        "sha256:verify",
+        0.703,
+        Verdict::Accepted,
+        "release verifier",
+    );
+    let recorded: LineageAppendResponse = proxy
+        .call(names::methods::APPEND, (LineageAppendRequest::new(entry),))
         .await?;
-    if reply.greeting != "Hello, TinyBus!" {
-        return Err(io::Error::other(format!(
-            "module returned an unexpected greeting: {}",
-            reply.greeting
-        ))
-        .into());
+    if !recorded.recorded {
+        return Err(io::Error::other("the module did not record the baseline entry").into());
+    }
+
+    let head: LineageHeadResponse = proxy
+        .call(names::methods::HEAD, (LineageHeadRequest::new(),))
+        .await?;
+    if head.entry.as_ref().map(|e| e.step) != Some(0) {
+        return Err(io::Error::other("the module did not return the recorded head").into());
     }
 
     println!(
