@@ -1,0 +1,89 @@
+{
+  "original_config_id": "sha256:cf7f1ab16c73040e70ce19ebf19182b0e4445a4696422deda0b528b265c58862",
+  "evolved_config_id": "sha256:af30d3e94324beda8fd07edb000ef03a7348e389aacd57576131d1fd2faab3e7",
+  "initial_hive_id": "sha256:64a095457be8ddcdcd4969484599a9de69bcd054989fd34e2b3087a17514c412",
+  "suites": {
+    "selection": "sha256:c97ffd60886617fbe80ac73adfb90f938f0d49d4f923cd47e366aa2449b54018",
+    "confirmation": "sha256:d1982a39600d55fbb0562f2def9dbe25a924eda2757b181054ea7d6546d82ff7",
+    "anchor": "sha256:ffc8589d24ababc40dfa3689485f2f6055ff5c6afa8540dea5e2e378ce54ea2e"
+  },
+  "trials": [
+    {
+      "proposal_seed": 1001,
+      "evaluation_seeds": [
+        101,
+        102
+      ]
+    },
+    {
+      "proposal_seed": 2001,
+      "evaluation_seeds": [
+        201,
+        202
+      ]
+    },
+    {
+      "proposal_seed": 3001,
+      "evaluation_seeds": [
+        301,
+        302
+      ]
+    },
+    {
+      "proposal_seed": 4001,
+      "evaluation_seeds": [
+        401,
+        402
+      ]
+    }
+  ],
+  "attempts_per_trial": 1,
+  "generation_cap": 500000,
+  "evaluation_cap": 500000,
+  "per_run_budget": {
+    "max_tokens": 16384
+  },
+  "scoring": {
+    "anchors": [
+      {
+        "family": "code",
+        "baseline": 0.0,
+        "reference": 1.0,
+        "weight": 1.0,
+        "regression_limit": 0.0
+      },
+      {
+        "family": "proof",
+        "baseline": 0.0,
+        "reference": 1.0,
+        "weight": 1.0,
+        "regression_limit": 0.0
+      },
+      {
+        "family": "reference",
+        "baseline": 0.0,
+        "reference": 1.0,
+        "weight": 1.0,
+        "regression_limit": 0.0
+      },
+      {
+        "family": "harness",
+        "baseline": 0.0,
+        "reference": 1.0,
+        "weight": 1.0,
+        "regression_limit": 0.0
+      }
+    ],
+    "penalties": {
+      "false_claims": 0.1,
+      "tamper": 1.0,
+      "cost": 0.01
+    },
+    "margin": 0.01,
+    "cost_tolerance": 10.0,
+    "resamples": 400,
+    "bootstrap_seed": 9001
+  },
+  "efficiency_margin": 0.01,
+  "source": "Live"
+}

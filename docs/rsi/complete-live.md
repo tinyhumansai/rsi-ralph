@@ -1,11 +1,38 @@
 # Complete local integration run — 2026-10-11
 
-The final bounded OpenRouter run completed with **Inconclusive** experimental
+The bounded OpenRouter runs completed with **Inconclusive** experimental
 evidence. A separate model-authored context repair passed normalized confirmation,
 both sandbox gate decisions, a verified turn on its accepted SQLite deployment,
 exact parent rollback, and reopening archive, deployment and runtime.
 
-## Published evidence
+## Post-review replication
+
+After fixing the four review findings, v8 froze a new protocol and checker
+fingerprints before generation. Its [aggregate receipts](results/2026-10-11/post-review/)
+are separate from the earlier v7 receipts below; no results are pooled.
+
+The fresh retreat made **121 calls**, measured **158,098 generation tokens**,
+and produced **50 typed occurrences** plus **30 invalid formatter occurrences**.
+The funnel retained 17 WrongClass, 31 Ungrounded, one Guard rejection and one
+NoGain rejection. The single screened candidate had H delta **−0.0001484**;
+no candidate reached approval, and the baseline survived restart. Generation
+reservation was **1,620,641** against the **3,000,000** cap.
+
+The fresh comparison scheduled all **24 attempts**, retaining **20 verified
+rejections and four failures**. Generation/evaluation reservations were
+**2,572,658 / 2,448,280**; elapsed time was **376.52 seconds**. Full, MemoryOff
+and RetreatOff had 4, 4 and 1 available pairs, with zero efficiency deltas and
+no accepted anchors. The verdict remains **Inconclusive**.
+
+The separate post-review controlled run used **645 measured generation tokens**
+and again passed all three H stages (0.45 → 0.975), deny/accept gates, a real
+verified SQLite deployment turn, exact rollback and durable reopening. Proof
+credit remained zero. The retreat-store contamination canary scan found zero
+matches; store counts and tool versions are in its execution metadata.
+
+The sections below preserve the earlier v7 and controlled v2 results.
+
+## Published earlier evidence
 
 The [results directory](results/2026-10-11/) contains only public aggregate
 receipts, frozen protocol, configuration provenance and execution metadata.
@@ -111,7 +138,7 @@ fresh directories so interrupted execution cannot silently rerun model work.
 
 All four cargo contract commands, strict rustdoc, default-feature tests, bundled
 example, Rust 1.96.1 build, transport-free bus dependency check, cargo-deny and the
-exact CI per-file coverage script passed. The suite contains 227 library tests,
+exact CI per-file coverage script passed. The suite contains 231 library tests,
 3 public integration tests, 18 bus tests and 10 doc tests. Every measured source
-file exceeded 90% line coverage. Four Python grammar regressions passed; actual
+file exceeded 90% line coverage. Seven Python checker/setup regressions passed; actual
 Docker good/bad/forged artifacts and stock Lean checks also passed.

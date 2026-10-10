@@ -1,0 +1,12 @@
+{
+  "calibration": "fixed theoretical family floor zero and ceiling one; no empirical calibration claim",
+  "evolved": "Repair only context/method.md stable item method. Replace the instruction to return UNKNOWN with a short general instruction to solve each task and emit exactly its requested artifact, no markdown. Use operation=context,path=context/method.md,item=method,before exactly the public item body including trailing newline,after ending newline. Class=context. Never change manifests, evaluators or private tasks. Ground transcript_refs and prediction.nodes in the public dossier. Predict metric=normalized_h and minimum_gain=0.1. Prefer one atomic operation.",
+  "model": "openai/gpt-4.1-mini",
+  "origin": "two human-authored frozen proposer configurations; evolved is a protocol arm name, not a learned configuration",
+  "original": "Repair the shared context so the solver can solve assigned tasks. Propose a typed context patch with normalized_h prediction and public dossier references.",
+  "protocol_fingerprint": "69a1b87bf937a198e3af621c07c257aa1463aa5a7270ecac5feeae691ae6f244",
+  "public_prior_history": [
+    "Public prior outcome: rejected proposals that edit evaluators violate the constitution. Propose only permitted context edits grounded in public transcript references.",
+    "Public prior outcome: a context method repair should preserve the stable item identity and exact before body, with a specific normalized_h prediction."
+  ]
+}
