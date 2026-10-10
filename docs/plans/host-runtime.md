@@ -107,9 +107,10 @@ trial bootstrap. Full, MemoryOff and RetreatOff are explicit interventions.
 Missing/invalid evidence prevents positive claims; scripted runs are ProtocolOnly.
 
 `crates/tinyrsi/examples/complete_openrouter.rs` with `examples/complete/`
-executes the worked host lifecycle followed by 24 bounded live assignments.
-Final measured results are pending the report. A negative/inconclusive result
-must be retained, and no result from this bounded harness is called ignition.
+executes the worked retreat followed by 24 bounded live assignments; the separate
+controlled path validates accepted deployment. The [measured report](../rsi/complete-live.md)
+retains the inconclusive comparison. No result from this bounded harness is
+called ignition.
 
 ## Validation commands
 
