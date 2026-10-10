@@ -30,6 +30,9 @@ verified SQLite deployment turn, exact rollback and durable reopening. Proof
 credit remained zero. The retreat-store contamination canary scan found zero
 matches; store counts and tool versions are in its execution metadata.
 
+A later setup-only fix rejects a non-executable Lean file before creating a run
+directory. It does not change the recorded prompts, protocol, checks or results.
+
 The sections below preserve the earlier v7 and controlled v2 results.
 
 ## Published earlier evidence
@@ -140,5 +143,5 @@ All four cargo contract commands, strict rustdoc, default-feature tests, bundled
 example, Rust 1.96.1 build, transport-free bus dependency check, cargo-deny and the
 exact CI per-file coverage script passed. The suite contains 231 library tests,
 3 public integration tests, 18 bus tests and 10 doc tests. Every measured source
-file exceeded 90% line coverage. Seven Python checker/setup regressions passed; actual
+file exceeded 90% line coverage. Eight Python checker/setup regressions passed; actual
 Docker good/bad/forged artifacts and stock Lean checks also passed.

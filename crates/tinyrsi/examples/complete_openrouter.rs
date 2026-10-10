@@ -120,8 +120,16 @@ fn validate_environment(lean: &str) -> std::result::Result<(), Box<dyn std::erro
     }) {
         return Err("missing or invalid OpenRouter credential (value withheld)".into());
     }
-    if !std::fs::metadata(lean)?.is_file() {
+    let metadata = std::fs::metadata(lean)?;
+    if !metadata.is_file() {
         return Err("Lean must be an executable file".into());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if metadata.permissions().mode() & 0o111 == 0 {
+            return Err("Lean must be an executable file".into());
+        }
     }
     Ok(())
 }
