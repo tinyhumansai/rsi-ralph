@@ -20,8 +20,10 @@ path = "src/main.rs"
 doc = false
 
 [features]
-# Web search for seats given a `web_search` key; needs OpenHuman's module
-# loader, so it is off by default to keep the build lean.
+default = ["web-search"]
+# Web search for seats given a `web_search` key, through OpenHuman's
+# TinySearch module. On by default; turn it off to build without OpenHuman's
+# module loader when no loop uses search.
 web-search = ["tinyrsi-swarm/web-search"]
 
 [dependencies]

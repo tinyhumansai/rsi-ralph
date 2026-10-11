@@ -5,17 +5,5 @@
     "keep color(n, edges) pure and deterministic"
   ],
   "max_turns": 40,
-  "max_width": 4,
-  "permitted_edits": [
-    "prompt",
-    "context",
-    "roster",
-    "policy"
-  ],
-  "read_only_memories": [],
-  "protected_namespaces": [],
-  "contamination_canaries": [],
-  "evaluation": null,
-  "acceptance": null,
-  "telemetry": null
+  "max_width": 4
 }
