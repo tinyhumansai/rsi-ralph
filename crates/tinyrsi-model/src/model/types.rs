@@ -37,6 +37,7 @@ pub struct ModelRequest {
     pub(super) max_output_tokens: u64,
     pub(super) timeout_ms: u64,
     pub(super) tool: Option<(String, serde_json::Value)>,
+    pub(super) temperature: f64,
     pub(super) input_bound: u64,
 }
 impl std::fmt::Debug for ModelRequest {
@@ -44,6 +45,7 @@ impl std::fmt::Debug for ModelRequest {
         f.debug_struct("ModelRequest")
             .field("seed", &self.seed)
             .field("max_tokens", &self.max_tokens)
+            .field("temperature", &self.temperature)
             .finish_non_exhaustive()
     }
 }

@@ -38,6 +38,7 @@ impl ModelRequest {
             max_output_tokens,
             timeout_ms,
             tool: None,
+            temperature: 0.0,
             input_bound: 0,
         };
         request.validate()?;
@@ -55,6 +56,17 @@ impl ModelRequest {
         }
         self.tool = Some((name, schema));
         self.validate()?;
+        Ok(self)
+    }
+    /// Sets the sampling temperature; requests default to `0.0`, the most
+    /// deterministic sampling a provider offers.
+    /// # Errors
+    /// Rejects a temperature that is not finite or lies outside `[0, 2]`.
+    pub fn with_temperature(mut self, temperature: f64) -> Result<Self> {
+        if !(0.0..=2.0).contains(&temperature) {
+            return Err(Error::InvalidRequest);
+        }
+        self.temperature = temperature;
         Ok(self)
     }
     fn validate(&mut self) -> Result<()> {
@@ -104,6 +116,11 @@ impl ModelRequest {
         self.tool
             .as_ref()
             .map(|(name, schema)| (name.as_str(), schema))
+    }
+    /// Sampling temperature, `0.0` unless [`Self::with_temperature`] set one.
+    #[must_use]
+    pub fn temperature(&self) -> f64 {
+        self.temperature
     }
     /// Reproducible request seed.
     #[must_use]
@@ -207,7 +224,7 @@ impl OpenRouterModel {
         Self::decode(request, &value)
     }
     fn body(&self, request: &ModelRequest) -> Value {
-        let mut body = json!({"model":self.model,"temperature":0,"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
+        let mut body = json!({"model":self.model,"temperature":request.temperature,"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
         if let Some((name, schema)) = &request.tool {
             body["tools"] =
                 json!([{"type":"function","function":{"name":name,"parameters":schema}}]);
