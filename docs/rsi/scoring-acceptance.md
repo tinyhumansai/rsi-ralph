@@ -21,7 +21,7 @@ The identifiers in the tables refer to these actual source files:
 
 ## Reject-code coverage and compatibility
 
-The current public [ReasonCode](../../crates/tinyrsi/src/orchestrator/types.rs)
+The current public [ReasonCode](../../crates/tinyrsi-types/src/proposal/types.rs)
 serializes twelve outcomes. The intended seventeen rejection codes below remain a more detailed taxonomy.
 `Archive::proposal_dispositions` now provides versioned exact-duplicate history
 without changing that coarse wire contract.

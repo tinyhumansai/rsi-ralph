@@ -15,14 +15,17 @@ code and docs.
 This is a Rust 2024 cargo workspace rooted at a virtual `Cargo.toml`. Every
 crate lives under `crates/`, one directory per package, each directory named for
 the package it holds. There is no root package: the library hosts depend on is
-`crates/tinyrsi`, the same as any other member.
+`crates/tinyrsi`, the same as any other member. The crates are split by loop
+phase; see [`docs/specs/crate-split.md`](docs/specs/crate-split.md).
 
 ```text
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 ROADMAP.md              # shipped / next / out of scope
 crates/
-└── tinyrsi/            # the loop library
+├── tinyrsi-types/      # proposal and candidate data shared by every crate
+├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
+└── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
     │   ├── error/            # crate-wide `Error` and `Result<T>`
@@ -32,7 +35,6 @@ crates/
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
     │   ├── evaluation/       # raw paired comparison and budgets
     │   ├── scoring/          # normalized H, bootstrap, anchors
-    │   ├── model/            # ModelPort, OpenRouterModel, metering
     │   ├── retreat/          # tinybackrooms request/response contract
     │   ├── retreat_memory/   # durable recall cache for the retreat Engine
     │   ├── memory/           # immutable hive-memory snapshot store

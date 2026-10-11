@@ -59,6 +59,8 @@ and [the experiment protocol](docs/specs/ignition.md).
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 crates/
+├── tinyrsi-types/      # proposal and candidate data shared by every crate
+├── tinyrsi-model/      # bounded, metered model calls
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
@@ -69,7 +71,7 @@ crates/
     │   ├── scoring/, verification/  # normalized scores and real host checks
     │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
     │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
-    │   ├── host/, model/, suites/   # deployment and isolated model evaluation
+    │   ├── host/, suites/   # deployment and isolated model evaluation
     │   ├── script_loop/, process/, trace/  # plain-script loop and its trace
     │   └── experiment/ # preregistered paired trial ledger
     ├── tests/          # integration tests against the public API only

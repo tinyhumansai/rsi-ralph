@@ -40,7 +40,7 @@ published 24-attempt experiment is inconclusive.
 - P6 bounded experiment: `ExperimentProtocol` and `run_experiment` with
   original/evolved arms and memory/retreat ablations (`experiment/`).
 - Model boundary: `ModelPort`, `OpenRouterModel`, `BudgetedModel` and
-  `ModelConversant` with pre-dispatch token reservation (`model/`).
+  `ModelConversant` with pre-dispatch token reservation (`crates/tinyrsi-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls
   ([`docs/rsi/private-benchmarks.md`](docs/rsi/private-benchmarks.md)).
 

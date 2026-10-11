@@ -21,13 +21,13 @@ policy and the three suite fingerprints. Not to be confused with
 identities, roster, policies, goals). Re-exported as `tinyrsi::Package`.
 
 **Proposal.** A model's suggested change, as `Proposal`
-(`orchestrator/types.rs`): a title, one typed `Patch`, a mechanism, a
+(`crates/tinyrsi-types/src/proposal/types.rs`): a title, one typed `Patch`, a mechanism, a
 `Prediction` (`metric`, `minimum_gain`, the failure `nodes` it addresses),
 public `transcript_refs`, risk and effort. Proposals are data; they never
 apply themselves.
 
 **Candidate.** The design that results from applying a proposal's patch to the
-incumbent: `CandidateState` (`orchestrator/types.rs`) holds the new package
+incumbent: `CandidateState` (`crates/tinyrsi-types/src/candidate/types.rs`) holds the new package
 and its pinned memory watermarks. It is identified by its *content ID*.
 
 **Content ID.** `sha256:` followed by 64 lowercase hex digits, computed by
@@ -108,7 +108,7 @@ private content leaking into public text fails closed.
 
 ## Evaluating
 
-**Stage.** `EvalStage` (`orchestrator/types.rs`): `Screen` (small replay and
+**Stage.** `EvalStage` (`crates/tinyrsi-types/src/candidate/types.rs`): `Screen` (small replay and
 regression check), `Selection` (the full selection suite) and `Confirmation`
 (fresh private tasks and seeds that may not overlap earlier stages). Each has
 its own frozen suite fingerprint in `HEpoch::suite_ids`.
@@ -142,7 +142,7 @@ interval and returns `Accept`, `Reject` or `Inconclusive`. Full formula in
 experiment's *anchor suite* is a held-out draw measured before and after
 each trial.
 
-**Reason code.** `ReasonCode` (`orchestrator/types.rs`): why a proposal
+**Reason code.** `ReasonCode` (`crates/tinyrsi-types/src/proposal/types.rs`): why a proposal
 stopped or was accepted, from `Untestable` and `Ungrounded` through `NoGain`,
 `NotReplicated` and `ApprovalDenied` to `Accepted`. `HostFailure` means the
 evaluator or approval service failed, not the proposal.
