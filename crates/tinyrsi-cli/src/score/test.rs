@@ -292,7 +292,7 @@ fn pins_the_scorecard_stored_form() {
         serde_json::json!({
             "label": "c",
             "runs": {"m": [{"seed": 1, "ok": true, "reason": null, "duration_ms": 1,
-                "result": {"score": 1.0, "splits": {}, "failures": [], "metrics": {}}}]},
+                "result": {"score": 1.0, "splits": {}, "failures": [], "metrics": {}, "private": {}}}]},
             "judges": {}, "headline": 1.0
         })
     );

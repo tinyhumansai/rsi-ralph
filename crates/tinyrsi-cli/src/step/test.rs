@@ -176,7 +176,7 @@ fn pins_the_result_stored_form() {
         serde_json::to_value(&result).unwrap(),
         serde_json::json!({
             "score": 1.0, "splits": {"dev": {"items": {"a": 0.0}}},
-            "failures": [{"id": "a", "type": "k", "text": "t"}], "metrics": {}
+            "failures": [{"id": "a", "type": "k", "text": "t"}], "metrics": {}, "private": {}
         })
     );
 }

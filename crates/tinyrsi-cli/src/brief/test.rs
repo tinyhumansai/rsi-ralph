@@ -7,6 +7,7 @@ fn card(failures: Vec<Failure>) -> Scorecard {
         score: 0.5,
         failures,
         metrics: BTreeMap::from([("tokens".to_owned(), 812.0)]),
+        private: BTreeMap::from([("test_accuracy".to_owned(), 0.61)]),
         ..ScoreResult::default()
     };
     let other = ScoreResult {
@@ -72,6 +73,7 @@ fn fills_placeholders() {
     assert!(out.contains("- `acc` (deciding): 0.5000"));
     assert!(out.contains("- `speed`: 3.0000"));
     assert!(out.contains("- tokens: 812"));
+    assert!(!out.contains("test_accuracy") && !out.contains("0.61"));
     assert!(out.contains("- epoch 1 `e1-a`: rejected (worse)"));
     assert!(out.contains("### q1 (temporal)\n\nq1 went wrong"));
     assert!(out.contains("- rank by recency"));
@@ -109,4 +111,14 @@ fn samples_at_most_two_failures_per_type_and_ten_overall() {
     });
     assert_eq!(out.matches("### ").count(), 10);
     assert_eq!(out.matches("(a)").count(), 2);
+}
+
+#[test]
+fn clipping_marks_the_cut_and_closes_an_open_fence() {
+    assert_eq!(clip("short", 10), "short");
+    assert_eq!(clip("abcdef", 3), "abc…");
+    let fenced = format!("Q\n```\n{}\n```", "x".repeat(50));
+    let cut = clip(&fenced, 20);
+    assert!(cut.ends_with("…\n```"), "{cut}");
+    assert_eq!(cut.matches("```").count(), 2);
 }
