@@ -354,7 +354,7 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
     let delta = after.since(&before);
     assert_eq!((delta.sent, delta.refused), (2, 2));
     // A call the gateway refuses itself never reaches the provider.
-    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({"max_tokens": 100_000})).await.0, 402);
+    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({"max_tokens": 16000})).await.0, 402);
     assert_eq!(h.gateway.upstream_calls(), after);
     assert_eq!(
         h.chat("/v1/chat/completions", "limit", json!({})).await.0,
