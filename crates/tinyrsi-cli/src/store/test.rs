@@ -109,7 +109,7 @@ fn pins_the_run_record_stored_form() {
 #[test]
 fn run_record_warnings_are_omitted_when_empty_and_default_when_missing() {
     let mut warned = record("a", 10, RunStatus::Finished, 1);
-    warned.stop_reason = Some(StopReason::ProviderRefused);
+    warned.stop_reason = Some(tinyrsi_trace::StopReason::ProviderRefused);
     warned.warnings = vec!["epoch 1: provider refused 1 of 2 model calls (429: slow)".into()];
     let json = serde_json::to_value(&warned).unwrap();
     assert_eq!(json["stop_reason"], "provider_refused");
