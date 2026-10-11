@@ -206,7 +206,7 @@ fn stream_events(stream: &mut TcpStream, file: &Path) -> std::io::Result<()> {
         let lines = read_new_lines(file, &mut offset, &mut partial);
         if !lines.is_empty() {
             let message: String = lines.iter().map(|l| format!("data: {l}\n")).collect();
-            write!(stream, "{message}\n")?;
+            writeln!(stream, "{message}")?;
             last_sent = Instant::now();
         }
         if !ready {

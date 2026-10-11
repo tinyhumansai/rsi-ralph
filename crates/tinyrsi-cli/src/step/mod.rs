@@ -115,23 +115,21 @@ pub fn score_result(step: &StepRun, outcome: &StepOutcome) -> Result<ScoreResult
         reason,
     };
     let path = step.dir.join("out/result.json");
-    let result = match fs::read_to_string(&path) {
-        Ok(text) => serde_json::from_str::<ScoreResult>(&text)
-            .map_err(|e| fail(format!("result.json: {e}")))?,
-        Err(_) => {
-            let score = outcome
-                .stdout
-                .lines()
-                .rev()
-                .find_map(|line| {
-                    let rest = line.trim().strip_prefix("METRIC ")?;
-                    rest.split_once('=')?.1.trim().parse::<f64>().ok()
-                })
-                .ok_or_else(|| fail("no result.json and no METRIC line".into()))?;
-            ScoreResult {
-                score,
-                ..ScoreResult::default()
-            }
+    let result = if let Ok(text) = fs::read_to_string(&path) {
+        serde_json::from_str::<ScoreResult>(&text).map_err(|e| fail(format!("result.json: {e}")))?
+    } else {
+        let score = outcome
+            .stdout
+            .lines()
+            .rev()
+            .find_map(|line| {
+                let rest = line.trim().strip_prefix("METRIC ")?;
+                rest.split_once('=')?.1.trim().parse::<f64>().ok()
+            })
+            .ok_or_else(|| fail("no result.json and no METRIC line".into()))?;
+        ScoreResult {
+            score,
+            ..ScoreResult::default()
         }
     };
     let finite = result.score.is_finite()

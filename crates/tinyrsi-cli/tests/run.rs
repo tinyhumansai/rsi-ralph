@@ -1,6 +1,6 @@
 //! `tinyrsi run` end to end, offline: the graph-colouring loop folder, the
 //! real gateway, swarm, scorer and engine, against a scripted
-//! OpenAI-compatible model standing in for OpenRouter.
+//! OpenAI-compatible model standing in for `OpenRouter`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::{

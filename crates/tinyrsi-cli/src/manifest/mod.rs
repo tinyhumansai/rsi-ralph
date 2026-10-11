@@ -496,7 +496,7 @@ impl Loop {
             .unwrap_or_else(|| self.seat_model())
     }
 
-    /// The variable holding the OpenRouter key.
+    /// The variable holding the `OpenRouter` key.
     #[must_use]
     pub fn openrouter_env(&self) -> &str {
         match self.manifest.keys.get("openrouter") {

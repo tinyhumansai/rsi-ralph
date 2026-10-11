@@ -201,7 +201,7 @@ fn decide_seeds(spec: &ScoreSpec, incumbent: &Scorecard, candidate: &Scorecard) 
     let deciding_weight = spec
         .scorers
         .iter()
-        .find(|s| &s.id == &d.on)
+        .find(|s| s.id == d.on)
         .map_or(1.0, |s| s.weight);
     let judge_weights: Vec<(&str, f64)> = spec
         .scorers

@@ -49,7 +49,7 @@ fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
 
 /// Start the spend gateway for one run folder.
 ///
-/// `TINYRSI_UPSTREAM` replaces OpenRouter with another OpenAI-compatible base
+/// `TINYRSI_UPSTREAM` replaces `OpenRouter` with another OpenAI-compatible base
 /// URL, such as a local model server.
 fn gateway(
     parsed: &Loop,

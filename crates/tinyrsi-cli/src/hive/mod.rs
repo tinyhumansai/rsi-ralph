@@ -1,4 +1,4 @@
-//! The hive: the loop's tinyhivemind package run as OpenHuman agents.
+//! The hive: the loop's tinyhivemind package run as `OpenHuman` agents.
 //!
 //! Each epoch, [`Hive`] hands `tinyrsi-swarm` the brief, the incumbent
 //! checkout (read-only for non-editing seats) and one candidate checkout per

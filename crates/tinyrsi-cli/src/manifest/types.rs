@@ -14,7 +14,7 @@ pub const VERSION: u32 = 1;
 /// The model seats, judges and the retreat use when `models` names none.
 pub const DEFAULT_MODEL: &str = "z-ai/glm-5.3-flash";
 
-/// The environment variable holding the OpenRouter key when `keys` names none.
+/// The environment variable holding the `OpenRouter` key when `keys` names none.
 pub const DEFAULT_OPENROUTER_ENV: &str = "OPENROUTER_API_KEY";
 
 /// A whole `rsi.json`.
