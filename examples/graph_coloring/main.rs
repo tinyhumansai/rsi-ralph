@@ -13,7 +13,7 @@
 //!
 //! Offline (the default) the supervisor replays three canned rewrites: DSATUR
 //! (better), a shuffled first fit with a bug (invalid colourings, rejected),
-//! and DSATUR followed by TabuCol (reaches 6). With
+//! and DSATUR followed by `TabuCol` (reaches 6). With
 //! `TINYRSI_LIVE_OPENROUTER=1` the supervisor is a real model. The run's
 //! `events.jsonl` lands under `target/rsi-examples/graph_coloring/`.
 use std::{error::Error, sync::Arc};
