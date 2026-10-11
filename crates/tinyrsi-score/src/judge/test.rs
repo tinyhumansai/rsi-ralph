@@ -15,18 +15,20 @@ fn goal() -> Goal {
     Goal::new("Explain the proof").with_criterion("every step is justified")
 }
 
-/// Replies in order and records each request's prompt, seed and tool.
+/// Replies in order and records each request's prompt, seed and
+/// reservation, and separately the structured tool it carried.
 #[derive(Default)]
 struct Scripted {
     replies: Mutex<VecDeque<Result<String, tinyrsi_model::Error>>>,
     seen: Mutex<Vec<(String, u64, u64)>>,
+    tools: Mutex<Vec<Option<(String, serde_json::Value)>>>,
 }
 
 impl Scripted {
     fn with(replies: Vec<Result<String, tinyrsi_model::Error>>) -> Arc<Self> {
         Arc::new(Self {
             replies: Mutex::new(replies.into()),
-            seen: Mutex::default(),
+            ..Self::default()
         })
     }
     fn grades(scores: &[f64]) -> Arc<Self> {
@@ -46,6 +48,11 @@ impl ModelPort for Scripted {
             request.seed(),
             request.reservation(),
         ));
+        self.tools.lock().unwrap().push(
+            request
+                .tool()
+                .map(|(name, schema)| (name.to_owned(), schema.clone())),
+        );
         let next = self.replies.lock().unwrap().pop_front();
         Box::pin(async move {
             let content = next.unwrap_or(Err(tinyrsi_model::Error::CallFailed))?;
@@ -103,6 +110,13 @@ fn the_llm_judge_takes_the_median_of_independent_raters_per_seed() {
         .collect();
     assert_eq!(seeds, expected);
     assert!(seen[0].0.contains("proof text") && seen[0].0.contains("every step"));
+    let tools = port.tools.lock().unwrap();
+    assert_eq!(tools.len(), 6);
+    for tool in tools.iter() {
+        let (name, schema) = tool.as_ref().unwrap();
+        assert_eq!(name, "grade", "external ports see the forced tool");
+        assert_eq!(schema["required"], json!(["score", "rationale"]));
+    }
     assert!(format!("{judge:?}").contains("raters: 3"));
 }
 

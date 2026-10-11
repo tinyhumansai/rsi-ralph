@@ -29,6 +29,13 @@ fn rejects_insufficient_reservations_before_provider_execution() {
     assert_eq!(request().max_output_tokens(), 100);
 }
 #[test]
+fn exposes_the_structured_tool_to_external_ports() {
+    assert_eq!(request().tool(), None);
+    let schema = serde_json::json!({"type":"object","required":["score"]});
+    let req = request().with_tool("grade".into(), schema.clone()).unwrap();
+    assert_eq!(req.tool(), Some(("grade", &schema)));
+}
+#[test]
 fn verifies_authoritative_usage_and_native_tool_identity() {
     let req = request();
     assert!(
