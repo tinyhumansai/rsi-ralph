@@ -1032,10 +1032,59 @@ dependencies = [
  "tinybackrooms",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
+ "tinyrsi-evolve",
  "tinyrsi-model",
  "tinyrsi-score",
  "tinyrsi-trace",
  "tinyrsi-types",
+ "tinyrsi-verify",
+ "tokio",
+]
+
+[[package]]
+name = "tinyrsi-evolve"
+version = "0.2.1"
+dependencies = [
+ "fs2",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tinybackrooms",
+ "tinyhivemind-lang",
+ "tinyrsi-model",
+ "tinyrsi-types",
+ "tokio",
+]
+
+[[package]]
+name = "tinyrsi-examples"
+version = "0.2.1"
+dependencies = [
+ "serde_json",
+ "tempfile",
+ "tinyhivemind-hives",
+ "tinyhivemind-lang",
+ "tinyrsi",
+ "tinyrsi-host",
+ "tokio",
+]
+
+[[package]]
+name = "tinyrsi-host"
+version = "0.2.1"
+dependencies = [
+ "fs2",
+ "jsonschema",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tinybackrooms",
+ "tinyhivemind-hives",
+ "tinyhivemind-lang",
+ "tinyrsi",
+ "tinyrsi-verify",
  "tokio",
 ]
 
@@ -1083,6 +1132,22 @@ dependencies = [
  "serde",
  "serde_json",
  "tinyhivemind-lang",
+]
+
+[[package]]
+name = "tinyrsi-verify"
+version = "0.2.1"
+dependencies = [
+ "jsonschema",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tinyhivemind-hives",
+ "tinyrsi-score",
+ "tinyrsi-types",
+ "tokio",
 ]
 
 [[package]]

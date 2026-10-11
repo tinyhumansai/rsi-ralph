@@ -7,13 +7,29 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 
 ## Public surface
 
-- `run_script_loop(subject, supervisor, policy, run, trace) -> Result<LoopReport>`
+- `run_script_loop(subject, supervisor, policy, run, trace) -> Result<LoopReport>`,
+  where `supervisor` is any `tinyrsi_evolve::Evolver<ScriptBrief, Proposal =
+  ScriptProposal>`. The loop renders the brief (prompt) from its ledger and
+  records each returned proposal, valid or not.
+- `run_script_loop_with(subject, supervisor, scorer, policy, run, trace)`: the
+  same loop scored by any `tinyrsi_score::Scorer<ScriptCandidate>` (sources
+  plus per-seed metrics), for example a `Composite` of the metric and an
+  `LlmJudge` reading the sources. The incumbent is assessed on its first
+  comparison and cached (a baseline already at the target is never scored),
+  the scorer's tokens count against the budget, and `decide`'s eligibility
+  rule means an uncalibrated judge alone never promotes. Ledger rows and
+  `scored` trace events carry `units: "quality"` when the interval is in
+  scorer qualities; the field is omitted for metric units. A candidate the scorer fails on is recorded as
+  `error`, with its runs, before the run ends.
+  `run_script_loop` uses the metric alone (`MetricScorer`), which reproduces
+  the original decisions and metric-unit intervals exactly.
 - `ScriptSubject`, `ScriptCommand`, `MetricSpec`: what to run and measure.
 - `LoopPolicy`: epochs, proposals per epoch, patience, token budget, how many
   rejected proposals the supervisor sees, and the paired `EvalPolicy`.
-- `Supervisor` and `SupervisorLimits`: the model side.
-- `ScriptProposal`, `ProposedFile`: the forced tool call's schema;
-  `ScriptProposal::validate` enforces the editable set.
+- The model side lives in `tinyrsi-evolve`: `ScriptSupervisor`,
+  `SupervisorLimits`, `ScriptBrief`, and `ScriptProposal` / `ProposedFile`
+  (the forced tool call's schema, with `ScriptProposal::validate` enforcing
+  the editable set). `ScriptedEvolver` replays canned proposals offline.
 - `ScriptLedger`, `LedgerCandidate`, `SeedRun`, `IncumbentEntry`,
   `CandidateDecision`: the `ledger.json` snapshot.
 - `parse_metric`: the `METRIC <name>=<value>` contract.
@@ -23,10 +39,10 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 | File | Role |
 | --- | --- |
 | `mod.rs` | the loop: baseline, epochs, promotion, stop reasons, ledger writes |
-| `types.rs` | subject, policy, proposal, ledger and report types |
+| `types.rs` | subject, policy, ledger and report types |
 | `execute.rs` | validation, content ids, materialization, per-seed runs, metric parsing |
-| `score.rs` | the quality transform and paired scoring over `evaluation::compare` |
-| `supervisor.rs` | prompt, tool schema, forced tool call, a thread-parking executor |
+| `score.rs` | the default metric scorer and the interval of a failed candidate |
+| `prompt.rs` | the supervisor prompt rendered from the ledger and incumbent sources |
 | `test.rs`, `test_loop.rs` | unit tests and end-to-end loop tests |
 
 ## Run directory

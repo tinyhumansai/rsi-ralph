@@ -2,7 +2,9 @@
 
 Terms used across the code, the module READMEs and `docs/rsi/`. Each entry
 names the type or function that defines it; paths are relative to
-`crates/tinyrsi/src/` unless they start with `crates/`. Read
+`crates/tinyrsi/src/` unless they start with `crates/`, except `host/`,
+`suites/`, `epoch_driver/` and `evidence_journal/`, which are relative to
+`crates/tinyrsi-host/src/`. Read
 [architecture.md](architecture.md) first for how the pieces fit together.
 
 ## The loop
@@ -66,10 +68,10 @@ variation inside the retreat Engine.
 
 **Retreat.** The tinybackrooms creative "critic-pair" Engine used to
 generate proposals (`GenerationMode::Retreat` in `epoch_driver/types.rs`;
-request contract in `retreat/`). `RetreatWithoutMemory` disables recall;
+request contract in `crates/tinyrsi-evolve/src/retreat/`). `RetreatWithoutMemory` disables recall;
 `Direct` skips the Engine and makes one structured model call.
 
-**Retreat memory.** `DurableRetreatMemory` (`retreat_memory/`): a bounded,
+**Retreat memory.** `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`): a bounded,
 locked recall cache of discovery text and approved/rejected outcomes that the
 retreat Engine reads. Not an audit log.
 
@@ -166,18 +168,18 @@ for prompts, `ManageRoster` for roster, `BetweenSessions` for topology,
 policy and goals. The host does not act on it yet; `CoordinatorHost` always
 rebuilds.
 
-**Blueprint.** `Blueprint` (`blueprint/`): a dependency DAG of
+**Blueprint.** `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`): a dependency DAG of
 `BlueprintNode`s, each with a `Verifier` kind. Nodes become verified only
 through the host's `report`. The host's per-node checker results
 (`VerifierOutcome` with a `NodeStatus`) become the dossier's `failed_nodes` /
 `open_nodes`, which proposals must cite in `Prediction::nodes`.
 
-**Verifier.** `VerifierKind` (`blueprint/types.rs`) ranks evidence from
+**Verifier.** `VerifierKind` (`crates/tinyrsi-verify/src/blueprint/types.rs`) ranks evidence from
 `Proof` down to `Rubric` and `Preference` (the last two are weak).
-`HostVerifier` (`verification/types.rs`) is the concrete check: `Process`,
+`HostVerifier` (`crates/tinyrsi-verify/src/verification/types.rs`) is the concrete check: `Process`,
 `Golden`, `Schema`, `Lean` (a restricted proof block checked directly) or
 `Lake` (a frozen project built with a pinned Lean toolchain; see
-`verification/lake/README.md`).
+`crates/tinyrsi-verify/src/verification/lake/README.md`).
 
 **Approval gate.** `HApprovalGate::approve_h`
 (`orchestrator/normalized/types.rs`): the only path from a confirmed

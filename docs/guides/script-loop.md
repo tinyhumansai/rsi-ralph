@@ -60,9 +60,10 @@ epochs without a promotion, and accepts a candidate when the paired lower bound
 of its improvement is above zero (`eval.margin = 0`). Raise `eval.margin` (in
 quality units, see the module README) to demand larger gains.
 
-`Supervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
+`ScriptSupervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
 uses `OpenRouter`; any `ModelPort` works if its futures do not need a specific
-async runtime. `token_budget` caps measured supervisor tokens across the run.
+async runtime. `token_budget` caps measured supervisor tokens across the run, plus the
+scorer's tokens when you pass a model-backed scorer to `run_script_loop_with`.
 
 ## 5. Run and read the results
 
@@ -86,3 +87,13 @@ only copies the workspace, clears the environment, and enforces a timeout and
 an output cap. It does **not** block network access or writes outside the
 candidate directory. Run live supervision inside a container or VM, and never
 with credentials in the subject's `env`.
+
+## Scoring beyond the metric
+
+`run_script_loop` decides on the metric alone. When the goal is partly about
+the code itself, such as readability or following a standard, call
+`run_script_loop_with` with a `tinyrsi_score::Scorer<ScriptCandidate>`, for
+example a `Composite` of the metric (`MetricScorer` through a `Projected`) and
+an `LlmJudge` reading the sources. An `LlmJudge` without a passing
+`JudgeCalibration` can widen a margin but can never promote a candidate on its
+own. See [`crates/tinyrsi-score/README.md`](../../crates/tinyrsi-score/README.md).

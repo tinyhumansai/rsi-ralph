@@ -13,7 +13,9 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**Improvement loop library** (paths under `crates/tinyrsi/src/`)
+**Improvement loop library** (paths under `crates/tinyrsi/src/`, or
+`crates/tinyrsi-host/src/` for `host/`, `suites/`, `epoch_driver/` and
+`evidence_journal/`)
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
   `DeploymentStore::observe` (`host/`), `EvidenceJournal`
@@ -25,15 +27,15 @@ published 24-attempt experiment is inconclusive.
   selection and confirmation stages (`orchestrator/`), normalized H scoring
   and bootstrap (`crates/tinyrsi-score/src/scoring/`), private suites and `CoordinatorEvaluator`
   (`suites/`), immutable memory snapshots (`memory/`).
-- P3 verified decomposition: `Blueprint` (`blueprint/`), `VerifierRegistry`
+- P3 verified decomposition: `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
-  (`verification/`), plus a pinned-toolchain `lake build` checker
-  (`verification/lake/`) validated on 12 private reference proofs
+  (`crates/tinyrsi-verify/src/verification/`), plus a pinned-toolchain `lake build` checker
+  (`crates/tinyrsi-verify/src/verification/lake/`) validated on 12 private reference proofs
   ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets
-  (`epoch_driver/`), the tinybackrooms request contract (`retreat/`) and
-  `DurableRetreatMemory` (`retreat_memory/`).
+  (`epoch_driver/`), the tinybackrooms request contract (`crates/tinyrsi-evolve/src/retreat/`) and
+  `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`).
 - P5 structural deployment: `DeploymentStore::activate`, `rollback` and
   `recover` over `CoordinatorHost` with SQLite fencing and compensation
   (`host/`).

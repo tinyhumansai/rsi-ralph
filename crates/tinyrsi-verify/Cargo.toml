@@ -1,0 +1,29 @@
+[package]
+name = "tinyrsi-verify"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Host-owned checkers: bounded processes, golden and schema checks, pinned Lean proofs."
+readme = "../../README.md"
+keywords = ["rsi", "verification", "lean", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+tinyrsi-types = { workspace = true }
+tinyrsi-score = { workspace = true }
+tinyhivemind-hives = { workspace = true }
+jsonschema = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lints]
+workspace = true
