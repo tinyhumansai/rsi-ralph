@@ -76,8 +76,49 @@ impl Respond for Lab {
             ("implementer", _) => text("Rewrote coloring.py with DSATUR."),
             _ => text("ok"),
         };
-        ResponseTemplate::new(200).set_body_json(reply)
+        if body.contains("\"stream\":true") {
+            ResponseTemplate::new(200)
+                .insert_header("content-type", "text/event-stream")
+                .set_body_string(stream(&reply))
+        } else {
+            ResponseTemplate::new(200).set_body_json(reply)
+        }
     }
+}
+
+/// The same completion as OpenAI-style server-sent events.
+fn stream(reply: &Value) -> String {
+    let message = &reply["choices"][0]["message"];
+    let mut delta = json!({"role": "assistant"});
+    if let Some(content) = message["content"].as_str() {
+        delta["content"] = json!(content);
+    }
+    if let Some(calls) = message["tool_calls"].as_array() {
+        let calls: Vec<Value> = calls
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                let mut c = c.clone();
+                c["index"] = json!(i);
+                c
+            })
+            .collect();
+        delta["tool_calls"] = json!(calls);
+    }
+    let chunk = |choice: Value, usage: Option<&Value>| {
+        let mut body = json!({"id": "fixture", "object": "chat.completion.chunk", "created": 0,
+            "model": "z-ai/glm-5.3-flash", "choices": [choice]});
+        if let Some(usage) = usage {
+            body["usage"] = usage.clone();
+        }
+        format!("data: {body}\n\n")
+    };
+    let finish = reply["choices"][0]["finish_reason"].clone();
+    format!(
+        "{}{}data: [DONE]\n\n",
+        chunk(json!({"index": 0, "delta": delta, "finish_reason": null}), None),
+        chunk(json!({"index": 0, "delta": {}, "finish_reason": finish}), Some(&reply["usage"]))
+    )
 }
 
 fn copy(from: &Path, to: &Path) {
