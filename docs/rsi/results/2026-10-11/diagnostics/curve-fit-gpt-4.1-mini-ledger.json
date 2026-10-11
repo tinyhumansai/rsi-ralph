@@ -1,0 +1,674 @@
+{
+  "run_id": "curve-fit-1791721455-25048",
+  "subject": "curve_fit.py",
+  "metric": {
+    "name": "rmse",
+    "direction": "minimize",
+    "target": 0.06
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "tokens": 28788,
+  "stop": "stalled",
+  "incumbents": [
+    {
+      "epoch": 0,
+      "id": "c6d1b3f0a334",
+      "metric": 0.6437833333333334
+    },
+    {
+      "epoch": 1,
+      "id": "e7280ec0ea1e",
+      "metric": 0.4578756666666666
+    }
+  ],
+  "candidates": [
+    {
+      "epoch": 0,
+      "proposal_id": null,
+      "id": "c6d1b3f0a334",
+      "parent": null,
+      "rationale": "baseline",
+      "hypothesis": "starting script",
+      "paths": [],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.771909,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4929 (held-out 0.7719)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +1.34 -0.08 -0.05 +0.72 -0.10 +0.13 +0.35 -0.06 +0.14 +0.14"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.567277,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.5548 (held-out 0.5673)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +1.34 -0.12 -0.09 +0.70 -0.13 +0.14 +0.32 -0.04 +0.18 +0.16"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.592164,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.5686 (held-out 0.5922)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +1.37 -0.13 -0.09 +0.73 -0.11 +0.15 +0.35 -0.01 +0.14 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.6437833333333334,
+      "decision": "baseline",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-0",
+      "id": "cae46f51f4bb",
+      "parent": "c6d1b3f0a334",
+      "rationale": "The original model fits a linear function which is too simple for the noisy nonlinear data. A cubic polynomial fit using least squares is still fast and deterministic, and can model curvature and inflection points, improving prediction accuracy.",
+      "hypothesis": "Fitting a cubic polynomial to the training data will better capture the nonlinearities in the signal and reduce held-out RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 18,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/cae46f51f4bb/curve_fit.py\", line 15, in <module>\n    import model\n  File \"<run-dir>/candidates/cae46f51f4bb/model.py\", line 25\n    n            for c in range(4):\n                 ^^^\nSyntaxError: invalid syntax\n",
+          "diagnostics": []
+        },
+        {
+          "seed": 2,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 18,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/cae46f51f4bb/curve_fit.py\", line 15, in <module>\n    import model\n  File \"<run-dir>/candidates/cae46f51f4bb/model.py\", line 25\n    n            for c in range(4):\n                 ^^^\nSyntaxError: invalid syntax\n",
+          "diagnostics": []
+        },
+        {
+          "seed": 3,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 19,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/cae46f51f4bb/curve_fit.py\", line 15, in <module>\n    import model\n  File \"<run-dir>/candidates/cae46f51f4bb/model.py\", line 25\n    n            for c in range(4):\n                 ^^^\nSyntaxError: invalid syntax\n",
+          "diagnostics": []
+        }
+      ],
+      "mean": null,
+      "decision": "reject",
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-1",
+      "id": "e7280ec0ea1e",
+      "parent": "c6d1b3f0a334",
+      "rationale": "A cubic polynomial can model curvature and inflection points in the data, which a linear model cannot. Using least squares fitting is deterministic and fast, suitable for the problem constraints.",
+      "hypothesis": "Fitting a cubic polynomial to the training data will better capture the nonlinearities in the signal and reduce held-out RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "accept",
+      "estimate": 0.18590766666666667,
+      "lower": 0.09009938142067257,
+      "upper": 0.28171595191266074,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-2",
+      "id": "b7a46ca50fb1",
+      "parent": "c6d1b3f0a334",
+      "rationale": "A cubic polynomial can model curvature and inflection points in the data, which a linear model cannot. Using least squares fitting is deterministic and fast, suitable for the problem constraints.",
+      "hypothesis": "Fitting a cubic polynomial to the training data will better capture the nonlinearities in the signal and reduce held-out RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 22,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "accept",
+      "estimate": 0.18590766666666667,
+      "lower": 0.09009938142067257,
+      "upper": 0.28171595191266074,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-0",
+      "id": "7d6c0ff871e6",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The previous attempt to fit a cubic polynomial failed due to a syntax error. Fixing this allows the model to fit a cubic polynomial using least squares, which can better model the nonlinear signal and reduce prediction error.",
+      "hypothesis": "Fix syntax error to enable cubic polynomial fitting, which should reduce held-out RMSE by capturing nonlinearities better than a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-1",
+      "id": "e7280ec0ea1e",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The previous attempt to fit a cubic polynomial failed due to a syntax error. Fixing this allows the model to fit a cubic polynomial using least squares, which can better model the nonlinear signal and reduce prediction error.",
+      "hypothesis": "Fix syntax error to enable cubic polynomial fitting, which should reduce held-out RMSE by capturing nonlinearities better than a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [],
+      "mean": null,
+      "decision": "duplicate",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": false,
+      "note": "content already evaluated in this run"
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-2",
+      "id": "66bdede004ce",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The previous attempt to fit a cubic polynomial failed due to a syntax error. Fixing this allows the model to fit a cubic polynomial using least squares, which can better model the nonlinear signal and reduce prediction error.",
+      "hypothesis": "Fix syntax error to enable cubic polynomial fitting, which should reduce held-out RMSE by capturing nonlinearities better than a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 23,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 31,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-0",
+      "id": "087ba1a5dd16",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491395,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415649,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466603,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.45788233333333334,
+      "decision": "reject",
+      "estimate": -6.666666666673334e-6,
+      "lower": -0.000013626871005985898,
+      "upper": 2.935376726392296e-7,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-1",
+      "id": "0f755a3c300e",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491415,
+          "error": null,
+          "duration_ms": 22,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415644,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466568,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "inconclusive",
+      "estimate": 0.0,
+      "lower": -0.00003601851375797777,
+      "upper": 0.00003601851375797777,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-2",
+      "id": "10344059de57",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491385,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415647,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466594,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.45787533333333336,
+      "decision": "inconclusive",
+      "estimate": 3.3333333332441484e-7,
+      "lower": -3.1943350814388945e-6,
+      "upper": 3.861001748087724e-6,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-0",
+      "id": "6229aebde390",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491385,
+          "error": null,
+          "duration_ms": 27,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415647,
+          "error": null,
+          "duration_ms": 25,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466594,
+          "error": null,
+          "duration_ms": 25,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.45787533333333336,
+      "decision": "inconclusive",
+      "estimate": 3.3333333332441484e-7,
+      "lower": -3.1943350814388945e-6,
+      "upper": 3.861001748087724e-6,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-1",
+      "id": "2785318fb130",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491415,
+          "error": null,
+          "duration_ms": 41,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415644,
+          "error": null,
+          "duration_ms": 26,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466568,
+          "error": null,
+          "duration_ms": 27,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "inconclusive",
+      "estimate": 0.0,
+      "lower": -0.00003601851375797777,
+      "upper": 0.00003601851375797777,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-2",
+      "id": "b30b1d69f0c5",
+      "parent": "e7280ec0ea1e",
+      "rationale": "The current cubic polynomial fit may overfit the training data, causing higher held-out error. A small ridge regularization (L2 penalty) shrinks coefficients slightly towards zero, which can improve generalization and reduce held-out RMSE.",
+      "hypothesis": "Adding a small ridge regularization to the cubic polynomial fit will reduce overfitting and improve generalization, thus lowering the held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491385,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.3927 (held-out 0.4914)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.46 -0.53 -0.24 +0.64 -0.16 +0.01 +0.18 -0.27 -0.04 +0.10"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 0.415647,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4140 (held-out 0.4156)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.38 -0.54 -0.21 +0.70 -0.14 +0.04 +0.12 -0.31 -0.07 +0.08"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 0.466594,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "train rmse 0.4244 (held-out 0.4666)",
+            "mean residual by t in [0,1),[1,2),...,[9,10]: +0.39 -0.50 -0.13 +0.79 -0.08 +0.08 +0.15 -0.29 -0.09 +0.18"
+          ]
+        }
+      ],
+      "mean": 0.45787533333333336,
+      "decision": "inconclusive",
+      "estimate": 3.3333333332441484e-7,
+      "lower": -3.1943350814388945e-6,
+      "upper": 3.861001748087724e-6,
+      "promoted": false,
+      "note": null
+    }
+  ]
+}
