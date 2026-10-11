@@ -11,7 +11,7 @@
  * rejected before materialization and is never executed.
  */
 
-import { stageOf, type Decision, type Envelope, type FinishReason, type Goal, type Stage } from "./events";
+import { stageOf, type Decision, type Envelope, type FinishReason, type Goal, type IntervalUnits, type Stage } from "./events";
 
 /** One proposal and the candidate it materializes into, if any. */
 export interface Proposal {
@@ -38,6 +38,8 @@ export interface Candidate {
   estimate: number | null;
   lower: number | null;
   upper: number | null;
+  /** Units of `estimate`, `lower` and `upper`. */
+  units: IntervalUnits;
 }
 
 /** One incumbent in the promotion chain. */
@@ -127,6 +129,7 @@ function touchCandidate(state: RunState, id: string, epoch: number): RunState {
     estimate: null,
     lower: null,
     upper: null,
+    units: "metric",
   };
   return {
     ...state,
@@ -215,6 +218,7 @@ export function applyEnvelope(state: RunState, envelope: Envelope): RunState {
         estimate: event.estimate,
         lower: event.lower,
         upper: event.upper,
+        units: event.units ?? "metric",
       });
       break;
     case "improved":

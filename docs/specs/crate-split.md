@@ -68,7 +68,7 @@ listed above it.
 | `tinyrsi-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
 | `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
 | `tinyrsi-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse over OTLP | trace, openhuman-embed (`langfuse` only) |
-| `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | model, trace, tinybackrooms |
+| `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | types, model, trace, tinybackrooms |
 | `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
 | `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor` with what it reads and writes (`ScriptBrief`, `ScriptProposal`, `ProposedFile`, `SupervisorLimits`); `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
 | `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
@@ -158,7 +158,7 @@ pub trait Scorer<S: ?Sized> {
 }
 
 pub struct Assessment {
-    pub qualities: Vec<f64>,          // aligned with `seeds`, each in (0, 1)
+    pub qualities: Vec<f64>,          // aligned with `seeds`, each in [0, 1]
     pub eligible: Option<Vec<f64>>,   // qualities from accept-eligible evidence only
     pub metric: Option<MetricEvidence>, // raw per-seed metric and direction, if any
     pub rationale: Option<String>,    // a judge's reasoning, when there is one
@@ -214,7 +214,9 @@ Implementations:
   Lake check. A pass scores the checker's own reported quality (1 for a
   plain pass), and a failure scores 0. `compare` accepts the closed interval
   `[0, 1]`, so no smoothing is needed. Checkers are deterministic, so the
-  checker runs once per assessment and its quality repeats for every seed.
+  checker runs once per assessment and its quality repeats for every seed. A
+  registered checker is the strongest evidence the loop has, so `eligible`
+  repeats the qualities: a fail-to-pass change is accept-eligible on its own.
 
 ### Evolver port
 
@@ -263,7 +265,11 @@ Implementations:
 
 ### Observe
 
-`tinyrsi-trace` owns the `events.jsonl` schema unchanged. It adds
+`tinyrsi-trace` owns the `events.jsonl` schema. Its one addition is an
+optional `units: "quality"` on `scored`, written when the interval is in
+scorer qualities rather than the goal metric and omitted otherwise, so
+metric-scored traces keep their bytes and `apps/rsi-viz` labels the interval
+correctly. It adds
 `TracingTrace`, a `TraceSink` that mirrors each `LoopEvent` as a `tracing`
 event inside per-run and per-epoch spans, and `FanoutTrace`, which writes one
 stream to several sinks.
@@ -317,8 +323,9 @@ removed; `Lineage::append` and `Lineage::head` remain.
   accepted: `decide` requires acceptance on accept-eligible evidence alone.
 - Archive JSON, `ledger.json` and `events.jsonl` keep their exact bytes for the
   same inputs. The existing pinned tests stay unchanged and green. Only runs
-  under `run_script_loop_with` add to the ledger: a `units: "quality"` field on
-  rows whose interval is in scorer qualities (omitted for metric units), an
+  under `run_script_loop_with` add to the ledger and trace: a
+  `units: "quality"` field on ledger rows and `scored` events whose interval
+  is in scorer qualities (omitted for metric units), an
   `error` decision for a candidate the scorer failed on, and scorer tokens in
   `tokens` and against `token_budget`.
 - Every public item keeps a rustdoc comment. Every source file keeps at least

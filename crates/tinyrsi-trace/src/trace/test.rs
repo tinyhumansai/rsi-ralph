@@ -140,3 +140,35 @@ fn vec_and_null_traces_accept_events() {
     assert!(format!("{trace:?}").contains("records: 2"));
     assert!(NullTrace.record(started()).is_ok());
 }
+
+#[test]
+fn scored_names_quality_units_and_omits_metric_units() {
+    let scored = |units| LoopEvent::Scored {
+        epoch: 1,
+        candidate: "c".into(),
+        decision: ScoreDecision::Accept,
+        estimate: 0.5,
+        lower: 0.25,
+        upper: 0.75,
+        units,
+    };
+    let metric = serde_json::to_string(&scored(IntervalUnits::Metric)).unwrap();
+    assert_eq!(
+        metric,
+        r#"{"kind":"scored","epoch":1,"candidate":"c","decision":"accept","estimate":0.5,"lower":0.25,"upper":0.75}"#
+    );
+    let quality = serde_json::to_string(&scored(IntervalUnits::Quality)).unwrap();
+    assert_eq!(
+        quality,
+        r#"{"kind":"scored","epoch":1,"candidate":"c","decision":"accept","estimate":0.5,"lower":0.25,"upper":0.75,"units":"quality"}"#
+    );
+    // Traces written before the field existed read as metric units.
+    assert_eq!(
+        serde_json::from_str::<LoopEvent>(&metric).unwrap(),
+        scored(IntervalUnits::Metric)
+    );
+    assert_eq!(
+        serde_json::from_str::<LoopEvent>(&quality).unwrap(),
+        scored(IntervalUnits::Quality)
+    );
+}
