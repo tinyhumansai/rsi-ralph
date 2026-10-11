@@ -100,6 +100,13 @@ impl From<tinyrsi_model::Error> for Error {
     }
 }
 
+/// A trace failure keeps the variant this crate has always reported.
+impl From<tinyrsi_trace::Error> for Error {
+    fn from(_: tinyrsi_trace::Error) -> Self {
+        Self::TraceIo
+    }
+}
+
 /// The crate's standard result type.
 ///
 /// Use this alias in public signatures instead of spelling out

@@ -60,7 +60,6 @@ mod scoring;
 mod script_loop;
 #[cfg(feature = "host")]
 mod suites;
-mod trace;
 mod verification;
 
 pub use error::{Error, Result};
@@ -127,7 +126,8 @@ pub use script_loop::{
     ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject, SeedRun,
     Supervisor, SupervisorLimits, parse_metric, run_script_loop,
 };
-pub use trace::{
-    Clock, JsonlTrace, LoopEvent, ManualClock, MetricDirection, MonotonicClock, NullTrace, RunGoal,
-    ScoreDecision, StopReason, TraceRecord, TraceSink, VecTrace,
+pub use tinyrsi_trace::{
+    Clock, Error as TraceError, FanoutTrace, JsonlTrace, LoopEvent, ManualClock, MetricDirection,
+    MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord, TraceSink,
+    TracingTrace, VecTrace,
 };

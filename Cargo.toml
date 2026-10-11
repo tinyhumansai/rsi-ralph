@@ -29,6 +29,8 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 # workspace version moves on every release, and nothing here is published, so
 # the path is the whole address.
 tinyrsi-types = { path = "crates/tinyrsi-types" }
+# The loop trace written for the visualizer and mirrored into `tracing`.
+tinyrsi-trace = { path = "crates/tinyrsi-trace" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
 tinyrsi-model = { path = "crates/tinyrsi-model" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
@@ -56,6 +58,11 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 # The `host` runtime drives the tinyhivemind coordinator, and async tests use
 # the same runtime.
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+# `TracingTrace` mirrors loop events as spans for whatever subscriber the host
+# installs; no default features because nothing here needs `log` interop.
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+# Tests capture mirrored spans and events with a registry layer.
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
 
 # Lints apply to every member that opts in with `[lints] workspace = true`, and
 # to every target of that member. CI runs clippy with `-D warnings`, so anything

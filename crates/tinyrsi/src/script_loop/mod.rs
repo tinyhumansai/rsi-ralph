@@ -152,7 +152,7 @@ struct Measured {
 
 impl LoopState<'_> {
     fn emit(&mut self, event: LoopEvent) -> Result<()> {
-        self.trace.record(event)
+        Ok(self.trace.record(event)?)
     }
 
     fn drive(&mut self) -> Result<StopReason> {

@@ -415,8 +415,8 @@ fn rejects_invalid_policies_and_locations_before_writing() {
 fn propagates_trace_failures() {
     struct Broken;
     impl crate::TraceSink for Broken {
-        fn record(&mut self, _: LoopEvent) -> crate::Result<()> {
-            Err(Error::TraceIo)
+        fn record(&mut self, _: LoopEvent) -> tinyrsi_trace::Result<()> {
+            Err(crate::TraceError::Io)
         }
     }
     let dir = tempfile::tempdir().unwrap();

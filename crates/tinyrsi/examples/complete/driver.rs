@@ -323,13 +323,13 @@ impl Trials {
                 })?;
             }
         }
-        self.trace.record(LoopEvent::EpochFinished {
+        Ok(self.trace.record(LoopEvent::EpochFinished {
             epoch,
             incumbent: archive
                 .head()
                 .map_or_else(|| baseline.to_owned(), |h| h.id.clone()),
             incumbent_metric: None,
-        })
+        })?)
     }
     fn propose(
         &mut self,
