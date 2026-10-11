@@ -94,6 +94,8 @@ pub(super) struct Entry {
     pub generation_failed: bool,
     #[serde(default)]
     pub generation_receipts: bool,
+    #[serde(default)]
+    pub generation_mode: Option<GenerationMode>,
     pub invalid_items: usize,
     pub evaluating: bool,
     pub outcome: RetreatEpochOutcome,
@@ -111,6 +113,7 @@ impl Entry {
         incumbent_id: String,
         fingerprint: String,
         meter: GenerationMeter,
+        mode: GenerationMode,
     ) -> Self {
         Self {
             epoch,
@@ -120,6 +123,7 @@ impl Entry {
             meter,
             generation_failed: false,
             generation_receipts: true,
+            generation_mode: Some(mode),
             invalid_items: 0,
             evaluating: false,
             outcome: RetreatEpochOutcome {

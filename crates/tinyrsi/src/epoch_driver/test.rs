@@ -425,6 +425,17 @@ async fn failed_generation_is_charged_and_never_retried_on_restart() {
     let audit = journal.generation_receipts(1).unwrap().unwrap();
     assert_eq!(audit.calls[0].status, GenerationCallStatus::Failed);
     assert_eq!(audit.calls[0].items, Vec::<GenerationDisposition>::new());
+    let mut changed = audit;
+    changed.mode = GenerationMode::Retreat;
+    std::fs::write(
+        super::receipts::path(&journal.path, 1),
+        serde_json::to_vec(&changed).unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        journal.generation_receipts(1),
+        Err(Error::ArchiveCorrupt)
+    ));
     assert_eq!(calls.load(Ordering::Relaxed), 1);
 }
 mod evaluation;

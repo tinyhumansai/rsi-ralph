@@ -147,6 +147,7 @@ pub async fn prepare_retreat_epoch(
         incumbent_id,
         fingerprint,
         backend.meter()?,
+        input.mode,
     );
     journal.commit_entry(entry.clone())?;
     let receipts = Arc::new(super::receipts::ReceiptStore::create(

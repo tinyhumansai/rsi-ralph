@@ -125,6 +125,7 @@ fn validate(state: &Snapshot) -> Result<()> {
         || state.entries.iter().any(|(id, e)| {
             *id != e.epoch
                 || e.incumbent_id.is_empty()
+                || (e.generation_receipts && e.generation_mode.is_none())
                 || e.fingerprint.len() != 64
                 || !e.fingerprint.bytes().all(|b| b.is_ascii_hexdigit())
                 || e.outcome.epoch != e.epoch
@@ -164,13 +165,14 @@ fn read_receipts(path: &Path, entry: &Entry) -> Result<Option<super::GenerationA
     let audit = super::receipts::read(path, entry.epoch, &entry.fingerprint)?;
     if (entry.generation_receipts && audit.is_none())
         || audit.as_ref().is_some_and(|audit| {
-            entry.prepared.as_ref().is_some_and(|prepared| {
-                audit.mode != prepared.mode
-                    || audit
-                        .calls
-                        .iter()
-                        .any(|call| call.status == super::GenerationCallStatus::Pending)
-            })
+            entry.generation_mode.is_some_and(|mode| mode != audit.mode)
+                || entry.prepared.as_ref().is_some_and(|prepared| {
+                    audit.mode != prepared.mode
+                        || audit
+                            .calls
+                            .iter()
+                            .any(|call| call.status == super::GenerationCallStatus::Pending)
+                })
         })
     {
         return Err(Error::ArchiveCorrupt);
