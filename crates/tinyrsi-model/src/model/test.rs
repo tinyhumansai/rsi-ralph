@@ -180,7 +180,7 @@ fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
     };
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
-    let (seen, heard) = mpsc::channel();
+    let (sender, receiver) = mpsc::channel();
     std::thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         stream
@@ -209,7 +209,7 @@ fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
     let model =
         OpenRouterModel::via("m".into(), &format!("http://{addr}/__tag/judge/q/v1/")).unwrap();
     assert_eq!(model.call(&request()).unwrap().content, b"ok");
-    let head = heard.recv().unwrap();
+    let head = receiver.recv().unwrap();
     assert!(head.starts_with("POST /__tag/judge/q/v1/chat/completions "));
     assert!(head.contains("Authorization: Bearer gateway"));
     for bad in ["ftp://x", "http://a\"b", "http://a\nb"] {
