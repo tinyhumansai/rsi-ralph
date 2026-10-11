@@ -27,6 +27,7 @@
 mod error;
 pub mod keys;
 pub mod manifest;
+pub mod step;
 pub mod store;
 
 pub use error::{Error, Result};
