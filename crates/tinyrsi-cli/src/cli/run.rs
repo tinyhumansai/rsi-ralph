@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use tinyrsi_gateway::{Gateway, GatewayConfig, Price, UpstreamCalls};
+use tinyrsi_gateway::{CallMark, Gateway, GatewayConfig, Price, UpstreamCalls};
 use tinyrsi_model::OpenRouterModel;
 use tinyrsi_score::{JudgeLimits, LlmJudge};
 use tinyrsi_trace::StopReason;
@@ -39,8 +39,12 @@ impl Meter for GatewayMeter<'_> {
         remaining.is_finite().then_some(remaining)
     }
 
-    fn upstream_calls(&self) -> UpstreamCalls {
-        self.0.upstream_calls()
+    fn call_mark(&self) -> CallMark {
+        self.0.call_mark()
+    }
+
+    fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
+        self.0.upstream_calls_since(mark)
     }
 }
 

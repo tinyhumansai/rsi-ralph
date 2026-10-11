@@ -6,7 +6,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use tinyrsi_gateway::UpstreamCalls;
+use tinyrsi_gateway::{CallMark, UpstreamCalls};
 
 use crate::{
     Result,
@@ -72,11 +72,19 @@ pub trait Meter {
     fn spent_usd(&self) -> f64;
     /// Dollars that may still be spent before a cap trips, if capped.
     fn remaining_usd(&self) -> Option<f64>;
-    /// Calls forwarded to the model provider so far and how many it
-    /// refused. The engine compares readings taken around the hive to tell
-    /// a provider refusing calls from a hive that changed nothing. The
-    /// default reports no calls, for meters that cannot see them.
-    fn upstream_calls(&self) -> UpstreamCalls {
+    /// A mark after every model call forwarded so far. The engine takes
+    /// one before the hive runs and reads [`Meter::upstream_calls_since`]
+    /// after, to tell a provider refusing calls from a hive that changed
+    /// nothing. The default is the start, for meters that cannot see calls.
+    fn call_mark(&self) -> CallMark {
+        CallMark::default()
+    }
+
+    /// The model calls forwarded at or after `mark` and how many the
+    /// provider refused, counting each refusal against the call it answers.
+    /// The default reports no calls, for meters that cannot see them.
+    fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
+        let _ = mark;
         UpstreamCalls::default()
     }
 }
