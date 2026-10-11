@@ -2,7 +2,7 @@
 
 use super::*;
 
-fn parts<'a>(context: &'a BTreeMap<String, String>, editing: bool) -> PromptParts<'a> {
+fn parts(context: &BTreeMap<String, String>, editing: bool) -> PromptParts<'_> {
     PromptParts {
         seat: "  You implement the assignment.\n",
         role: "implementer",
