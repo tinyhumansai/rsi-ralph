@@ -67,6 +67,7 @@ crates/
 ├── tinyrsi-verify/     # host checkers, blueprints, pinned Lean, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
 ├── tinyrsi-host/       # hive runtime: coordinators, suites, durable epochs, deployment
+├── tinyrsi-swarm/      # a hive package run as OpenHuman agents editing candidates
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
