@@ -10,6 +10,7 @@
 //! Every candidate lands in `ledger.json`; every stage is emitted to a
 //! [`TraceSink`]. Design, safety limits and file layout are in this module's
 //! `README.md` and `docs/specs/script-loop.md`.
+mod approaches;
 mod execute;
 mod prompt;
 mod score;
@@ -155,6 +156,12 @@ fn validate_policy(policy: &LoopPolicy, run: &RunLocation) -> Result<()> {
         || probe.is_err()
         || run.id.trim().is_empty()
         || run.id.chars().any(char::is_control)
+        || policy.slots.iter().any(|slot| {
+            slot.instruction.trim().is_empty()
+                || slot
+                    .temperature
+                    .is_some_and(|t| !(0.0..=2.0).contains(&t))
+        })
     {
         return Err(Error::InvalidScriptSubject);
     }
@@ -261,6 +268,9 @@ impl LoopState<'_> {
             promoted: ok,
             note: None,
             runs: measured.runs,
+            approach: None,
+            differs_from_previous: None,
+            temperature: None,
         });
         let metrics = self.ledger.candidates[0]
             .runs
@@ -344,7 +354,8 @@ impl LoopState<'_> {
         parent: &str,
     ) -> Result<Option<(usize, Sources, Assessment)>> {
         let proposal_id = format!("p{epoch}-{k}");
-        let checked = self.ask(epoch, k)?;
+        let temperature = self.policy.slot(k).and_then(|d| d.temperature);
+        let checked = self.ask(epoch, k, temperature)?;
         let mut row = LedgerCandidate {
             epoch,
             proposal_id: Some(proposal_id.clone()),
@@ -362,6 +373,9 @@ impl LoopState<'_> {
             units: IntervalUnits::Metric,
             promoted: false,
             note: None,
+            approach: None,
+            differs_from_previous: None,
+            temperature,
         };
         let proposal = match checked {
             Ok(proposal) => proposal,
@@ -374,6 +388,7 @@ impl LoopState<'_> {
                     candidate: None,
                     rationale: format!("invalid proposal: {error}"),
                     hypothesis: String::new(),
+                    approach: None,
                 })?;
                 self.ledger.candidates.push(row);
                 self.save()?;
@@ -383,6 +398,13 @@ impl LoopState<'_> {
         row.rationale.clone_from(&proposal.rationale);
         row.hypothesis.clone_from(&proposal.hypothesis);
         row.paths = proposal.files.iter().map(|f| f.path.clone()).collect();
+        row.approach = proposal.approach_label();
+        row.differs_from_previous = proposal
+            .differs_from_previous
+            .as_deref()
+            .map(str::trim)
+            .filter(|d| !d.is_empty())
+            .map(str::to_owned);
         let sources = apply(&proposal, &self.incumbent.sources);
         let id = content_id(&sources);
         self.emit(LoopEvent::Ideated {
@@ -392,6 +414,7 @@ impl LoopState<'_> {
             candidate: Some(id.clone()),
             rationale: proposal.rationale.clone(),
             hypothesis: proposal.hypothesis.clone(),
+            approach: row.approach.clone(),
         })?;
         row.id = Some(id.clone());
         if self
@@ -437,18 +460,25 @@ impl LoopState<'_> {
         })
     }
 
-    /// Asks the evolver for one proposal, charging its measured tokens. The
-    /// inner result is the proposal or the reason it was rejected; the outer
-    /// error is a failed evolver call, which ends the run.
-    fn ask(&mut self, epoch: u64, k: u32) -> Result<Result<ScriptProposal>> {
+    /// Asks the evolver for slot `k`'s proposal, charging its measured
+    /// tokens. The inner result is the proposal or the reason it was
+    /// rejected; the outer error is a failed evolver call, which ends the run.
+    fn ask(
+        &mut self,
+        epoch: u64,
+        k: u32,
+        temperature: Option<f64>,
+    ) -> Result<Result<ScriptProposal>> {
         let brief = ScriptBrief {
             prompt: prompt::prompt(
                 self.subject,
                 &self.ledger,
                 &self.incumbent.sources,
-                self.policy.rejected_context,
+                self.policy,
+                prompt::Slot { epoch, index: k },
             ),
             editable: self.subject.editable.clone(),
+            temperature,
         };
         let context = EvolveContext {
             epoch,
