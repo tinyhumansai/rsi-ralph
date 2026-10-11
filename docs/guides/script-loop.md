@@ -62,7 +62,8 @@ quality units, see the module README) to demand larger gains.
 
 `ScriptSupervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
 uses `OpenRouter`; any `ModelPort` works if its futures do not need a specific
-async runtime. `token_budget` caps measured supervisor tokens across the run.
+async runtime. `token_budget` caps measured supervisor tokens across the run, plus the
+scorer's tokens when you pass a model-backed scorer to `run_script_loop_with`.
 
 ## 5. Run and read the results
 
