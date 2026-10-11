@@ -1,8 +1,8 @@
 # TinyRSI examples
 
-Three end-to-end runs of the improvement loop. Each one proposes changes
+Four end-to-end runs of the improvement loop. Each one proposes changes
 (evolve), measures and judges them (score), and keeps only what is better
-(the loop). Each writes its live trace for the visualizer. All three run
+(the loop). Each writes its live trace for the visualizer. All four run
 offline by default, with canned model replies and scripted judges, so they
 need no network or credentials and run in CI.
 
@@ -10,11 +10,13 @@ need no network or credentials and run in CI.
 | --- | --- | --- | --- |
 | [`math_problem`](math_problem/main.rs) | `pi.py`, which must compute π to 12 digits | script supervisor rewrites the method | correct digits (metric) + an LLM judge of the method's justification |
 | [`upgrade_file`](upgrade_file/main.rs) | `slug.py`, which must meet a written coding standard | script supervisor rewrites the file | standard violations, with behavior tests as a gate (metric) + an LLM judge reading the source |
+| [`graph_coloring`](graph_coloring/main.rs) | `coloring.py`, which must colour random graphs with a hidden 6-colouring using as few colours as possible | script supervisor rewrites the algorithm | colours used (metric); an invalid colouring fails the seed |
 | [`hive_goal`](hive_goal/main.rs) | a tinyhivemind hive whose agents must solve private tasks | proposals of typed hive patches | paired private-suite evaluation (normalized H) + an approval gate |
 
 ```sh
 cargo run -p tinyrsi-examples --example math_problem
 cargo run -p tinyrsi-examples --example upgrade_file
+cargo run -p tinyrsi-examples --example graph_coloring
 cargo run -p tinyrsi-examples --example hive_goal
 ```
 

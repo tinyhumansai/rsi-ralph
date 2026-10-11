@@ -173,14 +173,15 @@ suite contents. A negative or inconclusive report is a valid result.
 ## End-to-end examples
 
 [`examples/`](examples/README.md) runs the whole loop (evolve, score, keep
-what is better) on three problems, offline by default:
+what is better) on four problems, offline by default:
 
 - `math_problem`: compute π to 12 digits.
 - `upgrade_file`: bring a file up to a written coding standard.
+- `graph_coloring`: colour random graphs with as few colours as possible.
 - `hive_goal`: improve a hive of agents until they solve private tasks.
 
 Run `cargo run -p tinyrsi-examples --example math_problem` (or
-`upgrade_file`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
+`upgrade_file`, `graph_coloring`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
 `RSI_RUN_ROOT=../../target/rsi-examples`.
 
 ## Improving a plain script
