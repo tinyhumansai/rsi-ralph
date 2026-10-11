@@ -5,7 +5,7 @@ take over. Create one for behavior that changes a public API, crosses module
 boundaries, introduces a durable data format, or has meaningful operational
 constraints.
 
-Use a short kebab-case filename such as `retry-policy.md`. Each specification
+Use a short kebab-case filename such as `host-runtime.md`. Each specification
 should contain:
 
 1. **Status and owner** — Draft, Accepted, Implemented, or Superseded.
@@ -20,4 +20,5 @@ After the specification is accepted, create a linked implementation plan in
 [`../plans/`](../plans/README.md). Keep code snippets small enough to clarify
 the contract; production code still belongs under `src/`.
 
-See [`example-retry-policy.md`](example-retry-policy.md) for a complete sample.
+See [`host-runtime.md`](host-runtime.md) or
+[`epoch-evidence.md`](epoch-evidence.md) for specifications from this repository.

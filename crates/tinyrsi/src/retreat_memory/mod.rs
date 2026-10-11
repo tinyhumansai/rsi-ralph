@@ -1,4 +1,11 @@
 //! Durable, scoped rolling creative recall with separate host outcome windows.
+//!
+//! `DurableRetreatMemory` implements the tinybackrooms `Memory` trait over one
+//! locked JSON file. It keeps a bounded window of discovery text for the
+//! retreat Engine to recall and a separate window of host outcomes
+//! (approved or rejected candidate IDs). It is a recall cache, not an audit
+//! ledger; the archive remains authoritative. See this directory's
+//! `README.md` for the eviction rule and canary checks.
 mod types;
 use crate::{Error, Result};
 use fs2::FileExt;

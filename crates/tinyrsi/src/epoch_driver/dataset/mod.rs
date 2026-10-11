@@ -1,4 +1,11 @@
-//! Replay-derived selection datasets; generated prose and held-out measurements stay private.
+//! Selection-only proposal outcome datasets with frozen priors.
+//!
+//! `EpochJournal::proposal_dataset` projects one prepared epoch and its
+//! archive into rows: every typed formatter occurrence, its committed
+//! prediction, an optional probability frozen before evaluation, and only
+//! selection-stage labels. Confirmation and anchor numbers never enter the
+//! rows or metrics. See this directory's `README.md` for the row shape,
+//! missing and censored labels, and the descriptive metrics.
 mod metrics;
 mod projection;
 mod types;

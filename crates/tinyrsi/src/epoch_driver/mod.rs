@@ -1,4 +1,12 @@
 //! Restart-safe normalized proposal generation and separate synchronous evaluation.
+//!
+//! One epoch runs in two calls. `prepare_retreat_epoch` (async) records an
+//! intent in the `EpochJournal`, asks the proposal model for typed proposals
+//! and persists them; `evaluate_retreat_epoch` (sync) feeds those proposals to
+//! `run_proposal_h` one at a time and stops after the first acceptance. A
+//! reopened journal never repeats a completed model call, private draw or
+//! human decision, and an interrupted call fails closed instead of retrying.
+//! See this directory's `README.md` for budgets, receipts and sidecar files.
 mod dataset;
 pub use dataset::*;
 mod generation;

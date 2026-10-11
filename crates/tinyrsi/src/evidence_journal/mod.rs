@@ -1,4 +1,11 @@
 //! Restart-safe measured turn callbacks and atomic redacted epoch receipts.
+//!
+//! `EvidenceJournal` records each controlled turn's invocation ID before
+//! dispatch, its provider-measured usage, and its checker evidence. A
+//! checkpoint then consumes those turns exactly once, together with the
+//! coordinator observation cursor and the derived `Dossier`, into one
+//! `EvidenceEpoch`. Duplicate callbacks and repeated reads never recount work.
+//! See this directory's `README.md` for the callback order and storage rules.
 mod storage;
 mod types;
 mod validation;
