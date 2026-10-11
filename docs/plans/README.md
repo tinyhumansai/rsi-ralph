@@ -24,4 +24,6 @@ this repository.
 
 ## Index
 
+- [`loop-trace.md`](loop-trace.md) — loop trace types, clocks and sinks.
+- [`script-loop.md`](script-loop.md) — script loop, example and hive trace.
 - [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).

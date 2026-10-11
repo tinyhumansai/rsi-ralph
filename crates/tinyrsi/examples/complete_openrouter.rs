@@ -9,9 +9,10 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 use tinyrsi::{
     Archive, Budget, BudgetedModel, CoordinatorEvaluator, DurableRetreatMemory, EpochJournal,
-    EvidenceSource, ExperimentProtocol, ExperimentProtocolSpec, GenerationMode, MemoryLimits,
-    ModelPort, OpenRouterModel, RetreatEpochInput, SnapshotMemoryStore, SuiteFingerprints,
-    TrialSeeds, evaluate_retreat_epoch, prepare_retreat_epoch, run_experiment,
+    EvidenceSource, ExperimentProtocol, ExperimentProtocolSpec, GenerationMode, JsonlTrace,
+    LoopEvent, MemoryLimits, MetricDirection, ModelPort, MonotonicClock, OpenRouterModel,
+    RetreatEpochInput, RunGoal, SnapshotMemoryStore, SuiteFingerprints, TraceSink, TrialSeeds,
+    evaluate_retreat_epoch, prepare_retreat_epoch,
 };
 fn fingerprint(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
@@ -95,13 +96,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         &mut evaluator,
         &model_id,
     )?;
+    let trace = start_trace(&root)?;
     let mut trials = driver::Trials {
         root: root.clone(),
         model: model.clone(),
         suites: suites.clone(),
         index: 0,
+        trace,
     };
-    let report = run_experiment(&protocol, &mut trials)?;
+    let report = trials.run(&protocol, &baseline)?;
     std::fs::write(
         root.join("experiment-report.json"),
         serde_json::to_vec_pretty(&report)?,
@@ -112,6 +115,24 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     );
     println!("Evidence: {}", root.display());
     Ok(())
+}
+
+/// Opens the live loop view: one trial is one trace epoch; see
+/// `docs/specs/loop-trace.md`.
+fn start_trace(
+    root: &std::path::Path,
+) -> std::result::Result<JsonlTrace, Box<dyn std::error::Error>> {
+    let mut trace = JsonlTrace::create(root.join("events.jsonl"), MonotonicClock::new())?;
+    trace.record(LoopEvent::RunStarted {
+        run_id: root.display().to_string(),
+        subject: "complete hive".into(),
+        goal: RunGoal {
+            metric: "normalized_h".into(),
+            direction: MetricDirection::Maximize,
+            target: None,
+        },
+    })?;
+    Ok(trace)
 }
 
 fn validate_environment(lean: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {

@@ -193,6 +193,16 @@ are refused to preserve preregistration. The example spends real API tokens.
 It writes protocol and aggregate experiment reports without publishing private
 suite contents. A negative or inconclusive report is a valid result.
 
+## Improving a plain script
+
+`run_script_loop` repeats observe, ideate, execute, measure, score and improve
+over any script that prints `METRIC <name>=<value>`, supervised by a language
+model, and streams every stage to `events.jsonl`. Try it offline on a
+curve-fitting script with `cargo run -p tinyrsi --example script_loop`; point
+it at your own script with the [script loop guide](docs/guides/script-loop.md).
+Proposed code runs locally without a sandbox; read the guide's safety note
+before live runs.
+
 ## Releasing
 
 Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or

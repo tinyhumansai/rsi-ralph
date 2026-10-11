@@ -56,6 +56,36 @@ pub enum Error {
     /// Unfinished journaled turns prevent an epoch from consuming their evidence.
     #[error("host evidence has unfinished turns")]
     EvidencePending,
+    /// A loop trace sink could not record an event.
+    #[error("loop trace write failed")]
+    TraceIo,
+    /// A script subject or loop policy is incomplete or unsafe.
+    #[error("invalid script subject or loop policy")]
+    InvalidScriptSubject,
+    /// The starting script failed on at least one seed.
+    #[error("baseline script failed")]
+    ScriptBaselineFailed,
+    /// A script run outlived its timeout and was killed.
+    #[error("script run timed out")]
+    ScriptTimeout,
+    /// A script run wrote more output than its cap and was killed.
+    #[error("script run exceeded its output cap")]
+    ScriptOutputExceeded,
+    /// A script run exited with a non-zero status or was killed by a signal.
+    #[error("script run exited unsuccessfully")]
+    ScriptFailed,
+    /// A script run printed no `METRIC <name>=<value>` line for the metric.
+    #[error("script run printed no metric line")]
+    MetricMissing,
+    /// A script run printed a metric that is not a finite number.
+    #[error("script run printed a non-finite or unparsable metric")]
+    MetricInvalid,
+    /// A proposal tried to write a path outside the editable set.
+    #[error("proposal edits a path outside the editable set")]
+    ProposalPathOutsideEditable,
+    /// The supervisor's reply is not exactly one well-formed proposal.
+    #[error("supervisor reply is not a well-formed proposal")]
+    SupervisorMalformed,
 }
 
 /// The crate's standard result type.

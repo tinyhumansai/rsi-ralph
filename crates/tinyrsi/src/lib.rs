@@ -70,12 +70,15 @@ mod memory;
 mod model;
 mod observation;
 mod orchestrator;
+mod process;
 mod retreat;
 mod retreat_memory;
 mod scoring;
+mod script_loop;
 #[cfg(feature = "host")]
 mod suites;
 mod tinybus_module;
+mod trace;
 mod verification;
 
 pub use error::{Error, Result};
@@ -163,3 +166,14 @@ pub use suites::*;
 pub use archive::NormalizedApprovalEvent;
 
 pub use archive::NormalizedDeclarationEvent;
+
+// The plain-script improvement loop and the append-only trace it emits.
+pub use script_loop::{
+    CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
+    ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject, SeedRun,
+    Supervisor, SupervisorLimits, parse_metric, run_script_loop,
+};
+pub use trace::{
+    Clock, JsonlTrace, LoopEvent, ManualClock, MetricDirection, MonotonicClock, NullTrace, RunGoal,
+    ScoreDecision, StopReason, TraceRecord, TraceSink, VecTrace,
+};

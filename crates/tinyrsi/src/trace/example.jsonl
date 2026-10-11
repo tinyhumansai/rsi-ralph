@@ -1,0 +1,12 @@
+{"seq":0,"elapsed_ms":0,"event":{"kind":"run_started","run_id":"curve-fit-1","subject":"curve_fit.py","goal":{"metric":"rmse","direction":"minimize","target":0.05}}}
+{"seq":1,"elapsed_ms":3,"event":{"kind":"executed","epoch":0,"candidate":"a1b2c3d4e5f6","seed":1,"metric":0.42,"ok":true,"duration_ms":120}}
+{"seq":2,"elapsed_ms":4,"event":{"kind":"measured","epoch":0,"candidate":"a1b2c3d4e5f6","mean":0.42,"failures":0,"seeds":1}}
+{"seq":3,"elapsed_ms":5,"event":{"kind":"epoch_started","epoch":1,"incumbent":"a1b2c3d4e5f6"}}
+{"seq":4,"elapsed_ms":5,"event":{"kind":"observed","epoch":1,"incumbent":"a1b2c3d4e5f6","incumbent_metric":0.42,"history":1,"rejected":0}}
+{"seq":5,"elapsed_ms":900,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-0","parent":"a1b2c3d4e5f6","candidate":"0f9e8d7c6b5a","rationale":"linear model underfits","hypothesis":"cubic features cut rmse"}}
+{"seq":6,"elapsed_ms":1100,"event":{"kind":"executed","epoch":1,"candidate":"0f9e8d7c6b5a","seed":1,"metric":0.11,"ok":true,"duration_ms":130}}
+{"seq":7,"elapsed_ms":1101,"event":{"kind":"measured","epoch":1,"candidate":"0f9e8d7c6b5a","mean":0.11,"failures":0,"seeds":1}}
+{"seq":8,"elapsed_ms":1102,"event":{"kind":"scored","epoch":1,"candidate":"0f9e8d7c6b5a","decision":"accept","estimate":0.31,"lower":0.28,"upper":0.34}}
+{"seq":9,"elapsed_ms":1102,"event":{"kind":"improved","epoch":1,"from":"a1b2c3d4e5f6","to":"0f9e8d7c6b5a","metric":0.11}}
+{"seq":10,"elapsed_ms":1103,"event":{"kind":"epoch_finished","epoch":1,"incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11}}
+{"seq":11,"elapsed_ms":1104,"event":{"kind":"run_finished","reason":"max_epochs","incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11}}
