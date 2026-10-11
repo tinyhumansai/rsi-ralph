@@ -107,6 +107,29 @@ fn pins_the_run_record_stored_form() {
 }
 
 #[test]
+fn run_record_warnings_are_omitted_when_empty_and_default_when_missing() {
+    let mut warned = record("a", 10, RunStatus::Finished, 1);
+    warned.stop_reason = Some(StopReason::ProviderRefused);
+    warned.warnings = vec!["epoch 1: provider refused 1 of 2 model calls (429: slow)".into()];
+    let json = serde_json::to_value(&warned).unwrap();
+    assert_eq!(json["stop_reason"], "provider_refused");
+    assert_eq!(
+        json["warnings"],
+        serde_json::json!(["epoch 1: provider refused 1 of 2 model calls (429: slow)"])
+    );
+    assert_eq!(serde_json::from_value::<RunRecord>(json).unwrap(), warned);
+    // A `run.json` written before warnings existed still reads.
+    let mut old = serde_json::to_value(record("a", 10, RunStatus::Finished, 1)).unwrap();
+    old.as_object_mut().unwrap().remove("warnings");
+    assert!(
+        serde_json::from_value::<RunRecord>(old)
+            .unwrap()
+            .warnings
+            .is_empty()
+    );
+}
+
+#[test]
 fn json_documents_round_trip_and_report_decode_errors() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("deep/x.json");
