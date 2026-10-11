@@ -159,6 +159,10 @@ pub(super) enum Event {
     CandidateFailure {
         failure: CandidateFailureEvent,
     },
+    Revocation {
+        candidate_id: String,
+        epoch: u64,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

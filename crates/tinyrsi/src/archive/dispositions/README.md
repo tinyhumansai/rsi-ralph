@@ -10,7 +10,7 @@ patch. `DUP_REJECTED` requires an earlier rejected language record or recognized
 terminal proposal rejection. This includes approval denial, inconclusive
 host stops and `HARMFUL` stops, where the candidate failed runs its incumbent
 completed; it is an archive disposition, not a negative selection label.
-Infrastructure failure alone, a prepared-only design, unknown legacy reasons
+Infrastructure failure alone, a `COOLDOWN` stop, a prepared-only design, unknown legacy reasons
 and content aliases without matching operations produce `DUP_UNRESOLVED`.
 Duplicate chains never create new rejected-history evidence. Accepted history
 survives rollback. Classification uses the prefix before each stop and does not

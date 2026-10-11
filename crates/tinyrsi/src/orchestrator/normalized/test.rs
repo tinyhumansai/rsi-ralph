@@ -780,3 +780,104 @@ fn a_repeated_harmful_patch_is_a_rejected_duplicate() {
         Some(crate::DuplicateDisposition::Rejected)
     );
 }
+
+/// The fixture proposal with a different replacement text: a near-duplicate
+/// that exact deduplication does not catch.
+fn near_duplicate(after: &str) -> Proposal {
+    let mut p = hproposal();
+    if let crate::Operation::Context { after: text, .. } = &mut p.patch.operations[0] {
+        *text = Some(after.into());
+    }
+    p
+}
+
+#[test]
+fn a_same_shape_patch_is_cooled_without_evaluation_until_its_strike_ages_out() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+    baseline(&mut a);
+    let mut harmful = Host {
+        harm: Some(EvalStage::Screen),
+        ..Host::default()
+    };
+    let first = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &hproposal(),
+        &mut harmful,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(first.reason, ReasonCode::Harmful);
+    let declarations = a.declarations().len();
+    let mut counting = Host::default();
+    let cooled = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &near_duplicate("Compute twice.\n"),
+        &mut counting,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(cooled.reason, ReasonCode::Cooldown);
+    assert_eq!(cooled.candidate_id, None);
+    assert_eq!(counting.stages.len(), 0);
+    assert_eq!(a.declarations().len(), declarations);
+    assert_eq!(a.proposals().last().unwrap().reason, "Cooldown");
+    // Window three: epochs 0, 1 and 2 are cooled; epoch 3 evaluates again.
+    let mut later = setup_epoch();
+    later.epoch.id = 3;
+    let eligible = run_proposal_h(
+        &mut a,
+        &later,
+        &near_duplicate("Compute three times.\n"),
+        &mut counting,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(eligible.reason, ReasonCode::Accepted);
+    assert_eq!(counting.stages.len(), 3);
+}
+
+#[test]
+fn confident_regressions_strike_and_two_cool_the_shape() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+    baseline(&mut a);
+    let mut epoch = setup_epoch();
+    epoch.policy.cost_tolerance = 0.2;
+    epoch.policy.penalties.cost = 10.0;
+    for (index, after) in ["Compute once.\n", "Compute twice.\n"].iter().enumerate() {
+        let mut host = Host {
+            fault: Fault::Cost,
+            ..Host::default()
+        };
+        let outcome = run_proposal_h(
+            &mut a,
+            &epoch,
+            &near_duplicate(after),
+            &mut host,
+            &mut gate(true),
+        )
+        .unwrap();
+        assert_eq!(outcome.reason, ReasonCode::NoGain);
+        assert_eq!(a.penalties().strikes.len(), index + 1);
+    }
+    assert!(
+        a.penalties()
+            .strikes
+            .iter()
+            .all(|s| s.kind == crate::StrikeKind::Regressed)
+    );
+    let mut host = Host::default();
+    let third = run_proposal_h(
+        &mut a,
+        &epoch,
+        &near_duplicate("Compute thrice.\n"),
+        &mut host,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(third.reason, ReasonCode::Cooldown);
+    assert_eq!(host.stages.len(), 0);
+}

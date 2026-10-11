@@ -112,6 +112,7 @@ pub(super) fn epoch(dossier: &Dossier, evaluator: &CoordinatorEvaluator) -> HEpo
             transcript_refs: dossier.transcript_sequences.clone(),
             failure_nodes: dossier.failed_nodes.clone(),
             budget: Budget { max_tokens: 16_384 },
+            penalty: tinyrsi_host::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: fixtures::policy(),

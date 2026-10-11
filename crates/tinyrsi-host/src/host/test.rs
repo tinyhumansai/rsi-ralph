@@ -189,6 +189,17 @@ async fn activation_is_distinct_from_selection_and_rollback_rebuilds_parent() {
         Some(base.as_str())
     );
     assert_eq!(archive.head().unwrap().id, base);
+    // The rolled-back design stays an accepted record and becomes a strike.
+    let record = archive.records().iter().find(|r| r.id == next).unwrap();
+    assert_eq!(
+        record.verdict,
+        tinyhivemind_lang::lineage::Verdict::Accepted
+    );
+    let strikes = archive.penalties().strikes;
+    assert_eq!(strikes.len(), 1);
+    assert_eq!(strikes[0].kind, crate::StrikeKind::Revoked);
+    assert_eq!(strikes[0].epoch, store.checkpoint().epoch);
+    assert_eq!(strikes[0].shape, crate::PatchShape::of(&record.patch));
 }
 #[tokio::test]
 async fn failed_activation_preserves_deployed_state_and_pending_recovery_fails_closed() {

@@ -96,6 +96,11 @@ impl State {
                 self.validate_normalized_approval(approval)?;
             }
             Event::CandidateFailure { failure } => self.validate_candidate_failure(failure)?,
+            Event::Revocation { candidate_id, .. } => {
+                if self.active.as_ref() != Some(candidate_id) {
+                    return Err(Error::InvalidRecord);
+                }
+            }
         }
         self.events.push(event);
         Ok(())

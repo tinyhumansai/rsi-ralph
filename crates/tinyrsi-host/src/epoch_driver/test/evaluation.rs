@@ -9,6 +9,8 @@ pub(super) struct Host {
     calls: u64,
     /// Stage at which the candidate, not the incumbent, fails its runs.
     harm: Option<EvalStage>,
+    /// The candidate scores below the incumbent on every run.
+    worse: bool,
 }
 impl Evaluator for Host {
     fn pin_memory(&mut self, inc: &CandidateState, _: &Patch) -> Result<BTreeMap<String, u64>> {
@@ -62,7 +64,7 @@ impl HEvaluator for Host {
         Ok(HEvalPair {
             pair: EvalPair {
                 incumbent: rows(0.2),
-                candidate: rows(0.6),
+                candidate: rows(if self.worse { 0.0 } else { 0.6 }),
             },
             incumbent_health: health.clone(),
             candidate_health: health,
@@ -619,4 +621,118 @@ fn a_harmful_candidate_is_measured_with_its_failed_runs() {
         &events[2],
         LoopEvent::Scored { decision: ScoreDecision::Reject, candidate: c, .. } if *c == candidate
     ));
+}
+
+#[test]
+fn a_harmful_retreat_candidate_is_remembered_with_its_shape() {
+    use crate::{
+        EpochCandidateOutcome, RetreatMemoryOutcome, RetreatOutcomeStatus, run_proposal_h,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, _, _, epoch) = fixtures(&dir.path().join("a"));
+    let mut host = Host {
+        harm: Some(EvalStage::Screen),
+        ..Host::default()
+    };
+    let mut human = Human {
+        approve: true,
+        calls: 0,
+    };
+    let stopped = run_proposal_h(&mut archive, &epoch, &proposal(), &mut host, &mut human).unwrap();
+    let receipt = EpochCandidateOutcome {
+        proposal_index: 0,
+        reason: stopped.reason,
+        candidate_id: stopped.candidate_id.clone(),
+    };
+    let open = |name: &str| {
+        DurableRetreatMemory::open(
+            dir.path().join(name),
+            "h",
+            crate::MemoryLimits::default(),
+            vec![],
+        )
+        .unwrap()
+    };
+    let memory = open("m");
+    let remember_it = |memory: &DurableRetreatMemory| {
+        super::super::remember(
+            memory,
+            GenerationMode::Retreat,
+            1,
+            &receipt,
+            &archive,
+            &[proposal()],
+        )
+    };
+    remember_it(&memory).unwrap();
+    let harmful = RetreatMemoryOutcome {
+        epoch: 1,
+        candidate_id: stopped.candidate_id.clone().unwrap(),
+        status: RetreatOutcomeStatus::Harmful,
+        shape: Some("context: context context/main.md#method".into()),
+    };
+    assert_eq!(memory.outcomes().unwrap(), vec![harmful.clone()]);
+    // Remembering again is idempotent.
+    remember_it(&memory).unwrap();
+    assert_eq!(memory.outcomes().unwrap().len(), 1);
+    // A label written before penalties existed is already remembered.
+    let older = open("older");
+    let rejected = RetreatMemoryOutcome {
+        status: RetreatOutcomeStatus::Rejected,
+        shape: None,
+        ..harmful
+    };
+    older.record_outcome(rejected.clone()).unwrap();
+    remember_it(&older).unwrap();
+    assert_eq!(older.outcomes().unwrap(), vec![rejected]);
+}
+
+#[test]
+fn a_confident_regression_is_remembered_and_a_flat_stop_stays_rejected() {
+    use crate::{EpochCandidateOutcome, RetreatOutcomeStatus, run_proposal_h};
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, _, _, epoch) = fixtures(&dir.path().join("a"));
+    let mut host = Host {
+        worse: true,
+        ..Host::default()
+    };
+    let mut human = Human {
+        approve: true,
+        calls: 0,
+    };
+    let stopped = run_proposal_h(&mut archive, &epoch, &proposal(), &mut host, &mut human).unwrap();
+    assert_eq!(stopped.reason, ReasonCode::NoGain);
+    let memory = DurableRetreatMemory::open(
+        dir.path().join("m"),
+        "h",
+        crate::MemoryLimits::default(),
+        vec![],
+    )
+    .unwrap();
+    let receipt = EpochCandidateOutcome {
+        proposal_index: 0,
+        reason: ReasonCode::NoGain,
+        candidate_id: stopped.candidate_id.clone(),
+    };
+    for (label, status) in [
+        (1, RetreatOutcomeStatus::Regressed),
+        // No evaluation of this candidate in epoch 2: a flat stop.
+        (2, RetreatOutcomeStatus::Rejected),
+    ] {
+        super::super::remember(
+            &memory,
+            GenerationMode::Retreat,
+            label,
+            &receipt,
+            &archive,
+            &[proposal()],
+        )
+        .unwrap();
+        let last = memory.outcomes().unwrap().pop().unwrap();
+        assert_eq!(last.status, status);
+        assert_eq!(
+            last.shape.is_some(),
+            status == RetreatOutcomeStatus::Regressed
+        );
+    }
 }
