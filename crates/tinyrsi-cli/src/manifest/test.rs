@@ -242,6 +242,7 @@ fn rejects_out_of_range_fields() {
             let first = m["score"]["scorers"][0].clone();
             m["score"]["scorers"].as_array_mut().unwrap().push(first);
         }),
+        ("score.parallel", |m| m["score"]["parallel"] = json!(0)),
         ("score.decide.seeds", |m| {
             m["score"]["decide"]["seeds"] = json!([1, 1]);
         }),
@@ -361,9 +362,31 @@ fn omitted_fields_take_their_defaults() {
     });
     let parsed = parse(&files).unwrap();
     assert_eq!(parsed.manifest.epochs, 3);
+    assert_eq!(parsed.manifest.score.parallel, 1, "seeds run one at a time");
     assert!((parsed.manifest.score.decide.alpha - 0.10).abs() < 1e-12);
     assert_eq!(
         parsed.manifest.score.decide.direction,
         tinyrsi_score::MetricDirection::Maximize
     );
+}
+
+#[test]
+fn accepts_a_parallel_seed_limit_and_stores_it() {
+    let parsed = parse(&with(|m| m["score"]["parallel"] = json!(3))).unwrap();
+    assert_eq!(parsed.manifest.score.parallel, 3);
+    let stored = serde_json::to_value(&parsed.manifest).unwrap();
+    assert_eq!(stored["score"]["parallel"], json!(3));
+    let defaulted = serde_json::to_value(&parse(&example()).unwrap().manifest).unwrap();
+    assert_eq!(defaulted["score"]["parallel"], json!(1));
+}
+
+#[test]
+fn rejects_a_parallel_limit_that_is_not_a_whole_number() {
+    for bad in [json!(-1), json!(1.5), json!("3")] {
+        let files = with(|m| m["score"]["parallel"] = bad);
+        assert!(
+            matches!(parse(&files), Err(Error::Json { .. })),
+            "parallel = {bad}"
+        );
+    }
 }
