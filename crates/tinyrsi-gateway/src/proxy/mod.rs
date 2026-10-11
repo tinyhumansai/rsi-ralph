@@ -326,6 +326,33 @@ async fn status(State(proxy): Shared) -> Response {
 /// connection.
 const FRESH_RETRIES: usize = 2;
 
+/// Posts `body` to `url` with the upstream key.
+///
+/// A pooled keep-alive connection the upstream has already closed fails
+/// before any response, and the pool may hold several. The upstream never
+/// saw such a request, so it is sent again on a connection opened for it
+/// alone, up to [`FRESH_RETRIES`] times.
+async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest::Response> {
+    let post = |client: &reqwest::Client| {
+        client
+            .post(url)
+            .bearer_auth(&proxy.config.api_key)
+            .json(body)
+            .send()
+    };
+    let mut sent = post(&proxy.client).await;
+    for _ in 0..FRESH_RETRIES {
+        if !sent.as_ref().is_err_and(never_answered) {
+            break;
+        }
+        let Ok(fresh) = reqwest::Client::builder().pool_max_idle_per_host(0).build() else {
+            break;
+        };
+        sent = post(&fresh).await;
+    }
+    sent
+}
+
 /// Whether `error` failed the request before any response arrived: a refused
 /// or reset connection, not a timeout and not an answer the client rejected.
 fn never_answered(error: &reqwest::Error) -> bool {
@@ -452,27 +479,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         endpoint.path()
     );
     let call = proxy.calls.dispatched();
-    let forward = |client: &reqwest::Client| {
-        client
-            .post(&url)
-            .bearer_auth(&proxy.config.api_key)
-            .json(&prepared.body)
-            .send()
-    };
-    let mut sent = forward(&proxy.client).await;
-    // A pooled keep-alive connection the upstream has already closed fails
-    // before any response, and the pool may hold several. The upstream never
-    // saw such a request, so it is sent again on a connection opened for it
-    // alone, up to `FRESH_RETRIES` times.
-    for _ in 0..FRESH_RETRIES {
-        if !sent.as_ref().is_err_and(never_answered) {
-            break;
-        }
-        let Ok(fresh) = reqwest::Client::builder().pool_max_idle_per_host(0).build() else {
-            break;
-        };
-        sent = forward(&fresh).await;
-    }
+    let sent = send(&proxy, &url, &prepared.body).await;
     let response = match sent {
         Ok(response) => response,
         Err(error) => {
