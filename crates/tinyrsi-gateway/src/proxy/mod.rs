@@ -27,7 +27,7 @@ use futures_util::StreamExt;
 use serde_json::{Value, json};
 use tokio::sync::Notify;
 
-use crate::calls::{CallTally, UpstreamCalls};
+use crate::calls::CallTally;
 use crate::error::Error;
 use crate::ledger::{Budgets, LedgerState, Reservation};
 use crate::meter::{Meter, MeterRow, Tags};
@@ -133,9 +133,9 @@ impl Proxy {
         (run.clone(), total.clone())
     }
 
-    /// What the provider made of the calls forwarded so far.
-    pub(crate) fn upstream_calls(&self) -> UpstreamCalls {
-        self.calls.snapshot()
+    /// The tally of calls forwarded upstream.
+    pub(crate) fn calls(&self) -> &CallTally {
+        &self.calls
     }
 
     /// Waits until no call is between reserving and settling, or `limit`
@@ -441,6 +441,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         proxy.config.upstream.trim_end_matches('/'),
         endpoint.path()
     );
+    let call = proxy.calls.dispatched();
     let sent = proxy
         .client
         .post(url)
@@ -452,7 +453,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         Ok(response) => response,
         Err(error) => {
             let error = Error::Upstream(proxy.redact(&error.to_string()));
-            proxy.calls.unreachable(&error.to_string());
+            proxy.calls.unreachable(call, &error.to_string());
             let settle_error = proxy.settle(reservation, None);
             proxy.record(&row(
                 &prepared.model,
@@ -469,20 +470,27 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
-        return stream_through(in_flight, prepared, reservation, response, move |outcome| {
-            row(&outcome.0, outcome.1)
-        });
+        return stream_through(
+            in_flight,
+            call,
+            prepared,
+            reservation,
+            response,
+            move |outcome| row(&outcome.0, outcome.1),
+        );
     }
     let model = prepared.model.clone();
-    let (response, outcome) = buffered(&proxy, &prepared, reservation, response).await;
+    let (response, outcome) = buffered(&proxy, call, &prepared, reservation, response).await;
     proxy.record(&row(&model, outcome));
     drop(in_flight);
     response
 }
 
 /// Reads a non-streaming (or failed) response whole, then settles it.
+/// `call` is the call's position in the upstream tally.
 async fn buffered(
     proxy: &Proxy,
+    call: u64,
     prepared: &Prepared,
     reservation: Reservation,
     response: reqwest::Response,
@@ -492,11 +500,13 @@ async fn buffered(
     let bytes = match response.bytes().await {
         Ok(bytes) => {
             let bytes = proxy.redact_body(bytes);
-            proxy.calls.answered(status.as_u16(), &bytes);
+            proxy.calls.answered(call, status.as_u16(), &bytes);
             bytes
         }
         Err(error) => {
-            proxy.calls.unreachable(&proxy.redact(&error.to_string()));
+            proxy
+                .calls
+                .unreachable(call, &proxy.redact(&error.to_string()));
             Bytes::new()
         }
     };
@@ -539,6 +549,7 @@ async fn buffered(
 
 fn stream_through<F>(
     in_flight: InFlight,
+    call: u64,
     prepared: Prepared,
     reservation: Reservation,
     response: reqwest::Response,
@@ -570,10 +581,9 @@ where
             }
         }
         drop(tx);
-        // Counted only now: a stream that broke off was never answered.
-        match &failure {
-            Some(message) => proxy.calls.unreachable(message),
-            None => proxy.calls.answered(200, &[]),
+        // Only now is it known: a stream that broke off was never answered.
+        if let Some(message) = &failure {
+            proxy.calls.unreachable(call, message);
         }
         let usage = scanner.finish();
         let cost = proxy

@@ -2,7 +2,8 @@
 //!
 //! A hive whose every model call the provider refuses (a key over its daily
 //! limit answers `403`) changes nothing, which looks exactly like a hive with
-//! no ideas. The engine reads the meter's upstream calls around the hive and,
+//! no ideas. The engine takes a call mark before the hive and reads the calls
+//! forwarded since, each refusal counted against the call it answers, and,
 //! when refusals explain an empty epoch, says so: a `provider_refused` trace
 //! event, plus a run warning, or the run's error and stop reason when every
 //! call was refused.

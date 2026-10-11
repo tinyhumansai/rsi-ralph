@@ -21,7 +21,7 @@
 //! Tokio runtime, so a synchronous caller such as the `tinyrsi` CLI can
 //! start one per run, hand [`Gateway::tagged_url`] to each client as its
 //! OpenAI-compatible base URL, read [`Gateway::spend`] and
-//! [`Gateway::upstream_calls`] between steps, and
+//! [`Gateway::upstream_calls_since`] between steps, and
 //! [`Gateway::shutdown`] at the end.
 //!
 //! # Example
@@ -76,7 +76,7 @@ mod proxy;
 mod request;
 mod usage;
 
-pub use calls::{Refusal, UpstreamCalls};
+pub use calls::{CallMark, Refusal, UpstreamCalls};
 pub use error::{Error, Result};
 pub use gateway::{DEFAULT_LISTEN, DEFAULT_UPSTREAM, DRAIN_LIMIT, Gateway, GatewayConfig, Spend};
 pub use price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable};

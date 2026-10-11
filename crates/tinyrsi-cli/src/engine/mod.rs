@@ -18,7 +18,6 @@ use std::{
 };
 
 use sha2::{Digest, Sha256};
-use tinyrsi_gateway::UpstreamCalls;
 use tinyrsi_score::ScoreDecision;
 use tinyrsi_trace::{JsonlTrace, LoopEvent, MonotonicClock, RunGoal, StopReason, TraceSink};
 
@@ -401,7 +400,7 @@ impl Engine<'_> {
             )?;
             candidates.insert(seat, checkout);
         }
-        let before = self.upstream_calls();
+        let mark = self.meter.map(Meter::call_mark).unwrap_or_default();
         let report = self.proposer.propose(&ProposalRequest {
             epoch,
             brief: &text,
@@ -409,7 +408,10 @@ impl Engine<'_> {
             candidates: &candidates,
             dir: &dir.join("hive"),
         })?;
-        let calls = self.upstream_calls().since(&before);
+        let calls = self
+            .meter
+            .map(|m| m.upstream_calls_since(mark))
+            .unwrap_or_default();
         state.ledger.epochs.push(EpochRecord {
             epoch,
             incumbent: state.revision.clone(),
@@ -440,11 +442,6 @@ impl Engine<'_> {
         }
         let promoted = self.promote_best(epoch, subject, state, &candidates, accepted)?;
         Ok(EpochOutcome { promoted, refused })
-    }
-
-    /// The meter's reading of upstream calls; none without a meter.
-    fn upstream_calls(&self) -> UpstreamCalls {
-        self.meter.map(Meter::upstream_calls).unwrap_or_default()
     }
 
     /// Promote the best accepted candidate, if any; returns whether one was.
