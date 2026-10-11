@@ -10,7 +10,8 @@
 //! - [`Composite`]: a weighted mix, with [`Projected`] to score one view of
 //!   a richer subject.
 //!
-//! [`decide`] is the only decision rule. It compares the incumbent's and the
+//! [`decide`] is the decision rule for per-seed assessments; [`sign_test`]
+//! decides per-item pass/fail benchmarks. It compares the incumbent's and the
 //! candidate's assessments with [`compare`]. An `Accept` must also hold on
 //! accept-eligible evidence alone, so an uncalibrated judge never decides by
 //! itself. [`compare_h`] decides the normalized H score used by the hive
@@ -54,6 +55,7 @@ mod metric;
 mod port;
 mod scoring;
 mod scripted;
+mod sign;
 
 pub use composite::{Composite, Projected};
 pub use error::{Error, Result};
@@ -70,5 +72,6 @@ pub use scoring::{
     ScorePenalties, ScoringPolicy, ScoringPolicySpec, compare_h, geometric_family_mean, score,
 };
 pub use scripted::ScriptedScorer;
+pub use sign::{SignTest, sign_test, sign_test_p};
 pub use tinyrsi_trace::{MetricDirection, ScoreDecision};
 pub use tinyrsi_types::Goal;
