@@ -76,6 +76,18 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 # Tests capture mirrored spans and events with a registry layer.
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
+# `tinyrsi-gateway` serves its OpenAI-compatible loopback surface with axum.
+# Only HTTP/1 over Tokio with JSON bodies: no forms, queries or HTTP/2.
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+# `tinyrsi-gateway` forwards admitted calls to OpenRouter. rustls rather than
+# native-tls so no system OpenSSL is linked; `stream` passes server-sent
+# events through as they arrive.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
+# `tinyrsi-gateway` drains the upstream event stream and re-wraps it as the
+# response body (`StreamExt`, `stream::unfold`).
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+# The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
+tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
 
 # OpenHuman's embedding facade, used only for its `observe::langfuse` client so
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
