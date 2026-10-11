@@ -197,7 +197,7 @@ fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
                 break;
             }
         }
-        seen.send(String::from_utf8_lossy(&data).into_owned())
+        sender.send(String::from_utf8_lossy(&data).into_owned())
             .unwrap();
         let body = r#"{"choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":3,"completion_tokens":1}}"#;
         let reply = format!(
