@@ -48,7 +48,16 @@ fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
 }
 
 /// Start the spend gateway for one run folder.
-fn gateway(parsed: &Loop, keys: &Keys, store: &Store, run: &RunDir) -> Result<Gateway> {
+///
+/// `TINYRSI_UPSTREAM` replaces OpenRouter with another OpenAI-compatible base
+/// URL, such as a local model server.
+fn gateway(
+    parsed: &Loop,
+    keys: &Keys,
+    store: &Store,
+    run: &RunDir,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<Gateway> {
     let key = keys
         .get(parsed.openrouter_env())
         .ok_or_else(|| Error::MissingKeys {
@@ -62,6 +71,9 @@ fn gateway(parsed: &Loop, keys: &Keys, store: &Store, run: &RunDir) -> Result<Ga
         budget.run_usd.unwrap_or(f64::MAX),
         budget.total_usd.unwrap_or(f64::MAX),
     );
+    if let Some(upstream) = lookup("TINYRSI_UPSTREAM").filter(|u| !u.is_empty()) {
+        config.upstream = upstream;
+    }
     for (model, price) in &budget.prices {
         config.prices.insert(
             model.clone(),
@@ -107,7 +119,7 @@ pub(super) fn run(
     let files = manifest::load_dir(loop_dir)?;
     let run = store.create_run(&parsed.manifest.name, run_id, &files)?;
     say(out, &format!("run: {}/{} in {}", run.loop_name, run.id, run.path.display()))?;
-    let gateway = gateway(parsed, &keys, store, &run)?;
+    let gateway = gateway(parsed, &keys, store, &run, lookup)?;
     let meter = GatewayMeter(&gateway);
     let mut hive = Hive::new(parsed, &keys, &gateway.base_url())?;
     let mut retreat = Retreat::new(parsed, store, &gateway)?;
@@ -160,7 +172,7 @@ pub(super) fn score(
         Some(&format!("score-{label}-{}", store::timestamp_id(store::now()))),
         &BTreeMap::new(),
     )?;
-    let gateway = gateway(parsed, &keys, store, &run)?;
+    let gateway = gateway(parsed, &keys, store, &run, lookup)?;
     let subject = Subject::from_spec(&parsed.manifest.subject, &loop_dir);
     let target = match checkout {
         Some(path) => Checkout {

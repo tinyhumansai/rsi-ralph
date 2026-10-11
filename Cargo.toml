@@ -93,6 +93,8 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # response body (`StreamExt`, `stream::unfold`).
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
+# Scripted OpenAI-compatible model servers in the swarm and CLI tests.
+wiremock = "0.6"
 # Command-line parsing for the `tinyrsi` binary in `crates/tinyrsi-cli`; derive
 # only, no colour or terminal-width probing.
 clap = { version = "4", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
