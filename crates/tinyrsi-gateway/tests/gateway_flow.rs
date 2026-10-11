@@ -490,6 +490,11 @@ async fn unreachable_upstreams_return_502_and_keep_the_reservation() {
         .unwrap();
     assert!(ledgers["run"]["uncertain_usd"].as_f64().unwrap() > 0.0);
     assert!(gateway.spend().run_usd > 0.0);
+    let calls = gateway.upstream_calls();
+    assert_eq!((calls.sent, calls.refused), (1, 1));
+    let refusal = calls.last_refusal.unwrap();
+    assert_eq!(refusal.status, 502);
+    assert!(!refusal.message.contains(KEY), "{}", refusal.message);
     gateway.shutdown().unwrap();
 }
 
