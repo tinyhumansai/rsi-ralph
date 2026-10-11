@@ -470,6 +470,45 @@ fn h_uncertainty_and_all_health_cost_gates_prevent_promotion() {
 }
 
 #[test]
+fn negative_upper_h_stops_screening_when_all_hard_gates_pass() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.json");
+    let mut archive = Archive::open(&path).unwrap();
+    baseline(&mut archive);
+    let old = archive.head().unwrap().id.clone();
+    let mut epoch = setup_epoch();
+    epoch.policy.cost_tolerance = 0.2;
+    epoch.policy.penalties.cost = 10.0;
+    let mut host = Host {
+        fault: Fault::Cost,
+        ..Host::default()
+    };
+    let mut human = gate(true);
+    let result = run_proposal_h(&mut archive, &epoch, &hproposal(), &mut host, &mut human).unwrap();
+    let comparison = result.comparison.unwrap();
+    assert!(comparison.upper < 0.0);
+    assert!(comparison.candidate.per_family["code"] > comparison.incumbent.per_family["code"]);
+    assert!(comparison.candidate.health.cost_ratio <= 1.0 + epoch.policy.cost_tolerance);
+    assert_eq!(comparison.candidate.health.false_claim_rate, 0.0);
+    assert_eq!(comparison.candidate.health.tamper_rate, 0.0);
+    assert_eq!(
+        comparison.decision,
+        EvalDecision::Reject {
+            reason: "paired H interval rules out improvement".into()
+        }
+    );
+    assert_eq!(result.reason, ReasonCode::NoGain);
+    assert_eq!(host.stages, [EvalStage::Screen]);
+    assert_eq!(human.calls, 0);
+    assert_eq!(archive.head().unwrap().id, old);
+    drop(archive);
+    let reopened = Archive::open(path).unwrap();
+    assert_eq!(reopened.head().unwrap().id, old);
+    assert_eq!(reopened.normalized_evaluations().len(), 1);
+    assert!(reopened.normalized_evaluations()[0].comparison.upper < 0.0);
+}
+
+#[test]
 fn aggregate_h_gain_cannot_hide_a_family_regression() {
     let dir = tempfile::tempdir().unwrap();
     let mut archive = Archive::open(dir.path().join("a.json")).unwrap();

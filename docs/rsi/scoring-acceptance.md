@@ -60,7 +60,7 @@ present in the archive.
 | Decision row | Implemented evidence | Remaining controller test |
 | --- | --- | --- |
 | Eligible gain → confirmation → human approval → acceptance | N `normalized_confirmation_is_required_before_human_gate_and_promotion` | Broader host adapters retain exact-candidate approval |
-| Negative upper ΔH → reject | N `h_uncertainty_and_all_health_cost_gates_prevent_promotion`; recorded screen loss | Separate `NO_GAIN` after taxonomy expansion |
+| Negative upper ΔH → reject | N `negative_upper_h_stops_screening_when_all_hard_gates_pass`; recorded screen loss | Separate `NO_GAIN` after taxonomy expansion |
 | Margin overlap/equality → inconclusive | S `zero_token_reference_and_tie_decisions_are_explicit` | Valid alpha-spending looks, maximum spend and stopping/restart identity |
 | H gain with family/health/cost violation → reject | S `rejects_normalized_family_health_and_cost_regressions`; N `aggregate_h_gain_cannot_hide_a_family_regression` | Distinct `CONSTRAINT` label for every gate |
 | Confirmation failure/reuse → no approval | N `raw_predictions_reused_confirmation_and_health_regressions_are_rejected` | No automatic confirmation retry on the same draw |
