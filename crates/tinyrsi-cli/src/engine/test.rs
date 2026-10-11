@@ -4,11 +4,14 @@ use super::*;
 use crate::{manifest, subject::copy_tree};
 use std::fs;
 
+/// What a seat writes in an epoch, as `path:content`, or nothing.
+type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;
+
 /// A hive stand-in that writes the next value for each seat.
 struct Scripted {
     seats: Vec<String>,
     /// Value each seat writes per epoch; `None` leaves the candidate alone.
-    plan: Box<dyn Fn(u32, &str) -> Option<String>>,
+    plan: Plan,
     briefs: Vec<String>,
 }
 
@@ -277,7 +280,7 @@ fn a_worse_or_broken_candidate_is_not_promoted() {
 fn stops_on_budget_before_an_epoch() {
     let root = tempfile::tempdir().unwrap();
     let (dir, parsed) = fixture(root.path(), |m| {
-        m["budget"] = serde_json::json!({ "score_reserve_usd": 1.0 })
+        m["budget"] = serde_json::json!({ "score_reserve_usd": 1.0 });
     });
     let store = Store::new(root.path().join("home"));
     let mut hive = Scripted {
@@ -323,7 +326,7 @@ fn an_unscorable_incumbent_fails_the_run_with_a_scrubbed_error() {
 fn an_incumbent_already_at_the_target_stops_at_once() {
     let root = tempfile::tempdir().unwrap();
     let (dir, parsed) = fixture(root.path(), |m| {
-        m["score"]["decide"]["target"] = serde_json::json!(10)
+        m["score"]["decide"]["target"] = serde_json::json!(10);
     });
     let store = Store::new(root.path().join("home"));
     let mut hive = Scripted {

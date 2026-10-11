@@ -96,7 +96,7 @@ fn without_memory_nothing_is_written() {
     );
     retreat.ideas(1, "x", dir.path()).unwrap();
     retreat.outcome(1, false).unwrap();
-    assert!(retreat.pending.is_empty());
+    assert_eq!(retreat.pending, Vec::<String>::new());
 }
 
 #[test]

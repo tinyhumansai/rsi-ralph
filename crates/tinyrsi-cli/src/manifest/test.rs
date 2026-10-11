@@ -1,7 +1,14 @@
 //! Parsing, validation and the stored form of `rsi.json`.
-#![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "assert deterministic fixtures"
+)]
 use super::*;
 use serde_json::{Value, json};
+
+/// An edit applied to a parsed `rsi.json`.
+type Edit = fn(&mut Value);
 
 fn example_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring")
@@ -174,33 +181,33 @@ fn rejects_an_invalid_hive_package() {
 
 #[test]
 fn rejects_out_of_range_fields() {
-    let cases: Vec<(&str, fn(&mut Value))> = vec![
+    let cases: Vec<(&str, Edit)> = vec![
         ("name", |m| m["name"] = json!("Graph Coloring")),
         ("subject.editable", |m| m["subject"]["editable"] = json!([])),
         ("hive", |m| m["hive"]["wall_secs"] = json!(0)),
         ("creativity.temperature", |m| {
-            m["creativity"]["temperature"] = json!(3.0)
+            m["creativity"]["temperature"] = json!(3.0);
         }),
         ("creativity.retreat.temperature", |m| {
             m["creativity"]["retreat"] = json!({ "temperature": -1.0 });
         }),
         ("creativity.retreat", |m| {
-            m["creativity"]["retreat"] = json!({ "turns": 0 })
+            m["creativity"]["retreat"] = json!({ "turns": 0 });
         }),
         ("creativity.retreat.mode", |m| {
-            m["creativity"]["retreat"] = json!({ "mode": "chaos" })
+            m["creativity"]["retreat"] = json!({ "mode": "chaos" });
         }),
         ("creativity.retreat.template", |m| {
-            m["creativity"]["retreat"] = json!({ "template": "x" })
+            m["creativity"]["retreat"] = json!({ "template": "x" });
         }),
         ("budget.prices.a/b", |m| {
             m["budget"]["prices"] = json!({ "a/b": { "prompt_per_mtok": -1, "completion_per_mtok": 1, "provider": "p" } });
         }),
         ("budget.prices.openai/gpt-x", |m| {
-            m["models"] = json!({ "default": "openai/gpt-x" })
+            m["models"] = json!({ "default": "openai/gpt-x" });
         }),
         ("keys.search", |m| {
-            m["keys"] = json!({ "search": "lower_case" })
+            m["keys"] = json!({ "search": "lower_case" });
         }),
         ("keys.openrouter", |m| {
             m["keys"] = json!({ "openrouter": { "provider": "x", "env": "KEY" } });
@@ -218,35 +225,35 @@ fn rejects_out_of_range_fields() {
             m["score"]["scorers"][0]["judge"] = json!("brief.md");
         }),
         ("score.scorers.colors", |m| {
-            m["score"]["scorers"][0]["run"] = json!("  ")
+            m["score"]["scorers"][0]["run"] = json!("  ");
         }),
         ("score.scorers.colors", |m| {
-            m["score"]["scorers"][0]["weight"] = json!(0)
+            m["score"]["scorers"][0]["weight"] = json!(0);
         }),
         ("score.scorers.colors", |m| {
-            m["score"]["scorers"][0]["raters"] = json!(0)
+            m["score"]["scorers"][0]["raters"] = json!(0);
         }),
         ("score.scorers.colors", |m| {
             let first = m["score"]["scorers"][0].clone();
             m["score"]["scorers"].as_array_mut().unwrap().push(first);
         }),
         ("score.decide.seeds", |m| {
-            m["score"]["decide"]["seeds"] = json!([1, 1])
+            m["score"]["decide"]["seeds"] = json!([1, 1]);
         }),
         ("score.decide.split", |m| {
-            m["score"]["decide"]["test"] = json!("sign")
+            m["score"]["decide"]["test"] = json!("sign");
         }),
         ("score.decide.alpha", |m| {
-            m["score"]["decide"]["alpha"] = json!(1.5)
+            m["score"]["decide"]["alpha"] = json!(1.5);
         }),
         ("score.decide.margin", |m| {
-            m["score"]["decide"]["margin"] = json!(-1)
+            m["score"]["decide"]["margin"] = json!(-1);
         }),
         ("gate[0]", |m| m["gate"] = json!([{ "run": "" }])),
         ("budget.run_usd", |m| m["budget"]["run_usd"] = json!(0)),
         ("budget.total_usd", |m| m["budget"]["total_usd"] = json!(-2)),
         ("budget.score_reserve_usd", |m| {
-            m["budget"]["score_reserve_usd"] = json!(-1)
+            m["budget"]["score_reserve_usd"] = json!(-1);
         }),
         ("epochs", |m| m["epochs"] = json!(0)),
         ("env.RSI_SEED", |m| m["env"] = json!({ "RSI_SEED": "1" })),
