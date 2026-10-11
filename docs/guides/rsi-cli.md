@@ -119,7 +119,7 @@ Afterwards:
 
 ```sh
 tinyrsi runs                         # every run, newest first
-tinyrsi show graph-coloring/<run-id> # one run's outcome and folder
+tinyrsi show graph-coloring/<run-id> # one run's outcome, error, warnings and folder
 tinyrsi serve                        # the UI over all stored runs
 ```
 

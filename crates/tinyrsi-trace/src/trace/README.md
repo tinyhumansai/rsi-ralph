@@ -10,7 +10,8 @@ for byte.
 
 - `LoopEvent` is one stage boundary (`run_started`, `epoch_started`,
   `observed`, `ideated`, `executed`, `measured`, `scored`, `improved`,
-  `epoch_finished`, `run_finished`), serialized internally tagged by `kind`.
+  `epoch_finished`, `provider_refused`, `run_finished`), serialized
+  internally tagged by `kind`.
 - `TraceRecord { seq, elapsed_ms, event }` is one line. Sinks stamp `seq` from
   0 without gaps and `elapsed_ms` from an injected `Clock`.
 - `Clock`: `MonotonicClock` for real runs, `ManualClock` (shared, advanced by

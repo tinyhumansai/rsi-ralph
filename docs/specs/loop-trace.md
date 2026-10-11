@@ -59,7 +59,8 @@ Event kinds (stage in brackets is the visualizer's loop-ring stage):
 | `scored` | `epoch, candidate: string, decision: "accept"\|"reject"\|"inconclusive", estimate: number, lower: number, upper: number, units?: "quality"` | score |
 | `improved` | `epoch, from: string, to: string, metric: number` | improve |
 | `epoch_finished` | `epoch, incumbent: string, incumbent_metric: number\|null` | — |
-| `run_finished` | `reason: "goal_reached"\|"max_epochs"\|"stalled"\|"budget"\|"error", incumbent: string, incumbent_metric: number\|null` | — |
+| `provider_refused` | `epoch, calls: u32, refused: u32, status: u16, message: string` | — |
+| `run_finished` | `reason: "goal_reached"\|"max_epochs"\|"stalled"\|"budget"\|"error"\|"provider_refused", incumbent: string, incumbent_metric: number\|null` | — |
 
 `ideated.candidate` is the content id the proposal materializes into, computed
 from the proposed files before execution, or `null` when the proposal was
@@ -69,6 +70,16 @@ refused before materialization (malformed, or a path outside the editable set).
 when the proposal has no label or was refused, so unlabelled traces (and the
 hive loop's) keep their exact bytes; readers treat a missing field and `null`
 alike.
+
+`provider_refused` is written by the `tinyrsi` binary's engine, just before
+`epoch_finished`, when the model provider refused calls during an epoch whose
+hive changed nothing (or refused every call). `calls` counts the hive's calls
+forwarded to the provider that epoch, `refused` those answered with a
+non-success status or never answered, and `status`/`message` describe the
+latest refusal (`502` when the provider was unreachable), scrubbed of key
+values. When every call was refused the run ends with reason
+`provider_refused`; an ordinary empty epoch, with no refusals, writes no such
+event and still counts towards `stalled`.
 
 The baseline run of the starting script is epoch 0: `executed`/`measured`
 events with `candidate` = the baseline id, and no `scored` event.
