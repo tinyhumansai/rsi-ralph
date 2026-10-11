@@ -72,6 +72,22 @@ describe("parseEnvelope", () => {
     expect(parseEnvelope(line(',"units":"furlongs"')).ok).toBe(false);
   });
 
+  it("reads a provider refusal and its finish reason", () => {
+    const refused = parseEnvelope(
+      '{"seq":0,"elapsed_ms":0,"event":{"kind":"provider_refused","epoch":1,"calls":2,"refused":2,"status":403,"message":"Key limit exceeded"}}',
+    );
+    expect(refused.ok && refused.envelope.event.kind === "provider_refused" && refused.envelope.event.status).toBe(403);
+    expect(
+      parseEnvelope(
+        '{"seq":0,"elapsed_ms":0,"event":{"kind":"provider_refused","epoch":1,"calls":2,"refused":2,"status":403}}',
+      ).ok,
+    ).toBe(false);
+    const finished = parseEnvelope(
+      '{"seq":1,"elapsed_ms":0,"event":{"kind":"run_finished","reason":"provider_refused","incumbent":"x","incumbent_metric":null}}',
+    );
+    expect(finished.ok).toBe(true);
+  });
+
   it("rejects an unknown decision, finish reason, or direction", () => {
     expect(
       parseEnvelope(
