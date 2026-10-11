@@ -16,6 +16,8 @@ name = "tinyrsi"
 path = "src/main.rs"
 
 [dependencies]
+tinyrsi-gateway = { workspace = true }
+tinyrsi-model = { workspace = true }
 tinyrsi-score = { workspace = true }
 tinyrsi-trace = { workspace = true }
 tinyrsi-verify = { workspace = true }

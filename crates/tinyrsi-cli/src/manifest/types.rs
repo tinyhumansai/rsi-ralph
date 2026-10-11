@@ -12,7 +12,7 @@ pub const SCHEMA: &str = "https://tinyhumans.ai/schemas/rsi/v1";
 pub const VERSION: u32 = 1;
 
 /// The model seats, judges and the retreat use when `models` names none.
-pub const DEFAULT_MODEL: &str = "openai/gpt-4.1-mini";
+pub const DEFAULT_MODEL: &str = "z-ai/glm-5.3-flash";
 
 /// The environment variable holding the OpenRouter key when `keys` names none.
 pub const DEFAULT_OPENROUTER_ENV: &str = "OPENROUTER_API_KEY";
@@ -159,22 +159,28 @@ pub struct Retreat {
     /// Off switch that keeps the settings.
     #[serde(default = "yes")]
     pub enabled: bool,
-    /// Conversation rounds.
+    /// Independent conversations per epoch: breadth.
     #[serde(default = "three")]
-    pub rounds: u32,
-    /// Participants in the retreat.
-    #[serde(default = "three")]
-    pub participants: u32,
+    pub variations: u32,
+    /// Turns per conversation: depth.
+    #[serde(default = "six")]
+    pub turns: u32,
     /// Ideas passed into the brief.
     #[serde(default = "five")]
     pub ideas: u32,
+    /// `backrooms` (two agents), `brainstorm` (one) or `critic_pair`.
+    #[serde(default)]
+    pub mode: Option<String>,
+    /// Conversation framing: `cli`, `fugue` or `student`.
+    #[serde(default)]
+    pub template: Option<String>,
     /// Model, overriding `models.retreat`.
     #[serde(default)]
     pub model: Option<String>,
-    /// Sampling temperature, 0 to 2.
+    /// Sampling temperature for the conversation turns, 0 to 2.
     #[serde(default)]
     pub temperature: Option<f64>,
-    /// Keep idea outcomes across runs.
+    /// Steer away from ideas earlier runs already tried.
     #[serde(default = "yes")]
     pub memory: bool,
 }
@@ -185,6 +191,10 @@ fn yes() -> bool {
 
 fn three() -> u32 {
     3
+}
+
+fn six() -> u32 {
+    6
 }
 
 fn five() -> u32 {
@@ -339,6 +349,21 @@ pub struct Budget {
     /// Spend that must remain before a candidate is scored.
     #[serde(default)]
     pub score_reserve_usd: f64,
+    /// Price ceilings for models beyond the gateway's built-in ones.
+    #[serde(default)]
+    pub prices: BTreeMap<String, ModelPrice>,
+}
+
+/// A model's price ceiling and the one provider it may be routed to.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelPrice {
+    /// Dollars per million prompt tokens.
+    pub prompt_per_mtok: f64,
+    /// Dollars per million completion tokens.
+    pub completion_per_mtok: f64,
+    /// Upstream provider, such as `openai`.
+    pub provider: String,
 }
 
 /// A validated loop folder.

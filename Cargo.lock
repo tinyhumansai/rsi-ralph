@@ -3556,6 +3556,8 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tinyhivemind-lang",
+ "tinyrsi-gateway",
+ "tinyrsi-model",
  "tinyrsi-score",
  "tinyrsi-trace",
  "tinyrsi-verify",

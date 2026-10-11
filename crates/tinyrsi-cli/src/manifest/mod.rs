@@ -17,7 +17,7 @@ use crate::{Error, Result};
 mod types;
 pub use types::{
     Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveSpec, KeySpec, Loop, Manifest, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec, StepCwd,
+    HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec, StepCwd,
     SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
@@ -130,18 +130,39 @@ pub fn parse(files: &BTreeMap<String, String>) -> Result<Loop> {
             }
         }
     }
+    let seat_models: BTreeSet<String> = package
+        .manifest
+        .seats
+        .iter()
+        .filter_map(|seat| seat.model.clone())
+        .collect();
     let mut rubrics = BTreeMap::new();
     for scorer in &manifest.score.scorers {
         if let Some(rubric) = &scorer.judge {
             rubrics.insert(scorer.id.clone(), file(files, rubric)?.clone());
         }
     }
-    Ok(Loop {
+    let parsed = Loop {
         manifest,
         brief,
         hive,
         rubrics,
-    })
+    };
+    for model in parsed.models_used(&seat_models) {
+        if !priced(&parsed.manifest.budget, &model) {
+            return Err(Error::field(
+                format!("budget.prices.{model}"),
+                "the model is used but has no price ceiling",
+            ));
+        }
+    }
+    Ok(parsed)
+}
+
+/// Whether the gateway will allow `model`: built in, or priced in `budget`.
+fn priced(budget: &Budget, model: &str) -> bool {
+    budget.prices.contains_key(model)
+        || tinyrsi_gateway::PriceTable::standard().get(model).is_ok()
 }
 
 fn file<'a>(files: &'a BTreeMap<String, String>, path: &str) -> Result<&'a String> {
@@ -227,6 +248,18 @@ fn validate_fields(m: &Manifest) -> Result<()> {
     if !b.score_reserve_usd.is_finite() || b.score_reserve_usd < 0.0 {
         return Err(Error::field("budget.score_reserve_usd", "must be zero or more"));
     }
+    for (model, price) in &b.prices {
+        let ok = [price.prompt_per_mtok, price.completion_per_mtok]
+            .iter()
+            .all(|v| v.is_finite() && *v >= 0.0)
+            && !price.provider.trim().is_empty();
+        if !ok {
+            return Err(Error::field(
+                format!("budget.prices.{model}"),
+                "needs non-negative prices and a provider",
+            ));
+        }
+    }
     if m.epochs == 0 || m.patience == 0 {
         return Err(Error::field("epochs", "epochs and patience must be positive"));
     }
@@ -275,11 +308,20 @@ fn validate_creativity(c: &Creativity) -> Result<()> {
     temperature("creativity.temperature", c.temperature)?;
     if let Some(r) = &c.retreat {
         temperature("creativity.retreat.temperature", r.temperature)?;
-        if r.rounds == 0 || r.participants < 2 || r.ideas == 0 {
+        if r.variations == 0 || r.turns == 0 || r.ideas == 0 {
             return Err(Error::field(
                 "creativity.retreat",
-                "needs rounds and ideas of at least 1 and at least 2 participants",
+                "variations, turns and ideas must be positive",
             ));
+        }
+        let known = |value: &Option<String>, allowed: &[&str]| {
+            value.as_deref().is_none_or(|v| allowed.contains(&v))
+        };
+        if !known(&r.mode, &["backrooms", "brainstorm", "critic_pair"]) {
+            return Err(Error::field("creativity.retreat.mode", "use backrooms, brainstorm or critic_pair"));
+        }
+        if !known(&r.template, &["cli", "fugue", "student"]) {
+            return Err(Error::field("creativity.retreat.template", "use cli, fugue or student"));
         }
     }
     Ok(())
@@ -417,6 +459,20 @@ impl Loop {
             KeySpec::Tool(tool) => Some((name.as_str(), tool)),
             KeySpec::Env(_) => None,
         })
+    }
+
+    /// Every chat model the loop will call: seats, judges and the retreat.
+    #[must_use]
+    pub fn models_used(&self, seat_models: &BTreeSet<String>) -> BTreeSet<String> {
+        let mut models = seat_models.clone();
+        models.insert(self.seat_model().to_owned());
+        if !self.rubrics.is_empty() {
+            models.insert(self.judge_model().to_owned());
+        }
+        if self.manifest.creativity.retreat.as_ref().is_some_and(|r| r.enabled) {
+            models.insert(self.retreat_model().to_owned());
+        }
+        models
     }
 
     /// Every environment variable the loop needs, sorted and unique.
