@@ -63,11 +63,10 @@ fn collect(
     prefix: &mut Vec<String>,
     files: &mut BTreeMap<String, String>,
 ) -> Result<()> {
-    let io = package_io(dir);
     let mut entries = std::fs::read_dir(dir)
-        .map_err(io)?
+        .map_err(package_io(dir))?
         .collect::<std::io::Result<Vec<_>>>()
-        .map_err(io)?;
+        .map_err(package_io(dir))?;
     entries.sort_by_key(std::fs::DirEntry::file_name);
     for entry in entries {
         let path = entry.path();
