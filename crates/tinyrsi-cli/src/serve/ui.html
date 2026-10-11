@@ -154,7 +154,8 @@ function render() {
   $("#main").innerHTML = `
     <div><span class="badge ${esc(r.status)}">${esc(r.status ?? "…")}</span>
       ${r.stop_reason ? `<span class="muted">stopped: ${esc(r.stop_reason)}</span>` : ""}
-      ${r.error ? `<div class="failed" style="margin-top:6px">${esc(r.error)}</div>` : ""}</div>
+      ${r.error ? `<div class="failed" style="margin-top:6px">${esc(r.error)}</div>` : ""}
+      ${(r.warnings ?? []).map((w) => `<div class="interrupted" style="margin-top:6px">${esc(w)}</div>`).join("")}</div>
     <div class="stats">
       <div class="stat"><span class="muted">Incumbent score</span><b>${fmt(r.incumbent_score)}</b></div>
       <div class="stat"><span class="muted">Epochs</span><b>${esc(r.epochs ?? 0)}</b></div>
