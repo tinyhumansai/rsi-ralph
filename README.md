@@ -27,6 +27,13 @@ memory images. `VerifiedRunner` settles work only through immutable host checks;
 per task, seed and arm. `EpochJournal` preserves real retreat attempts and
 prevents completed generation/evaluation from repeating after restart.
 
+`EvidenceJournal` persists controlled turn intent, provider-measured usage and
+observed checker evidence, then atomically consumes them into a redacted epoch
+receipt. Duplicate callbacks and repeated epoch reads do not recount work after
+restart; interrupted calls with missing usage remain explicitly unknown. Run
+`cargo run -p tinyrsi --features host --example observe_epochs` for the offline
+two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
+
 The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
 adapter. It installs supported prompts, context, recall and conduct caps, and
 rejects unsupported models, tools, MCP and policies explicitly. A custom

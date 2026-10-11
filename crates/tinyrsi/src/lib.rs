@@ -60,6 +60,8 @@ mod blueprint;
 mod epoch_driver;
 mod error;
 mod evaluation;
+#[cfg(feature = "host")]
+mod evidence_journal;
 mod experiment;
 #[cfg(feature = "host")]
 mod host;
@@ -77,6 +79,8 @@ mod tinybus_module;
 mod verification;
 
 pub use error::{Error, Result};
+#[cfg(feature = "host")]
+pub use evidence_journal::{EvidenceEpoch, EvidenceJournal, RecordedTurn, RecordedTurnStatus};
 pub use lineage::Lineage;
 
 // The wire contract, re-exported by module rather than by item so every path

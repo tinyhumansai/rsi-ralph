@@ -10,7 +10,7 @@ bounded host mechanisms exist; full phase acceptance still needs work.
 
 | Tracker | Implemented evidence | Work still needed |
 | --- | --- | --- |
-| [P1 #3](https://github.com/tinyhumansai/tinyrsi/issues/3) | Read-only observer, deterministic dossier, durable observations/cursor and replay-validated archive; restart tests exclude consumed transcript references and settled episodes | A durable usage/verifier callback pump and offline two-epoch demonstration proving no measured turn is lost or counted twice across restart. Observation checkpoints persist references and phases, while the example reads usage/checker evidence separately from in-memory factory buffers. |
+| [P1 #3](https://github.com/tinyhumansai/tinyrsi/issues/3) | Read-only observer, deterministic dossier, durable observations/cursor and replay-validated archive; `EvidenceJournal` adds durable usage/checker callbacks and atomic dossier/cursor consumption. The offline `observe_epochs` demonstration processes two real checked turns across restart and duplicate reads. | Implemented and demonstrated. Hosts own admission exclusion and reconciliation of responses interrupted before their durable callback; unknown usage is retained explicitly. |
 | [P2 #4](https://github.com/tinyhumansai/tinyrsi/issues/4) | Frozen normalized policies, private suite fingerprints, isolated snapshot memory, fresh confirmation, exact approval and parent restoration | Curated private multi-family tasks, empirical family anchors and a production approval/provider configuration. The local snapshot store supplies bounded isolation/rollback, but CortexDB integration remains upstream. |
 | [P3 #5](https://github.com/tinyhumansai/tinyrsi/issues/5) | Host-owned registry, real checker evidence, per-episode DAG and controlled completion, code sandbox and stock Lean tests | A curated pinned Lean project/slice checked by `lake build`, production sandbox configuration, and integration with upstream immutable typed goal-verifier declarations. The current Lean adapter checks restricted proof blocks directly; the demonstration is not that private project suite. |
 | [P4 #6](https://github.com/tinyhumansai/tinyrsi/issues/6) | Actual Engine, durable scoped retreat memory, persisted epoch attempts, safe per-occurrence formatter receipts and matched ablation harness; fifty typed occurrences in the post-review worked run | Calibrated proposer ranking/outcome metrics and a scientifically informative ablation with curated tasks. Historical live runs retain invalid counts only; the published bounded comparison is inconclusive. |
@@ -61,10 +61,11 @@ Source evidence: [host journal](../../crates/tinyrsi/src/host/mod.rs),
 The [phase map](phases.md) and [live receipts](complete-live.md) document bounded
 integration results and scientific limitations.
 
-The next self-contained implementation is P1's durable evidence pump: freeze
-turn/check identities, journal callbacks before marking an epoch consumed, and
-exercise duplicate reads and interruption with two offline epochs. Broader
-production adapters and benchmark curation should follow their existing owners
-rather than duplicate the already delivered host and snapshot infrastructure.
+P1's durable evidence pump now freezes invocation/check identities, journals
+callbacks before marking an epoch consumed, and exercises duplicate reads and
+interruption across offline epochs. The next self-contained scoring work is
+safe per-occurrence invalid proposal receipts and a versioned detailed rejection
+taxonomy. Broader production adapters and benchmark curation should follow their
+existing owners rather than duplicate delivered host/snapshot infrastructure.
 
 This audit does not close P1–P6 or label the live experiment an improvement.

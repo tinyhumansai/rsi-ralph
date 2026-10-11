@@ -50,6 +50,12 @@ pub enum Error {
     /// A host-owned evaluation or approval operation failed.
     #[error("host operation failed")]
     HostFailed,
+    /// Turn callbacks or epoch identities conflict with retained host evidence.
+    #[error("invalid or conflicting host evidence")]
+    InvalidEvidence,
+    /// Unfinished journaled turns prevent an epoch from consuming their evidence.
+    #[error("host evidence has unfinished turns")]
+    EvidencePending,
 }
 
 /// The crate's standard result type.

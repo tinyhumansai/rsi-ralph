@@ -366,6 +366,8 @@ async fn controlled_factory_uses_real_verifier_completion_and_external_usage_met
     assert!(!format!("{factory:?}").contains("private canary"));
 }
 
+#[path = "test_journal.rs"]
+mod journal;
 #[path = "test_private.rs"]
 mod private;
 
