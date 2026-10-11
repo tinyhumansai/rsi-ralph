@@ -60,8 +60,8 @@ per-request model overrides fail closed.
 
 The engine retains conversational roles in the serialized user history. Its
 requests never set a temperature, so sampling stays at zero at the provider
-boundary; comparison arms use the same configuration. A backend with stochastic temperature support can
-implement `ModelPort` while keeping the same reservation contract.
+boundary; comparison arms use the same configuration. Any `ModelPort` must
+keep the same reservation contract whatever temperature it samples at.
 
 ## Operational constraints
 
