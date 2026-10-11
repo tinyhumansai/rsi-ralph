@@ -7,19 +7,22 @@ use serde_json::json;
 use super::{Budgets, Ledger, LedgerState};
 use crate::error::Error;
 
-/// A throwaway directory: `.0` is its path, `.1` keeps it alive.
-struct Scratch(std::path::PathBuf, tempfile::TempDir);
+/// A throwaway directory, removed on drop.
+struct Scratch(tempfile::TempDir);
 
 impl Scratch {
     fn new() -> Self {
-        let dir = tempfile::tempdir().unwrap();
-        Self(dir.path().to_path_buf(), dir)
+        Self(tempfile::tempdir().unwrap())
+    }
+
+    fn path(&self) -> &std::path::Path {
+        self.0.path()
     }
 
     fn budgets(&self, run: f64, total: f64) -> Budgets {
         Budgets::new(
-            Ledger::open(&self.0.join("run/budget.json"), run).unwrap(),
-            Ledger::open(&self.0.join("total.json"), total).unwrap(),
+            Ledger::open(&self.path().join("run/budget.json"), run).unwrap(),
+            Ledger::open(&self.path().join("total.json"), total).unwrap(),
         )
     }
 }
@@ -44,7 +47,7 @@ fn pins_the_stored_ledger_shape() {
 fn rejects_invalid_limits() {
     let scratch = Scratch::new();
     for limit in [0.0, -1.0, f64::NAN, f64::INFINITY] {
-        let error = Ledger::open(&scratch.0.join("x.json"), limit).unwrap_err();
+        let error = Ledger::open(&scratch.path().join("x.json"), limit).unwrap_err();
         assert!(matches!(error, Error::InvalidLimit(_)), "{limit}");
     }
 }
@@ -151,7 +154,7 @@ fn reopening_carries_spend_and_makes_in_flight_uncertain() {
 #[test]
 fn the_limit_of_an_existing_ledger_cannot_change() {
     let scratch = Scratch::new();
-    let path = scratch.0.join("total.json");
+    let path = scratch.path().join("total.json");
     Ledger::open(&path, 50.0).unwrap();
     let error = Ledger::open(&path, 60.0).unwrap_err();
     assert!(matches!(error, Error::LimitChanged { .. }), "{error}");
@@ -160,7 +163,7 @@ fn the_limit_of_an_existing_ledger_cannot_change() {
 #[test]
 fn rejects_a_corrupt_ledger() {
     let scratch = Scratch::new();
-    let path = scratch.0.join("total.json");
+    let path = scratch.path().join("total.json");
     std::fs::write(&path, "not json").unwrap();
     assert!(matches!(
         Ledger::open(&path, 50.0).unwrap_err(),
@@ -171,6 +174,6 @@ fn rejects_a_corrupt_ledger() {
 #[test]
 fn reports_unreadable_ledgers() {
     let scratch = Scratch::new();
-    let error = Ledger::open(&scratch.0, 50.0).unwrap_err();
+    let error = Ledger::open(&scratch.path(), 50.0).unwrap_err();
     assert!(matches!(error, Error::Io { .. }), "{error}");
 }
