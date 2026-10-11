@@ -63,8 +63,8 @@ fn keys_reach_their_scoped_seats_only() {
     assert_eq!(for_seat(&keys, "lead").len(), 2);
     assert_eq!(for_seat(&keys, "impl"), [keys[1].clone()]);
     assert!(tool_names(&for_seat(&keys, "impl")).contains(&"web_answer_tool".to_owned()));
-    assert!(tool_names(&[]).is_empty());
-    assert!(tool_names(&[key("other", "x", None)]).is_empty());
+    assert_eq!(tool_names(&[]), Vec::<String>::new());
+    assert_eq!(tool_names(&[key("other", "x", None)]), Vec::<String>::new());
 }
 
 #[test]
