@@ -63,13 +63,13 @@ impl Default for Limits {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Prepared {
     /// The rewritten JSON body.
-    pub body: Value,
+    pub(crate) body: Value,
     /// The model id.
-    pub model: String,
+    pub(crate) model: String,
     /// Whether the client asked for a server-sent-event stream.
-    pub stream: bool,
+    pub(crate) stream: bool,
     /// The worst-case cost in dollars.
-    pub reserve_usd: f64,
+    pub(crate) reserve_usd: f64,
 }
 
 /// Validates and rewrites `body` for `endpoint`.
