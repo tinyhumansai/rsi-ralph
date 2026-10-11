@@ -440,3 +440,266 @@ fn atomic_ledger_writes_fail_cleanly_without_a_directory() {
     );
     assert_eq!(write_atomic(Path::new(""), &1), Err(Error::ArchiveIo));
 }
+
+/// A scorer that reads the sources instead of the metric: a script whose
+/// text mentions `clear` scores high. It spends `tokens` per assessment and
+/// is eligible only when `eligible` is set, like a judge.
+fn source_judge(tokens: u64, eligible: bool) -> tinyrsi_score::ScriptedScorer<ScriptCandidate> {
+    tinyrsi_score::ScriptedScorer::new(move |c: &ScriptCandidate, _, seeds| {
+        let clear = c.sources.values().any(|s| s.contains("clear"));
+        let qualities: Vec<f64> = seeds
+            .iter()
+            .enumerate()
+            .map(|(i, _)| if clear { 0.9 } else { 0.1 } + 0.001 * f64::from(u8::try_from(i).unwrap()))
+            .collect();
+        Ok(tinyrsi_score::Assessment {
+            eligible: eligible.then(|| qualities.clone()),
+            qualities,
+            metric: None,
+            rationale: Some("reads the sources".into()),
+            tokens,
+        })
+    })
+}
+
+#[test]
+fn a_custom_scorer_decides_on_what_it_reads_and_its_tokens_count() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    // A worse metric, but a script the source judge prefers.
+    let clearer = format!("# clear\n{}", loss("0.7"));
+    let port = Scripted::new(vec![reply(&clearer)]);
+    let mut trace = VecTrace::new(ManualClock::new());
+    let report = run_script_loop_with(
+        &s,
+        &supervisor(port),
+        &source_judge(25, true),
+        &policy(1, 1),
+        &run,
+        &mut trace,
+    )
+    .unwrap();
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [CandidateDecision::Baseline, CandidateDecision::Accept]
+    );
+    assert_eq!(report.promotions, 1);
+    // Supervisor 150 + baseline assessment 25 + candidate assessment 25.
+    assert_eq!(ledger.tokens, 200);
+    // A blend of judge evidence reports its interval in quality units.
+    assert!((ledger.candidates[1].estimate.unwrap() - 0.8).abs() < 1e-9);
+}
+
+#[test]
+fn an_uncalibrated_scorer_never_promotes_on_its_own() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let clearer = format!("# clear\n{}", loss("0.7"));
+    let port = Scripted::new(vec![reply(&clearer)]);
+    let report = run_script_loop_with(
+        &s,
+        &supervisor(port),
+        &source_judge(0, false),
+        &policy(1, 1),
+        &run,
+        &mut VecTrace::new(ManualClock::new()),
+    )
+    .unwrap();
+    assert_eq!(report.promotions, 0);
+    assert_eq!(
+        decisions(&ledger(&run)),
+        [CandidateDecision::Baseline, CandidateDecision::Inconclusive]
+    );
+}
+
+#[test]
+fn a_failing_scorer_ends_the_run_with_its_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let failing: tinyrsi_score::ScriptedScorer<ScriptCandidate> =
+        tinyrsi_score::ScriptedScorer::new(|_, _, _| Err(tinyrsi_score::Error::JudgeMalformed));
+    let mut trace = VecTrace::new(ManualClock::new());
+    let error = run_script_loop_with(
+        &s,
+        &supervisor(Scripted::new(vec![reply(&loss("0.3"))])),
+        &failing,
+        &policy(1, 1),
+        &run,
+        &mut trace,
+    )
+    .unwrap_err();
+    assert_eq!(error, Error::JudgeMalformed);
+    assert_eq!(
+        kinds(&trace).last().map(String::as_str),
+        Some("run_finished")
+    );
+}
+
+/// A proposal that writes `content` to `path`.
+fn edit(path: &str, content: &str) -> ScriptProposal {
+    ScriptProposal {
+        rationale: "r".into(),
+        hypothesis: "h".into(),
+        files: vec![tinyrsi_evolve::ProposedFile {
+            path: path.into(),
+            content: content.into(),
+        }],
+    }
+}
+
+#[test]
+fn validates_proposals_from_any_evolver_before_applying_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let evolver = tinyrsi_evolve::ScriptedEvolver::one_each([
+        edit("../escape.sh", "rm -rf /"),
+        edit("/tmp/absolute.sh", "rm -rf /"),
+    ]);
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &evolver, &policy(1, 2), &run, &mut trace).unwrap();
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [
+            CandidateDecision::Baseline,
+            CandidateDecision::Invalid,
+            CandidateDecision::Invalid
+        ]
+    );
+    assert!(!dir.path().join("escape.sh").exists());
+    assert!(ledger.candidates[1..].iter().all(|c| c.id.is_none()));
+}
+
+#[test]
+fn rejects_a_batch_of_more_than_one_proposal() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let evolver = tinyrsi_evolve::ScriptedEvolver::new([tinyrsi_evolve::Proposed {
+        tokens: 0,
+        proposals: vec![
+            Ok(edit("run.sh", &loss("0.3"))),
+            Ok(edit("run.sh", &loss("0.2"))),
+        ],
+    }]);
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &evolver, &policy(1, 1), &run, &mut trace).unwrap();
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [CandidateDecision::Baseline, CandidateDecision::Invalid]
+    );
+}
+
+/// A scorer that fails every assessment, counting how often it was asked.
+fn failing_scorer(
+    calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+) -> tinyrsi_score::ScriptedScorer<ScriptCandidate> {
+    tinyrsi_score::ScriptedScorer::new(move |_, _, _| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Err(tinyrsi_score::Error::JudgeMalformed)
+    })
+}
+
+#[test]
+fn a_baseline_that_meets_the_target_is_never_scored() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = subject(dir.path(), &loss("0.5"));
+    s.metric.target = Some(0.6);
+    let run = location(dir.path());
+    let calls = std::sync::Arc::default();
+    let report = run_script_loop_with(
+        &s,
+        &supervisor(Scripted::new(vec![])),
+        &failing_scorer(std::sync::Arc::clone(&calls)),
+        &policy(5, 1),
+        &run,
+        &mut VecTrace::new(ManualClock::new()),
+    )
+    .unwrap();
+    assert_eq!(report.reason, StopReason::GoalReached);
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+}
+
+#[test]
+fn a_scorer_failure_keeps_the_measured_candidate_and_a_consistent_incumbent() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let error = run_script_loop_with(
+        &s,
+        &supervisor(Scripted::new(vec![reply(&loss("0.3"))])),
+        &failing_scorer(std::sync::Arc::default()),
+        &policy(1, 1),
+        &run,
+        &mut VecTrace::new(ManualClock::new()),
+    )
+    .unwrap_err();
+    assert_eq!(error, Error::JudgeMalformed);
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [CandidateDecision::Baseline, CandidateDecision::Error]
+    );
+    let failed = &ledger.candidates[1];
+    assert_eq!(failed.runs.len(), 2);
+    assert!(failed.mean.is_some() && failed.estimate.is_none());
+    assert_eq!(
+        failed.note.as_deref(),
+        Some("judge reply is not a well-formed grade")
+    );
+    // The baseline is promoted exactly when it heads the incumbent chain.
+    assert!(ledger.candidates[0].promoted);
+    assert_eq!(ledger.incumbents.len(), 1);
+}
+
+#[test]
+fn ledger_rows_name_quality_units_and_omit_metric_units() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let clearer = format!("# clear\n{}", loss("0.7"));
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop_with(
+        &s,
+        &supervisor(Scripted::new(vec![reply(&clearer)])),
+        &source_judge(0, true),
+        &policy(1, 1),
+        &run,
+        &mut trace,
+    )
+    .unwrap();
+    assert_eq!(ledger(&run).candidates[1].units, IntervalUnits::Quality);
+    // The live trace says so too, before the ledger row is written.
+    let scored: Vec<IntervalUnits> = trace
+        .records()
+        .iter()
+        .filter_map(|r| match r.event {
+            LoopEvent::Scored { units, .. } => Some(units),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(scored, [IntervalUnits::Quality]);
+    let text = std::fs::read_to_string(run.dir.join("ledger.json")).unwrap();
+    assert!(text.contains("\"units\"") && text.contains("\"quality\""));
+
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    run_script_loop(
+        &s,
+        &supervisor(Scripted::new(vec![reply(&loss("0.3"))])),
+        &policy(1, 1),
+        &run,
+        &mut VecTrace::new(ManualClock::new()),
+    )
+    .unwrap();
+    assert_eq!(ledger(&run).candidates[1].units, IntervalUnits::Metric);
+    let text = std::fs::read_to_string(run.dir.join("ledger.json")).unwrap();
+    assert!(!text.contains("units"));
+}

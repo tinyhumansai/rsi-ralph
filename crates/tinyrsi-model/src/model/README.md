@@ -16,7 +16,7 @@ credentials never leave the Rust process.
 | Item | Role |
 | --- | --- |
 | `ModelPort` | Trait: `generate(ModelRequest) -> ModelFuture`, optional `identity()` |
-| `ModelRequest::new(system, prompt, seed, max_tokens, max_output_tokens, timeout_ms)` | Frozen request; `with_tool(name, schema)` adds a native structured tool |
+| `ModelRequest::new(system, prompt, seed, max_tokens, max_output_tokens, timeout_ms)` | Frozen request; `with_tool(name, schema)` adds a native structured tool, which `tool()` exposes to the port |
 | `ModelReply` | `content` bytes plus measured `input_tokens` / `output_tokens` |
 | `OpenRouterModel::new(model_id)` | Bundled HTTPS provider |
 | `BudgetedModel::new(port, cap)` | Wraps a port with a hard total reservation cap; `meter()` reports spend |
