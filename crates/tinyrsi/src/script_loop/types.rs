@@ -1,5 +1,5 @@
 //! Subject, policy, proposal, ledger and report types of the script loop.
-use crate::{EvalPolicy, MetricDirection, StopReason};
+use crate::{EvalPolicy, IntervalUnits, MetricDirection, StopReason};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -135,29 +135,6 @@ pub enum CandidateDecision {
     Duplicate,
     /// It was measured, but the scorer failed on it and the run ended.
     Error,
-}
-
-/// The units of a ledger row's `estimate`, `lower` and `upper`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum IntervalUnits {
-    /// The subject's metric, oriented so positive means better. The default
-    /// scorer and any failed-seed rejection report these.
-    #[default]
-    Metric,
-    /// Scorer qualities in `[0, 1]`, as a custom scorer without metric
-    /// evidence on both sides reports them (see `tinyrsi_score::decide`).
-    Quality,
-}
-
-impl IntervalUnits {
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's skip_serializing_if passes a reference"
-    )]
-    fn is_metric(&self) -> bool {
-        *self == Self::Metric
-    }
 }
 
 /// One ledger row: an evaluated, invalid or duplicate candidate.

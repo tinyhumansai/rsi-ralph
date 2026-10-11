@@ -14,7 +14,9 @@ mod execute;
 mod prompt;
 mod score;
 mod types;
-use crate::{Error, LoopEvent, Result, RunGoal, ScoreDecision, StopReason, TraceSink};
+use crate::{
+    Error, IntervalUnits, LoopEvent, Result, RunGoal, ScoreDecision, StopReason, TraceSink,
+};
 pub use execute::parse_metric;
 use execute::{Sources, apply, content_id, materialize, read_sources, run_seed, validate_subject};
 use std::{
@@ -64,9 +66,10 @@ pub fn run_script_loop(
 /// asked once per candidate; the incumbent is assessed on its first
 /// comparison and cached, so a baseline that already meets the target is
 /// never scored. Its measured tokens count against the policy's token budget.
-/// Ledger intervals are in [`IntervalUnits::Quality`] unless both sides carry
-/// metric evidence. Everything else (measurement, the metric target,
-/// promotion of the best accepted metric, the ledger and the trace) is as in
+/// Ledger and trace intervals are in [`IntervalUnits::Quality`] unless both
+/// sides carry metric evidence. Everything else (measurement, the metric
+/// target, promotion of the best accepted metric, the ledger and the trace)
+/// is as in
 /// [`run_script_loop`].
 ///
 /// # Errors
@@ -395,12 +398,7 @@ impl LoopState<'_> {
             .iter()
             .any(|c| c.id.as_deref() == Some(&id))
         {
-            row.decision = CandidateDecision::Duplicate;
-            row.note = Some("content already evaluated in this run".into());
-            self.scored(epoch, &id, ScoreDecision::Reject, (0.0, 0.0, 0.0))?;
-            self.ledger.candidates.push(row);
-            self.save()?;
-            return Ok(None);
+            return self.duplicate(epoch, &id, row).map(|()| None);
         }
         let measured = self.measure(epoch, &id, &sources)?;
         let judged = self.judge(&sources, &measured);
@@ -418,7 +416,7 @@ impl LoopState<'_> {
                 return Err(error);
             }
         };
-        self.scored(epoch, &id, decision, interval)?;
+        self.scored(epoch, &id, decision, interval, units)?;
         row.units = units;
         row.decision = match decision {
             ScoreDecision::Accept => CandidateDecision::Accept,
@@ -536,12 +534,28 @@ impl LoopState<'_> {
         ))
     }
 
+    /// Records a candidate whose content this run already evaluated.
+    fn duplicate(&mut self, epoch: u64, id: &str, mut row: LedgerCandidate) -> Result<()> {
+        row.decision = CandidateDecision::Duplicate;
+        row.note = Some("content already evaluated in this run".into());
+        self.scored(
+            epoch,
+            id,
+            ScoreDecision::Reject,
+            (0.0, 0.0, 0.0),
+            IntervalUnits::Metric,
+        )?;
+        self.ledger.candidates.push(row);
+        self.save()
+    }
+
     fn scored(
         &mut self,
         epoch: u64,
         id: &str,
         decision: ScoreDecision,
         (estimate, lower, upper): (f64, f64, f64),
+        units: IntervalUnits,
     ) -> Result<()> {
         self.emit(LoopEvent::Scored {
             epoch,
@@ -550,7 +564,7 @@ impl LoopState<'_> {
             estimate,
             lower,
             upper,
-            units: tinyrsi_trace::IntervalUnits::Metric,
+            units,
         })
     }
 

@@ -664,16 +664,27 @@ fn ledger_rows_name_quality_units_and_omit_metric_units() {
     let s = subject(dir.path(), &loss("0.5"));
     let run = location(dir.path());
     let clearer = format!("# clear\n{}", loss("0.7"));
+    let mut trace = VecTrace::new(ManualClock::new());
     run_script_loop_with(
         &s,
         &supervisor(Scripted::new(vec![reply(&clearer)])),
         &source_judge(0, true),
         &policy(1, 1),
         &run,
-        &mut VecTrace::new(ManualClock::new()),
+        &mut trace,
     )
     .unwrap();
     assert_eq!(ledger(&run).candidates[1].units, IntervalUnits::Quality);
+    // The live trace says so too, before the ledger row is written.
+    let scored: Vec<IntervalUnits> = trace
+        .records()
+        .iter()
+        .filter_map(|r| match r.event {
+            LoopEvent::Scored { units, .. } => Some(units),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(scored, [IntervalUnits::Quality]);
     let text = std::fs::read_to_string(run.dir.join("ledger.json")).unwrap();
     assert!(text.contains("\"units\"") && text.contains("\"quality\""));
 
