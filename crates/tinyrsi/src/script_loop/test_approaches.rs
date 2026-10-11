@@ -470,7 +470,7 @@ fn refuses_blank_directives_and_unusable_temperatures_before_writing() {
             run_script_loop(&s, &sup, &policy, &run, &mut trace).unwrap_err(),
             Error::InvalidScriptSubject
         );
-        assert!(trace.records().is_empty());
+        assert_eq!(trace.records().len(), 0);
     }
     assert!(!run.dir.exists());
 }

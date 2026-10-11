@@ -93,7 +93,7 @@ pub(super) fn summarize(
         }
     }
     let mut approaches: Vec<Approach> = groups.into_iter().map(|(_, a)| a).collect();
-    approaches.sort_by(|a, b| b.last.cmp(&a.last));
+    approaches.sort_by_key(|a| std::cmp::Reverse(a.last));
     approaches.truncate(limit);
     approaches
 }
