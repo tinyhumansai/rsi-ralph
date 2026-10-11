@@ -25,6 +25,12 @@ class SliceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             curate.generate(b'')
 
+    def test_stage_statements_remain_disjoint_across_deterministic_seed_sweep(self):
+        for index in range(128):
+            bank = curate.generate(index.to_bytes(32, 'big'))
+            theorems = [row['theorem'] for rows in bank['stages'].values() for row in rows]
+            self.assertEqual(len(set(theorems)), 12, f'overlap at sweep index {index}')
+
     def test_cli_keeps_inputs_private_and_refuses_existing_or_public_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

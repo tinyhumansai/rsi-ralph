@@ -3,7 +3,8 @@
 `curate.py` draws a fresh OS seed and creates 12 finite mathematical goals:
 Euclidean division certificates, modular idempotents and modular inverses.
 Each of four stages has three distinct tasks and globally unique execution
-seeds. Python constructs the statements; the actual Lean kernel independently
+seeds. Repeated numerical statements are resampled across stages, and the
+Rust adapter rejects overlapping theorem inputs. Python constructs the statements; the actual Lean kernel independently
 checks the reference proofs through the `verify_lean_slice` example.
 
 ```sh
