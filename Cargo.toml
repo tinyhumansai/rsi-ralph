@@ -139,6 +139,23 @@ strip = "debuginfo"
 tinytools = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
 tinytools-agent = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
 
+[patch."https://github.com/tinyhumansai/openhuman"]
+# tinyhivemind-openhuman names OpenHuman by git rev so a host can unify it with
+# its own checkout: `[patch]` can redirect a git source but not a path. Point
+# both crates at `vendor/openhuman` so the `Agent` a swarm seat is built from
+# and the one the hive adapter takes are the same type, and OpenHuman's
+# process-wide state exists once. tinyhivemind pins the same rev as this
+# gitlink; move the two together.
+openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed" }
+openhuman = { path = "vendor/openhuman/crates/openhuman-core" }
+
+[patch."https://github.com/tinyhumansai/tinymemory"]
+# tinyhivemind-openhuman's hive memory names the memory contract by git rev.
+# Redirect it to the copy OpenHuman vendors — the one its memory domain links —
+# so there is exactly one `tinymemory-api` engine trait in the graph.
+tinymemory-api = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-api" }
+tinymemory-tools = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-tools" }
+
 [patch."https://github.com/tinyhumansai/tinystoragedrivers"]
 # tinyflows names the storage crates by git tag so it can build on its own.
 # Redirect them to the copy tinyagents vendors — the one the session store and
