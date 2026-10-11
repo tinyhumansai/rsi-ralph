@@ -441,6 +441,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         proxy.config.upstream.trim_end_matches('/'),
         endpoint.path()
     );
+    proxy.calls.dispatched();
     let sent = proxy
         .client
         .post(url)

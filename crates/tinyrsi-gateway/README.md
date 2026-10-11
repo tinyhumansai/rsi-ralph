@@ -79,9 +79,10 @@ reached. Upstream statuses and bodies otherwise pass through.
    client disconnects mid-call.
 5. **Meter** one JSON line in `<run_dir>/meter.jsonl` per call, admitted or
    refused, with its tags, model, status, reservation, cost and tokens.
-6. **Tally** every forwarded call in memory once its body has ended:
-   answered with success, refused by the provider, or unreachable (a failed
-   connection, or a body that broke off, counted as `502`). The provider's message (its
+6. **Tally** every forwarded call in memory: counted as sent when it is
+   forwarded, and as refused once its answer is a non-success status or never
+   completes (a failed connection, or a body that broke off, counted as
+   `502`). The provider's message (its
    `error.message`, else the body) is kept for the latest refusal, on one
    line and at most 300 characters, after key redaction.
 

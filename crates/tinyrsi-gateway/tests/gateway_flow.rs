@@ -418,6 +418,27 @@ async fn a_call_whose_body_breaks_off_counts_as_refused() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_call_still_waiting_on_the_provider_is_already_sent() {
+    let h = Arc::new(Harness::start(5.0, 50.0));
+    let waiting = Arc::clone(&h);
+    let call = tokio::spawn(async move {
+        waiting
+            .chat("/v1/chat/completions", "slow", json!({}))
+            .await
+    });
+    for _ in 0..100 {
+        if !h.upstream.seen.lock().unwrap().is_empty() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let calls = h.gateway.upstream_calls();
+    assert_eq!((calls.sent, calls.refused), (1, 0));
+    assert_eq!(call.await.unwrap().0, 200);
+    assert_eq!(h.gateway.upstream_calls(), calls);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn calls_the_gateway_refuses_itself_are_not_upstream_calls() {
     let h = Harness::start(0.01, 50.0);
     let (status, _) = h

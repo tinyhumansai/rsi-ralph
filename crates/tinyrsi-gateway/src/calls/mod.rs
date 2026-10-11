@@ -24,41 +24,48 @@ const MESSAGE_CHARS: usize = 300;
 pub(crate) struct CallTally(Mutex<UpstreamCalls>);
 
 impl CallTally {
-    /// Counts a call the provider answered with `status`. A non-success
-    /// status is a refusal, whose message is read from `body`. The body
-    /// must already be free of the provider key.
-    pub(crate) fn answered(&self, status: u16, body: &[u8]) {
-        let refusal = (!(200..300).contains(&status)).then(|| Refusal {
-            status,
-            message: refusal_message(body),
-        });
-        self.count(refusal);
+    /// Counts a call as sent, as it is forwarded. Counting before the
+    /// answer means a reading taken while a call is still waiting on the
+    /// provider includes it, so a phase's calls are never undercounted.
+    pub(crate) fn dispatched(&self) {
+        self.lock().sent += 1;
     }
 
-    /// Counts a call that never got an answer, as a `502` refusal carrying
-    /// `error`, which must already be free of the provider key.
+    /// Records the answer to a dispatched call: `status`, with `body`. A
+    /// non-success status is a refusal, whose message is read from `body`.
+    /// The body must already be free of the provider key.
+    pub(crate) fn answered(&self, status: u16, body: &[u8]) {
+        if !(200..300).contains(&status) {
+            self.refuse(Refusal {
+                status,
+                message: refusal_message(body),
+            });
+        }
+    }
+
+    /// Records that a dispatched call got no complete answer, as a `502`
+    /// refusal carrying `error`, which must already be free of the
+    /// provider key.
     pub(crate) fn unreachable(&self, error: &str) {
-        self.count(Some(Refusal {
+        self.refuse(Refusal {
             status: 502,
             message: shorten(error),
-        }));
+        });
     }
 
     /// The tally so far.
     pub(crate) fn snapshot(&self) -> UpstreamCalls {
-        self.0
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .clone()
+        self.lock().clone()
     }
 
-    fn count(&self, refusal: Option<Refusal>) {
-        let mut calls = self.0.lock().unwrap_or_else(PoisonError::into_inner);
-        calls.sent += 1;
-        if let Some(refusal) = refusal {
-            calls.refused += 1;
-            calls.last_refusal = Some(refusal);
-        }
+    fn refuse(&self, refusal: Refusal) {
+        let mut calls = self.lock();
+        calls.refused += 1;
+        calls.last_refusal = Some(refusal);
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, UpstreamCalls> {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 

@@ -4,7 +4,8 @@
 /// with [`Gateway::upstream_calls`](crate::Gateway::upstream_calls).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct UpstreamCalls {
-    /// Calls forwarded to the provider.
+    /// Calls forwarded to the provider, counted as they are sent, so a
+    /// call still waiting on its answer is included.
     pub sent: u64,
     /// Of those, calls refused with a non-success status or never answered.
     pub refused: u64,
