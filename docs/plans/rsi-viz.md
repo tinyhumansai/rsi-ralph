@@ -23,7 +23,9 @@ no chart or CSS framework; charts are hand-written SVG.
    truncate, recreate.
 5. **Reducer.** `lib/reducer.ts`: events to run state (stage, epochs,
    incumbent chain, candidates with decisions, metric series, finish reason).
-   Tests: the schema example, an accept and a reject, `null` metrics, reset.
+   Proposals pair with candidates by `ideated.candidate`. Tests: the schema
+   example, an accept and a reject, a `null` candidate, out-of-order
+   execution, `null` metrics, reset.
 6. **Path guard.** `lib/paths.ts`: validates run ids and snapshot names,
    resolves with `realpath`, and requires containment in the root. Tests:
    `..`, absolute, NUL, symlink escape, allowlist.

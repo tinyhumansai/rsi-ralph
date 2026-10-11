@@ -6,21 +6,21 @@
  * `useReducer`. Envelopes with a `seq` at or below the last applied one are
  * ignored, which makes a replay after an SSE reconnect harmless.
  *
- * The trace does not carry an explicit proposal-to-candidate link. Within an
- * epoch, new candidates are matched to `ideated` proposals in order: the
- * first new candidate executed in epoch N belongs to the first proposal
- * ideated in epoch N, and so on. Re-runs of the incumbent are not candidates.
+ * Proposals and candidates are paired by `ideated.candidate`, the content id
+ * the proposal materializes into. A proposal with a `null` candidate was
+ * rejected before materialization and is never executed.
  */
 
 import { stageOf, type Decision, type Envelope, type FinishReason, type Goal, type Stage } from "./events";
 
-/** One proposal and, once known, the candidate built from it. */
+/** One proposal and the candidate it materializes into, if any. */
 export interface Proposal {
   epoch: number;
   proposalId: string;
   parent: string;
   rationale: string;
   hypothesis: string;
+  /** `null` when the proposal was rejected before materialization. */
   candidate: string | null;
 }
 
@@ -109,19 +109,11 @@ function setIncumbent(state: RunState, id: string, epoch: number, metric: number
   return { ...state, incumbent: id, incumbentMetric, lineage };
 }
 
-/** Ensures a candidate entry exists, linking it to the next unmatched proposal. */
+/** Ensures a candidate entry exists, linked to the proposal that names it. */
 function touchCandidate(state: RunState, id: string, epoch: number): RunState {
   if (state.candidates[id]) return state;
-  let proposalId: string | null = null;
-  let proposals = state.proposals;
-  if (epoch > 0 && id !== state.incumbent) {
-    const index = proposals.findIndex((p) => p.epoch === epoch && p.candidate === null);
-    if (index >= 0) {
-      const proposal = proposals[index]!;
-      proposalId = proposal.proposalId;
-      proposals = proposals.map((p, i) => (i === index ? { ...p, candidate: id } : p));
-    }
-  }
+  const proposal = state.proposals.find((p) => p.candidate === id);
+  const proposalId = proposal ? proposal.proposalId : null;
   const candidate: Candidate = {
     id,
     epoch,
@@ -138,7 +130,6 @@ function touchCandidate(state: RunState, id: string, epoch: number): RunState {
   };
   return {
     ...state,
-    proposals,
     candidates: { ...state.candidates, [id]: candidate },
     candidateOrder: [...state.candidateOrder, id],
   };
@@ -187,10 +178,14 @@ export function applyEnvelope(state: RunState, envelope: Envelope): RunState {
             parent: event.parent,
             rationale: event.rationale,
             hypothesis: event.hypothesis,
-            candidate: null,
+            candidate: event.candidate,
           },
         ],
       };
+      // A candidate seen before its proposal (not expected) is linked now.
+      if (event.candidate !== null && next.candidates[event.candidate]?.proposalId === null) {
+        next = patchCandidate(next, event.candidate, { proposalId: event.proposal_id });
+      }
       break;
     case "executed": {
       next = touchCandidate({ ...next, epoch: event.epoch }, event.candidate, event.epoch);

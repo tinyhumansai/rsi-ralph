@@ -1,6 +1,7 @@
 /**
  * Proposals, newest first, each with its candidate's measurement and the
- * scored decision with the improvement estimate and its interval.
+ * scored decision with the improvement estimate and its interval. A proposal
+ * rejected before materialization (no candidate) is shown as not executed.
  */
 
 import { formatMetric, formatSigned, shortId } from "@/lib/format";
@@ -27,15 +28,17 @@ export function ProposalsFeed({ state }: { state: RunState }) {
             <div className="head">
               <span className="muted">epoch {p.epoch}</span>
               <span className="mono">{p.proposalId}</span>
-              {c ? (
-                <span className="mono muted" title={c.id}>
-                  → {shortId(c.id)}
+              {p.candidate ? (
+                <span className="mono muted" title={p.candidate}>
+                  → {shortId(p.candidate)}
                 </span>
               ) : null}
               {decision ? (
                 <span className={`badge ${decision}`}>{DECISION_LABEL[decision]}</span>
               ) : (
-                <span className="badge pending">{c ? "measuring" : "awaiting candidate"}</span>
+                <span className="badge pending">
+                  {p.candidate === null ? "not executed" : c ? "measuring" : "awaiting execution"}
+                </span>
               )}
             </div>
             <p>

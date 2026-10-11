@@ -41,26 +41,40 @@ describe("reducer", () => {
     expect(s.gaps).toBe(0);
   });
 
-  it("links candidates to proposals in order within an epoch", () => {
+  it("pairs proposals with candidates by the id in ideated", () => {
     const s = reduceEnvelopes(fixture());
     expect(s.proposals.map((p) => [p.proposalId, p.candidate])).toEqual([
       ["p1-0", "0f9e8d7c6b5a"],
       ["p2-0", "5e4d3c2b1a09"],
       ["p2-1", "9a8b7c6d5e4f"],
       ["p3-0", "3c2b1a0f9e8d"],
+      ["p3-1", null],
     ]);
     expect(s.candidates["5e4d3c2b1a09"]).toMatchObject({ proposalId: "p2-0", lower: -0.11, upper: -0.05 });
+    expect(s.candidates["a1b2c3d4e5f6"]!.proposalId).toBeNull();
   });
 
-  it("does not treat a re-run of the incumbent as a proposal's candidate", () => {
+  it("pairs by id even when candidates run out of proposal order", () => {
     let s = initialRunState();
     s = applyEnvelope(s, env(0, { kind: "epoch_started", epoch: 1, incumbent: "inc" }));
-    s = applyEnvelope(s, env(1, { kind: "ideated", epoch: 1, proposal_id: "p", parent: "inc", rationale: "r", hypothesis: "h" }));
-    s = applyEnvelope(s, env(2, { kind: "executed", epoch: 1, candidate: "inc", seed: 1, metric: 1, ok: true, duration_ms: 1 }));
-    s = applyEnvelope(s, env(3, { kind: "executed", epoch: 1, candidate: "new", seed: 1, metric: 1, ok: false, duration_ms: 1 }));
-    expect(s.proposals[0]!.candidate).toBe("new");
+    s = applyEnvelope(s, env(1, { kind: "ideated", epoch: 1, proposal_id: "p0", parent: "inc", candidate: "c0", rationale: "r", hypothesis: "h" }));
+    s = applyEnvelope(s, env(2, { kind: "ideated", epoch: 1, proposal_id: "p1", parent: "inc", candidate: "c1", rationale: "r", hypothesis: "h" }));
+    s = applyEnvelope(s, env(3, { kind: "ideated", epoch: 1, proposal_id: "p2", parent: "inc", candidate: null, rationale: "r", hypothesis: "h" }));
+    s = applyEnvelope(s, env(4, { kind: "executed", epoch: 1, candidate: "inc", seed: 1, metric: 1, ok: true, duration_ms: 1 }));
+    s = applyEnvelope(s, env(5, { kind: "executed", epoch: 1, candidate: "c1", seed: 1, metric: 1, ok: false, duration_ms: 1 }));
+    s = applyEnvelope(s, env(6, { kind: "executed", epoch: 1, candidate: "c0", seed: 1, metric: 1, ok: true, duration_ms: 1 }));
+    expect(s.candidates.c1).toMatchObject({ proposalId: "p1", runs: 1, okRuns: 0 });
+    expect(s.candidates.c0!.proposalId).toBe("p0");
     expect(s.candidates.inc!.proposalId).toBeNull();
-    expect(s.candidates.new).toMatchObject({ runs: 1, okRuns: 0 });
+    expect(s.proposals.find((p) => p.proposalId === "p2")!.candidate).toBeNull();
+  });
+
+  it("links a candidate executed before its proposal is ideated", () => {
+    let s = initialRunState();
+    s = applyEnvelope(s, env(0, { kind: "executed", epoch: 1, candidate: "c", seed: 1, metric: 1, ok: true, duration_ms: 1 }));
+    expect(s.candidates.c!.proposalId).toBeNull();
+    s = applyEnvelope(s, env(1, { kind: "ideated", epoch: 1, proposal_id: "p", parent: "i", candidate: "c", rationale: "r", hypothesis: "h" }));
+    expect(s.candidates.c!.proposalId).toBe("p");
   });
 
   it("tracks the stage of the latest stage-bearing event", () => {
