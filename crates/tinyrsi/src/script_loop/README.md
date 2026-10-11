@@ -11,6 +11,14 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   where `supervisor` is any `tinyrsi_evolve::Evolver<ScriptBrief, Proposal =
   ScriptProposal>`. The loop renders the brief (prompt) from its ledger and
   records each returned proposal, valid or not.
+- `run_script_loop_with(subject, supervisor, scorer, policy, run, trace)`: the
+  same loop scored by any `tinyrsi_score::Scorer<ScriptCandidate>` (sources
+  plus per-seed metrics), for example a `Composite` of the metric and an
+  `LlmJudge` reading the sources. The incumbent's assessment is cached at
+  promotion, the scorer's tokens count against the budget, and `decide`'s
+  eligibility rule means an uncalibrated judge alone never promotes.
+  `run_script_loop` uses the metric alone (`MetricScorer`), which reproduces
+  the original decisions and metric-unit intervals exactly.
 - `ScriptSubject`, `ScriptCommand`, `MetricSpec`: what to run and measure.
 - `LoopPolicy`: epochs, proposals per epoch, patience, token budget, how many
   rejected proposals the supervisor sees, and the paired `EvalPolicy`.
@@ -29,7 +37,7 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 | `mod.rs` | the loop: baseline, epochs, promotion, stop reasons, ledger writes |
 | `types.rs` | subject, policy, ledger and report types |
 | `execute.rs` | validation, content ids, materialization, per-seed runs, metric parsing |
-| `score.rs` | the quality transform and paired scoring over `evaluation::compare` |
+| `score.rs` | the default metric scorer and the interval of a failed candidate |
 | `prompt.rs` | the supervisor prompt rendered from the ledger and incumbent sources |
 | `test.rs`, `test_loop.rs` | unit tests and end-to-end loop tests |
 

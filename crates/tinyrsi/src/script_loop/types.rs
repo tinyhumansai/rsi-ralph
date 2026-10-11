@@ -92,6 +92,15 @@ pub struct RunLocation {
     pub dir: PathBuf,
 }
 
+/// What a script-loop scorer sees: one fully measured candidate.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptCandidate {
+    /// The candidate's editable files, by workspace-relative path.
+    pub sources: std::collections::BTreeMap<PathBuf, String>,
+    /// One metric value per seed, in the subject's seed order.
+    pub metrics: Vec<f64>,
+}
+
 /// One seed of one candidate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SeedRun {
