@@ -69,7 +69,7 @@ from `fixtures::policy` and the evaluator's three suite fingerprints.
 `EpochJournal::open("<root>/worked-epoch.json")`, then calls
 `prepare_retreat_epoch` in `GenerationMode::Retreat` with a 3,000,000-token
 generation cap and `select_top_k = 25`. Inside
-(`src/epoch_driver/generation.rs`):
+(`crates/tinyrsi-host/src/epoch_driver/generation.rs`):
 
 1. The input is fingerprinted. If the journal already has this epoch with the
    same fingerprint and model, the stored proposals are returned with no
@@ -123,16 +123,16 @@ snapshot.
 | File under `<root>` | Writer | JSON shape | Lock and temp file |
 | --- | --- | --- | --- |
 | `worked-archive.json`, `approved-archive.json`, `trial-NN/archive.json` | `Archive` (`src/archive/`) | `{"version": 1 or 2, "events": [{"event": "candidate" \| "prepared" \| "activation" \| "proposal" \| "declaration" \| "evaluation" \| "normalized_declaration" \| "normalized_evaluation" \| "normalized_approval", ...}]}`; version 2 once any normalized event exists | `<file>.lock` created with `create_new` and deleted on drop (see caveat); temp `<file>.pending` |
-| `deployment.json`, `activation.json` | `DeploymentStore` (`src/host/mod.rs`) | `{"version": 1, "checkpoint": {"epoch", "observations": {"<epoch>": Observation}, "transcript_cursor", "settled_episodes", "deployed_id", "pending": DeploymentIntent \| null}}` | `fs2` exclusive lock on `<file>.lock`, non-blocking (`ArchiveLocked` if held); temp `<file>.next`, removed on open |
-| `worked-epoch.json`, `trial-NN/epoch.json` | `EpochJournal` (`src/epoch_driver/journal.rs`) | `{"version": 1, "entries": {"<epoch>": {"incumbent_id", "fingerprint", "prepared": PreparedRetreatEpoch, "meter", "invalid_items", "evaluating", "outcome": RetreatEpochOutcome, ...}}}` | `fs2` exclusive lock on `<stem>.epoch-lock` (extension replaced, e.g. `worked-epoch.epoch-lock`), non-blocking; random `tempfile` name |
-| `worked-epoch.json.generation-<epoch>.json` | receipt store (`src/epoch_driver/receipts.rs`) | `GenerationAudit`: `{"version": 1, "epoch", "fingerprint", "mode", "calls": [{"id", "status", "items": [disposition]}]}`; no prompts or bodies | written under the journal's lock; random `tempfile` name; copy together with the journal |
+| `deployment.json`, `activation.json` | `DeploymentStore` (`crates/tinyrsi-host/src/host/mod.rs`) | `{"version": 1, "checkpoint": {"epoch", "observations": {"<epoch>": Observation}, "transcript_cursor", "settled_episodes", "deployed_id", "pending": DeploymentIntent \| null}}` | `fs2` exclusive lock on `<file>.lock`, non-blocking (`ArchiveLocked` if held); temp `<file>.next`, removed on open |
+| `worked-epoch.json`, `trial-NN/epoch.json` | `EpochJournal` (`crates/tinyrsi-host/src/epoch_driver/journal.rs`) | `{"version": 1, "entries": {"<epoch>": {"incumbent_id", "fingerprint", "prepared": PreparedRetreatEpoch, "meter", "invalid_items", "evaluating", "outcome": RetreatEpochOutcome, ...}}}` | `fs2` exclusive lock on `<stem>.epoch-lock` (extension replaced, e.g. `worked-epoch.epoch-lock`), non-blocking; random `tempfile` name |
+| `worked-epoch.json.generation-<epoch>.json` | receipt store (`crates/tinyrsi-host/src/epoch_driver/receipts.rs`) | `GenerationAudit`: `{"version": 1, "epoch", "fingerprint", "mode", "calls": [{"id", "status", "items": [disposition]}]}`; no prompts or bodies | written under the journal's lock; random `tempfile` name; copy together with the journal |
 | `retreat-memory.json`, `trial-NN/retreat-memory.json` | `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`) | `{"version", "namespace", "discovery": [text], "outcomes": [{"epoch", "candidate_id", "status"}]}` | `fs2` exclusive lock on `retreat-memory.lock` (extension replaced), non-blocking; random `tempfile` name |
 | `hive-memory.json`, `trial-NN/hive-memory.json` | `SnapshotMemoryStore` (`src/memory/`) | `{"version": 1, "images": {key: {"namespace", "watermark", "entries"}}, "active": {identity: watermark}, "namespaces": {identity: namespace}}` | `fs2` lock on `<file>.lock` taken per transaction: shared for reads, exclusive for writes, **blocking**; random `tempfile` name |
 | `hives.sqlite`, `activation.sqlite` | upstream `SqliteStorage` via `CoordinatorHost` | SQLite coordinator state and transcripts | SQLite's own locking; a newly built coordinator fences older handles |
 | `preregistration.json`, `configuration-provenance.json`, `worked-report.json`, `controlled-report.json`, `experiment-report.json` | the example itself (`std::fs::write`) | pretty JSON reports | no lock, not atomic; written once |
 | `verifiers/` | `fixtures::suites` | checker workspace for Lean and process checks | host-owned; must not change during a run |
 
-`EvidenceJournal` (`src/evidence_journal/`) is not used by this example; the
+`EvidenceJournal` (`crates/tinyrsi-host/src/evidence_journal/`) is not used by this example; the
 offline `observe_epochs` example uses it at `target/rsi-observe-epochs/evidence.json`.
 Its file is `{"version", "next_turn", "turns", "epochs", "consumed", "cursor",
 "settled"}`, guarded by an `fs2` exclusive lock on `<file>.lock` and written

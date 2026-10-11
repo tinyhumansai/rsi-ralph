@@ -106,7 +106,7 @@ checks exact provenance, complete attempt ledgers, paired anchors and independen
 trial bootstrap. Full, MemoryOff and RetreatOff are explicit interventions.
 Missing/invalid evidence prevents positive claims; scripted runs are ProtocolOnly.
 
-`crates/tinyrsi/examples/complete_openrouter.rs` with `examples/complete/`
+`crates/tinyrsi-host/examples/complete_openrouter.rs` with `examples/complete/`
 executes the worked retreat followed by 24 bounded live assignments; the separate
 controlled path validates accepted deployment. The [measured report](../rsi/complete-live.md)
 retains the inconclusive comparison. No result from this bounded harness is

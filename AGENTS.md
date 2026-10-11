@@ -117,8 +117,8 @@ Supporting commands:
 - `cargo test --doc` — run doctests alone when editing documentation examples.
 
 Other examples: `live_openrouter` (arithmetic smoke, opt-in like the above),
-`private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all need
-`host`; the last builds private Lean proofs with a pinned Lake), and
+`private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all in
+`tinyrsi-host`; the last builds private Lean proofs with a pinned Lake), and
 `script_loop` (offline curve-fitting run of the plain-script loop).
 
 Never skip, ignore, or delete a failing test to make a command pass. Fix the

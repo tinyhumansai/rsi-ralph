@@ -79,7 +79,7 @@ validation rejects such changes before writer fencing.
 
 ## Persistence
 
-The `host` feature enables `CoordinatorHost::sqlite`, using upstream
+`CoordinatorHost::sqlite` uses upstream
 `SqliteStorage` for transactional coordinator state and append-only transcripts.
 `MemoryStorage` supports deterministic in-process integration tests. A custom
 storage implementation must retain transcript rows and original retry payloads;
