@@ -297,3 +297,35 @@ fn every_backrooms_rating_sends_a_distinct_model_request() {
         "every (seed, rater) pair is its own request"
     );
 }
+
+#[test]
+fn the_backrooms_judge_rejects_fractional_ratings() {
+    let mixed = BackroomsJudge::new(
+        backend(|role| {
+            Ok(if role == "judge_0" {
+                json!({"goal_fit": 4.5})
+            } else {
+                json!({"goal_fit": 7})
+            })
+        }),
+        2,
+    )
+    .unwrap();
+    assert_eq!(
+        mixed.assess("s", &goal(), &[1]).unwrap().qualities,
+        vec![1.0],
+        "a fractional rating is skipped like any other unusable one"
+    );
+    let fractional = BackroomsJudge::new(backend(|_| Ok(json!({"goal_fit": 4.5}))), 2).unwrap();
+    assert_eq!(
+        fractional.assess("s", &goal(), &[1]),
+        Err(Error::JudgeMalformed)
+    );
+    let novelty = BackroomsJudge::new(backend(|_| Ok(json!({"goal_fit": 7, "novelty": 2.5}))), 1)
+        .unwrap()
+        .with_novelty();
+    assert_eq!(
+        novelty.assess("s", &goal(), &[1]),
+        Err(Error::JudgeMalformed)
+    );
+}
