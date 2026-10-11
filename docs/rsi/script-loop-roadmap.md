@@ -71,6 +71,13 @@ earlier slots of the same epoch, and a slot may set a temperature
 
 ### 4. Adaptive seeds for close calls (statistical resolution)
 
+- **Shipped first step:** per-seed dominance (`LoopPolicy::accept_dominant`).
+  The benchmark matrix after the hypothesis ledger showed Sonnet reaching 6
+  colours three times and the paired interval ruling each one inconclusive
+  (`[6, 6, 6]` against `[11, 6, 6]`). A candidate no worse on any seed and
+  better on one is now accepted. Extra seeds below remain the fix for gains
+  that are uneven in sign.
+
 - **Change:** on `inconclusive`, rerun the candidate and the incumbent on extra
   seeds (up to a cap) before deciding. A sequential test keeps the error rate
   honest.

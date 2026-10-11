@@ -63,7 +63,14 @@ language model, if the library could run that cycle end to end.
   qualities with the monotone transform `q = 1/2 + atan(s * m) / pi` (`s = +1`
   to maximize, `-1` to minimize), which preserves order and lands in `(0, 1)`
   as `compare` requires, and compared with `evaluation::compare`. The
-  decision is `compare`'s. The trace's `estimate/lower/upper` are reported in
+  decision is `compare`'s, with one exception: when it is `inconclusive` and
+  `LoopPolicy::accept_dominant` is set (the default), a candidate that is no
+  worse than the incumbent on any seed and strictly better on at least one,
+  by metric and by eligible quality (`tinyrsi_score::dominates`), is
+  accepted, and its ledger row's `note` says so. Scripts are deterministic
+  per seed, so dominance is exact on the measured seeds; with three seeds the
+  paired interval cannot resolve a gain on one seed and ties on the others
+  (incumbent `[11, 6, 6]`, candidate `[6, 6, 6]`: interval `-1.67..5.0`). The trace's `estimate/lower/upper` are reported in
   metric units: the mean paired improvement `s * (candidate - incumbent)` plus
   or minus the policy's standard-error multiple. Under `run_script_loop_with`
   a scorer without metric evidence on both sides reports quality units, and
@@ -100,8 +107,9 @@ New errors: `InvalidScriptSubject`, `ScriptBaselineFailed`, `ScriptTimeout`,
 
 ## Invariants and constraints
 
-- A candidate is promoted only on an `Accept` from `compare` with zero failed
-  seeds, on exactly the seeds the incumbent was measured on.
+- A candidate is promoted only on an `Accept` (from `compare`, or by
+  per-seed dominance over an inconclusive interval) with zero failed seeds,
+  on exactly the seeds the incumbent was measured on.
 - The baseline must succeed on every seed, or the run ends with
   `ScriptBaselineFailed`.
 - Identical content is never executed twice; a duplicate proposal is rejected.

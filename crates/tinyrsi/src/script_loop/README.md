@@ -75,6 +75,12 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   order as the metric. The default policy uses margin 0: accept when the
   paired lower bound is above zero. Very large metrics compress under
   `atan`; rescale a metric reported in the millions before relying on it.
+- **Dominance** settles what few seeds cannot: an `inconclusive` candidate
+  that is no worse on any seed and better on at least one is accepted when
+  `LoopPolicy::accept_dominant` is on (the default), with a ledger `note`.
+  It never overrides a `reject`, needs metric and eligible evidence on both
+  sides, and says nothing about unmeasured seeds; turn it off to require the
+  paired interval alone.
 - **Supervisor futures** are driven on the loop's thread, so a `ModelPort`
   must not depend on a particular async runtime. `OpenRouterModel` runs its
   request on a worker thread and is compatible.
