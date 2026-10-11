@@ -36,7 +36,9 @@ two vertices of the same colour. The fixed checker check_coloring.py feeds it ra
 150 vertices and about 3,300 edges, rejects any invalid colouring (the seed then fails), and \
 prints the number of distinct colours used. Rewrite coloring.py so color() uses as few colours \
 as possible. Use only the Python standard library; stay well under 20 seconds per graph; do not \
-read files, the environment, or the checker. Name the algorithm in a docstring.";
+read files, the environment, or the checker. Name the algorithm in a docstring. Print \
+`DIAG <text>` lines to stdout to report what your algorithm did (for example how many \
+colours each phase reached, moves tried, conflicts left); you will see them next round.";
 
 fn canned() -> Replies {
     Replies::new([

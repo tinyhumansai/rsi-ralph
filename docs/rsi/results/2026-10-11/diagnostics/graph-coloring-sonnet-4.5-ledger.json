@@ -1,0 +1,443 @@
+{
+  "run_id": "graph_coloring-1791721453-23717",
+  "subject": "coloring.py",
+  "metric": {
+    "name": "colors",
+    "direction": "minimize",
+    "target": 6.0
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "tokens": 25542,
+  "stop": "goal_reached",
+  "incumbents": [
+    {
+      "epoch": 0,
+      "id": "1dd16294a8d2",
+      "metric": 17.0
+    },
+    {
+      "epoch": 1,
+      "id": "960d4563c27b",
+      "metric": 13.333333333333334
+    },
+    {
+      "epoch": 3,
+      "id": "1564488f497d",
+      "metric": 6.0
+    }
+  ],
+  "candidates": [
+    {
+      "epoch": 0,
+      "proposal_id": null,
+      "id": "1dd16294a8d2",
+      "parent": null,
+      "rationale": "baseline",
+      "hypothesis": "starting script",
+      "paths": [],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 17.0,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "color() took 0.00s",
+            "17 colour classes, sizes [14, 13, 12, 11, 11, 10, 10, 10, 9, 9, 8, 7, 7, 7, 5, 4, 3]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 18.0,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "color() took 0.00s",
+            "18 colour classes, sizes [13, 11, 11, 11, 11, 11, 11, 10, 10, 9, 8, 8, 7, 5, 5, 5, 2, 2]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 16.0,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "color() took 0.00s",
+            "16 colour classes, sizes [23, 15, 15, 13, 11, 11, 10, 9, 8, 7, 7, 6, 5, 5, 4, 1]"
+          ]
+        }
+      ],
+      "mean": 17.0,
+      "decision": "baseline",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-0",
+      "id": "960d4563c27b",
+      "parent": "1dd16294a8d2",
+      "rationale": "The current algorithm uses a simple greedy first-fit approach in label order, which is fast but produces poor colorings (17-18 colors). To improve, I'll implement the DSATUR (Degree of Saturation) algorithm, which is a well-known heuristic that typically produces much better colorings. DSATUR orders vertices dynamically: at each step, it colors the vertex with the highest saturation degree (number of different colors used by its neighbors), breaking ties by choosing the vertex with the highest uncolored degree. This tends to handle difficult vertices first and produces significantly better colorings than simple greedy approaches.",
+      "hypothesis": "The DSATUR algorithm should reduce the number of colors from 17-18 down to approximately 8-12 colors, as it's known to perform well on random graphs and handles high-degree vertices more intelligently.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 41,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR: 12 colors used, sizes [14, 15, 16, 28, 9, 10, 10, 16, 9, 14, 6, 3]",
+            "color() took 0.02s",
+            "12 colour classes, sizes [28, 16, 16, 15, 14, 14, 10, 10, 9, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 43,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR: 13 colors used, sizes [12, 22, 13, 12, 13, 10, 16, 12, 12, 10, 9, 6, 3]",
+            "color() took 0.02s",
+            "13 colour classes, sizes [22, 16, 13, 13, 12, 12, 12, 12, 10, 10, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 15.0,
+          "error": null,
+          "duration_ms": 46,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR: 15 colors used, sizes [12, 11, 10, 10, 12, 13, 11, 9, 10, 12, 13, 11, 8, 7, 1]",
+            "color() took 0.02s",
+            "15 colour classes, sizes [13, 13, 12, 12, 12, 11, 11, 11, 10, 10, 10, 9, 8, 7, 1]"
+          ]
+        }
+      ],
+      "mean": 13.333333333333334,
+      "decision": "accept",
+      "estimate": 3.6666666666666665,
+      "lower": 0.9999999999999996,
+      "upper": 6.333333333333334,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-1",
+      "id": "960d4563c27b",
+      "parent": "1dd16294a8d2",
+      "rationale": "The current algorithm uses a simple greedy first-fit approach in label order, which is fast but produces poor colorings (17-18 colors). To improve, I'll implement the DSATUR (Degree of Saturation) algorithm, which is a well-known heuristic that typically produces much better colorings. DSATUR orders vertices dynamically: at each step, it colors the vertex with the highest saturation degree (number of different colors used by its neighbors), breaking ties by choosing the vertex with the highest uncolored degree. This tends to handle difficult vertices first and produces significantly better colorings than simple greedy approaches.",
+      "hypothesis": "The DSATUR algorithm should reduce the number of colors from 17-18 down to approximately 8-12 colors, as it's known to perform well on random graphs and handles high-degree vertices more intelligently.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [],
+      "mean": null,
+      "decision": "duplicate",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": false,
+      "note": "content already evaluated in this run"
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-0",
+      "id": "4c73b428d262",
+      "parent": "960d4563c27b",
+      "rationale": "The current DSATUR algorithm achieves 12-15 colors, but we need to get down to 6. DSATUR is a constructive heuristic that doesn't optimize after initial coloring. To significantly reduce colors, I'll add a local search phase using Kempe chain recoloring. After DSATUR, I'll iteratively try to eliminate the smallest color class by attempting to recolor its vertices using Kempe chains (alternating paths of two colors). This is a well-known technique that can reduce the chromatic number by merging color classes. I'll run multiple passes, trying to eliminate color classes from smallest to largest, and use the deterministic seed to ensure reproducibility.",
+      "hypothesis": "Adding Kempe chain optimization after DSATUR should reduce the color count from 12-15 down to 8-10 colors by successfully merging smaller color classes into existing ones.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 86,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR: 12 colors used, sizes [14, 15, 16, 28, 9, 10, 10, 16, 9, 14, 6, 3]",
+            "After Kempe optimization: 12 colors, sizes [19, 16, 7, 17, 8, 12, 14, 10, 13, 9, 16, 9], 50 iterations",
+            "color() took 0.07s",
+            "12 colour classes, sizes [19, 17, 16, 16, 14, 13, 12, 10, 9, 9, 8, 7]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 89,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR: 13 colors used, sizes [12, 22, 13, 12, 13, 10, 16, 12, 12, 10, 9, 6, 3]",
+            "After Kempe optimization: 13 colors, sizes [15, 12, 11, 7, 8, 13, 14, 14, 11, 11, 9, 11, 14], 50 iterations",
+            "color() took 0.07s",
+            "13 colour classes, sizes [15, 14, 14, 14, 13, 12, 11, 11, 11, 11, 9, 8, 7]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 15.0,
+          "error": null,
+          "duration_ms": 87,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR: 15 colors used, sizes [12, 11, 10, 10, 12, 13, 11, 9, 10, 12, 13, 11, 8, 7, 1]",
+            "After Kempe optimization: 15 colors, sizes [12, 12, 8, 11, 11, 7, 8, 9, 9, 12, 12, 9, 13, 6, 11], 50 iterations",
+            "color() took 0.07s",
+            "15 colour classes, sizes [13, 12, 12, 12, 12, 11, 11, 11, 9, 9, 9, 8, 8, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.333333333333334,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-1",
+      "id": "2e6f889d8588",
+      "parent": "960d4563c27b",
+      "rationale": "The current DSATUR algorithm achieves 12-15 colors but we need to reach 6. The previous Kempe chain attempt didn't reduce colors. I'll implement a more aggressive approach: Iterated Greedy with Backtracking (IGB). This algorithm will:\n1. Use DSATUR for initial coloring\n2. Implement a recursive backtracking search that tries to recolor the graph with fewer colors\n3. For each target color count (starting from DSATUR result - 1), attempt to find a valid coloring\n4. Use intelligent ordering (highest degree first within each attempt) and constraint propagation\n5. Add a time limit to stay under 20 seconds\n6. Use the TINYRSI_SEED for deterministic tie-breaking\n\nThis approach can find optimal or near-optimal colorings by systematically exploring the solution space, which is necessary to get from 12-15 colors down to 6.",
+      "hypothesis": "Iterated Greedy with Backtracking should reduce colors from 12-15 down to 6-8 by systematically searching for valid colorings with progressively fewer colors, using backtracking to escape local optima that greedy methods cannot overcome.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 18025,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR initial: 12 colors",
+            "Failed to find 11-coloring, stopping",
+            "Final: 12 colors in 18.00s",
+            "color() took 18.00s",
+            "12 colour classes, sizes [28, 16, 16, 15, 14, 14, 10, 10, 9, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 18024,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR initial: 13 colors",
+            "Failed to find 12-coloring, stopping",
+            "Final: 13 colors in 18.00s",
+            "color() took 18.00s",
+            "13 colour classes, sizes [22, 16, 13, 13, 12, 12, 12, 12, 10, 10, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 15.0,
+          "error": null,
+          "duration_ms": 18028,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR initial: 15 colors",
+            "Failed to find 14-coloring, stopping",
+            "Final: 15 colors in 18.00s",
+            "color() took 18.00s",
+            "15 colour classes, sizes [13, 13, 12, 12, 12, 11, 11, 11, 10, 10, 10, 9, 8, 7, 1]"
+          ]
+        }
+      ],
+      "mean": 13.333333333333334,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-0",
+      "id": "1564488f497d",
+      "parent": "960d4563c27b",
+      "rationale": "The current DSATUR algorithm achieves 12-15 colors but we need to reach 6. Previous attempts with Kempe chains and backtracking didn't improve results. I'll implement a Tabu Search algorithm that:\n1. Starts with DSATUR coloring\n2. Iteratively tries to reduce the number of colors by one\n3. For each target k colors, uses tabu search to find a valid k-coloring:\n   - Starts with a random k-coloring (may have conflicts)\n   - Iteratively recolors vertices to reduce conflicts\n   - Uses a tabu list to avoid cycling\n   - Employs strategic vertex selection (highest conflict count)\n4. Continues until time limit or can't improve further\n\nTabu search is more powerful than greedy methods because it can temporarily accept worse solutions to escape local optima, and it's been successful on graph coloring problems. The key is to work with partial (invalid) colorings and gradually reduce conflicts while using fewer colors.",
+      "hypothesis": "Tabu search should reduce colors from 12-15 down to 7-9 by systematically exploring the solution space with k colors (starting from DSATUR-1 and decreasing), using conflict minimization and tabu memory to escape local optima that prevented previous approaches from improving.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 6.0,
+          "error": null,
+          "duration_ms": 268,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR initial: 12 colors",
+            "Found 11-coloring",
+            "Found 10-coloring",
+            "Found 9-coloring",
+            "Found 8-coloring",
+            "Found 7-coloring",
+            "Found 6-coloring",
+            "Final: 6 colors, sizes [18, 22, 26, 31, 32, 21] in 0.25s",
+            "color() took 0.25s",
+            "6 colour classes, sizes [32, 31, 26, 22, 21, 18]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 6.0,
+          "error": null,
+          "duration_ms": 321,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR initial: 13 colors",
+            "Found 12-coloring",
+            "Found 11-coloring",
+            "Found 10-coloring",
+            "Found 9-coloring",
+            "Found 8-coloring",
+            "Found 7-coloring",
+            "Found 6-coloring",
+            "Final: 6 colors, sizes [22, 31, 26, 26, 22, 23] in 0.30s",
+            "color() took 0.30s",
+            "6 colour classes, sizes [31, 26, 26, 23, 22, 22]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 6.0,
+          "error": null,
+          "duration_ms": 424,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR initial: 15 colors",
+            "Found 14-coloring",
+            "Found 13-coloring",
+            "Found 12-coloring",
+            "Found 11-coloring",
+            "Found 10-coloring",
+            "Found 9-coloring",
+            "Found 8-coloring",
+            "Found 7-coloring",
+            "Found 6-coloring",
+            "Final: 6 colors, sizes [33, 23, 23, 27, 19, 25] in 0.40s",
+            "color() took 0.40s",
+            "6 colour classes, sizes [33, 27, 25, 23, 23, 19]"
+          ]
+        }
+      ],
+      "mean": 6.0,
+      "decision": "accept",
+      "estimate": 7.333333333333333,
+      "lower": 5.5694991259569395,
+      "upper": 9.097167540709727,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-1",
+      "id": "ca972b7afcd9",
+      "parent": "960d4563c27b",
+      "rationale": "The current DSATUR algorithm achieves 12-15 colors but we need to reach 6. Previous attempts with Kempe chains and backtracking didn't improve results. I'll implement a Tabu Search algorithm that:\n1. Starts with DSATUR coloring\n2. Iteratively tries to reduce the number of colors by one\n3. For each target k colors, uses tabu search to find a valid k-coloring:\n   - Starts with a random k-coloring (may have conflicts)\n   - Iteratively recolors vertices to reduce conflicts\n   - Uses a tabu list to avoid cycling\n   - Employs strategic vertex selection (highest conflict count)\n4. Continues until time limit or can't improve further\n\nTabu search is more powerful than greedy methods because it can temporarily accept worse solutions to escape local optima, and it's been successful on graph coloring problems. The key is to work with partial (invalid) colorings and gradually reduce conflicts while using fewer colors.",
+      "hypothesis": "Tabu search should reduce colors from 12-15 down to 7-9 by systematically exploring the solution space with k colors (starting from DSATUR-1 and decreasing), using conflict minimization and tabu memory to escape local optima that prevented previous approaches from improving.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 43,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR initial: 12 colors",
+            "Failed to find 11-coloring, stopping",
+            "Final: 12 colors, sizes [14, 15, 16, 28, 9, 10, 10, 16, 9, 14, 6, 3], time 0.02s",
+            "color() took 0.02s",
+            "12 colour classes, sizes [28, 16, 16, 15, 14, 14, 10, 10, 9, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 42,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR initial: 13 colors",
+            "Failed to find 12-coloring, stopping",
+            "Final: 13 colors, sizes [12, 22, 13, 12, 13, 10, 16, 12, 12, 10, 9, 6, 3], time 0.02s",
+            "color() took 0.02s",
+            "13 colour classes, sizes [22, 16, 13, 13, 12, 12, 12, 12, 10, 10, 9, 6, 3]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 15.0,
+          "error": null,
+          "duration_ms": 43,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR initial: 15 colors",
+            "Failed to find 14-coloring, stopping",
+            "Final: 15 colors, sizes [12, 11, 10, 10, 12, 13, 11, 9, 10, 12, 13, 11, 8, 7, 1], time 0.02s",
+            "color() took 0.02s",
+            "15 colour classes, sizes [13, 13, 12, 12, 12, 11, 11, 11, 10, 10, 10, 9, 8, 7, 1]"
+          ]
+        }
+      ],
+      "mean": 13.333333333333334,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    }
+  ]
+}

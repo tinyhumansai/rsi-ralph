@@ -32,7 +32,9 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   the editable set). `ScriptedEvolver` replays canned proposals offline.
 - `ScriptLedger`, `LedgerCandidate`, `SeedRun`, `IncumbentEntry`,
   `CandidateDecision`: the `ledger.json` snapshot.
-- `parse_metric`: the `METRIC <name>=<value>` contract.
+- `parse_metric`: the `METRIC <name>=<value>` contract. `DIAG <text>` lines
+  are collected per seed into `SeedRun::diagnostics` and shown to the
+  supervisor; they never affect the score.
 
 ## Files
 

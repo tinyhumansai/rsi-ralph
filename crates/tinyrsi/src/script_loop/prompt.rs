@@ -3,7 +3,7 @@
 //!
 //! The loop renders it because the ledger is the loop's; the supervisor in
 //! `tinyrsi-evolve` only sends it.
-use super::{LedgerCandidate, ScriptLedger, ScriptSubject, execute::Sources};
+use super::{LedgerCandidate, ScriptLedger, ScriptSubject, SeedRun, execute::Sources};
 use std::fmt::Write as _;
 
 /// Builds the supervisor prompt from the subject, ledger and incumbent.
@@ -28,7 +28,10 @@ pub(super) fn prompt(
     );
     let _ = writeln!(
         text,
-        "Command: {} {} (run once per seed {:?} with TINYRSI_SEED set; cleared environment).\n",
+        "Command: {} {} (run once per seed {:?} with TINYRSI_SEED set; cleared environment).\n\
+         Lines printed to stdout as `DIAG <text>` are collected per seed and shown below. \
+         Print them from your code to report what it did (moves tried, conflicts left, \
+         residuals): it is the only view you get of a run besides its metric.\n",
         subject.command.program.display(),
         subject.command.args.join(" "),
         subject.seeds
@@ -40,6 +43,23 @@ pub(super) fn prompt(
             "- epoch {}: {} = {}",
             entry.epoch, entry.id, entry.metric
         );
+    }
+    let _ = writeln!(text, "\n# Incumbent diagnostics (DIAG lines per seed)");
+    let incumbent = ledger.incumbents.last().and_then(|i| {
+        ledger
+            .candidates
+            .iter()
+            .find(|c| c.id.as_deref() == Some(&i.id))
+    });
+    match incumbent {
+        Some(c) if c.runs.iter().any(|r| !r.diagnostics.is_empty()) => {
+            for run in &c.runs {
+                let _ = writeln!(text, "- seed {}: {}", run.seed, diagnostics(run));
+            }
+        }
+        _ => {
+            let _ = writeln!(text, "No diagnostics recorded for the incumbent.");
+        }
     }
     let _ = writeln!(text, "\n# Recently rejected proposals");
     let rejected: Vec<&LedgerCandidate> = ledger
@@ -54,16 +74,12 @@ pub(super) fn prompt(
         let _ = writeln!(text, "None yet.");
     }
     for c in rejected {
-        let stderr = c
-            .runs
-            .iter()
-            .find(|r| r.error.is_some())
-            .or(c.runs.first())
-            .map_or("", |r| r.stderr_tail.as_str());
+        let shown = c.runs.iter().find(|r| r.error.is_some()).or(c.runs.first());
+        let stderr = shown.map_or("", |r| r.stderr_tail.as_str());
         let errors: Vec<&str> = c.runs.iter().filter_map(|r| r.error.as_deref()).collect();
         let _ = writeln!(
             text,
-            "- {:?}: decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}",
+            "- {:?}: decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}\n  diagnostics: {}",
             c.proposal_id.as_deref().unwrap_or_default(),
             c.decision,
             c.mean,
@@ -71,7 +87,8 @@ pub(super) fn prompt(
             c.note.as_deref().unwrap_or_default(),
             c.rationale,
             c.hypothesis,
-            stderr.trim()
+            stderr.trim(),
+            shown.map_or_else(|| "(none)".to_owned(), diagnostics)
         );
     }
     let _ = writeln!(text, "\n# Incumbent editable sources");
@@ -84,4 +101,13 @@ pub(super) fn prompt(
         );
     }
     text
+}
+
+/// One seed's diagnostics on one line, or `(none)`.
+fn diagnostics(run: &SeedRun) -> String {
+    if run.diagnostics.is_empty() {
+        "(none)".to_owned()
+    } else {
+        run.diagnostics.join(" | ")
+    }
 }

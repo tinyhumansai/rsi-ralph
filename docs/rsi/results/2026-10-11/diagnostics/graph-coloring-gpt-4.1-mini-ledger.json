@@ -1,0 +1,577 @@
+{
+  "run_id": "graph_coloring-1791721451-23179",
+  "subject": "coloring.py",
+  "metric": {
+    "name": "colors",
+    "direction": "minimize",
+    "target": 6.0
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "tokens": 17324,
+  "stop": "stalled",
+  "incumbents": [
+    {
+      "epoch": 0,
+      "id": "1dd16294a8d2",
+      "metric": 17.0
+    },
+    {
+      "epoch": 1,
+      "id": "837110fe6864",
+      "metric": 13.0
+    }
+  ],
+  "candidates": [
+    {
+      "epoch": 0,
+      "proposal_id": null,
+      "id": "1dd16294a8d2",
+      "parent": null,
+      "rationale": "baseline",
+      "hypothesis": "starting script",
+      "paths": [],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 17.0,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "color() took 0.00s",
+            "17 colour classes, sizes [14, 13, 12, 11, 11, 10, 10, 10, 9, 9, 8, 7, 7, 7, 5, 4, 3]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 18.0,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "color() took 0.00s",
+            "18 colour classes, sizes [13, 11, 11, 11, 11, 11, 11, 10, 10, 9, 8, 8, 7, 5, 5, 5, 2, 2]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 16.0,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "color() took 0.00s",
+            "16 colour classes, sizes [23, 15, 15, 13, 11, 11, 10, 9, 8, 7, 7, 6, 5, 5, 4, 1]"
+          ]
+        }
+      ],
+      "mean": 17.0,
+      "decision": "baseline",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-0",
+      "id": "837110fe6864",
+      "parent": "1dd16294a8d2",
+      "rationale": "DSATUR is a well-known heuristic that tends to use fewer colours than simple greedy first-fit by choosing vertices with highest saturation degree first, which helps reduce colour count.",
+      "hypothesis": "Use DSATUR heuristic to reduce the number of colours used compared to first-fit.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours in 0.001s",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 20,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours in 0.001s",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours in 0.001s",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "accept",
+      "estimate": 4.0,
+      "lower": 2.0,
+      "upper": 6.0,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-1",
+      "id": "dbd6a2ff05c1",
+      "parent": "1dd16294a8d2",
+      "rationale": "DSATUR is a well-known heuristic for graph coloring that tends to use fewer colors by prioritizing vertices with the highest saturation (number of differently colored neighbors). This should improve the metric significantly from the baseline greedy approach.",
+      "hypothesis": "Using the DSATUR heuristic will reduce the number of colors used compared to the simple greedy approach.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR finished in 0.001s with 14 colours",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR finished in 0.001s with 12 colours",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 23,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR finished in 0.001s with 13 colours",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "accept",
+      "estimate": 4.0,
+      "lower": 2.0,
+      "upper": 6.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-0",
+      "id": "748660a6f508",
+      "parent": "837110fe6864",
+      "rationale": "DSATUR is a strong heuristic but can leave some colors unused or splintered. A simple greedy recoloring pass tries to recolor vertices with higher colors to lower colors if no conflict arises, reducing the total colors used without heavy computation.",
+      "hypothesis": "Adding a greedy recoloring phase after DSATUR will reduce the number of colors used by merging color classes where possible, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 23,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours initially",
+            "Greedy recoloring reduced to 14 colours with 0 moves",
+            "color() took 0.001s",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours initially",
+            "Greedy recoloring reduced to 12 colours with 0 moves",
+            "color() took 0.001s",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours initially",
+            "Greedy recoloring reduced to 13 colours with 0 moves",
+            "color() took 0.001s",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-1",
+      "id": "97dc62516daf",
+      "parent": "837110fe6864",
+      "rationale": "DSATUR is a strong heuristic but can leave some colors unused or splintered. A simple greedy recoloring pass tries to recolor vertices with higher colors to lower colors if no conflict arises, reducing the total colors used without heavy computation.",
+      "hypothesis": "Adding a greedy recoloring phase after DSATUR will reduce the number of colors used by merging color classes where possible, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 32,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours initially",
+            "Greedy recoloring reduced to 14 colours with 0 moves",
+            "color() took 0.002s",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours initially",
+            "Greedy recoloring reduced to 12 colours with 0 moves",
+            "color() took 0.001s",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours initially",
+            "Greedy recoloring reduced to 13 colours with 0 moves",
+            "color() took 0.001s",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-0",
+      "id": "82d5425e47be",
+      "parent": "837110fe6864",
+      "rationale": "Kempe chain interchanges are a known technique to reduce colours in graph colouring by swapping colours along connected components, potentially freeing up higher colours and reducing total colours used.",
+      "hypothesis": "Adding iterative Kempe chain interchanges after DSATUR will reduce the number of colours by rearranging colour classes, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours with 0 Kempe moves in 0.001s",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours with 0 Kempe moves in 0.001s",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 20,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours with 0 Kempe moves in 0.001s",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-1",
+      "id": "3a78135f9541",
+      "parent": "837110fe6864",
+      "rationale": "The DSATUR heuristic produces a valid coloring but may leave some colors unused or splintered. A simple greedy recoloring pass tries to recolor vertices with higher colors to lower colors if no conflict arises, reducing the total colors used without heavy computation.",
+      "hypothesis": "Adding a simple greedy recoloring phase after DSATUR to recolor vertices to lower colors if possible will reduce the number of colors used by merging color classes, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours initially",
+            "Greedy recoloring reduced to 14 colours with 0 moves",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours initially",
+            "Greedy recoloring reduced to 12 colours with 0 moves",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours initially",
+            "Greedy recoloring reduced to 13 colours with 0 moves",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-0",
+      "id": "7591ec2c84d2",
+      "parent": "837110fe6864",
+      "rationale": "The DSATUR heuristic produces a valid coloring but may leave some colors unused or splintered. A simple greedy recoloring pass tries to recolor vertices with higher colors to lower colors if no conflict arises, reducing the total colors used without heavy computation.",
+      "hypothesis": "Adding a simple greedy recoloring phase after DSATUR to recolor vertices to lower colors if possible will reduce the number of colors used by merging color classes, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 35,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours initially",
+            "Greedy recoloring reduced to 14 colours with 0 moves",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 26,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours initially",
+            "Greedy recoloring reduced to 12 colours with 0 moves",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours initially",
+            "Greedy recoloring reduced to 13 colours with 0 moves",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-1",
+      "id": "6ad0ee8b141c",
+      "parent": "837110fe6864",
+      "rationale": "The DSATUR heuristic produces a valid coloring but may leave some colors unused or splintered. A simple greedy recoloring pass tries to recolor vertices with higher colors to lower colors if no conflict arises, reducing the total colors used without heavy computation.",
+      "hypothesis": "Adding a simple greedy recoloring phase after DSATUR to recolor vertices to lower colors if possible will reduce the number of colors used by merging color classes, improving the metric.",
+      "paths": [
+        "coloring.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 14.0,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3241 edges, max degree 57",
+            "DSATUR used 14 colours initially",
+            "Greedy recoloring reduced to 14 colours with 0 moves",
+            "color() took 0.00s",
+            "14 colour classes, sizes [20, 14, 13, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6, 1]"
+          ]
+        },
+        {
+          "seed": 2,
+          "metric": 12.0,
+          "error": null,
+          "duration_ms": 25,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3299 edges, max degree 56",
+            "DSATUR used 12 colours initially",
+            "Greedy recoloring reduced to 12 colours with 0 moves",
+            "color() took 0.00s",
+            "12 colour classes, sizes [22, 17, 16, 16, 15, 14, 11, 11, 9, 7, 6, 6]"
+          ]
+        },
+        {
+          "seed": 3,
+          "metric": 13.0,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": "",
+          "diagnostics": [
+            "graph: 150 vertices, 3300 edges, max degree 59",
+            "DSATUR used 13 colours initially",
+            "Greedy recoloring reduced to 13 colours with 0 moves",
+            "color() took 0.00s",
+            "13 colour classes, sizes [19, 15, 14, 13, 12, 12, 11, 11, 11, 10, 9, 7, 6]"
+          ]
+        }
+      ],
+      "mean": 13.0,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    }
+  ]
+}

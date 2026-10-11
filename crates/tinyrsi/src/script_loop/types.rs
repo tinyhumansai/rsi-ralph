@@ -115,6 +115,12 @@ pub struct SeedRun {
     pub duration_ms: u64,
     /// Up to the last 2 000 bytes of stderr, lossily decoded.
     pub stderr_tail: String,
+    /// The script's `DIAG <text>` stdout lines, in order: at most the last 20,
+    /// each cut to 300 characters. They reach the supervisor's next prompt, so
+    /// a script (and the code under improvement) can report what it did, not
+    /// only how well. Absent in ledgers written before diagnostics existed.
+    #[serde(default)]
+    pub diagnostics: Vec<String>,
 }
 
 /// What happened to one ledger candidate.

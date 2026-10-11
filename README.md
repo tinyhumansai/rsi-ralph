@@ -187,7 +187,8 @@ Run `cargo run -p tinyrsi-examples --example math_problem` (or
 ## Improving a plain script
 
 `run_script_loop` repeats observe, ideate, execute, measure, score and improve
-over any script that prints `METRIC <name>=<value>`, supervised by a language
+over any script that prints `METRIC <name>=<value>` (plus optional
+`DIAG <text>` lines the supervisor reads), supervised by a language
 model, and streams every stage to `events.jsonl`. Try it offline on a
 curve-fitting script with `cargo run -p tinyrsi --example script_loop`; point
 it at your own script with the [script loop guide](docs/guides/script-loop.md).

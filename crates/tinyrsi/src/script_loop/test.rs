@@ -5,6 +5,7 @@ use super::{prompt::*, score::*, *};
 use crate::{MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest};
 use std::{
     collections::VecDeque,
+    fmt::Write as _,
     path::Path,
     sync::{Arc, Mutex},
 };
@@ -115,6 +116,33 @@ fn reports_non_finite_or_unparsable_metrics() {
 }
 
 #[test]
+fn collects_diagnostic_lines_in_order() {
+    let stdout = "noise\nDIAG  conflicts=3 \nMETRIC loss=1\nDIAGNOSIS no\nDIAG moves=40\nDIAG \n";
+    assert_eq!(
+        parse_diagnostics(stdout),
+        vec!["conflicts=3".to_owned(), "moves=40".to_owned()]
+    );
+    assert_eq!(parse_diagnostics("METRIC loss=1\n"), Vec::<String>::new());
+}
+
+#[test]
+fn bounds_diagnostics_by_line_count_and_length() {
+    let mut many = String::new();
+    for i in 0..DIAG_LINES + 5 {
+        writeln!(many, "DIAG line {i}").unwrap();
+    }
+    let kept = parse_diagnostics(&many);
+    assert_eq!(kept.len(), DIAG_LINES);
+    // The last lines are kept: scripts usually end with their summary.
+    assert_eq!(kept[0], "line 5");
+    assert_eq!(kept[DIAG_LINES - 1], format!("line {}", DIAG_LINES + 4));
+    let long = format!("DIAG {}\n", "é".repeat(DIAG_CHARS + 10));
+    let kept = parse_diagnostics(&long);
+    assert_eq!(kept[0].chars().count(), DIAG_CHARS + 1);
+    assert!(kept[0].ends_with('…'));
+}
+
+#[test]
 fn content_ids_are_short_stable_and_content_sensitive() {
     let a: Sources = [(PathBuf::from("a"), "bc".to_owned())].into();
     let b: Sources = [(PathBuf::from("ab"), "c".to_owned())].into();
@@ -219,6 +247,18 @@ fn runs_a_seed_with_only_the_documented_environment() {
 }
 
 #[test]
+fn keeps_diagnostics_from_passing_and_failing_seeds() {
+    let ok = seed_with("echo 'DIAG moves=12'; echo 'METRIC loss=0.5'\n", |_| {});
+    assert_eq!(ok.metric, Some(0.5));
+    assert_eq!(ok.diagnostics, vec!["moves=12".to_owned()]);
+    let failed = seed_with("echo 'DIAG invalid: edge (1, 2)'; exit 3\n", |_| {});
+    assert_eq!(failed.error, Some(Error::ScriptFailed.to_string()));
+    assert_eq!(failed.diagnostics, vec!["invalid: edge (1, 2)".to_owned()]);
+    let silent = seed_with("echo 'METRIC loss=0.5'\n", |_| {});
+    assert_eq!(silent.diagnostics, Vec::<String>::new());
+}
+
+#[test]
 fn reports_a_timed_out_seed() {
     let run = seed_with("sleep 5\n", |s| s.timeout_ms = 50);
     assert_eq!(run.error, Some(Error::ScriptTimeout.to_string()));
@@ -270,6 +310,45 @@ fn reports_a_failed_candidates_interval_in_metric_units() {
     assert!((lower - 0.2).abs() < 1e-12 && (upper - 0.6).abs() < 1e-12);
 }
 
+/// The baseline row of the prompt test: diagnostics on seed 1, none on seed 2.
+fn diagnosed_baseline() -> LedgerCandidate {
+    LedgerCandidate {
+        epoch: 0,
+        proposal_id: None,
+        id: Some("base".into()),
+        parent: None,
+        rationale: "baseline".into(),
+        hypothesis: "starting script".into(),
+        paths: vec![],
+        runs: vec![
+            SeedRun {
+                seed: 1,
+                metric: Some(0.5),
+                error: None,
+                duration_ms: 1,
+                stderr_tail: String::new(),
+                diagnostics: vec!["first fit used 9 colours".into()],
+            },
+            SeedRun {
+                seed: 2,
+                metric: Some(0.53),
+                error: None,
+                duration_ms: 1,
+                stderr_tail: String::new(),
+                diagnostics: vec![],
+            },
+        ],
+        mean: Some(0.515),
+        decision: CandidateDecision::Baseline,
+        estimate: None,
+        lower: None,
+        upper: None,
+        units: IntervalUnits::Metric,
+        promoted: true,
+        note: None,
+    }
+}
+
 #[test]
 fn prompt_shows_goal_history_rejections_and_sources() {
     let dir = tempfile::tempdir().unwrap();
@@ -281,6 +360,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         error: Some("script run timed out".into()),
         duration_ms: 1,
         stderr_tail: "Traceback: boom".into(),
+        diagnostics: vec!["conflicts left: 12".into()],
     };
     let rejected = LedgerCandidate {
         epoch: 1,
@@ -300,6 +380,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         promoted: false,
         note: None,
     };
+    let baseline = diagnosed_baseline();
     let ledger = ScriptLedger {
         run_id: "r".into(),
         subject: "fixture".into(),
@@ -312,7 +393,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
             id: "base".into(),
             metric: 0.515,
         }],
-        candidates: vec![rejected],
+        candidates: vec![baseline, rejected],
     };
     let sources = read_sources(&s).unwrap();
     let text = prompt(&s, &ledger, &sources, 3);
@@ -325,6 +406,10 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         "Traceback: boom",
         "## run.sh",
         "METRIC loss=0.5",
+        "DIAG",
+        "seed 1: first fit used 9 colours",
+        "seed 2: (none)",
+        "conflicts left: 12",
     ] {
         assert!(text.contains(needle), "{needle}");
     }
@@ -332,5 +417,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         candidates: vec![],
         ..ledger
     };
-    assert!(prompt(&s, &empty, &sources, 3).contains("None yet."));
+    let text = prompt(&s, &empty, &sources, 3);
+    assert!(text.contains("None yet."));
+    assert!(text.contains("No diagnostics recorded"));
 }

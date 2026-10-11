@@ -11,6 +11,12 @@ Your command must:
 
 - print one stdout line `METRIC <name>=<value>` per run, where `<value>` is a
   finite float (if it prints several, the last one counts);
+- optionally print `DIAG <text>` lines to stdout: what the run observed or
+  what the code under improvement did (conflicts left, moves tried, residual
+  shape). The loop keeps the last 20 per seed, each cut to 300 characters,
+  and shows them in the supervisor's next prompt for the incumbent and for
+  each recent rejection. Without them the supervisor sees only a number, and
+  it cannot tell an idea that does not help from code that never runs;
 - read its seed from the `TINYRSI_SEED` environment variable and be
   deterministic for a given seed — the loop compares candidate and incumbent
   **on the same seeds**, so noise from anything else hides real gains;

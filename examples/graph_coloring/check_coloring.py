@@ -11,11 +11,16 @@ checks the answer: one non-negative integer per vertex, with no edge joining
 two vertices of the same colour. A valid colouring prints
 ``METRIC colors=<distinct colours used>`` (lower is better; 6 is optimal for
 these graphs). An invalid colouring prints no metric, so the seed fails.
+
+It also prints ``DIAG`` lines the loop shows the supervisor: the graph's size,
+the solver's run time, the colour class sizes, and for an invalid colouring
+how many edges conflict. ``DIAG`` lines the solver prints itself pass through.
 """
 
 import os
 import random
 import sys
+import time
 
 VERTICES = 150
 CLASSES = 6
@@ -45,9 +50,13 @@ def invalid(colors, edges):
         return f"expected a list of {VERTICES} colours"
     if any(not isinstance(c, int) or isinstance(c, bool) or c < 0 for c in colors):
         return "colours must be non-negative integers"
-    for a, b in edges:
-        if colors[a] == colors[b]:
-            return f"edge ({a}, {b}) joins two vertices of colour {colors[a]}"
+    clashes = [(a, b) for a, b in edges if colors[a] == colors[b]]
+    if clashes:
+        a, b = clashes[0]
+        return (
+            f"{len(clashes)} of {len(edges)} edges join same-coloured vertices, "
+            f"first ({a}, {b}) with colour {colors[a]}"
+        )
     return None
 
 
@@ -57,11 +66,21 @@ def main():
     del seed
     import coloring  # imported only after the seed is gone
 
+    degrees = [0] * VERTICES
+    for a, b in edges:
+        degrees[a] += 1
+        degrees[b] += 1
+    print(f"DIAG graph: {VERTICES} vertices, {len(edges)} edges, max degree {max(degrees)}")
+    started = time.monotonic()
     colors = coloring.color(VERTICES, [tuple(e) for e in edges])
+    print(f"DIAG color() took {time.monotonic() - started:.2f}s")
     reason = invalid(colors, edges)
     if reason is not None:
+        print(f"DIAG invalid colouring: {reason}")
         print(f"invalid colouring: {reason}", file=sys.stderr)
         sys.exit(1)
+    sizes = sorted((colors.count(c) for c in set(colors)), reverse=True)
+    print(f"DIAG {len(sizes)} colour classes, sizes {sizes}")
     print(f"METRIC colors={len(set(colors))}")
 
 
