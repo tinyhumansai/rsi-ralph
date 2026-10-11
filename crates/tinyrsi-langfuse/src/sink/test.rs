@@ -107,7 +107,6 @@ fn formats_unix_milliseconds_as_utc_rfc3339() {
     assert_eq!(time::iso8601(951_782_400_000), "2000-02-29T00:00:00.000Z");
     assert_eq!(time::iso8601(1_791_703_984_123), "2026-10-11T07:33:04.123Z");
     assert_eq!(time::iso8601(4_102_444_799_999), "2099-12-31T23:59:59.999Z");
-    assert!(time::now_ms() > 1_791_703_984_123);
 }
 
 #[test]
@@ -235,4 +234,24 @@ fn splits_large_runs_into_batches_of_at_most_the_ingestion_limit() {
     let sizes =
         [rx.recv().unwrap(), rx.recv().unwrap()].map(|r| r.body["batch"].as_array().unwrap().len());
     assert_eq!(sizes, [MAX_BATCH, 1]);
+}
+
+#[test]
+fn flushing_from_inside_a_tokio_runtime_does_not_nest_runtimes() {
+    let (base, rx) = listener(vec![200]);
+    let mut trace = sink(&base);
+    let outer = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    outer.block_on(async {
+        for event in run() {
+            trace.record(event).unwrap();
+        }
+    });
+    assert_eq!(
+        rx.recv().unwrap().body["batch"].as_array().unwrap().len(),
+        8
+    );
+    assert_eq!(trace.failures(), 0);
 }

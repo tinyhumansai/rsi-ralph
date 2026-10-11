@@ -84,9 +84,17 @@ impl LangfuseTrace {
         while !self.pending.is_empty() {
             let take = self.pending.len().min(MAX_BATCH);
             let batch = json!({"batch": &self.pending[..take]});
-            self.runtime
-                .block_on(self.client.send_batch(batch))
-                .map_err(|_| Error::ExportFailed)?;
+            // Drive the transport on a scoped thread: a caller already inside a
+            // Tokio runtime (a loop called from `#[tokio::main]`, say) cannot
+            // enter this sink's runtime on its own thread without panicking.
+            let (runtime, client) = (&self.runtime, &self.client);
+            std::thread::scope(|scope| {
+                scope
+                    .spawn(|| runtime.block_on(client.send_batch(batch)))
+                    .join()
+            })
+            .map_err(|_| Error::ExportFailed)?
+            .map_err(|_| Error::ExportFailed)?;
             self.pending.drain(..take);
         }
         Ok(())
