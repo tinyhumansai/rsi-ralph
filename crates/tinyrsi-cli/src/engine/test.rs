@@ -361,3 +361,209 @@ fn the_incumbent_cache_keeps_scores_under_different_env_apart() {
     assert_eq!(baseline("7", "a"), Some(7.0));
     assert_eq!(baseline("5", "b"), Some(5.0));
 }
+
+/// Upstream call outcomes, shared by a hive that makes calls and the meter
+/// that reports them.
+type Calls = std::rc::Rc<std::cell::RefCell<UpstreamCalls>>;
+
+/// A hive whose model calls go through a provider: each epoch it makes
+/// `sent` calls, the last `refused` of which the provider refuses.
+struct Provided {
+    hive: Scripted,
+    calls: Calls,
+    sent: u64,
+    refused: u64,
+    refusal: Refusal,
+}
+
+impl Proposer for Provided {
+    fn editing_seats(&self) -> Vec<String> {
+        self.hive.editing_seats()
+    }
+
+    fn propose(&mut self, request: &ProposalRequest<'_>) -> Result<ProposalReport> {
+        let mut calls = self.calls.borrow_mut();
+        calls.sent += self.sent;
+        calls.refused += self.refused;
+        if self.refused > 0 {
+            calls.last_refusal = Some(self.refusal.clone());
+        }
+        drop(calls);
+        self.hive.propose(request)
+    }
+}
+
+/// A meter that reports the shared call outcomes and no spend.
+struct Watched(Calls);
+
+impl Meter for Watched {
+    fn spent_usd(&self) -> f64 {
+        0.0
+    }
+
+    fn remaining_usd(&self) -> Option<f64> {
+        None
+    }
+
+    fn upstream_calls(&self) -> UpstreamCalls {
+        self.0.borrow().clone()
+    }
+}
+
+fn provided(sent: u64, refused: u64, plan: Plan, refusal: Refusal) -> (Provided, Watched) {
+    // Calls made before the run, such as the retreat's, are not the hive's.
+    let calls = Calls::new(std::cell::RefCell::new(UpstreamCalls {
+        sent: 5,
+        refused: 1,
+        last_refusal: None,
+    }));
+    let hive = Provided {
+        hive: Scripted {
+            seats: vec!["a".into()],
+            plan,
+            briefs: Vec::new(),
+        },
+        calls: calls.clone(),
+        sent,
+        refused,
+        refusal,
+    };
+    (hive, Watched(calls))
+}
+
+fn event_lines(store: &Store, run: &str) -> Vec<serde_json::Value> {
+    fs::read_to_string(store.runs_root().join("value").join(run).join("events.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()["event"].clone())
+        .collect()
+}
+
+#[test]
+fn a_provider_refusing_every_call_stops_the_run_with_its_reason() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, parsed) = fixture(root.path(), |_| {});
+    let store = Store::new(root.path().join("home"));
+    let (mut hive, meter) = provided(
+        2,
+        2,
+        Box::new(|_, _| None),
+        Refusal {
+            status: 403,
+            message: "Key limit exceeded (daily limit) for sk-secret-value".into(),
+        },
+    );
+    let mut e = engine(&parsed, &dir, &store, "refused", &mut hive);
+    e.meter = Some(&meter);
+    let summary = e.run().unwrap();
+    assert_eq!(summary.reason, StopReason::ProviderRefused);
+    let expected = "provider refused 2 of 2 model calls \
+                    (403: Key limit exceeded (daily limit) for ***)";
+    assert_eq!(summary.error.as_deref(), Some(expected));
+
+    let (_, record) = store.find_run("value/refused").unwrap();
+    assert_eq!(record.status, RunStatus::Failed);
+    assert_eq!(record.stop_reason, Some(StopReason::ProviderRefused));
+    assert_eq!(record.epochs, 1, "the run stops after the refused epoch");
+    assert_eq!(record.error.as_deref(), Some(expected));
+
+    let events = event_lines(&store, "refused");
+    let kinds: Vec<&str> = events.iter().map(|e| e["kind"].as_str().unwrap()).collect();
+    assert_eq!(
+        kinds[kinds.len() - 3..],
+        ["provider_refused", "epoch_finished", "run_finished"]
+    );
+    let refused = &events[kinds.len() - 3];
+    assert_eq!(refused["epoch"], 1);
+    assert_eq!(refused["calls"], 2);
+    assert_eq!(refused["refused"], 2);
+    assert_eq!(refused["status"], 403);
+    assert_eq!(
+        refused["message"],
+        "Key limit exceeded (daily limit) for ***"
+    );
+    assert_eq!(events.last().unwrap()["reason"], "provider_refused");
+}
+
+#[test]
+fn partial_refusals_in_an_empty_epoch_are_reported_and_the_run_goes_on() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, parsed) = fixture(root.path(), |_| {});
+    let store = Store::new(root.path().join("home"));
+    let (mut hive, meter) = provided(
+        3,
+        1,
+        Box::new(|_, _| None),
+        Refusal {
+            status: 429,
+            message: "Rate limit exceeded".into(),
+        },
+    );
+    let mut e = engine(&parsed, &dir, &store, "partial", &mut hive);
+    e.meter = Some(&meter);
+    let summary = e.run().unwrap();
+    assert_eq!(summary.reason, StopReason::Stalled);
+    assert_eq!(summary.error, None);
+    let warnings = [
+        "epoch 1: provider refused 1 of 3 model calls (429: Rate limit exceeded)",
+        "epoch 2: provider refused 1 of 3 model calls (429: Rate limit exceeded)",
+    ];
+    assert_eq!(summary.warnings, warnings);
+
+    let (_, record) = store.find_run("value/partial").unwrap();
+    assert_eq!(record.status, RunStatus::Finished);
+    assert_eq!(record.stop_reason, Some(StopReason::Stalled));
+    assert_eq!(record.error, None);
+    assert_eq!(record.warnings, warnings);
+    let refusals: Vec<_> = event_lines(&store, "partial")
+        .into_iter()
+        .filter(|e| e["kind"] == "provider_refused")
+        .collect();
+    assert_eq!(refusals.len(), 2);
+    assert_eq!(refusals[1]["epoch"], 2);
+    assert_eq!(refusals[1]["status"], 429);
+}
+
+#[test]
+fn refusals_in_an_epoch_that_changed_something_are_not_reported() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, parsed) = fixture(root.path(), |m| m["epochs"] = serde_json::json!(1));
+    let store = Store::new(root.path().join("home"));
+    let (mut hive, meter) = provided(
+        3,
+        1,
+        Box::new(|_, _| Some("value.txt:5".into())),
+        Refusal {
+            status: 429,
+            message: "Rate limit exceeded".into(),
+        },
+    );
+    let mut e = engine(&parsed, &dir, &store, "changed", &mut hive);
+    e.meter = Some(&meter);
+    let summary = e.run().unwrap();
+    assert_eq!(summary.reason, StopReason::MaxEpochs);
+    assert!(summary.warnings.is_empty());
+    assert!(!events(&store, "changed").iter().any(|k| k == "provider_refused"));
+}
+
+#[test]
+fn an_empty_epoch_without_refusals_still_stalls_quietly() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, parsed) = fixture(root.path(), |_| {});
+    let store = Store::new(root.path().join("home"));
+    let (mut hive, meter) = provided(
+        2,
+        0,
+        Box::new(|_, _| None),
+        Refusal {
+            status: 0,
+            message: String::new(),
+        },
+    );
+    let mut e = engine(&parsed, &dir, &store, "quiet", &mut hive);
+    e.meter = Some(&meter);
+    let summary = e.run().unwrap();
+    assert_eq!(summary.reason, StopReason::Stalled);
+    assert!(summary.warnings.is_empty() && summary.error.is_none());
+    assert!(!events(&store, "quiet").iter().any(|k| k == "provider_refused"));
+}
