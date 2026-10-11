@@ -123,6 +123,12 @@ tinyrsi show graph-coloring/<run-id> # one run's outcome, error, warnings and fo
 tinyrsi serve                        # the UI over all stored runs
 ```
 
+If the model provider refuses every call of an epoch (a key over its spending
+limit, say), the run stops as `failed` with reason `provider_refused`, and
+`show` prints the provider's status and message on its `error` line. Partial
+refusals in an epoch that changed nothing appear as `warning` lines and the
+run goes on.
+
 Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/` (set `TINYRSI_HOME` to move
 them): a frozen copy of the loop, `run.json`, `ledger.json`, `events.jsonl`,
 and per-epoch briefs, candidates and step logs.
