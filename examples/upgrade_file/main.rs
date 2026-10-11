@@ -24,7 +24,7 @@ use tinyrsi::{
     MetricSpec, MonotonicClock, Projected, ScriptCandidate, ScriptCommand, ScriptSubject,
     ScriptSupervisor, StopReason, SupervisorLimits, run_script_loop_with,
 };
-use tinyrsi_examples::{Grader, Replies, live_or, proposal, python, run_location};
+use tinyrsi_examples::{Grader, Replies, live_or, proposal, python, run_location, with_approach};
 
 const CHECKER: &str = include_str!("check_standard.py");
 const START: &str = include_str!("slug.py");
@@ -58,23 +58,32 @@ fn brief(goal: &Goal) -> String {
 
 fn canned() -> Replies {
     Replies::new([
-        proposal(
-            "The module and slugify are undocumented.",
-            "Docstrings remove two violations.",
-            "slug.py",
-            DOCSTRINGS,
+        with_approach(
+            "docstrings",
+            proposal(
+                "The module and slugify are undocumented.",
+                "Docstrings remove two violations.",
+                "slug.py",
+                DOCSTRINGS,
+            ),
         ),
-        proposal(
-            "A regex is shorter and fully annotated.",
-            "One substitution satisfies the standard.",
-            "slug.py",
-            REGEX,
+        with_approach(
+            "regex rewrite",
+            proposal(
+                "A regex is shorter and fully annotated.",
+                "One substitution satisfies the standard.",
+                "slug.py",
+                REGEX,
+            ),
         ),
-        proposal(
-            "Annotate, drop the bare except, and build the slug from word runs.",
-            "Every remaining violation goes, with behavior unchanged.",
-            "slug.py",
-            STANDARD,
+        with_approach(
+            "full standard rewrite",
+            proposal(
+                "Annotate, drop the bare except, and build the slug from word runs.",
+                "Every remaining violation goes, with behavior unchanged.",
+                "slug.py",
+                STANDARD,
+            ),
         ),
     ])
 }

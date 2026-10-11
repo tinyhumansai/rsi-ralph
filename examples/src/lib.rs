@@ -92,6 +92,20 @@ pub fn proposal(rationale: &str, hypothesis: &str, path: &str, content: &str) ->
     .to_string()
 }
 
+/// `reply` (a [`proposal`]) labelled with the technique it applies, the
+/// `approach` field the loop groups attempts by. A reply that is not a JSON
+/// object is returned unchanged.
+#[must_use]
+pub fn with_approach(approach: &str, reply: String) -> String {
+    match serde_json::from_str::<serde_json::Value>(&reply) {
+        Ok(serde_json::Value::Object(mut fields)) => {
+            fields.insert("approach".into(), approach.into());
+            serde_json::Value::Object(fields).to_string()
+        }
+        _ => reply,
+    }
+}
+
 /// A model port that replays canned replies in order; once one is left it
 /// repeats it (a supervisor's repeated proposal is rejected as a duplicate).
 #[derive(Debug)]

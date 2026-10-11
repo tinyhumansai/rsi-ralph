@@ -21,7 +21,7 @@ use tinyrsi::{
     MetricSpec, MonotonicClock, Projected, ScriptCandidate, ScriptCommand, ScriptSubject,
     ScriptSupervisor, StopReason, SupervisorLimits, run_script_loop_with,
 };
-use tinyrsi_examples::{Grader, Replies, live_or, proposal, python, run_location};
+use tinyrsi_examples::{Grader, Replies, live_or, proposal, python, run_location, with_approach};
 
 const CHECKER: &str = include_str!("check_pi.py");
 const START: &str = include_str!("pi.py");
@@ -36,23 +36,32 @@ constant (math.pi is not allowed). Name the method in a docstring and justify ea
 
 fn canned() -> Replies {
     Replies::new([
-        proposal(
-            "The Leibniz series converges slowly; 1,000 terms leave an error near 1e-3.",
-            "200,000 terms gain about two more digits.",
-            "pi.py",
-            MORE_TERMS,
+        with_approach(
+            "Leibniz series",
+            proposal(
+                "The Leibniz series converges slowly; 1,000 terms leave an error near 1e-3.",
+                "200,000 terms gain about two more digits.",
+                "pi.py",
+                MORE_TERMS,
+            ),
         ),
-        proposal(
-            "A product converges differently from a series; try Wallis.",
-            "The Wallis product reaches more digits than the series.",
-            "pi.py",
-            WALLIS,
+        with_approach(
+            "Wallis product",
+            proposal(
+                "A product converges differently from a series; try Wallis.",
+                "The Wallis product reaches more digits than the series.",
+                "pi.py",
+                WALLIS,
+            ),
         ),
-        proposal(
-            "Machin's arctan identity converges geometrically.",
-            "Twenty arctan terms reach full double precision.",
-            "pi.py",
-            MACHIN,
+        with_approach(
+            "Machin arctan formula",
+            proposal(
+                "Machin's arctan identity converges geometrically.",
+                "Twenty arctan terms reach full double precision.",
+                "pi.py",
+                MACHIN,
+            ),
         ),
     ])
 }
