@@ -141,7 +141,7 @@ fn rejects_unknown_seats_and_scorers() {
     let files = with(|m| m["hive"]["lead"] = json!("ghost"));
     assert!(matches!(parse(&files), Err(Error::Reference { kind: "seat", id }) if id == "ghost"));
     let files = with(|m| {
-        m["keys"] = json!({ "search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["ghost"] } });
+        m["keys"] = json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["ghost"] } });
     });
     assert!(matches!(parse(&files), Err(Error::Reference { kind: "seat", .. })));
     let files = with(|m| m["score"]["decide"]["on"] = json!("ghost"));
@@ -176,7 +176,8 @@ fn rejects_out_of_range_fields() {
         ("keys.openrouter", |m| {
             m["keys"] = json!({ "openrouter": { "provider": "x", "env": "KEY" } });
         }),
-        ("keys.search", |m| m["keys"] = json!({ "search": { "provider": " ", "env": "KEY" } })),
+        ("keys.web_search", |m| m["keys"] = json!({ "web_search": { "provider": " ", "env": "KEY" } })),
+        ("keys.search", |m| m["keys"] = json!({ "search": { "provider": "gemini", "env": "KEY" } })),
         ("score.scorers", |m| m["score"]["scorers"] = json!([])),
         ("score.scorers.colors", |m| {
             m["score"]["scorers"][0]["judge"] = json!("brief.md");
@@ -227,7 +228,7 @@ fn resolves_models_keys_and_rubrics() {
         m["creativity"]["retreat"] = json!({ "model": "a/override" });
         m["keys"] = json!({
             "openrouter": "MY_OR_KEY",
-            "search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["lead"] }
+            "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["lead"] }
         });
         m["score"]["scorers"]
             .as_array_mut()
@@ -242,7 +243,7 @@ fn resolves_models_keys_and_rubrics() {
     assert_eq!(parsed.openrouter_env(), "MY_OR_KEY");
     assert_eq!(parsed.required_env(), vec!["GEMINI_API_KEY", "MY_OR_KEY"]);
     let tools: Vec<_> = parsed.tool_keys().map(|(name, t)| (name, t.provider.as_str())).collect();
-    assert_eq!(tools, vec![("search", "gemini")]);
+    assert_eq!(tools, vec![("web_search", "gemini")]);
     assert_eq!(parsed.rubrics["quality"], "Is it clear?");
     let used: Vec<String> = parsed.models_used(&BTreeSet::new()).into_iter().collect();
     assert_eq!(used, vec!["a/judge", "a/override", "a/seat"]);

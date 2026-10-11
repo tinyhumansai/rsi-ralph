@@ -3648,6 +3648,7 @@ dependencies = [
  "tinyrsi-gateway",
  "tinyrsi-model",
  "tinyrsi-score",
+ "tinyrsi-swarm",
  "tinyrsi-trace",
  "tinyrsi-verify",
 ]

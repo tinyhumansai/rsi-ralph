@@ -7,7 +7,7 @@ fn example() -> Loop {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring");
     let mut files = manifest::load_dir(&dir).unwrap();
     let mut m: serde_json::Value = serde_json::from_str(&files["rsi.json"]).unwrap();
-    m["keys"] = serde_json::json!({ "search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
+    m["keys"] = serde_json::json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
     files.insert("rsi.json".into(), m.to_string());
     manifest::parse(&files).unwrap()
 }

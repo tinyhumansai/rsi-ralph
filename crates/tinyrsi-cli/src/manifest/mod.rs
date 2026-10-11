@@ -21,6 +21,9 @@ pub use types::{
     SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
+/// The one tool capability a key can enable today.
+pub const TOOL_WEB_SEARCH: &str = "web_search";
+
 /// The manifest's file name inside a loop folder.
 pub const MANIFEST: &str = "rsi.json";
 
@@ -344,6 +347,12 @@ fn validate_keys(keys: &BTreeMap<String, KeySpec>) -> Result<()> {
         }
         if provider.is_some_and(|p| p.trim().is_empty()) {
             return Err(Error::field(format!("keys.{capability}"), "needs a provider"));
+        }
+        if provider.is_some() && capability != TOOL_WEB_SEARCH {
+            return Err(Error::field(
+                format!("keys.{capability}"),
+                "the only tool capability is web_search",
+            ));
         }
     }
     Ok(())

@@ -26,8 +26,10 @@
 
 mod error;
 pub mod brief;
+pub mod cli;
 pub mod engine;
 pub mod gate;
+pub mod hive;
 pub mod keys;
 pub mod manifest;
 pub mod retreat;

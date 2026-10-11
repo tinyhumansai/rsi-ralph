@@ -48,6 +48,8 @@ tinyrsi-langfuse = { path = "crates/tinyrsi-langfuse" }
 tinyrsi-model = { path = "crates/tinyrsi-model" }
 # The `tinyrsi` binary that runs file-defined loops.
 tinyrsi-cli = { path = "crates/tinyrsi-cli" }
+# The hive of OpenHuman agents that writes candidates in a `tinyrsi` run.
+tinyrsi-swarm = { path = "crates/tinyrsi-swarm" }
 # The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
 tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
