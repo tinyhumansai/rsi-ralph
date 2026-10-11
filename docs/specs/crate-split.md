@@ -66,11 +66,12 @@ listed above it.
 |---|---|---|
 | `tinyrsi-types` | `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`, `EvalStage`, `ProposalEvent`, `Goal`; re-exports `Patch`, `Package`, `PatchClass`, `Operation`, `Record`, `VersionMetadata` from `tinyhivemind-lang` | tinyhivemind-lang |
 | `tinyrsi-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
-| `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace` | tracing; `otlp` feature: opentelemetry |
+| `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
+| `tinyrsi-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse over OTLP | trace, openhuman-embed (`langfuse` only) |
 | `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | model, trace, tinybackrooms |
 | `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
-| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver`. `retreat` reads a narrow `RetreatDossier` view instead of `observation::Dossier`, which stays in core. | types, model, tinybackrooms |
-| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger) | all of the above |
+| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor` with what it reads and writes (`ScriptBrief`, `ScriptProposal`, `ProposedFile`, `SupervisorLimits`); `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
+| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
 | `tinyrsi-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
 | `tinyrsi-examples` | three runnable examples, `publish = false` | tinyrsi-host |
 
@@ -80,10 +81,33 @@ today, so they stay in `tinyrsi` and keep their paths; only the
 `MemorySnapshot` implementation for `SnapshotMemoryStore`, which already
 needed the feature, moves to `tinyrsi-host` beside the trait.
 
-Each crate has its own `Error` and `Result`. A crate converts the errors of the
-crates it depends on into the variants its callers already match. `tinyrsi`
-re-exports every crate below it, so existing `tinyrsi::Name` paths keep
-resolving for everything that was not behind the `host` feature.
+Each crate has its own `Error` and `Result`. Shared variants keep their names
+and messages, and the `tinyrsi` crate converts lower crates' errors into the
+variants its own functions always returned. So `run_script_loop`,
+`run_proposal_h` and the rest still fail with `tinyrsi::Error::HostFailed`,
+`InvalidEvaluation`, and so on.
+
+**Error types of moved functions do change.** A function that moved returns
+its new crate's error, even when it is reached through a `tinyrsi::`
+re-export: `tinyrsi::compare` returns `tinyrsi_score::Error`, and
+`tinyrsi::ModelRequest::new` returns `tinyrsi_model::Error`. Every such
+error converts into `tinyrsi::Error` with `?` or `From`, landing on the same
+variant callers matched before. Code that names the result type or matches
+the moved function's error directly must use the new type, re-exported as
+`tinyrsi::{ScoreError, ModelError, TraceError, VerifyError, EvolveError}`.
+Implementations of the moved ports (`ModelPort`, `TraceSink`,
+`ExperimentExecutor`, `ArtifactProducer`, `VerificationObserver`,
+`RetreatTransport`) return their crate's `Result` for the same reason.
+
+`tinyrsi` re-exports every crate below it, so existing `tinyrsi::Name` paths
+keep resolving for every retained item that was not behind the `host`
+feature. The exceptions are deliberate removals:
+
+- the bus items (`INTERFACE`, `METHODS`, `OBJECT_PATH`, `CONTRACT_VERSION`,
+  `is_compatible`, `names`, `version`, and the `Lineage*` request and response
+  types);
+- the crate-root `append` and `head` wrappers;
+- `Supervisor`, renamed `ScriptSupervisor`.
 
 **Host-feature paths do break.** `tinyrsi` cannot re-export `tinyrsi-host`,
 because the host crate depends on it. Items that were reachable only with
@@ -95,6 +119,27 @@ dependency on `tinyrsi-host` and changes those imports.
 `tinyrsi-host` re-exports `tinyrsi`, so after that one change a single import
 root covers both. The release notes for the version that drops the feature
 must list this migration.
+
+### Goal
+
+```rust
+pub struct Goal {
+    pub statement: String,     // one sentence: what "better" means
+    pub criteria: Vec<String>, // checkable criteria, most important first
+}
+```
+
+A `Goal` is what a judge reads, and it is deliberately just text. Numeric
+targets stay with the scorer that measures them. The existing paths map onto
+it without loss:
+
+- **Script loop:** `Goal::new(subject.brief)`. The metric name, direction and
+  target remain in `MetricSpec`, read by `MetricScorer` and by the loop's
+  stop rule, and the supervisor's prompt still shows both, unchanged.
+- **Hive retreat:** the objective is the package and its dossier, so
+  `RetreatEvolver` ignores the goal. A judge scoring a hive reads a `Goal`
+  the host writes from its private acceptance criteria. Those criteria never
+  enter a retreat request.
 
 ### Scorer port
 
@@ -155,8 +200,11 @@ Implementations:
   `Accept` beside a negative metric interval). So a blend reports its
   interval in quality units. A high-weight uncalibrated judge can widen the
   margin, but the eligible evidence must still show an improvement by itself.
-- `VerifierScorer` (in `tinyrsi-verify`): a `HostVerifier` or Lake check per
-  seed. A pass is quality `1 - ε` and a failure is `ε`.
+- `VerifierScorer` (in `tinyrsi-verify`): a registered `HostVerifier` or
+  Lake check. A pass scores the checker's own reported quality (1 for a
+  plain pass), and a failure scores 0. `compare` accepts the closed interval
+  `[0, 1]`, so no smoothing is needed. Checkers are deterministic, so the
+  checker runs once per assessment and its quality repeats for every seed.
 
 ### Evolver port
 
@@ -189,11 +237,13 @@ malformed reply, a path outside the editable set). The loop records it and
 continues past it, which is the script loop's current behavior. A transport
 failure is the outer `Err` and ends the run.
 
-`EvolveContext` carries the epoch, the proposal index and seed, the score
-history, and the last `rejected_context` rejected candidates with their
-decision and notes. Implementations:
+`EvolveContext` carries the epoch, the proposal index and the seed. Score
+history and recent rejections belong to what the evolver reads: the script
+loop renders them into the `ScriptBrief` prompt from its ledger, exactly as
+before, and retreat receives its rejected attempts in its `RetreatBrief`.
+Implementations:
 
-- `ScriptSupervisor`: `Evolver<ScriptSubject, Proposal = ScriptProposal>`,
+- `ScriptSupervisor`: `Evolver<ScriptBrief, Proposal = ScriptProposal>`,
   today's `Supervisor`, unchanged in prompt and tool schema. It yields one
   proposal per call.
 - `RetreatEvolver`: `Evolver<Package, Proposal = Proposal>`, wrapping
@@ -205,10 +255,31 @@ decision and notes. Implementations:
 
 `tinyrsi-trace` owns the `events.jsonl` schema unchanged. It adds
 `TracingTrace`, a `TraceSink` that mirrors each `LoopEvent` as a `tracing`
-event inside a per-run span. It also adds the `otlp` feature, which installs an
-OpenTelemetry OTLP exporter. Langfuse accepts OTLP at `/api/public/otel`. The
-endpoint and headers come from the standard `OTEL_EXPORTER_OTLP_*` variables,
-documented in `.env.example`. The hive `epoch_driver` emits the existing event
+event inside per-run and per-epoch spans, and `FanoutTrace`, which writes one
+stream to several sinks.
+
+Langfuse export reuses OpenHuman's existing client and span builder rather
+than a second exporter stack. `tinyrsi-langfuse` depends on `openhuman-embed`
+with only its `langfuse` feature and provides `LangfuseTrace`.
+
+- **Mapping.** Each run is one trace with a root `tinyrsi.run` span. Each
+  epoch is a child span, and each stage is a zero-length child span carrying
+  the event's wire JSON. The run's output includes the final incumbent metric.
+- **Transport.** It uses OTLP, Langfuse's supported trace path (the legacy
+  batch ingestion API is sunset on Langfuse Cloud on 2026-11-16). When a run
+  finishes, OpenHuman's `otlp_requests` builds the requests under its span and
+  byte caps, and `LangfuseClient::send_otlp` posts them to
+  `/api/public/otel/v1/traces`.
+- **Runtime.** A worker thread owns the transport's Tokio runtime, so the sink
+  is safe to use and to drop inside another runtime.
+- **Configuration** is OpenHuman's: `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`
+  and `LANGFUSE_SECRET_KEY`, or the TinyHumans proxy.
+- **Failures.** Export is best-effort, because the trace is observability: a
+  failed export is counted and retried on the next flush, and never returned
+  to the loop.
+
+It is its own crate so hosts that need only `events.jsonl` do not compile
+OpenHuman. The hive `epoch_driver` emits the existing event
 kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 
 ### Removed

@@ -19,6 +19,8 @@ mod llm;
 
 use crate::JudgeCalibration;
 pub use backrooms::BackroomsJudge;
+#[cfg(test)]
+use llm::rater_seed;
 pub use llm::{JudgeLimits, LlmJudge};
 use std::fmt::Write as _;
 use tinyrsi_types::Goal;

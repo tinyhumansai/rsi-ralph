@@ -48,13 +48,14 @@ pub(crate) fn orientation(direction: MetricDirection) -> f64 {
     }
 }
 
-/// Mean and standard-error interval of the oriented paired differences.
+/// Mean and standard-error interval of the oriented paired differences, or
+/// `None` when any part overflows to a non-finite value.
 fn metric_interval(
     incumbent: &[f64],
     candidate: &[f64],
     direction: MetricDirection,
     multiplier: f64,
-) -> (f64, f64, f64) {
+) -> Option<(f64, f64, f64)> {
     let diffs: Vec<f64> = incumbent
         .iter()
         .zip(candidate)
@@ -64,7 +65,22 @@ fn metric_interval(
     let mean = diffs.iter().sum::<f64>() / n;
     let variance = diffs.iter().map(|d| (d - mean).powi(2)).sum::<f64>() / (n - 1.0);
     let half = multiplier * (variance / n).sqrt();
-    (mean, mean - half, mean + half)
+    let interval = (mean, mean - half, mean + half);
+    [interval.0, interval.1, interval.2]
+        .iter()
+        .all(|v| v.is_finite())
+        .then_some(interval)
+}
+
+/// Eligible evidence must be as well-formed as the qualities it gates,
+/// whatever the primary verdict turns out to be.
+fn check_eligible(assessment: &Assessment, seeds: &[u64]) -> Result<()> {
+    match &assessment.eligible {
+        Some(e) if e.len() != seeds.len() || e.iter().any(|q| !(0.0..=1.0).contains(q)) => {
+            Err(crate::Error::InvalidEvaluation)
+        }
+        _ => Ok(()),
+    }
 }
 
 fn runs(seeds: &[u64], qualities: &[f64]) -> Vec<EvalRun> {
@@ -105,8 +121,9 @@ fn paired(
 /// # Errors
 ///
 /// Returns [`crate::Error::InvalidEvaluation`] when an assessment does not
-/// have one quality per seed, a quality lies outside `[0, 1]`, there are fewer
-/// than two distinct seeds, or `compare` rejects the policy.
+/// have one quality (or eligible quality) per seed, a quality lies outside
+/// `[0, 1]`, there are fewer than two distinct seeds, the metric interval
+/// overflows, or `compare` rejects the policy.
 ///
 /// # Examples
 ///
@@ -136,6 +153,8 @@ pub fn decide(
     seeds: &[u64],
     policy: &EvalPolicy,
 ) -> Result<Decision> {
+    check_eligible(incumbent, seeds)?;
+    check_eligible(candidate, seeds)?;
     let comparison = paired(seeds, &incumbent.qualities, &candidate.qualities, policy)?;
     let mut decision = match comparison.decision {
         EvalDecision::Accept { .. } => ScoreDecision::Accept,
@@ -166,6 +185,7 @@ pub fn decide(
                 c.direction,
                 policy.standard_error_multiplier,
             )
+            .ok_or(crate::Error::InvalidEvaluation)?
         }
         _ => (comparison.gain, comparison.lower, comparison.upper),
     };
