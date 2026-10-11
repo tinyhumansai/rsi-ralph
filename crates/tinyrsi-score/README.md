@@ -38,7 +38,9 @@ Scorers never decide, and `decide` is the only decision rule.
    evidence alone.
 3. **Units.** When both sides carry `MetricEvidence`, the reported interval is
    in metric units, exactly as the script loop reports it today. Otherwise it
-   is in quality units.
+   is in quality units. A `Composite` of several members never carries a
+   metric, because its decision rests on blended qualities and a metric
+   interval beside it could contradict that decision.
 
 ## Also here
 

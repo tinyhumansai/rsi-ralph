@@ -55,23 +55,21 @@ fn a_heavy_uncalibrated_judge_cannot_accept_over_a_flat_eligible_scorer() {
 }
 
 #[test]
-fn keeps_the_metric_only_when_exactly_one_member_measured_one() {
+fn keeps_the_metric_only_for_a_single_measuring_member() {
     const HIGH: [f64; 3] = [1.0; 3];
-    const LOW: [f64; 3] = [0.0; 3];
-    let metric = |values: &'static [f64]| {
+    let metric = || {
         ScriptedScorer::new(move |_: &str, goal: &Goal, seeds: &[u64]| {
-            MetricScorer::new(MetricDirection::Maximize).assess(values, goal, seeds)
+            MetricScorer::new(MetricDirection::Maximize).assess(&HIGH, goal, seeds)
         })
     };
-    let one = Composite::new()
-        .with(0.5, metric(&HIGH))
-        .with(0.5, fixed(at(0.5, true)));
-    let kept = one.assess("s", &goal(), &SEEDS).unwrap().metric.unwrap();
+    let alone = Composite::new().with(1.0, metric());
+    let kept = alone.assess("s", &goal(), &SEEDS).unwrap().metric.unwrap();
     assert_eq!(kept.values, vec![1.0; 3]);
-    let two = Composite::new()
-        .with(0.5, metric(&HIGH))
-        .with(0.5, metric(&LOW));
-    assert!(two.assess("s", &goal(), &SEEDS).unwrap().metric.is_none());
+    // A blend decides on blended qualities, so it reports quality units.
+    let blend = Composite::new()
+        .with(0.5, metric())
+        .with(0.5, fixed(at(0.5, true)));
+    assert!(blend.assess("s", &goal(), &SEEDS).unwrap().metric.is_none());
 }
 
 #[test]

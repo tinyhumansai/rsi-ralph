@@ -4,12 +4,13 @@
 //! eligible qualities are the weighted mean of the *eligible members only*,
 //! with their weights renormalized, so a heavily weighted uncalibrated judge
 //! can move the combined score but the eligible evidence must still show an
-//! improvement by itself (see [`crate::decide`]).
+//! improvement by itself (see [`crate::decide`]). A blend reports its interval
+//! in quality units; only a single-member composite keeps a member's metric.
 //!
 //! [`Projected`] scores one view of a richer subject, for example the metric
 //! values of a candidate that also has source text, so members of one
 //! composite can each read the part they understand.
-use crate::{Assessment, Error, MetricEvidence, Result, Scorer};
+use crate::{Assessment, Error, Result, Scorer};
 use tinyrsi_types::Goal;
 
 /// Tolerance on the sum of weights.
@@ -87,10 +88,6 @@ impl<S: ?Sized> Scorer<S> for Composite<'_, S> {
             .iter()
             .filter_map(|(w, a)| a.eligible.as_ref().map(|e| (*w, e)))
             .collect();
-        let metrics: Vec<&MetricEvidence> = assessments
-            .iter()
-            .filter_map(|(_, a)| a.metric.as_ref())
-            .collect();
         let rationale: Vec<&str> = assessments
             .iter()
             .filter_map(|(_, a)| a.rationale.as_deref())
@@ -98,8 +95,11 @@ impl<S: ?Sized> Scorer<S> for Composite<'_, S> {
         Ok(Assessment {
             qualities: weighted(&all, seeds.len()),
             eligible: (!eligible.is_empty()).then(|| weighted(&eligible, seeds.len())),
-            metric: match metrics[..] {
-                [only] => Some(only.clone()),
+            // A blend decides on blended qualities; a metric interval beside
+            // that decision could contradict it, so only a lone member's
+            // metric survives.
+            metric: match &assessments[..] {
+                [(_, only)] => only.metric.clone(),
                 _ => None,
             },
             rationale: (!rationale.is_empty()).then(|| rationale.join("\n\n")),
