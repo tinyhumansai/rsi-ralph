@@ -1,15 +1,12 @@
 # TinyRSI
 
 A host-driven orchestrator for improving tinyhivemind hives through typed
-patches, private shadow evaluations and explicit human approval. It also
-provides a TinyBus lineage module for existing hosts. It is a two-crate cargo workspace:
-`crates/tinyrsi-bus` is the wire contract — member names, payload types, and
-the contract version, with no transport and no behavior — and `crates/tinyrsi`
-is the implementation, built as both an `rlib` and the `cdylib` TinyBus loads.
-A host that only makes calls depends on the contract crate alone and compiles
-neither the module nor `tinybus` itself.
+patches, private shadow evaluations and explicit human approval, plus a
+generic improvement loop for plain scripts. It is a Rust library,
+`crates/tinyrsi`, that a host program links; it has no daemon and no plugin
+surface of its own.
 
-## What the module does
+## What it does
 
 The Rust API runs a host-controlled improvement loop: persist redacted epoch
 observations, generate typed proposals, freeze normalized evaluation policy and
@@ -56,49 +53,27 @@ These public toy fixtures do not establish positive RSI or ignition.
 See [phase status](docs/rsi/phases.md), [host runtime](docs/specs/host-runtime.md)
 and [the experiment protocol](docs/specs/ignition.md).
 
-The existing bus API remains compatible:
-
-- **`Append`** records one graded candidate: its position in the lineage, the
-  content address of its environment snapshot, its private grade, the verdict
-  (`Accepted` or `Rejected`), and the rationale for the decision. An entry
-  whose step does not exactly continue the ledger, or whose snapshot address
-  or rationale is empty, is rejected.
-- **`Head`** answers which entry is the current incumbent: the last accepted
-  entry, or `None` before the first acceptance.
-
-The interface is `ai.tinyhumans.tinyrsi.Lineage` at
-`/ai/tinyhumans/tinyrsi/Lineage`; every payload type and member name is
-published by `crates/tinyrsi-bus`, so a host names them from a library rather
-than by string literal.
-
 ## Project Structure
 
 ```text
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 crates/
-├── tinyrsi-bus/        # the wire contract: what crosses the bus, nothing else
-│   └── src/
-│       ├── lib.rs      # crate docs + the entire public re-export surface
-│       ├── names/      # interface, object path, one constant per member
-│       ├── lineage/    # the payload family the members carry
-│       └── version/    # contract version and the host bind rule
-└── tinyrsi/            # the module: behavior, adapter, and the cdylib
+└── tinyrsi/            # the improvement-loop library
     ├── src/
-    │   ├── lib.rs      # crate docs + public surface, re-exporting the contract
+    │   ├── lib.rs      # crate docs + the entire public surface
     │   ├── error/      # crate-wide `Error` and `Result<T>`
-    │   ├── lineage/    # the compatible bus ledger
+    │   ├── lineage/    # small in-memory ledger of graded candidates
     │   ├── archive/    # replay-validated proposals and evaluation evidence
     │   ├── observation/, evaluation/, orchestrator/  # epoch and approval funnel
     │   ├── scoring/, verification/  # normalized scores and real host checks
     │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
     │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
     │   ├── host/, model/, suites/   # deployment and isolated model evaluation
-    │   ├── experiment/ # preregistered paired trial ledger
-    │   └── tinybus_module/   # TinyBus interface, ABI exports, integration tests
+    │   ├── script_loop/, process/, trace/  # plain-script loop and its trace
+    │   └── experiment/ # preregistered paired trial ledger
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
-vendor/tinybus/         # pinned TinyBus host types and module SDK
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
 docs/
@@ -107,14 +82,6 @@ docs/
 ├── plans/              # test-first implementation plans
 └── adr/                # immutable architecture decision records
 ```
-
-The split is the point. A payload type describes what a frame carries; the
-behavior that answers it is a different obligation. `tinyrsi` depends on
-`tinyrsi-bus` and re-exports all of it, so `tinyrsi::GradeEntry` and
-`tinyrsi_bus::GradeEntry` are the *same* type rather than structural twins,
-and a host is never forced to choose between linking the whole module and
-redefining the vocabulary. See
-[`crates/tinyrsi-bus/README.md`](crates/tinyrsi-bus/README.md).
 
 Within each crate, feature areas use directory modules: implementation and
 exports live in `mod.rs`, substantial types move to `types.rs`, and unit tests
@@ -137,7 +104,6 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
 cargo run -p tinyrsi --example basic
-cargo build -p tinyrsi --release --lib   # produces the installable cdylib
 ```
 
 Those four checks are exactly what CI runs. Optional extras:
@@ -209,18 +175,8 @@ Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or
 `major` bump. Use `current` only to resume an interrupted release whose version
 commit and tag already exist. The workflow revalidates the workspace, versions
 and tags it — one `[workspace.package]` version that every member inherits —
-builds `crates/tinyrsi` as a TinyBus `cdylib`, and creates a GitHub release.
-Assets follow `tinyrsi-<version>-<platform>.<tar.gz|zip>` and contain the
-native module, its SHA-256 `modules.toml`, license, and
-[`MODULE.md`](MODULE.md). Every release also publishes `checksum.toml`, which
-TinyBus uses to verify an archive before extraction. The workflow loads the
-published Ubuntu archive through TinyBus's GitHub release API and calls its
-`Append` method before declaring the release successful. TinyBus itself is not
-shipped by this repository; the pinned submodule is the build-time SDK. The
-stable native matrix covers Ubuntu 22.04 and 24.04 on x86_64 and ARM64; Fedora
-43 and 44 on x86_64 and ARM64; rolling Arch Linux on its officially supported
-x86_64 architecture; macOS 15 and 26 on Intel and Apple Silicon; Windows Server
-2022 and 2025 on x86_64; and Windows 11 on ARM64.
+and creates a GitHub release with generated notes. A release is a tagged
+source version; there are no binary assets.
 
 The separate acceptance/deployment validation uses a model-authored, schema-bound
 context repair outside the preregistered comparison:

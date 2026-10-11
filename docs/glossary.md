@@ -45,9 +45,9 @@ founding and graded records, prepared candidates, declarations, paired
 evaluations and approvals as ordered events in one JSON file.
 
 **Lineage.** Two meanings. In the loop, the parent chain of accepted archive
-records (`Record::parent`). On the bus, `Lineage` (`lineage/mod.rs`), the
-in-memory step-ordered ledger of `GradeEntry` values served by `Append` and
-`Head`. The two are not connected.
+records (`Record::parent`). Separately, `Lineage` (`lineage/mod.rs`), a small
+in-memory step-ordered ledger of `GradeEntry` values. The two are not
+connected.
 
 **Deployment.** What a coordinator actually runs.
 `DeploymentCheckpoint::deployed_id` (`host/types.rs`) records it;
@@ -184,11 +184,7 @@ through the host's `report`. The host's per-node checker results
 candidate to `Accepted`. `ApprovalGate` is the same boundary for the raw
 `run_proposal` funnel.
 
-## Bus module
+## Lineage ledger
 
-**GradeEntry.** `crates/tinyrsi-bus/src/lineage/types.rs`: step, snapshot
-address, grade, verdict and rationale, the payload of `Append`.
-
-**Contract version.** `CONTRACT_VERSION` and `is_compatible`
-(`crates/tinyrsi-bus/src/version/`): the bind rule a host checks before
-calling the module.
+**GradeEntry.** `crates/tinyrsi/src/lineage/types.rs`: step, snapshot
+address, grade, verdict and rationale; one row of the `Lineage` ledger.

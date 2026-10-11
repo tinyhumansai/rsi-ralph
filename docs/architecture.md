@@ -8,9 +8,8 @@ runs on its own: the host owns the coordinator, the model credentials, the
 private test tasks and the human who approves changes. TinyRSI supplies the
 durable bookkeeping and the gates between those pieces.
 
-The repository also ships a TinyBus module that serves a small lineage ledger
-(`Append` / `Head`). That module is independent of the loop described here;
-see [`MODULE.md`](../MODULE.md) and
+The crate also holds a small in-memory `Lineage` ledger of graded
+candidates, independent of the loop described here; see
 [`crates/tinyrsi/src/lineage/README.md`](../crates/tinyrsi/src/lineage/README.md).
 
 Terms in *italics* below are defined in the [glossary](glossary.md). For the

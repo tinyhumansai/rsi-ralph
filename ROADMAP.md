@@ -13,14 +13,6 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**TinyBus module**
-
-- `ai.tinyhumans.tinyrsi.Lineage` with `Append` and `Head`, served from an
-  in-memory `Lineage` ledger (`src/lineage/`, `src/tinybus_module/`).
-- `tinyrsi-bus` contract crate: names, payloads and `CONTRACT_VERSION`.
-- Release workflow producing per-platform module archives with
-  `checksum.toml`; `verify_module` and `verify_github_release` examples.
-
 **Improvement loop library** (paths under `crates/tinyrsi/src/`)
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
@@ -80,6 +72,10 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
   original-versus-learned comparison (P6).
 
 ## Out of scope
+
+- A TinyBus or other plugin surface. The lineage module and its native
+  release archives were removed
+  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); TinyRSI is a library.
 
 - Modifying vendored or upstream engines from this repository. OpenHuman,
   tinyhivemind language and coordinator, tinybackrooms and memory engines

@@ -4,36 +4,29 @@ This file is the single source of truth for how humans and coding agents work
 in this repository. `CLAUDE.md` is a symlink to this file, so every agent reads
 the same instructions.
 
-TinyRSI is a host-driven improvement loop for tinyhivemind hives plus a small
-TinyBus lineage module. Start with [`docs/architecture.md`](docs/architecture.md)
-for the shape of one epoch and [`docs/glossary.md`](docs/glossary.md) for the
-vocabulary used throughout the code and docs.
+TinyRSI is a host-driven improvement loop for tinyhivemind hives and plain
+scripts, shipped as a Rust library. Start with
+[`docs/architecture.md`](docs/architecture.md) for the shape of one epoch and
+[`docs/glossary.md`](docs/glossary.md) for the vocabulary used throughout the
+code and docs.
 
 ## Project Structure
 
 This is a Rust 2024 cargo workspace rooted at a virtual `Cargo.toml`. Every
 crate lives under `crates/`, one directory per package, each directory named for
-the package it holds. There is no root package: the crate that ships as the
-loadable module is `crates/tinyrsi`, the same as any other member.
+the package it holds. There is no root package: the library hosts depend on is
+`crates/tinyrsi`, the same as any other member.
 
 ```text
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
-MODULE.md               # installation notes shipped inside release archives
 ROADMAP.md              # shipped / next / out of scope
 crates/
-├── tinyrsi-bus/        # the wire contract: what crosses the bus, nothing else
-│   └── src/
-│       ├── lib.rs      # crate docs + the entire public re-export surface
-│       ├── names/      # interface, object path, one constant per member
-│       ├── version/    # CONTRACT_VERSION and the host bind rule
-│       └── lineage/    # GradeEntry and the Append/Head payloads
-└── tinyrsi/            # the loop library, the bus adapter, and the cdylib
+└── tinyrsi/            # the loop library
     ├── src/
-    │   ├── lib.rs            # crate docs + public surface, re-exporting the contract
+    │   ├── lib.rs            # crate docs + the entire public surface
     │   ├── error/            # crate-wide `Error` and `Result<T>`
-    │   ├── tinybus_module/   # TinyBus interface and ABI exports (Append, Head)
-    │   ├── lineage/          # the in-memory ledger served over the bus
+    │   ├── lineage/          # small in-memory ledger of graded candidates
     │   ├── archive/          # durable selection history (records, proposals, evidence)
     │   ├── observation/      # read-only coordinator snapshots and dossiers
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
@@ -46,13 +39,18 @@ crates/
     │   ├── blueprint/        # verified decomposition DAG
     │   ├── verification/     # host checkers and controlled completion
     │   ├── experiment/       # preregistered original-vs-evolved protocol
+    │   ├── script_loop/      # improvement loop over a plain script
+    │   ├── process/          # bounded child-process runner
+    │   ├── trace/            # append-only `events.jsonl` loop trace
     │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
     │   ├── evidence_journal/ # [host] measured turn callbacks and epoch receipts
     │   ├── host/             # [host] DeploymentStore, CoordinatorHost
     │   └── suites/           # [host] private suites and CoordinatorEvaluator
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
-vendor/tinybus/         # pinned TinyBus host types and module SDK
+vendor/tinyhivemind/    # pinned hive language, coordinator and storage
+vendor/tinybackrooms/   # pinned creative-retreat engine
+apps/rsi-viz/           # read-only Next.js loop visualizer
 docs/                   # see docs/README.md for what lives where
 ```
 
@@ -60,21 +58,7 @@ Modules marked `[host]` compile only with the `host` Cargo feature, which adds
 SQLite coordinator storage and Tokio. Each module directory follows the
 `mod.rs` / `types.rs` / `test.rs` layout below, and most carry a `README.md`.
 
-### The two-crate split
-
-`crates/tinyrsi-bus` holds every type that crosses the bus and the names of the
-members that carry them. It has no transport, no runtime, and no behavior, and
-CI asserts it stays that way. A host that only makes calls depends on it alone.
-
-`crates/tinyrsi` depends on it and re-exports all of it, so
-`tinyrsi::GradeEntry` and `tinyrsi_bus::GradeEntry` are the *same* type
-rather than structural twins. That direction is load-bearing: a parallel set of
-payload types for hosts would mean a conversion at every call site that nothing
-checks.
-
-The rule for deciding where something goes: a payload type describes what a
-frame carries and belongs in the contract; anything that answers a frame, holds
-a connection, or touches an engine belongs in the module crate.
+### Adding a crate
 
 Add a crate by creating `crates/<name>/` — `members = ["crates/*"]` picks it up
 by existing. Inherit `version`, `edition`, `rust-version`, `license`, and
@@ -123,7 +107,7 @@ Supporting commands:
 
 - `cargo fmt --all` — format before committing.
 - `cargo test <filter>` — run a focused subset while iterating.
-- `cargo test -p tinyrsi-bus` — run one crate's suite.
+- `cargo test -p tinyrsi` — run one crate's suite.
 - `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
 - `cargo run -p tinyrsi --features host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
@@ -136,9 +120,8 @@ Supporting commands:
 
 Other examples: `live_openrouter` (arithmetic smoke, opt-in like the above),
 `private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all need
-`host`; the last builds private Lean proofs with a pinned Lake), `verify_module`
-(loads a built `cdylib` through TinyBus) and `verify_github_release` (downloads
-and loads a tagged release asset).
+`host`; the last builds private Lean proofs with a pinned Lake), and
+`script_loop` (offline curve-fitting run of the plain-script loop).
 
 Never skip, ignore, or delete a failing test to make a command pass. Fix the
 root cause, or stop and report the blocker.
@@ -186,8 +169,6 @@ add one:
 - gate anything optional behind a Cargo feature, documented in `Cargo.toml`;
 - declare it once in the root `[workspace.dependencies]` when more than one
   crate needs it, and take it with `{ workspace = true }`;
-- never add one to `crates/tinyrsi-bus` that pulls in a transport, an async
-  runtime, an HTTP client, or a native library — CI fails the build if you do;
 - leave a comment above the entry explaining *why* the crate is needed and what
   uses it — see the existing entries for the expected tone;
 - prefer well-maintained crates with a compatible license.
@@ -197,18 +178,19 @@ releases are reproducible.
 
 ### Vendored dependencies
 
-TinyBus is registered as the `vendor/tinybus` git submodule and pinned by its
-gitlink. It supplies the host types and module-side SDK required to build this
-crate's `cdylib`. Initialize it after cloning with:
+tinyhivemind and tinybackrooms are registered as the `vendor/tinyhivemind` and
+`vendor/tinybackrooms` git submodules and pinned by their gitlinks. They supply
+the hive language, coordinator and storage, and the creative-retreat engine.
+Initialize them after cloning with:
 
 ```sh
 git submodule update --init --recursive
 ```
 
-Do not edit vendored code from the parent repository. Make TinyBus changes in
-its own repository, push them there, then update this repository's gitlink in a
-separate commit. Keep the exact path dependencies and minimal features unless a
-new module capability requires more.
+Do not edit vendored code from the parent repository. Make changes in the
+vendored project's own repository, push them there, then update this
+repository's gitlink in a separate commit. Keep the exact path dependencies and
+minimal features unless a new capability requires more.
 
 ## Testing
 
@@ -216,9 +198,9 @@ new module capability requires more.
   touch private items.
 - Integration tests live in `crates/<crate>/tests/` and exercise only the public
   API — they are the regression suite for the crate's contract.
-- Payload types pin their serde representation in a unit test. That
-  representation is the wire form: a host and a module that disagree about a
-  field name fail at runtime with a decode error.
+- Persisted and wire types pin their serde representation in a unit test.
+  That representation is the stored form: a writer and a reader that disagree
+  about a field name fail at runtime with a decode error.
 - Use descriptive, behavioral test names: `rejects_an_empty_name`, not
   `test_greet_2`.
 - Cover the failure paths, not just the happy path. Every new error variant
@@ -296,9 +278,8 @@ Releases run from `.github/workflows/release.yml` via a manual
 an interrupted release after its version commit and tag exist. The workflow
 re-runs the full validation suite, computes the next version, updates
 the root `[workspace.package]` version and `Cargo.lock`, commits and tags
-`vX.Y.Z`, builds `crates/tinyrsi` as a TinyBus module for every supported
-platform, pushes, and creates an immutable GitHub release with installable
-native packages.
+`vX.Y.Z`, pushes, and creates an immutable GitHub release with generated
+notes. A release is a tagged source version; there are no binary assets.
 
 Consequently:
 
@@ -308,8 +289,7 @@ Consequently:
 - Follow semantic versioning. Any change to the public surface that is not
   purely additive is a breaking change and needs a major bump (pre-1.0: a minor
   bump).
-- The module must be packageable for every release target — `main` should
-  always be green.
+- `main` should always be green, so any commit on it can be released.
 
 ## Agent Working Agreement
 

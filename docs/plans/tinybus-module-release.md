@@ -1,11 +1,9 @@
 # Plan: Ship the first TinyBus module release
 
 > **Historical.** This plan is complete and kept as a record of how the first
-> module release landed. The current packaging contract is
-> [`../specs/tinybus-module-release.md`](../specs/tinybus-module-release.md),
-> and the release procedure is described in the "Releases" section of
-> [`AGENTS.md`](../../AGENTS.md). Do not update this file to track later
-> releases.
+> module release landed. The module was later removed; see
+> [`../specs/crate-split.md`](../specs/crate-split.md). Do not update this
+> file.
 
 1. Land the `lineage` feature area: the `Append` and `Head` members over
    TinyBus module ABI v1.
