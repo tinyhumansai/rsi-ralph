@@ -517,7 +517,7 @@ async fn the_key_never_reaches_any_file_or_client() {
     let h = Harness::start(5.0, 50.0);
     for content in ["hello", "reject", "crash", "echo"] {
         let (_, text) = h.chat("/v1/chat/completions", content, json!({})).await;
-        assert!(!text.contains(KEY) || content == "echo", "{content}: {text}");
+        assert!(!text.contains(KEY), "{content}: {text}");
     }
     let (_, text) = h
         .chat("/v1/chat/completions", "hello", json!({"stream": true}))
