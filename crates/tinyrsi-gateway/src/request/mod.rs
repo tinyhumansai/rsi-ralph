@@ -96,14 +96,16 @@ pub(crate) fn prepare(
     let price = prices.get(&model)?;
     let original_bytes = serde_json::to_vec(&map).map_or(0, |bytes| bytes.len()) as u64;
     let prompt_bound = usd(original_bytes + PROMPT_SLACK_TOKENS, price.prompt);
-    map.insert(
-        "provider".into(),
-        json!({
-            "only": [price.provider],
-            "allow_fallbacks": false,
-            "max_price": { "prompt": price.prompt * 1e6, "completion": price.completion * 1e6 },
-        }),
-    );
+    if price.provider != ANY_PROVIDER {
+        map.insert(
+            "provider".into(),
+            json!({
+                "only": [price.provider],
+                "allow_fallbacks": false,
+                "max_price": { "prompt": price.prompt * 1e6, "completion": price.completion * 1e6 },
+            }),
+        );
+    }
     let mut stream = false;
     let mut reserve_usd = prompt_bound;
     if endpoint == Endpoint::Chat {
