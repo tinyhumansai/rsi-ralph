@@ -51,6 +51,16 @@ struct Lab {
 impl Respond for Lab {
     fn respond(&self, request: &Request) -> ResponseTemplate {
         let body = String::from_utf8_lossy(&request.body);
+        let parsed: Value = serde_json::from_slice(&request.body).unwrap_or_default();
+        let forced = parsed["tool_choice"]["function"]["name"].as_str().unwrap_or("");
+        if forced == "grade" {
+            let reply = tool_call("judge-1", "grade", &json!({"score": 8, "rationale": "a clear change"}));
+            return ResponseTemplate::new(200).set_body_json(reply);
+        }
+        if forced == "submit_items" {
+            let items = json!({"items": [{"idea": "colour the most constrained vertex first", "why": "saturation"}]});
+            return ResponseTemplate::new(200).set_body_json(tool_call("ideas-1", "submit_items", &items));
+        }
         let seat = if body.contains("You lead a two-seat lab") {
             "lead"
         } else if body.contains("You implement one assignment") {
@@ -163,6 +173,17 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let tmp = tempfile::tempdir().unwrap();
     let loop_dir = tmp.path().join("graph-coloring");
     copy(&root.join("loops/graph-coloring"), &loop_dir);
+    // Add a judge on a priced extra model and a small creative retreat.
+    let manifest = loop_dir.join("rsi.json");
+    let mut m: Value = serde_json::from_str(&std::fs::read_to_string(&manifest).unwrap()).unwrap();
+    m["models"] = json!({"judge": "openai/gpt-4.1-mini"});
+    m["budget"]["prices"] = json!({"openai/gpt-4.1-mini":
+        {"prompt_per_mtok": 0.4, "completion_per_mtok": 1.6, "provider": "openai"}});
+    m["score"]["scorers"].as_array_mut().unwrap().push(
+        json!({"id": "clarity", "judge": "scorers/clarity.md", "weight": 0.2, "raters": 1}));
+    m["creativity"]["retreat"] = json!({"variations": 1, "turns": 2, "ideas": 1, "mode": "brainstorm"});
+    std::fs::write(&manifest, m.to_string()).unwrap();
+    std::fs::write(loop_dir.join("scorers/clarity.md"), "Is the change clear and general?").unwrap();
     let home = tmp.path().join("home");
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -232,6 +253,11 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     );
     assert!(record["spend_usd"].as_f64().unwrap() > 0.0, "{record}");
     assert!(run.join("epoch-1/hive/events.jsonl").exists());
+    let brief = std::fs::read_to_string(run.join("epoch-1/brief.md")).unwrap();
+    assert!(brief.contains("colour the most constrained vertex first"), "{brief}");
+    let judged = &ledger["candidates"][0]["scorecard"]["judges"]["clarity"];
+    assert!((judged["quality"].as_f64().unwrap() - 0.8).abs() < 1e-9, "{judged}");
+    assert!(home.join("retreat/graph-coloring/ideas.json").exists());
 
     for file in files(&run).into_iter().chain(files(&home)) {
         if let Ok(text) = std::fs::read_to_string(&file) {
