@@ -73,5 +73,5 @@ mod usage;
 
 pub use error::{Error, Result};
 pub use gateway::{DEFAULT_LISTEN, DEFAULT_UPSTREAM, DRAIN_LIMIT, Gateway, GatewayConfig, Spend};
-pub use price::{EMBEDDING, GLM_FLASH, Price, PriceTable};
+pub use price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable};
 pub use request::Limits;
