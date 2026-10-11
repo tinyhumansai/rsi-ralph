@@ -6,7 +6,7 @@
 )]
 use super::test::{Scripted, loss, reply, subject, supervisor};
 use super::*;
-use crate::{JsonlTrace, LoopEvent, ManualClock, TraceRecord, VecTrace};
+use crate::{JsonlTrace, LoopEvent, ManualClock, NullTrace, TraceRecord, VecTrace};
 use std::path::Path;
 
 fn location(dir: &Path) -> RunLocation {
