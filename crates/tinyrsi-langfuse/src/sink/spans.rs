@@ -122,9 +122,10 @@ impl SpanBuilder {
             }
             LoopEvent::RunFinished { reason, .. } => {
                 self.stage(&run, event, wire.clone(), at);
-                // A failed run interrupts whatever is still open, so an
+                // A failed run (an error, or a provider that refused every call)
+                // interrupts whatever is still open, so an
                 // unfinished epoch reads as failed rather than completed.
-                let status = if *reason == StopReason::Error {
+                let status = if matches!(reason, StopReason::Error | StopReason::ProviderRefused) {
                     SpanStatus::Error
                 } else {
                     SpanStatus::Ok
