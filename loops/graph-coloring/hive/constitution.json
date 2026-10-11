@@ -4,8 +4,8 @@
     "never read or edit the scorer",
     "keep color(n, edges) pure and deterministic"
   ],
-  "max_turns": 20,
-  "max_width": 2,
+  "max_turns": 40,
+  "max_width": 4,
   "permitted_edits": [
     "prompt",
     "context",
