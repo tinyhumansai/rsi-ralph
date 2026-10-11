@@ -9,6 +9,7 @@
 
 use std::{
     collections::BTreeMap,
+    fmt::Write as _,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -306,8 +307,15 @@ fn tree_hash(root: &Path) -> Result<String> {
         hasher.update((bytes.len() as u64).to_le_bytes());
         hasher.update(&bytes);
     }
-    let digest = hasher.finalize();
-    Ok(digest.iter().take(6).map(|b| format!("{b:02x}")).collect())
+    Ok(hex(&hasher.finalize()[..6]))
+}
+
+/// Lower-case hex of `bytes`.
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    bytes.iter().fold(String::new(), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    })
 }
 
 #[cfg(test)]

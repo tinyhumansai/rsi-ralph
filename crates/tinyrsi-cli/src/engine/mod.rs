@@ -218,12 +218,7 @@ impl Engine<'_> {
             let mut hasher = Sha256::new();
             hasher.update(revision.as_bytes());
             hasher.update(serde_json::to_vec(spec).unwrap_or_default());
-            let digest = hasher.finalize();
-            digest
-                .iter()
-                .take(8)
-                .map(|b| format!("{b:02x}"))
-                .collect::<String>()
+            crate::subject::hex(&hasher.finalize()[..8])
         };
         let cached = self
             .store

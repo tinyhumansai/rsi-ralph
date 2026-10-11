@@ -105,15 +105,14 @@ fn incumbent(input: &BriefInput<'_>) -> String {
 }
 
 fn history(entries: &[HistoryEntry]) -> String {
-    entries
-        .iter()
-        .map(|e| {
-            format!(
-                "- epoch {} `{}`: {} ({})\n",
-                e.epoch, e.candidate, e.outcome, e.reason
-            )
-        })
-        .collect()
+    entries.iter().fold(String::new(), |mut out, e| {
+        let _ = writeln!(
+            out,
+            "- epoch {} `{}`: {} ({})",
+            e.epoch, e.candidate, e.outcome, e.reason
+        );
+        out
+    })
 }
 
 fn failures(input: &BriefInput<'_>) -> String {
@@ -149,7 +148,10 @@ fn failures(input: &BriefInput<'_>) -> String {
 }
 
 fn ideas(ideas: &[String]) -> String {
-    ideas.iter().map(|i| format!("- {i}\n")).collect()
+    ideas.iter().fold(String::new(), |mut out, i| {
+        let _ = writeln!(out, "- {i}");
+        out
+    })
 }
 
 #[cfg(test)]

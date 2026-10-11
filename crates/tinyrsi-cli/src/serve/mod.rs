@@ -205,7 +205,12 @@ fn stream_events(stream: &mut TcpStream, file: &Path) -> std::io::Result<()> {
     loop {
         let lines = read_new_lines(file, &mut offset, &mut partial);
         if !lines.is_empty() {
-            let message: String = lines.iter().map(|l| format!("data: {l}\n")).collect();
+            let message = lines.iter().fold(String::new(), |mut out, l| {
+                out.push_str("data: ");
+                out.push_str(l);
+                out.push('\n');
+                out
+            });
             writeln!(stream, "{message}")?;
             last_sent = Instant::now();
         }

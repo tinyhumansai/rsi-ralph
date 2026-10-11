@@ -147,7 +147,7 @@ pub fn execute(
         }
         Command::Runs { r#loop } => {
             for r in store.list_runs(r#loop.as_deref())? {
-                let score = r
+                let shown = r
                     .incumbent_score
                     .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"));
                 say(
@@ -158,7 +158,7 @@ pub fn execute(
                         r.id,
                         status(r.status),
                         r.epochs,
-                        score,
+                        shown,
                         r.spend_usd
                     ),
                 )?;
