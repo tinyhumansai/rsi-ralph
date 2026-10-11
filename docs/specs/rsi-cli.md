@@ -74,7 +74,7 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `models` | no | `default`, `judge`, `retreat` model ids (OpenRouter names). |
 | `creativity` | no | `temperature` and `retreat`; see below. |
 | `keys` | no | Capability to env-var name; see below. |
-| `score` | yes | `scorers` (non-empty) and `decide`. |
+| `score` | yes | `scorers` (non-empty), `decide`, and `parallel` (default 1). |
 | `gate` | no | Ordered list of `{ "run", "cwd"?, "timeout_secs"? }`. |
 | `budget` | no | `run_usd`, `total_usd`, `score_reserve_usd`, `prices`. |
 | `epochs` | no | Maximum epochs, default 3. |
@@ -139,6 +139,18 @@ one of:
 - `sign`: the scorer runs once and reports per-item 0/1 scores for `split`; an
   exact one-sided sign test on discordant pairs at `alpha` (default 0.10)
   decides. Judges are recorded but do not vote.
+
+**`score.parallel`.** The most seeds of one `run` scorer that run at the same
+time, a whole number of at least 1 (default 1: one seed after another). Raise
+it when each seed is long and independent of the others, such as a scorer that
+plays a whole game episode per seed. Scorers still run one after another; only
+a scorer's seeds overlap. Each seed keeps its own invocation folder and
+`$RSI_OUT`, its own process group, `timeout_secs` and output cap, and results
+are recorded in seed order exactly as a sequential run records them, so a
+failed seed is reported the same way. A command that cannot be started still
+fails the whole scoring of that checkout; no further seeds of that scorer are
+started once one has. Seeds that share outside resources (ports, a GPU, a
+licence) must pick distinct ones from `$RSI_SEED` or `$RSI_OUT`.
 
 Other `run` scorers are recorded and shown in the brief, never decided on.
 
