@@ -3651,6 +3651,8 @@ dependencies = [
  "tinyrsi-swarm",
  "tinyrsi-trace",
  "tinyrsi-verify",
+ "tokio",
+ "wiremock",
 ]
 
 [[package]]
