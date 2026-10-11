@@ -338,3 +338,26 @@ fn an_incumbent_already_at_the_target_stops_at_once() {
     e.epochs = Some(1);
     assert_eq!(e.run().unwrap().reason, StopReason::GoalReached);
 }
+
+#[test]
+fn the_incumbent_cache_keeps_scores_under_different_env_apart() {
+    let root = tempfile::tempdir().unwrap();
+    let store = Store::new(root.path().join("home"));
+    let baseline = |value: &str, run: &str| {
+        let (dir, _) = fixture(root.path(), |m| {
+            m["env"] = serde_json::json!({ "VALUE": value });
+        });
+        fs::write(dir.join("scorers/m.sh"), "echo \"METRIC m=$VALUE\"\n").unwrap();
+        let parsed = manifest::parse(&manifest::load_dir(&dir).unwrap()).unwrap();
+        let mut hive = Scripted {
+            seats: vec![],
+            plan: Box::new(|_, _| None),
+            briefs: Vec::new(),
+        };
+        let mut e = engine(&parsed, &dir, &store, run, &mut hive);
+        e.epochs = Some(1);
+        e.run().unwrap().score
+    };
+    assert_eq!(baseline("7", "a"), Some(7.0));
+    assert_eq!(baseline("5", "b"), Some(5.0));
+}
