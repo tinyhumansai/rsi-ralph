@@ -206,17 +206,24 @@ impl ArtifactProducer for Producer {
         Box::pin(async move { Ok(ArtifactSubmission { binding, content }) })
     }
 }
+struct RejectEvidence;
+impl VerificationObserver for RejectEvidence {
+    fn observe(&self, _: &VerificationEvidence) -> crate::Result<()> {
+        Err(crate::Error::ArchiveIo)
+    }
+}
 #[tokio::test]
-async fn actual_coordinator_parks_failed_or_forged_and_completes_verified() {
+async fn actual_coordinator_parks_failed_forged_or_unpersisted_and_completes_verified() {
     use std::sync::Arc;
     use tinyhivemind_hives::{
         AgentRegistration, Coordinator, CoordinatorOptions, Destination, EpisodePhase, HiveInfo,
         MemoryStorage, SendMessage,
     };
-    for (content, forge, passed) in [
-        (b"yes".to_vec(), false, true),
-        (b"no".to_vec(), false, false),
-        (b"yes".to_vec(), true, false),
+    for (content, forge, observer_fail, passed) in [
+        (b"yes".to_vec(), false, false, true),
+        (b"no".to_vec(), false, false, false),
+        (b"yes".to_vec(), true, false, false),
+        (b"yes".to_vec(), false, true, false),
     ] {
         let c = Arc::new(
             Coordinator::new(
@@ -239,17 +246,19 @@ async fn actual_coordinator_parks_failed_or_forged_and_completes_verified() {
             status: crate::NodeStatus::Open,
         }])
         .unwrap();
-        let runner = Arc::new(
-            VerifiedRunner::new(
-                &c,
-                Arc::new(Producer { content, forge }),
-                Arc::new(registry(HostVerifier::Golden {
-                    expected: b"yes".to_vec(),
-                })),
-                blueprint,
-            )
-            .unwrap(),
-        );
+        let mut runner = VerifiedRunner::new(
+            &c,
+            Arc::new(Producer { content, forge }),
+            Arc::new(registry(HostVerifier::Golden {
+                expected: b"yes".to_vec(),
+            })),
+            blueprint,
+        )
+        .unwrap();
+        if observer_fail {
+            runner = runner.with_observer(Arc::new(RejectEvidence));
+        }
+        let runner = Arc::new(runner);
         c.register_agent(AgentRegistration {
             agent_id: "seat".into(),
             runtime_id: "runtime".into(),

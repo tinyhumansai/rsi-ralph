@@ -1,4 +1,5 @@
 //! Deferred host-controlled production runners using immutable strong verifiers.
+use super::recording::Recording;
 use super::{PrivateTask, runner};
 use crate::{
     Budget, Error, ModelPort, ModelRequest, Result, RunnerFactory, SnapshotMemoryStore,
@@ -24,6 +25,7 @@ pub struct ControlledRunnerFactory {
     coordinator: Arc<Mutex<Weak<Coordinator>>>,
     evidence: Arc<Mutex<Vec<crate::VerificationEvidence>>>,
     usage: Arc<Mutex<Vec<crate::TurnUsage>>>,
+    journal: Option<Arc<crate::EvidenceJournal>>,
 }
 impl std::fmt::Debug for ControlledRunnerFactory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -57,7 +59,16 @@ impl ControlledRunnerFactory {
             coordinator: Arc::new(Mutex::new(Weak::new())),
             evidence: Arc::new(Mutex::new(vec![])),
             usage: Arc::new(Mutex::new(vec![])),
+            journal: None,
         })
+    }
+    /// Journal turn intent, measured usage and checker evidence before completion.
+    ///
+    /// The host stops admission before checkpointing the shared journal.
+    #[must_use]
+    pub fn with_evidence_journal(mut self, journal: Arc<crate::EvidenceJournal>) -> Self {
+        self.journal = Some(journal);
+        self
     }
     /// Identity-bound strong checker evidence without private oracle contents.
     /// # Errors
@@ -119,6 +130,7 @@ impl RunnerFactory for ControlledRunnerFactory {
             coordinator: self.coordinator.clone(),
             evidence: self.evidence.clone(),
             usage: self.usage.clone(),
+            journal: self.journal.clone(),
         }))
     }
 }
@@ -134,10 +146,11 @@ struct DeferredRunner {
     coordinator: Arc<Mutex<Weak<Coordinator>>>,
     evidence: Arc<Mutex<Vec<crate::VerificationEvidence>>>,
     usage: Arc<Mutex<Vec<crate::TurnUsage>>>,
+    journal: Option<Arc<crate::EvidenceJournal>>,
 }
 type Meter = Arc<Mutex<Option<(u64, u64)>>>;
 impl DeferredRunner {
-    fn prepare(&self, request: &TurnRequest) -> Result<(VerifiedRunner, Meter)> {
+    fn prepare(&self, request: &TurnRequest) -> Result<(VerifiedRunner, Meter, Option<Recording>)> {
         let coordinator = self
             .coordinator
             .lock()
@@ -156,7 +169,7 @@ impl DeferredRunner {
             .map(|m| m.body.as_str())
             .collect::<Vec<_>>()
             .join("\n");
-        let request = ModelRequest::new(
+        let model_request = ModelRequest::new(
             system,
             format!("{}\nVisible task messages:\n{visible}", self.task.prompt),
             self.task.seeds[0],
@@ -164,27 +177,31 @@ impl DeferredRunner {
             self.max_output_tokens,
             self.timeout_ms,
         )?;
-        let meter = Arc::new(Mutex::new(None));
-        let producer = Arc::new(runner::Producer {
-            model: self.model.clone(),
-            request,
-            meter: meter.clone(),
-            timeout_ms: self.timeout_ms,
-        });
         let registry = Arc::new(VerifierRegistry::new(vec![VerifierDeclaration {
             node_id: "artifact".into(),
             owner_seat: self.seat.id.clone(),
             verifier: self.task.verifier.clone(),
         }])?);
-        Ok((
-            VerifiedRunner::new(
-                &coordinator,
-                producer,
-                registry,
-                runner::blueprint(&self.task)?,
-            )?,
-            meter,
-        ))
+        let blueprint = runner::blueprint(&self.task)?;
+        let recording = self
+            .journal
+            .as_ref()
+            .map(|j| Recording::begin(j.clone(), request))
+            .transpose()?;
+        let meter = Arc::new(Mutex::new(None));
+        let producer = Arc::new(runner::Producer {
+            model: recording
+                .as_ref()
+                .map_or_else(|| self.model.clone(), |r| r.model(self.model.clone())),
+            request: model_request,
+            meter: meter.clone(),
+            timeout_ms: self.timeout_ms,
+        });
+        let mut verified = VerifiedRunner::new(&coordinator, producer, registry, blueprint)?;
+        if let Some(recording) = &recording {
+            verified = verified.with_observer(Arc::new(recording.clone()));
+        }
+        Ok((verified, meter, recording))
     }
 }
 impl AgentRunner for DeferredRunner {
@@ -193,7 +210,7 @@ impl AgentRunner for DeferredRunner {
         let evidence = self.evidence.clone();
         let usage = self.usage.clone();
         Box::pin(async move {
-            let Ok((verified, meter)) = prepared else {
+            let Ok((verified, meter, recording)) = prepared else {
                 return Ok(TurnOutcome {
                     session_id: request
                         .session_id
@@ -203,7 +220,13 @@ impl AgentRunner for DeferredRunner {
                 });
             };
             let seat_id = request.agent_id.clone();
-            let outcome = verified.run(request).await?;
+            let outcome = verified.run(request).await;
+            if let Some(recording) = recording {
+                recording
+                    .finish()
+                    .map_err(|_| tinyhivemind_hives::Error::Poisoned)?;
+            }
+            let outcome = outcome?;
             let observed = verified
                 .evidence()
                 .map_err(|_| tinyhivemind_hives::Error::Poisoned)?;

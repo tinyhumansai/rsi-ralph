@@ -2,6 +2,7 @@
 mod factory;
 mod fingerprint;
 pub use factory::ControlledRunnerFactory;
+mod recording;
 mod runner;
 pub(crate) use runner::options as coordinator_options;
 mod types;

@@ -35,3 +35,9 @@ verified. Raw Coordinator callers are outside this boundary and can still
 submit their own completion actions. For multi-seat DAGs, the host must release
 parked seats when their dependencies become ready; seat membership retirement
 must not be counted as verified success.
+
+`VerifiedRunner::with_observer` installs a host evidence callback after a real
+checker and before its DAG/completion update. A failed callback parks the turn
+without submitting completion. `ControlledRunnerFactory::with_evidence_journal`
+uses this port together with provider usage callbacks to persist measured
+evidence before allowing its host outcome to finalize.

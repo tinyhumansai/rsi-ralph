@@ -13,6 +13,10 @@ recorded separately.
 - [Host runtime](../specs/host-runtime.md): durable deployment, compensation,
   exact memory restoration and the supported runner boundary.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.
+- [Durable epoch evidence](../specs/epoch-evidence.md): callback identities,
+  atomic dossiers and the offline two-epoch demonstration.
+- [P1 offline receipts](p1-evidence.md): measured turns and observed checker
+  passes retained across restart and repeated checkpoints.
 - [Verified decomposition](specs/way-of-working.md): blueprint and verification model.
 - [Scoring](specs/scoring.md): checkpoints, normalization, uncertainty and anchors.
 - [Scoring acceptance map](scoring-acceptance.md): reject/decision test coverage
