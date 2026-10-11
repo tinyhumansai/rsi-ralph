@@ -1,13 +1,14 @@
-//! Mapping, batching and delivery of the Langfuse sink, against a loopback
+//! Span mapping and OTLP delivery of the Langfuse sink, against a loopback
 //! HTTP listener so no test touches the network.
 #![expect(clippy::unwrap_used, reason = "assert deterministic test fixtures")]
+use super::spans::SpanBuilder;
 use super::*;
+use openhuman_embed::observe::langfuse::{SpanKind, SpanStatus};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use std::sync::mpsc;
 use tinyrsi_trace::{MetricDirection, RunGoal, ScoreDecision, StopReason};
 
-fn run() -> Vec<LoopEvent> {
+fn run(reason: StopReason) -> Vec<LoopEvent> {
     vec![
         LoopEvent::RunStarted {
             run_id: "r1".into(),
@@ -36,59 +37,56 @@ fn run() -> Vec<LoopEvent> {
             incumbent_metric: Some(0.25),
         },
         LoopEvent::RunFinished {
-            reason: StopReason::MaxEpochs,
+            reason,
             incumbent: "b".into(),
             incumbent_metric: Some(0.25),
         },
     ]
 }
 
-/// One received request: request line, headers (lowercased names) and body.
+/// One received request: request line, authorization header and body.
 struct Request {
     line: String,
-    headers: Vec<(String, String)>,
+    auth: String,
     body: Value,
 }
 
-/// Serves `responses.len()` requests on a loopback port, answering each with
-/// the given status, and forwards what it received.
-fn listener(responses: Vec<u16>) -> (String, mpsc::Receiver<Request>) {
+/// Serves one request per entry of `statuses` on a loopback port.
+fn listener(statuses: Vec<u16>) -> (String, mpsc::Receiver<Request>) {
     let socket = TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://{}", socket.local_addr().unwrap());
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
-        for status in responses {
+        for status in statuses {
             let (stream, _) = socket.accept().unwrap();
             let mut reader = BufReader::new(stream);
             let mut line = String::new();
             reader.read_line(&mut line).unwrap();
-            let mut headers = vec![];
+            let (mut auth, mut len) = (String::new(), 0_usize);
             loop {
-                let mut h = String::new();
-                reader.read_line(&mut h).unwrap();
-                if h.trim().is_empty() {
+                let mut header = String::new();
+                reader.read_line(&mut header).unwrap();
+                if header.trim().is_empty() {
                     break;
                 }
-                let (k, v) = h.split_once(':').unwrap();
-                headers.push((k.trim().to_ascii_lowercase(), v.trim().to_owned()));
+                let (name, value) = header.split_once(':').unwrap();
+                match name.trim().to_ascii_lowercase().as_str() {
+                    "authorization" => value.trim().clone_into(&mut auth),
+                    "content-length" => len = value.trim().parse().unwrap(),
+                    _ => {}
+                }
             }
-            let len: usize = headers
-                .iter()
-                .find(|(k, _)| k == "content-length")
-                .map_or(0, |(_, v)| v.parse().unwrap());
             let mut body = vec![0; len];
             reader.read_exact(&mut body).unwrap();
-            let reply = "{}";
             let mut stream = reader.into_inner();
             write!(
                 stream,
-                "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{reply}",
-                reply.len()
+                "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{{}}"
             )
             .unwrap();
             tx.send(Request {
                 line: line.trim().to_owned(),
-                headers,
+                auth,
                 body: serde_json::from_slice(&body).unwrap(),
             })
             .unwrap();
@@ -101,110 +99,93 @@ fn sink(base: &str) -> LangfuseTrace {
     LangfuseTrace::new(LangfuseClient::direct(base, "pk-test", "sk-test").unwrap()).unwrap()
 }
 
-#[test]
-fn formats_unix_milliseconds_as_utc_rfc3339() {
-    assert_eq!(time::iso8601(0), "1970-01-01T00:00:00.000Z");
-    assert_eq!(time::iso8601(951_782_400_000), "2000-02-29T00:00:00.000Z");
-    assert_eq!(time::iso8601(1_791_703_984_123), "2026-10-11T07:33:04.123Z");
-    assert_eq!(time::iso8601(4_102_444_799_999), "2099-12-31T23:59:59.999Z");
+/// Every span in an OTLP request body.
+fn spans_in(body: &Value) -> Vec<Value> {
+    body["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        .as_array()
+        .unwrap()
+        .clone()
 }
 
 #[test]
-fn maps_a_run_to_one_trace_with_an_epoch_span_and_nested_events() {
-    let mut builder = BatchBuilder::default();
-    let events: Vec<Value> = run().iter().flat_map(|e| builder.push(e, 0)).collect();
-    let types: Vec<&str> = events.iter().map(|e| e["type"].as_str().unwrap()).collect();
+fn maps_a_run_to_a_root_span_with_an_epoch_and_stage_spans() {
+    let mut builder = SpanBuilder::default();
+    let mut finished = None;
+    for (i, event) in run(StopReason::MaxEpochs).iter().enumerate() {
+        finished = builder.push(event, 100 + u64::try_from(i).unwrap());
+    }
+    let spans = finished.unwrap();
+    let names: Vec<&str> = spans.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(
-        types,
+        names,
         [
-            "trace-create",
-            "span-create",
-            "event-create",
-            "event-create",
-            "span-update",
-            "event-create",
-            "trace-create",
-            "score-create",
+            "tinyrsi.run",
+            "epoch 1",
+            "scored",
+            "epoch_finished",
+            "run_finished"
         ]
     );
-    let ids: std::collections::BTreeSet<&str> =
-        events.iter().map(|e| e["id"].as_str().unwrap()).collect();
-    assert_eq!(ids.len(), events.len(), "envelope ids are unique");
-    assert_eq!(events[0]["body"]["id"], "r1");
-    assert_eq!(events[0]["body"]["input"]["goal"]["metric"], "error");
-    assert_eq!(events[1]["body"]["id"], "r1:epoch:1");
-    assert_eq!(events[2]["body"]["name"], "scored");
-    assert_eq!(events[2]["body"]["parentObservationId"], "r1:epoch:1");
-    assert_eq!(events[2]["body"]["input"]["decision"], "accept");
-    assert_eq!(events[4]["body"]["endTime"], "1970-01-01T00:00:00.000Z");
-    assert!(events[5]["body"].get("parentObservationId").is_none());
-    assert_eq!(events[6]["body"]["output"]["reason"], "max_epochs");
-    assert_eq!(events[7]["body"]["value"], 0.25);
+    let root = &spans[0];
+    assert_eq!((root.kind, root.status), (SpanKind::Turn, SpanStatus::Ok));
+    assert!(root.parent_span_id.is_none());
+    assert_eq!(root.input.as_ref().unwrap()["goal"]["metric"], "error");
+    assert_eq!(root.output.as_ref().unwrap()["incumbent_metric"], 0.25);
+    assert_eq!(root.end_unix_ms, Some(104));
+    let epoch = &spans[1];
+    assert_eq!(epoch.parent_span_id.as_deref(), Some("r1"));
+    assert_eq!((epoch.start_unix_ms, epoch.end_unix_ms), (101, Some(103)));
+    assert_eq!(spans[2].parent_span_id.as_deref(), Some("r1:epoch:1"));
+    assert_eq!(spans[2].input.as_ref().unwrap()["decision"], "accept");
+    assert_eq!(spans[4].parent_span_id.as_deref(), Some("r1"));
+    assert!(spans.iter().all(|s| s.trace_id == "r1"));
+}
+
+#[test]
+fn a_failed_run_ends_its_root_in_error_and_events_outside_a_run_are_dropped() {
+    let mut builder = SpanBuilder::default();
+    assert!(builder.push(&run(StopReason::Error)[2], 0).is_none());
+    let mut finished = None;
+    for event in run(StopReason::Error) {
+        finished = builder.push(&event, 0);
+    }
+    assert_eq!(finished.unwrap()[0].status, SpanStatus::Error);
     assert!(
-        events
-            .iter()
-            .all(|e| e["body"]["traceId"] == "r1" || e["type"] == "trace-create")
+        builder.push(&run(StopReason::Error)[1], 0).is_none(),
+        "run closed"
     );
 }
 
 #[test]
-fn ignores_events_outside_a_run_and_skips_a_missing_final_metric() {
-    let mut builder = BatchBuilder::default();
-    assert_eq!(builder.push(&run()[2], 0), Vec::<Value>::new());
-    builder.push(&run()[0], 0);
-    let finished = builder.push(
-        &LoopEvent::RunFinished {
-            reason: StopReason::Error,
-            incumbent: "a".into(),
-            incumbent_metric: None,
-        },
-        0,
-    );
-    assert_eq!(finished.len(), 2);
-    assert_eq!(
-        builder.push(&run()[1], 0),
-        Vec::<Value>::new(),
-        "the run is closed"
-    );
-}
-
-#[test]
-fn delivers_the_run_with_basic_auth_when_it_finishes() {
+fn delivers_the_finished_run_as_otlp_with_basic_auth() {
     let (base, rx) = listener(vec![200]);
-    let mut trace = sink(&base);
-    for event in run() {
+    let mut trace = sink(&base).with_environment("production");
+    for event in run(StopReason::MaxEpochs) {
         trace.record(event).unwrap();
     }
     let request = rx.recv().unwrap();
-    assert_eq!(request.line, "POST /api/public/ingestion HTTP/1.1");
-    let auth = request
-        .headers
-        .iter()
-        .find(|(k, _)| k == "authorization")
-        .map(|(_, v)| v.as_str());
+    assert_eq!(request.line, "POST /api/public/otel/v1/traces HTTP/1.1");
     // base64("pk-test:sk-test")
-    assert_eq!(auth, Some("Basic cGstdGVzdDpzay10ZXN0"));
-    assert_eq!(request.body["batch"].as_array().unwrap().len(), 8);
+    assert_eq!(request.auth, "Basic cGstdGVzdDpzay10ZXN0");
+    assert_eq!(spans_in(&request.body).len(), 5);
+    assert!(request.body.to_string().contains("production"));
     assert_eq!(trace.pending(), [] as [Value; 0]);
     assert_eq!(trace.failures(), 0);
-    assert!(format!("{trace:?}").contains("pending: 0"));
+    assert!(format!("{trace:?}").contains("/api/public/otel/v1/traces"));
 }
 
 #[test]
 fn a_failed_export_is_counted_kept_and_retried() {
     let (base, rx) = listener(vec![500, 200]);
     let mut trace = sink(&base);
-    for event in run() {
+    for event in run(StopReason::MaxEpochs) {
         trace.record(event).unwrap();
     }
     rx.recv().unwrap();
     assert_eq!(trace.failures(), 1);
-    assert_eq!(trace.pending().len(), 8);
+    assert_eq!(trace.pending().len(), 1);
     trace.flush().unwrap();
-    assert_eq!(
-        rx.recv().unwrap().body["batch"].as_array().unwrap().len(),
-        8
-    );
+    assert_eq!(spans_in(&rx.recv().unwrap().body).len(), 5);
     assert_eq!(trace.pending(), [] as [Value; 0]);
 }
 
@@ -212,46 +193,48 @@ fn a_failed_export_is_counted_kept_and_retried() {
 fn an_explicit_flush_reports_the_failure() {
     let (base, _rx) = listener(vec![500]);
     let mut trace = sink(&base);
-    trace.record(run()[0].clone()).unwrap();
-    assert_eq!(trace.flush(), Err(Error::ExportFailed));
-    assert_eq!(trace.pending().len(), 1);
+    for event in run(StopReason::MaxEpochs) {
+        trace.record(event).unwrap();
+    }
+    assert_eq!(trace.failures(), 1);
+    let (base, _rx) = listener(vec![413]);
+    let mut other = sink(&base);
+    other.pending.clone_from(&trace.pending);
+    assert_eq!(other.flush(), Err(Error::ExportFailed));
+    assert_eq!(other.pending().len(), 1);
 }
 
 #[test]
-fn splits_large_runs_into_batches_of_at_most_the_ingestion_limit() {
+fn a_long_run_is_split_into_several_requests() {
     let (base, rx) = listener(vec![200, 200]);
     let mut trace = sink(&base);
-    trace.record(run()[0].clone()).unwrap();
-    for epoch in 0..MAX_BATCH {
-        trace
-            .record(LoopEvent::EpochStarted {
-                epoch: u64::try_from(epoch).unwrap(),
-                incumbent: "a".into(),
-            })
-            .unwrap();
+    let mut events = run(StopReason::MaxEpochs);
+    let finish = events.pop().unwrap();
+    for _ in 0..25 {
+        events.insert(2, events[2].clone());
     }
-    trace.flush().unwrap();
-    let sizes =
-        [rx.recv().unwrap(), rx.recv().unwrap()].map(|r| r.body["batch"].as_array().unwrap().len());
-    assert_eq!(sizes, [MAX_BATCH, 1]);
+    for event in events.into_iter().chain([finish]) {
+        trace.record(event).unwrap();
+    }
+    let sizes = [rx.recv().unwrap(), rx.recv().unwrap()].map(|r| spans_in(&r.body).len());
+    assert_eq!(sizes.iter().sum::<usize>(), 30);
+    assert!(sizes.iter().all(|n| *n > 0));
 }
 
 #[test]
-fn flushing_from_inside_a_tokio_runtime_does_not_nest_runtimes() {
+fn the_sink_can_be_used_and_dropped_inside_a_tokio_runtime() {
     let (base, rx) = listener(vec![200]);
-    let mut trace = sink(&base);
     let outer = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
     outer.block_on(async {
-        for event in run() {
+        let mut trace = sink(&base);
+        for event in run(StopReason::MaxEpochs) {
             trace.record(event).unwrap();
         }
+        assert_eq!(trace.failures(), 0);
+        drop(trace);
     });
-    assert_eq!(
-        rx.recv().unwrap().body["batch"].as_array().unwrap().len(),
-        8
-    );
-    assert_eq!(trace.failures(), 0);
+    assert_eq!(spans_in(&rx.recv().unwrap().body).len(), 5);
 }

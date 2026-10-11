@@ -3169,7 +3169,18 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.13"
+version = "0.1.14"
+dependencies = [
+ "base64 0.23.1",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "tinychannels-runtime"
+version = "0.1.14"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3178,23 +3189,9 @@ dependencies = [
  "hmac 0.13.0",
  "parking_lot",
  "rand 0.10.3",
- "schemars",
  "serde",
  "serde_json",
  "sha2 0.11.0",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "tinychannels-runtime"
-version = "0.1.13"
-dependencies = [
- "anyhow",
- "async-trait",
- "rand 0.10.3",
  "tinychannels-bus",
  "tokio",
  "tokio-util",

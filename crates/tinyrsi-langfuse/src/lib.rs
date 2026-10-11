@@ -2,9 +2,10 @@
 //!
 //! [`LangfuseTrace`] is a [`tinyrsi_trace::TraceSink`]: plug it into a loop
 //! (alone, or beside `events.jsonl` with a `FanoutTrace`) and each run appears
-//! in Langfuse as one trace, with a span per epoch and an event per stage.
-//! The transport is the `OpenHuman` embed's own `LangfuseClient`
-//! (`openhuman_embed::observe::langfuse`), configured from the same
+//! in Langfuse as one trace, with a span per epoch and a span per stage.
+//! It builds `OpenHuman` trace spans and sends them over OTLP, Langfuse's
+//! supported trace path, through the `OpenHuman` embed's own `LangfuseClient`
+//! (`openhuman_embed::observe::langfuse`). Configuration comes from the same
 //! `LANGFUSE_*` variables `OpenHuman` agents use, so loops and agents land in
 //! the same project with the same credentials.
 //!
@@ -21,7 +22,8 @@
 //!     subject: "solver".into(),
 //!     goal: RunGoal { metric: "error".into(), direction: MetricDirection::Minimize, target: None },
 //! })?;
-//! assert_eq!(trace.pending()[0]["type"], "trace-create");
+//! // Spans are exported when the run finishes; nothing is pending yet.
+//! assert!(trace.pending().is_empty());
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
@@ -36,4 +38,4 @@ mod sink;
 
 pub use error::{Error, Result};
 pub use openhuman_embed::observe::langfuse::{LangfuseAuth, LangfuseClient};
-pub use sink::{LangfuseTrace, MAX_BATCH};
+pub use sink::LangfuseTrace;

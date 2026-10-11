@@ -10,7 +10,7 @@ pub enum Error {
     /// `LANGFUSE_*` variable or URL, or no async runtime for the transport.
     #[error("invalid langfuse export configuration")]
     InvalidConfig,
-    /// Langfuse refused or did not receive a batch.
+    /// Langfuse refused or did not receive an OTLP request.
     #[error("langfuse export failed")]
     ExportFailed,
 }
