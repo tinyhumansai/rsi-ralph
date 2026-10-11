@@ -193,9 +193,8 @@ fn wait_ready(ready: &Receiver<Result<()>>, gateway: &mut Gateway) -> Result<()>
 
 /// Report a setup failure to the starting thread, which turns it into the
 /// error `Gateway::start` returns.
-fn refuse(ready: &std::sync::mpsc::SyncSender<Result<()>>, error: Error) -> Result<()> {
+fn refuse(ready: &std::sync::mpsc::SyncSender<Result<()>>, error: Error) {
     let _ = ready.send(Err(error));
-    Ok(())
 }
 
 /// The background thread's body: build a runtime, serve until stopped,
@@ -213,7 +212,10 @@ fn serve(
         .map_err(Error::Runtime);
     let runtime = match built {
         Ok(runtime) => runtime,
-        Err(error) => return refuse(ready, error),
+        Err(error) => {
+            refuse(ready, error);
+            return Ok(());
+        }
     };
     runtime.block_on(async move {
         let addr = listener.local_addr().ok();
@@ -223,7 +225,10 @@ fn serve(
         });
         let listener = match adopted {
             Ok(listener) => listener,
-            Err(error) => return refuse(ready, error),
+            Err(error) => {
+                refuse(ready, error);
+                return Ok(());
+            }
         };
         let _ = ready.send(Ok(()));
         let served = axum::serve(listener, Arc::clone(&proxy).router())
