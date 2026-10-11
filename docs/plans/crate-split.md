@@ -17,7 +17,7 @@ separate commits from moves.
    - Delete the `tinybus` and `tinybus-module` workspace dependencies.
    - Set `crate-type` back to the default.
    - Move `GradeEntry` and `Verdict` into `lineage/types.rs`, keeping their
-     serde pins.
+     serde pins. Remove the crate-root `append`/`head` bus wrappers.
    - Re-export the hive types from `tinyhivemind_lang`.
    - Remove the transport-free CI step.
    - Reduce `release.yml` to validate, bump, tag and release.

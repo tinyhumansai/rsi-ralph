@@ -160,9 +160,9 @@ kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 - The cdylib crate type.
 - The release workflow's module packaging, checksum and install jobs.
 
-`GradeEntry` and the lineage `Verdict` move into `tinyrsi::lineage`.
-`append` and `head` stay as library functions, and `head` returns
-`Option<&GradeEntry>`.
+`GradeEntry` and the lineage `Verdict` move into `tinyrsi::lineage`. The
+crate-root `append` and `head` wrappers, which only adapted bus payloads, are
+removed; `Lineage::append` and `Lineage::head` remain.
 
 ## Invariants and constraints
 
