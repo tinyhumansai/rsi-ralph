@@ -1,4 +1,5 @@
 //! Exclusive durable candidate history, proposal evidence and active ancestry.
+mod dispositions;
 mod normalized;
 mod replay;
 mod types;
@@ -6,6 +7,7 @@ mod types;
 use replay::validate_watermarks;
 
 use crate::{Error, Result};
+pub use dispositions::{DuplicateDisposition, ProposalDispositionReport, ProposalDispositionRow};
 use std::collections::BTreeMap;
 #[cfg(unix)]
 use std::fs::File;
@@ -272,6 +274,16 @@ impl Archive {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Project proposal stops into safe versioned reasons and exact-duplicate subtypes.
+    ///
+    /// Each row uses only earlier events. Accepted history survives rollback;
+    /// rejected history is a host disposition, never a selection eligibility label.
+    /// Unknown legacy reasons and prepared-only aliases remain unresolved.
+    #[must_use]
+    pub fn proposal_dispositions(&self) -> ProposalDispositionReport {
+        dispositions::project(&self.state.events)
     }
 
     /// Activate the current accepted design's immediate accepted parent.

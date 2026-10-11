@@ -19,6 +19,8 @@ recorded separately.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.
 - [Durable epoch evidence](../specs/epoch-evidence.md): callback identities,
   atomic dossiers and the offline two-epoch demonstration.
+- [Proposal disposition contract](../specs/proposal-dispositions.md): safe
+  chronological accepted, rejected and unresolved exact-duplicate history.
 - [Proposal outcome receipts](proposal-outcomes.md): source occurrences, frozen
   probability priors and selection-only descriptive metrics.
 - [P1 offline receipts](p1-evidence.md): measured turns and observed checker

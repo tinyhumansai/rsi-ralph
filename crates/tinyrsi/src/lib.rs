@@ -119,7 +119,10 @@ pub fn head(lineage: &Lineage) -> LineageHeadResponse {
 }
 
 // Host-driven orchestration is separate from the legacy bus ledger.
-pub use archive::{Archive, EvaluationEvent, ProposalDeclaration, ProposalEvent};
+pub use archive::{
+    Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
+    ProposalDispositionRow, ProposalEvent,
+};
 pub use blueprint::*;
 pub use evaluation::{
     Budget, Comparison, EvalDecision, EvalPolicy, EvalRun, JudgeCalibration, QualityRubric,

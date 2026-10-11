@@ -29,8 +29,9 @@ before their claims are treated as empirical evidence.
 The [acceptance map](scoring-acceptance.md) gives the exact existing test names
 and obligations. Its unresolved mechanisms are:
 
-- Versioned detailed host reject taxonomy, including accepted versus rejected
-  duplicate history. Safe schema/repair rows now link to typed outcome/prior data.
+- Detailed host reject taxonomy beyond the new versioned exact-duplicate
+  history projection. Accepted/rejected/unresolved duplicate history is now
+  explicit; safe schema/repair rows already link to typed outcome/prior data.
 - Semantic grounding beyond reference existence; targeted replay checks that
   distinguish no effect from canary regression.
 - Blinded, position-swapped pairwise proposal judgments, calibrated improvement
@@ -64,8 +65,9 @@ integration results and scientific limitations.
 
 P1's durable evidence pump now freezes invocation/check identities, journals
 callbacks before marking an epoch consumed, and exercises duplicate reads and
-interruption across offline epochs. The next self-contained scoring work is
-a versioned detailed host rejection taxonomy. Per-occurrence receipts and
+interruption across offline epochs. The versioned exact-duplicate history projection now supplies one part of the
+detailed host rejection taxonomy. Formalization, reach/contamination and
+constraint/canary subtypes remain outstanding. Per-occurrence receipts and
 selection-only outcome/prior datasets now exist, including descriptive metrics. Broader production adapters and benchmark curation should follow their
 existing owners rather than duplicate delivered host/snapshot infrastructure.
 
