@@ -27,6 +27,7 @@ crates/
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
 ├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── tinyrsi-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory

@@ -66,6 +66,7 @@ listed above it.
 |---|---|---|
 | `tinyrsi-types` | `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`, `EvalStage`, `ProposalEvent`, `Goal`; re-exports `Patch`, `Package`, `PatchClass`, `Operation`, `Record`, `VersionMetadata` from `tinyhivemind-lang` | tinyhivemind-lang |
 | `tinyrsi-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
+| `tinyrsi-gateway` | `Gateway`, `GatewayConfig`, `Spend`, `PriceTable`, `Limits`: the in-process, spend-capped OpenAI-compatible proxy to OpenRouter that each run starts | axum, reqwest, tokio |
 | `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
 | `tinyrsi-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse over OTLP | trace, openhuman-embed (`langfuse` only) |
 | `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | types, model, trace, tinybackrooms |
