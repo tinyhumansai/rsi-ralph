@@ -123,6 +123,30 @@ pub struct CandidateFailureEvent {
     pub runs: u32,
 }
 
+/// Why the host rolled a deployed acceptance back.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RevocationReason {
+    /// An operator or host called `DeploymentStore::rollback` directly.
+    Manual,
+    /// Consecutive frozen-anchor intervals fell below the best previous
+    /// anchor, so the host enforced the `AnchorSignal` regression.
+    AnchorRegression,
+}
+
+/// A rolled-back acceptance: the record stays `Accepted`, its patch shape
+/// takes a `Revoked` strike, and selection returns to its parent.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevocationEvent {
+    /// Content identity of the revoked head.
+    pub candidate_id: String,
+    /// Host epoch at which the rollback happened.
+    pub epoch: u64,
+    /// What triggered the rollback.
+    pub reason: RevocationReason,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum Event {
@@ -160,8 +184,7 @@ pub(super) enum Event {
         failure: CandidateFailureEvent,
     },
     Revocation {
-        candidate_id: String,
-        epoch: u64,
+        revocation: RevocationEvent,
     },
 }
 

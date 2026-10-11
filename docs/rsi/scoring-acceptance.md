@@ -70,15 +70,16 @@ present in the archive.
 | Margin overlap/equality → inconclusive | S `zero_token_reference_and_tie_decisions_are_explicit` | Valid alpha-spending looks, maximum spend and stopping/restart identity |
 | H gain with family/health/cost violation → reject | S `rejects_normalized_family_health_and_cost_regressions`; N `aggregate_h_gain_cannot_hide_a_family_regression` | Distinct `CONSTRAINT` label for every gate |
 | Confirmation failure/reuse → no approval | N `raw_predictions_reused_confirmation_and_health_regressions_are_rejected` | No automatic confirmation retry on the same draw |
-| Sustained anchor decline / wider gap → rollback/freeze | S `anchor_ledger_detects_sustained_loss_and_widening_gap` implements signal only | Persistent comparable anchor history; eligible ancestor rollback and class freeze |
+| Sustained anchor decline / wider gap → rollback/freeze | S `anchor_ledger_detects_sustained_loss_and_widening_gap`; host `an_anchor_regression_rolls_back_and_cools_the_deployed_shape` rolls back to the parent with a strike; a gap alone stays advice | Persistent comparable anchor history; best-anchor ancestor rollback and class freeze |
 | Tamper spike → halt/review | Guards exist; no persistent threshold controller | Threshold crossings, no new calls/deployments, restart retains halt |
 | Canary in memory → halt/forget/invalidate | M contamination rejection and reversible learning exist | Scan actual contents; quarantine all affected snapshots, event cleanup, anchor invalidation, clean remeasurement |
 | Near-zero class acceptance → change search | No automated class-window controller | Frozen window/threshold, efficacy versus approval-denial denominators, authorized class/mode changes |
 | Prior degradation → more uniform testing | No calibrated prior controller | Frozen Brier/rank/precision thresholds and deterministic allocation changes |
 | Approval denial/unavailable or host failure → retain incumbent | N `denied_or_failed_approval_does_not_advance_head`; N `mismatched_suite_invalid_evidence_and_host_errors_fail_closed` | New adapters preserve failure labels and prevent implicit retry |
 
-The host already has explicit activation, parent rollback and recovery APIs;
-that does not automatically connect them to anchor/tamper/class-window advice.
+The host already has explicit activation, parent rollback and recovery APIs.
+`DeploymentStore::enforce_anchor` connects an anchor regression to parent
+rollback; tamper and class-window advice remain unconnected.
 An inconclusive screen may continue to selection, but inconclusive selection
 stops. No current percentile-bootstrap test asserts anytime-valid inference.
 

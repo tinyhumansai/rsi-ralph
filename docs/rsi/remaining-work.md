@@ -40,8 +40,9 @@ and obligations. Its unresolved mechanisms are:
   Outcome datasets now report Brier, tied-rank correlation and precision at k
   with explicit missing/censored labels and no confirmation/anchor numbers.
 - Preregistered sequential testing with valid alpha spending and restart limits.
-- Persistent comparable anchor history connected to eligible ancestor rollback
-  and class freezing; durable tamper halt/review and class-search controllers.
+- Persistent comparable anchor history connected to eligible best-anchor
+  ancestor rollback and class freezing (an anchor regression already rolls the
+  deployment back to its parent through `DeploymentStore::enforce_anchor`); durable tamper halt/review and class-search controllers.
 - Actual-store contamination quarantine, event cleanup and invalidation of every
   affected anchor snapshot, followed by clean remeasurement.
 - Ordinal human judge calibration and expanded memory-health denominators,

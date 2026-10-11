@@ -1,6 +1,8 @@
 //! The strike ledger: shapes, strike sources, exclusions, windows and revocation.
 use super::*;
-use crate::{PatchShape, PenaltyPolicy, PenaltyReport, Strike, StrikeKind};
+use crate::{
+    PatchShape, PenaltyPolicy, PenaltyReport, RevocationEvent, RevocationReason, Strike, StrikeKind,
+};
 
 fn context(item: &str, after: &str) -> Patch {
     Patch {
@@ -194,11 +196,24 @@ fn a_revocation_is_a_strike_and_keeps_the_record_accepted() {
     let (accepted, package) = child(&archive, &base, 30, Verdict::Accepted);
     let (id, revoked) = (accepted.id.clone(), accepted.patch.clone());
     archive.append(accepted, package).unwrap();
-    assert_eq!(archive.revoke(5).unwrap(), base);
+    assert_eq!(
+        archive
+            .revoke(5, RevocationReason::AnchorRegression)
+            .unwrap(),
+        base
+    );
     assert_eq!(archive.head().unwrap().id, base);
     let check = |archive: &Archive| {
         let record = archive.records().iter().find(|r| r.id == id).unwrap();
         assert_eq!(record.verdict, Verdict::Accepted);
+        assert_eq!(
+            archive.revocations(),
+            vec![&RevocationEvent {
+                candidate_id: id.clone(),
+                epoch: 5,
+                reason: RevocationReason::AnchorRegression,
+            }]
+        );
         assert_eq!(
             archive.penalties().strikes,
             vec![Strike {
@@ -210,7 +225,39 @@ fn a_revocation_is_a_strike_and_keeps_the_record_accepted() {
         );
     };
     check(&archive);
-    assert_eq!(archive.revoke(6), Err(Error::NoParent));
+    assert_eq!(
+        archive.revoke(6, RevocationReason::Manual),
+        Err(Error::NoParent)
+    );
     drop(archive);
     check(&Archive::open(&path).unwrap());
+}
+
+#[test]
+fn revocation_events_pin_their_reason_in_snake_case() {
+    let revocation = RevocationEvent {
+        candidate_id: "sha256:a".into(),
+        epoch: 4,
+        reason: RevocationReason::AnchorRegression,
+    };
+    let wire = serde_json::json!({
+        "candidate_id": "sha256:a",
+        "epoch": 4,
+        "reason": "anchor_regression"
+    });
+    assert_eq!(serde_json::to_value(&revocation).unwrap(), wire);
+    assert_eq!(
+        serde_json::from_value::<RevocationEvent>(wire).unwrap(),
+        revocation
+    );
+    assert_eq!(
+        serde_json::to_value(RevocationReason::Manual).unwrap(),
+        serde_json::json!("manual")
+    );
+    let event = serde_json::to_value(Event::Revocation { revocation }).unwrap();
+    assert_eq!(event["event"], serde_json::json!("revocation"));
+    assert_eq!(
+        event["revocation"]["reason"],
+        serde_json::json!("anchor_regression")
+    );
 }

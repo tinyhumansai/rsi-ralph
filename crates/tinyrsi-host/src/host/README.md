@@ -7,12 +7,13 @@ operations use the exact accepted record's package and memory watermarks.
 
 | File | Responsibility |
 | --- | --- |
-| `mod.rs` | Atomic deployment checkpoint, activation, rollback and epoch observations |
+| `mod.rs` | Atomic deployment checkpoint, activation, rollback, anchor enforcement and epoch observations |
 | `types.rs` | Host ports and serialized intent/checkpoint definitions |
 | `runtime.rs` | Real coordinator rebuild, retained sessions and memberships |
 | `test.rs` | SQLite restart, configured runners, fencing and observations |
 | `test_runtime.rs` | Membership changes, unsupported metadata and memory failures |
 | `test_store.rs` | Journal failures and interrupted rollback recovery |
+| `test_anchor.rs` | Anchor regression rollback, advice-only gaps and propagated errors |
 
 ## Host lifecycle
 
@@ -32,7 +33,13 @@ operations use the exact accepted record's package and memory watermarks.
 6. Stop admission, finish eligible work and call `activate`. Queued deliveries,
    running reservations, parked agents and unfinished episodes block activation.
 7. Call `rollback` at the same boundary to restore the deployed design's parent,
-   restore its memory snapshot and move archive selection.
+   restore its memory snapshot and move archive selection. The archive records
+   a `manual` revocation and strikes the design's patch shape.
+8. After recording the epoch's selection and anchor estimates in an
+   `AnchorLedger`, pass its `AnchorSignal` to `enforce_anchor` at the same
+   boundary. A `regression` rolls back as in step 7 with an
+   `anchor_regression` revocation and returns `true`; a `widening_gap` alone is
+   advice and changes nothing, because the anchors themselves have not fallen.
 
 The caller owns admission control. A cloned `Coordinator` can submit new work;
 all producers must participate in the host's activation exclusion mechanism.

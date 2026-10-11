@@ -393,13 +393,9 @@ fn fingerprint(input: &RetreatEpochInput<'_>, incumbent: &str) -> Result<String>
     )
 }
 pub(super) fn policy_fingerprint(epoch: &HEpoch) -> Result<String> {
-    let mut frozen = json!({"id":epoch.epoch.id,"class":epoch.epoch.class,"refs":epoch.epoch.transcript_refs,"nodes":epoch.epoch.failure_nodes,"budget":epoch.epoch.budget,"policy":epoch.policy,"suites":epoch.suite_ids});
-    // The default penalty policy is left out, so fingerprints frozen before
-    // penalties existed still match; any other policy is frozen with the epoch.
-    if epoch.epoch.penalty != crate::PenaltyPolicy::default() {
-        frozen["penalty"] = json!(epoch.epoch.penalty);
-    }
-    hash(&frozen)
+    hash(
+        &json!({"id":epoch.epoch.id,"class":epoch.epoch.class,"refs":epoch.epoch.transcript_refs,"nodes":epoch.epoch.failure_nodes,"budget":epoch.epoch.budget,"policy":epoch.policy,"suites":epoch.suite_ids,"penalty":epoch.epoch.penalty}),
+    )
 }
 fn hash(value: &Value) -> Result<String> {
     Ok(format!(

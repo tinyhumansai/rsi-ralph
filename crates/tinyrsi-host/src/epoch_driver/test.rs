@@ -453,14 +453,19 @@ mod receipts;
 mod dataset;
 
 #[test]
-fn only_a_non_default_penalty_policy_changes_the_policy_fingerprint() {
+fn the_penalty_policy_is_always_frozen_into_the_policy_fingerprint() {
+    use sha2::Digest as _;
     let dir = tempfile::tempdir().unwrap();
     let (_, _, _, mut epoch) = fixtures(&dir.path().join("a"));
     let frozen = generation::policy_fingerprint(&epoch).unwrap();
-    // Pinned before penalties existed: default settings keep every journal valid.
+    // The default policy is frozen like any other: no special case.
+    let expected = serde_json::json!({"id":epoch.epoch.id,"class":epoch.epoch.class,"refs":epoch.epoch.transcript_refs,"nodes":epoch.epoch.failure_nodes,"budget":epoch.epoch.budget,"policy":epoch.policy,"suites":epoch.suite_ids,"penalty":crate::PenaltyPolicy::default()});
     assert_eq!(
         frozen,
-        generation::policy_fingerprint(&epoch.clone()).unwrap()
+        format!(
+            "{:x}",
+            sha2::Sha256::digest(serde_json::to_vec(&expected).unwrap())
+        )
     );
     epoch.epoch.penalty = crate::PenaltyPolicy {
         strikes: 1,
