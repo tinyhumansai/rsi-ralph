@@ -12,6 +12,8 @@
 //! - `GET /v1/models` (also under the tag prefix) — the allowlist
 //! - `GET /status` — both ledgers
 
+mod models;
+
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -308,13 +310,7 @@ async fn tagged_embeddings(
 }
 
 async fn models(State(proxy): Shared) -> Response {
-    let data: Vec<Value> = proxy
-        .config
-        .prices
-        .models()
-        .map(|id| json!({ "id": id, "object": "model" }))
-        .collect();
-    axum::Json(json!({ "object": "list", "data": data })).into_response()
+    axum::Json(models::listing(&proxy).await).into_response()
 }
 
 async fn status(State(proxy): Shared) -> Response {
