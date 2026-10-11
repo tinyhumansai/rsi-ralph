@@ -1,4 +1,5 @@
 //! Unit tests for tool keys and how they reach seats.
+#![allow(clippy::unwrap_used)]
 
 use super::*;
 
@@ -68,7 +69,7 @@ fn keys_reach_their_scoped_seats_only() {
 }
 
 #[test]
-fn a_search_key_enables_its_provider_on_the_direct_route() {
+fn a_search_key_is_pinned_in_memory_for_its_provider() {
     let mut config = RuntimeConfig::default();
     apply(
         &mut config,
@@ -81,7 +82,10 @@ fn a_search_key_enables_its_provider_on_the_direct_route() {
     );
     assert_eq!(config.search.enabled, Some(true));
     for provider in ["gemini", "brave"] {
-        assert!(config.search.host_credential(provider).is_some(), "{provider}");
+        assert!(
+            config.search.host_credential(provider).is_some(),
+            "{provider}"
+        );
     }
     assert!(config.search.host_credential("exa").is_none());
     assert!(!config.search.providers.contains_key("unknown"));
@@ -94,7 +98,10 @@ fn a_search_key_enables_its_provider_on_the_direct_route() {
     for provider in SEARCH_PROVIDERS {
         let mut config = RuntimeConfig::default();
         apply(&mut config, &[key(WEB_SEARCH, provider, None)]);
-        assert!(config.search.host_credential(provider).is_some(), "{provider}");
+        assert!(
+            config.search.host_credential(provider).is_some(),
+            "{provider}"
+        );
     }
 }
 
