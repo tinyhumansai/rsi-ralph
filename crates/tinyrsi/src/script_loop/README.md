@@ -14,9 +14,13 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 - `run_script_loop_with(subject, supervisor, scorer, policy, run, trace)`: the
   same loop scored by any `tinyrsi_score::Scorer<ScriptCandidate>` (sources
   plus per-seed metrics), for example a `Composite` of the metric and an
-  `LlmJudge` reading the sources. The incumbent's assessment is cached at
-  promotion, the scorer's tokens count against the budget, and `decide`'s
-  eligibility rule means an uncalibrated judge alone never promotes.
+  `LlmJudge` reading the sources. The incumbent is assessed on its first
+  comparison and cached (a baseline already at the target is never scored),
+  the scorer's tokens count against the budget, and `decide`'s eligibility
+  rule means an uncalibrated judge alone never promotes. Ledger rows carry
+  `units: "quality"` when the interval is in scorer qualities; the field is
+  omitted for metric units. A candidate the scorer fails on is recorded as
+  `error`, with its runs, before the run ends.
   `run_script_loop` uses the metric alone (`MetricScorer`), which reproduces
   the original decisions and metric-unit intervals exactly.
 - `ScriptSubject`, `ScriptCommand`, `MetricSpec`: what to run and measure.

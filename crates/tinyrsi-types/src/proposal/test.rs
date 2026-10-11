@@ -1,7 +1,7 @@
 //! Serde pins for proposal data. These are stored forms: archives and
 //! retreat outputs written by one version must decode in the next.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(clippy::unwrap_used, reason = "assert deterministic serde fixtures")]
 
 use super::*;
 use serde_json::json;

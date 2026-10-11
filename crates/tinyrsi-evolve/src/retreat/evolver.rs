@@ -56,6 +56,9 @@ impl<T: RetreatTransport, D: RetreatDossier> Evolver<RetreatBrief<D>> for Retrea
             &brief.rejected,
         )?;
         let output = decode_retreat_response(&self.transport.generate(&request)?)?;
+        if output.proposals.is_empty() && output.invalid_items == 0 {
+            return Err(Error::InvalidProposal);
+        }
         let mut proposals: Vec<Result<Proposal>> = output.proposals.into_iter().map(Ok).collect();
         proposals.extend((0..output.invalid_items).map(|_| Err(Error::InvalidProposal)));
         Ok(Proposed {
