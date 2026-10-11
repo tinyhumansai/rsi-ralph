@@ -238,3 +238,21 @@ fn the_sink_can_be_used_and_dropped_inside_a_tokio_runtime() {
     });
     assert_eq!(spans_in(&rx.recv().unwrap().body).len(), 5);
 }
+
+#[test]
+fn an_epoch_interrupted_by_a_failed_run_ends_in_error() {
+    let mut builder = SpanBuilder::default();
+    let events = run(StopReason::Error);
+    // Fail mid-epoch: started, scored, then the run ends without the epoch.
+    let mut finished = None;
+    for event in [&events[0], &events[1], &events[2], &events[4]] {
+        finished = builder.push(event, 0);
+    }
+    let spans = finished.unwrap();
+    let epoch = spans.iter().find(|s| s.name == "epoch 1").unwrap();
+    assert_eq!(epoch.status, SpanStatus::Error);
+    assert_eq!(spans[0].status, SpanStatus::Error);
+    // Stage spans that completed keep their own status.
+    let scored = spans.iter().find(|s| s.name == "scored").unwrap();
+    assert_eq!(scored.status, SpanStatus::Ok);
+}

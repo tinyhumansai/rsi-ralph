@@ -46,17 +46,23 @@ impl LangfuseTrace {
     /// Returns [`Error::InvalidConfig`] when the worker thread or its runtime
     /// cannot be started.
     pub fn new(client: LangfuseClient) -> Result<Self> {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|_| Error::InvalidConfig)?;
         let endpoint = client.otlp_endpoint();
         let (jobs, inbox) = mpsc::channel::<Job>();
+        let (ready, started) = mpsc::channel::<bool>();
+        // The runtime is built and dropped on the worker, so no failure path
+        // ever drops it on the caller, which may be an async thread.
         std::thread::Builder::new()
             .name("tinyrsi-langfuse".into())
             .spawn(move || {
-                // Ends when the sink, and so the sender, is dropped; the
-                // runtime is dropped here, never on a caller's async thread.
+                let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                else {
+                    let _ = ready.send(false);
+                    return;
+                };
+                let _ = ready.send(true);
+                // Ends when the sink, and so the sender, is dropped.
                 for (request, reply) in inbox {
                     let sent = runtime
                         .block_on(client.send_otlp(request))
@@ -66,6 +72,9 @@ impl LangfuseTrace {
                 }
             })
             .map_err(|_| Error::InvalidConfig)?;
+        if started.recv() != Ok(true) {
+            return Err(Error::InvalidConfig);
+        }
         Ok(Self {
             jobs,
             endpoint,

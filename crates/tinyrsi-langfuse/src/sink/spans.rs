@@ -122,19 +122,22 @@ impl SpanBuilder {
             }
             LoopEvent::RunFinished { reason, .. } => {
                 self.stage(&run, event, wire.clone(), at);
-                for span in &mut self.spans {
-                    if span.end_unix_ms.is_none() {
-                        span.end_unix_ms = Some(at);
-                        span.status = SpanStatus::Ok;
-                    }
-                }
-                let root = &mut self.spans[0];
-                root.output = Some(wire);
-                root.status = if *reason == StopReason::Error {
+                // A failed run interrupts whatever is still open, so an
+                // unfinished epoch reads as failed rather than completed.
+                let status = if *reason == StopReason::Error {
                     SpanStatus::Error
                 } else {
                     SpanStatus::Ok
                 };
+                for span in &mut self.spans {
+                    if span.end_unix_ms.is_none() {
+                        span.end_unix_ms = Some(at);
+                        span.status = status;
+                    }
+                }
+                let root = &mut self.spans[0];
+                root.output = Some(wire);
+                root.status = status;
                 Some(std::mem::take(self).spans)
             }
             _ => {
