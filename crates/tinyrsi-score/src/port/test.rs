@@ -86,11 +86,33 @@ fn reports_the_interval_in_metric_units_when_both_sides_measured_one() {
     let half = 2.0 * (0.01_f64 / 3.0).sqrt();
     assert!((d.lower - (0.5 - half)).abs() < 1e-9);
     assert!((d.upper - (0.5 + half)).abs() < 1e-9);
-    // A direction mismatch falls back to quality units.
-    let mut flipped = candidate.clone();
-    flipped.metric.as_mut().unwrap().direction = MetricDirection::Maximize;
-    let q = decide(&incumbent, &flipped, &SEEDS, &policy()).unwrap();
+    // Only a side without a metric falls back to quality units.
+    let q = decide(&at(0.2, true), &candidate, &SEEDS, &policy()).unwrap();
     assert!((q.estimate - 0.6).abs() < 1e-9);
+}
+
+#[test]
+fn refuses_contradictory_or_misaligned_metric_evidence() {
+    let with = |values: Vec<f64>, direction| Assessment {
+        metric: Some(MetricEvidence { values, direction }),
+        ..at(0.5, true)
+    };
+    let incumbent = with(vec![1.0, 1.2, 0.8], MetricDirection::Minimize);
+    let flipped = with(vec![0.5, 0.6, 0.4], MetricDirection::Maximize);
+    assert_eq!(
+        decide(&incumbent, &flipped, &SEEDS, &policy()),
+        Err(crate::Error::InvalidEvaluation)
+    );
+    let short = with(vec![0.5], MetricDirection::Minimize);
+    assert_eq!(
+        decide(&incumbent, &short, &SEEDS, &policy()),
+        Err(crate::Error::InvalidEvaluation)
+    );
+    // A lone metric that does not match the seeds is malformed too.
+    assert_eq!(
+        decide(&at(0.5, true), &short, &SEEDS, &policy()),
+        Err(crate::Error::InvalidEvaluation)
+    );
 }
 
 #[test]
