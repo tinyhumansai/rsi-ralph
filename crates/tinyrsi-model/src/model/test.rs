@@ -29,6 +29,26 @@ fn rejects_insufficient_reservations_before_provider_execution() {
     assert_eq!(request().max_output_tokens(), 100);
 }
 #[test]
+fn samples_at_temperature_zero_unless_a_request_sets_one() {
+    let model = OpenRouterModel::new("model".into()).unwrap();
+    assert_eq!(request().temperature(), None);
+    assert_eq!(model.body(&request())["temperature"], 0.0);
+    for t in [0.0, 0.7, 2.0] {
+        let req = request().with_temperature(t).unwrap();
+        assert_eq!(req.temperature(), Some(t));
+        assert_eq!(model.body(&req)["temperature"], t);
+    }
+    for bad in [-0.1, 2.1, f64::NAN, f64::INFINITY] {
+        assert_eq!(
+            request().with_temperature(bad).unwrap_err(),
+            Error::InvalidRequest,
+            "{bad}"
+        );
+    }
+    let debug = format!("{:?}", request().with_temperature(0.5).unwrap());
+    assert!(debug.contains("temperature: Some(0.5)") && !debug.contains("private"));
+}
+#[test]
 fn exposes_the_structured_tool_to_external_ports() {
     assert_eq!(request().tool(), None);
     let schema = serde_json::json!({"type":"object","required":["score"]});

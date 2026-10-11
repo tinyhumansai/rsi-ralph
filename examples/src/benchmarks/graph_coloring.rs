@@ -1,7 +1,7 @@
 //! Graph colouring: colour random graphs with a hidden 6-colouring using as
 //! few colours as possible. Fixtures live in `examples/graph_coloring/`.
 use super::{Definition, metric};
-use crate::{Replies, proposal};
+use crate::{Replies, proposal, with_approach};
 use tinyrsi::{LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../graph_coloring/check_coloring.py");
@@ -43,23 +43,32 @@ pub(super) fn definition() -> Definition {
 /// rejected), then DSATUR with `TabuCol` (reaches 6).
 pub(super) fn canned() -> Replies {
     Replies::new([
-        proposal(
-            "First fit in label order ignores structure; constrained vertices get colours late.",
-            "DSATUR colours the most saturated vertex first and needs fewer colours.",
-            "coloring.py",
-            DSATUR,
+        with_approach(
+            "DSATUR",
+            proposal(
+                "First fit in label order ignores structure; constrained vertices get colours late.",
+                "DSATUR colours the most saturated vertex first and needs fewer colours.",
+                "coloring.py",
+                DSATUR,
+            ),
         ),
-        proposal(
-            "Label order is arbitrary, so a shuffled order should be no worse.",
-            "First fit in a random order matches DSATUR at lower cost.",
-            "coloring.py",
-            RANDOM_ORDER,
+        with_approach(
+            "random-order first fit",
+            proposal(
+                "Label order is arbitrary, so a shuffled order should be no worse.",
+                "First fit in a random order matches DSATUR at lower cost.",
+                "coloring.py",
+                RANDOM_ORDER,
+            ),
         ),
-        proposal(
-            "DSATUR is greedy and stops at its first valid colouring.",
-            "TabuCol local search shrinks the DSATUR palette to the optimum.",
-            "coloring.py",
-            TABUCOL,
+        with_approach(
+            "tabu search (TabuCol)",
+            proposal(
+                "DSATUR is greedy and stops at its first valid colouring.",
+                "TabuCol local search shrinks the DSATUR palette to the optimum.",
+                "coloring.py",
+                TABUCOL,
+            ),
         ),
     ])
 }

@@ -30,6 +30,9 @@ fn row(
         units: IntervalUnits::Metric,
         promoted: matches!(decision, CandidateDecision::Baseline),
         note: None,
+        approach: None,
+        differs_from_previous: None,
+        temperature: None,
     }
 }
 

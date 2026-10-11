@@ -542,6 +542,8 @@ fn a_failing_scorer_ends_the_run_with_its_error() {
 /// A proposal that writes `content` to `path`.
 fn edit(path: &str, content: &str) -> ScriptProposal {
     ScriptProposal {
+        approach: String::new(),
+        differs_from_previous: None,
         rationale: "r".into(),
         hypothesis: "h".into(),
         files: vec![tinyrsi_evolve::ProposedFile {

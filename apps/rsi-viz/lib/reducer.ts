@@ -20,6 +20,8 @@ export interface Proposal {
   parent: string;
   rationale: string;
   hypothesis: string;
+  /** The proposal's approach label, `null` when it has none. */
+  approach: string | null;
   /** `null` when the proposal was rejected before materialization. */
   candidate: string | null;
 }
@@ -181,6 +183,7 @@ export function applyEnvelope(state: RunState, envelope: Envelope): RunState {
             parent: event.parent,
             rationale: event.rationale,
             hypothesis: event.hypothesis,
+            approach: event.approach ?? null,
             candidate: event.candidate,
           },
         ],

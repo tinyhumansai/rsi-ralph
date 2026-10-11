@@ -16,7 +16,7 @@ credentials never leave the Rust process.
 | Item | Role |
 | --- | --- |
 | `ModelPort` | Trait: `generate(ModelRequest) -> ModelFuture`, optional `identity()` |
-| `ModelRequest::new(system, prompt, seed, max_tokens, max_output_tokens, timeout_ms)` | Frozen request; `with_tool(name, schema)` adds a native structured tool, which `tool()` exposes to the port |
+| `ModelRequest::new(system, prompt, seed, max_tokens, max_output_tokens, timeout_ms)` | Frozen request; `with_tool(name, schema)` adds a native structured tool, which `tool()` exposes to the port; `with_temperature(t)` sets the sampling temperature (unset sends `0`, refused outside `[0, 2]`), which `temperature()` returns as an `Option` |
 | `ModelReply` | `content` bytes plus measured `input_tokens` / `output_tokens` |
 | `OpenRouterModel::new(model_id)` | Bundled HTTPS provider |
 | `BudgetedModel::new(port, cap)` | Wraps a port with a hard total reservation cap; `meter()` reports spend |
@@ -43,7 +43,9 @@ counted in `denied_calls` and never reaches the provider.
 `OpenRouterModel` reads the inherited `OPENROUTER_API_KEY` only inside the Rust
 process at call time. It sends credentials and private input through curl's
 stdin config, removes the key from the child environment, and withholds HTTP
-errors and provider payloads. A dedicated worker keeps blocking HTTPS off the
+errors and provider payloads. It sends the request's temperature, which is
+`0` unless the caller set one with `ModelRequest::with_temperature`; the
+script loop does that for exploration slots that ask for it. A dedicated worker keeps blocking HTTPS off the
 async executor; the provider timeout bounds an already-dispatched call even if
 its future is dropped. Call cancellation does not refund its reservation.
 
@@ -56,10 +58,10 @@ measured usage. `reserved_tokens` is the conservative spend limit when a failed
 provider call has unknown usage. Models are frozen in the underlying port;
 per-request model overrides fail closed.
 
-The engine retains conversational roles in the serialized user history. Sampling
-is deterministic at the provider boundary (temperature zero); comparison arms
-use the same configuration. A backend with stochastic temperature support can
-implement `ModelPort` while keeping the same reservation contract.
+The engine retains conversational roles in the serialized user history. Its
+requests never set a temperature, so sampling stays at zero at the provider
+boundary; comparison arms use the same configuration. Any `ModelPort` must
+keep the same reservation contract whatever temperature it samples at.
 
 ## Operational constraints
 

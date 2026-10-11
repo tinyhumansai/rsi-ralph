@@ -30,6 +30,18 @@ describe("parseEnvelope", () => {
     expect(parseEnvelope(`${base},"candidate":7,"rationale":"r","hypothesis":"h"}}`).ok).toBe(false);
   });
 
+  it("accepts an optional approach label on ideated and rejects a mistyped one", () => {
+    const base =
+      '{"seq":0,"elapsed_ms":0,"event":{"kind":"ideated","epoch":1,"proposal_id":"p","parent":"a","candidate":"c","rationale":"r","hypothesis":"h"';
+    expect(parseEnvelope(`${base}}}`).ok).toBe(true);
+    expect(parseEnvelope(`${base},"approach":null}}`).ok).toBe(true);
+    expect(parseEnvelope(`${base},"approach":"tabu search"}}`).ok).toBe(true);
+    expect(parseEnvelope(`${base},"approach":3}}`)).toEqual({
+      ok: false,
+      error: "ideated.approach is not string|null",
+    });
+  });
+
   it("rejects invalid json", () => {
     expect(parseEnvelope("{not json")).toEqual({ ok: false, error: "invalid json" });
   });

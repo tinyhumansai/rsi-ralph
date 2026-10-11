@@ -64,11 +64,21 @@ pub struct LoopPolicy {
     pub token_budget: u64,
     /// Rejected proposals shown to the supervisor, most recent first.
     pub rejected_context: usize,
+    /// Approaches shown under "Approaches already tried", most recently
+    /// attempted first; `0` removes the section and its resubmission rule.
+    pub approach_context: usize,
+    /// One directive per slot of an epoch: slot `k` uses
+    /// `slots[k % slots.len()]`. Empty means no directive and the model's
+    /// default sampling for every slot.
+    pub slots: Vec<SlotDirective>,
     /// Paired acceptance policy; quality units are described in the README.
     pub eval: EvalPolicy,
 }
 
 impl Default for LoopPolicy {
+    /// Five epochs of two proposals, patience two, the default slot
+    /// directives ([`SlotDirective::defaults`]) and twelve approaches of
+    /// context.
     fn default() -> Self {
         Self {
             max_epochs: 5,
@@ -76,11 +86,75 @@ impl Default for LoopPolicy {
             patience: 2,
             token_budget: 500_000,
             rejected_context: 3,
+            approach_context: 12,
+            slots: SlotDirective::defaults(),
             eval: EvalPolicy {
                 margin: 0.0,
                 ..EvalPolicy::default()
             },
         }
+    }
+}
+
+impl LoopPolicy {
+    /// The directive of slot `k`, cycling through [`LoopPolicy::slots`].
+    pub(super) fn slot(&self, k: u32) -> Option<&SlotDirective> {
+        let index = usize::try_from(k).ok()? % self.slots.len().max(1);
+        self.slots.get(index)
+    }
+}
+
+/// What one proposal slot of an epoch is asked to do, and how to sample it.
+///
+/// The instruction is the last section of that slot's prompt, so slots of
+/// the same epoch ask different questions instead of repeating one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SlotDirective {
+    /// The slot's task, shown verbatim under "This proposal".
+    pub instruction: String,
+    /// Sampling temperature in `[0, 2]` requested for the slot, or `None` for
+    /// the model's default (`0`).
+    pub temperature: Option<f64>,
+}
+
+impl SlotDirective {
+    /// A directive with the model's default sampling.
+    #[must_use]
+    pub fn new(instruction: impl Into<String>) -> Self {
+        Self {
+            instruction: instruction.into(),
+            temperature: None,
+        }
+    }
+
+    /// The same directive sampled at `temperature`; the loop refuses a value
+    /// outside `[0, 2]` before the run starts.
+    #[must_use]
+    pub fn with_temperature(mut self, temperature: f64) -> Self {
+        self.temperature = Some(temperature);
+        self
+    }
+
+    /// The default three slots: the best next step, a different family of
+    /// approach, and a repair of the most promising rejected approach. None
+    /// sets a temperature.
+    #[must_use]
+    pub fn defaults() -> Vec<Self> {
+        vec![
+            Self::new(
+                "Best next step: propose the single change most likely to improve the metric \
+                 from the incumbent now.",
+            ),
+            Self::new(
+                "Explore: propose a different family of approach from every approach already \
+                 tried and from the earlier proposals this epoch.",
+            ),
+            Self::new(
+                "Repair: take the most promising rejected approach and fix what its diagnostics \
+                 show went wrong; say what changed in `differs_from_previous`. If nothing has \
+                 been rejected yet, propose the best next step.",
+            ),
+        ]
     }
 }
 
@@ -180,6 +254,19 @@ pub struct LedgerCandidate {
     pub promoted: bool,
     /// Why an invalid proposal was refused, or the scorer's error.
     pub note: Option<String>,
+    /// The proposal's approach label (`ScriptProposal::approach_label`).
+    /// Omitted when absent, as in ledgers written before labels existed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approach: Option<String>,
+    /// What the proposal said is different from an earlier attempt of its
+    /// approach. Omitted when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub differs_from_previous: Option<String>,
+    /// Sampling temperature the loop requested for this proposal's slot. A
+    /// request, not a guarantee: a canned supervisor ignores it. Omitted when
+    /// the slot set none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
 }
 
 /// One link of the incumbent chain.

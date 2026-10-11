@@ -16,7 +16,9 @@ Each turn you propose ONE concrete change that should improve the script's metri
 Call the propose_script tool exactly once. Every file you list replaces that file entirely, \
 so return complete file contents, never diffs or excerpts. Only edit the listed editable paths. \
 The script must keep printing its metric line on stdout and must stay deterministic for a given \
-TINYRSI_SEED. Learn from rejected proposals: do not repeat them.";
+TINYRSI_SEED. Name the technique in `approach` with a few words (for example \"tabu search\" or \
+\"cubic least squares\"). Learn from rejected proposals: do not resubmit an approach that was \
+rejected unless `differs_from_previous` states concretely what is different this time.";
 
 /// Proposes script changes through a [`ModelPort`].
 ///
@@ -66,9 +68,12 @@ impl Evolver<ScriptBrief> for ScriptSupervisor {
     /// a rejected proposal inside [`Proposed`], so the loop can record it and
     /// continue.
     ///
+    /// The brief's temperature, when set, is passed to the model request.
+    ///
     /// # Errors
     ///
-    /// Returns [`Error::Model`] for a failed, refused or over-budget call.
+    /// Returns [`Error::Model`] for a failed, refused or over-budget call, or
+    /// a brief temperature outside `[0, 2]`.
     fn propose(
         &self,
         brief: &ScriptBrief,
@@ -84,6 +89,10 @@ impl Evolver<ScriptBrief> for ScriptSupervisor {
             self.limits.timeout_ms,
         )?
         .with_tool(TOOL.into(), schema(&brief.editable))?;
+        let request = match brief.temperature {
+            Some(temperature) => request.with_temperature(temperature)?,
+            None => request,
+        };
         let reply = block_on(self.port.generate(request.clone()))?;
         request.check(&reply)?;
         let proposal = serde_json::from_slice::<ScriptProposal>(&reply.content)
@@ -105,8 +114,10 @@ pub(crate) fn schema(editable: &[PathBuf]) -> Value {
     json!({
         "type": "object",
         "additionalProperties": false,
-        "required": ["rationale", "hypothesis", "files"],
+        "required": ["approach", "rationale", "hypothesis", "files"],
         "properties": {
+            "approach": {"type": "string", "maxLength": 60, "description": "Short label naming the technique, e.g. \"tabu search\" or \"DSATUR\"."},
+            "differs_from_previous": {"type": ["string", "null"], "description": "When retrying an approach already tried, what is concretely different this time."},
             "rationale": {"type": "string", "description": "Why this change should improve the metric."},
             "hypothesis": {"type": "string", "description": "The expected, checkable effect on the metric."},
             "files": {

@@ -1,7 +1,7 @@
 //! File upgrade: bring `slug.py` to a written coding standard without
 //! changing behavior. Fixtures live in `examples/upgrade_file/`.
 use super::{Definition, metric};
-use crate::{Grader, Replies, proposal};
+use crate::{Grader, Replies, proposal, with_approach};
 use tinyrsi::{Goal, LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../upgrade_file/check_standard.py");
@@ -57,23 +57,32 @@ pub(super) fn definition() -> Definition {
 /// upgrade.
 pub(super) fn canned() -> Replies {
     Replies::new([
-        proposal(
-            "The module and slugify are undocumented.",
-            "Docstrings remove two violations.",
-            "slug.py",
-            DOCSTRINGS,
+        with_approach(
+            "docstrings",
+            proposal(
+                "The module and slugify are undocumented.",
+                "Docstrings remove two violations.",
+                "slug.py",
+                DOCSTRINGS,
+            ),
         ),
-        proposal(
-            "A regex is shorter and fully annotated.",
-            "One substitution satisfies the standard.",
-            "slug.py",
-            REGEX,
+        with_approach(
+            "regex rewrite",
+            proposal(
+                "A regex is shorter and fully annotated.",
+                "One substitution satisfies the standard.",
+                "slug.py",
+                REGEX,
+            ),
         ),
-        proposal(
-            "Annotate, drop the bare except, and build the slug from word runs.",
-            "Every remaining violation goes, with behavior unchanged.",
-            "slug.py",
-            STANDARD,
+        with_approach(
+            "full standard rewrite",
+            proposal(
+                "Annotate, drop the bare except, and build the slug from word runs.",
+                "Every remaining violation goes, with behavior unchanged.",
+                "slug.py",
+                STANDARD,
+            ),
         ),
     ])
 }

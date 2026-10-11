@@ -25,7 +25,9 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   the original decisions and metric-unit intervals exactly.
 - `ScriptSubject`, `ScriptCommand`, `MetricSpec`: what to run and measure.
 - `LoopPolicy`: epochs, proposals per epoch, patience, token budget, how many
-  rejected proposals the supervisor sees, and the paired `EvalPolicy`.
+  rejected proposals and tried approaches the supervisor sees, the per-slot
+  `SlotDirective`s (instruction plus optional temperature,
+  `SlotDirective::defaults()` by default), and the paired `EvalPolicy`.
 - The model side lives in `tinyrsi-evolve`: `ScriptSupervisor`,
   `SupervisorLimits`, `ScriptBrief`, and `ScriptProposal` / `ProposedFile`
   (the forced tool call's schema, with `ScriptProposal::validate` enforcing
@@ -45,7 +47,8 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 | `execute.rs` | validation, content ids, materialization, per-seed runs, metric parsing |
 | `score.rs` | the default metric scorer and the interval of a failed candidate |
 | `prompt.rs` | the supervisor prompt rendered from the ledger and incumbent sources |
-| `test.rs`, `test_loop.rs` | unit tests and end-to-end loop tests |
+| `approaches.rs` | the hypothesis ledger: approaches already tried, earlier proposals this epoch |
+| `test.rs`, `test_loop.rs`, `test_approaches.rs` | unit tests, end-to-end loop tests, hypothesis-ledger and slot tests |
 
 ## Run directory
 
@@ -79,6 +82,14 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   proposals are recorded and the loop continues. Model transport failures,
   trace or ledger I/O failures and a failing baseline end the run with
   `run_finished { reason: "error" }`.
+
+- **Hypothesis ledger:** proposals carry an `approach` label. Before each
+  ideation the loop groups the ledger's labelled rows by normalized label
+  (case, whitespace and punctuation ignored) and shows the newest
+  `approach_context` groups with attempts, best mean, last decision and a
+  one-line verdict, above the recent rejections. Slots run one at a time, so
+  slot `k` also sees what slots `0..k` of the epoch proposed and how they
+  scored. See `docs/specs/hypothesis-ledger.md`.
 
 ## Safety
 

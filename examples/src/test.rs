@@ -50,3 +50,13 @@ fn live_models_are_built_from_an_explicit_id() {
     assert!(live_model(" ").is_err());
     assert_ne!(default_live_model(), "");
 }
+
+#[test]
+fn with_approach_labels_a_proposal_and_leaves_other_text_alone() {
+    let labelled = with_approach("DSATUR", proposal("r", "h", "a.py", "x"));
+    let p: serde_json::Value = serde_json::from_str(&labelled).unwrap();
+    assert_eq!(p["approach"], "DSATUR");
+    assert_eq!(p["files"][0]["path"], "a.py");
+    assert_eq!(with_approach("x", "not json".into()), "not json");
+    assert_eq!(with_approach("x", "[1]".into()), "[1]");
+}

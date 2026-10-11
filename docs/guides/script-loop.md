@@ -66,6 +66,22 @@ epochs without a promotion, and accepts a candidate when the paired lower bound
 of its improvement is above zero (`eval.margin = 0`). Raise `eval.margin` (in
 quality units, see the module README) to demand larger gains.
 
+Each epoch asks for `proposals_per_epoch` proposals, one slot at a time, and
+`LoopPolicy::slots` gives each slot its own question. The default three are
+"best next step", "explore a different family of approach" and "repair the
+most promising rejected approach", cycled when there are more slots. Replace
+them with your own `SlotDirective`s, or set
+`SlotDirective::new("...").with_temperature(0.8)` on an exploration slot to
+sample it hotter (the default is temperature 0). An empty list asks every slot
+the same question.
+
+Every proposal names its technique in `approach`. The prompt lists the
+approaches already tried, newest first (`approach_context`, default 12), with
+their attempts, best mean, last decision and a one-line verdict from the
+diagnostics, and tells the supervisor not to resubmit a rejected approach
+unless `differs_from_previous` says what changed. Printing `DIAG` lines makes
+those verdicts useful. See the [hypothesis ledger spec](../specs/hypothesis-ledger.md).
+
 `ScriptSupervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
 uses `OpenRouter`; any `ModelPort` works if its futures do not need a specific
 async runtime. `token_budget` caps measured supervisor tokens across the run, plus the
@@ -81,8 +97,9 @@ let report = run_script_loop(&subject, &supervisor, &LoopPolicy::default(), &run
 
 - `events.jsonl` streams each stage ([schema](../specs/loop-trace.md)); tail it
   or open it in the visualizer.
-- `ledger.json` lists every candidate with its parent, proposal, per-seed
-  metrics and stderr tail, decision and interval, plus the incumbent chain.
+- `ledger.json` lists every candidate with its parent, proposal and approach
+  label, per-seed metrics and stderr tail, decision and interval, plus the
+  incumbent chain.
 - `candidates/<id>/` holds each candidate's full working copy; the final
   incumbent's files are your improved script.
 

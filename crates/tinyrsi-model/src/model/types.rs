@@ -45,6 +45,7 @@ impl std::fmt::Debug for ModelRequest {
         f.debug_struct("ModelRequest")
             .field("seed", &self.seed)
             .field("max_tokens", &self.max_tokens)
+            .field("temperature", &self.temperature)
             .finish_non_exhaustive()
     }
 }

@@ -2,9 +2,13 @@
 //!
 //! The script loop in `tinyrsi` renders a [`ScriptBrief`] from its ledger and
 //! asks a [`ScriptSupervisor`] for a [`ScriptProposal`]: whole-file
-//! replacements of editable files, with a rationale and a checkable
-//! hypothesis. Applying the proposal, running the candidate and scoring it
-//! stay with the loop.
+//! replacements of editable files, with a rationale, a checkable hypothesis,
+//! a short `approach` label naming the technique, and, when it retries an
+//! approach, what is different this time. The brief carries the slot's
+//! sampling temperature, if any. Applying the proposal, running the
+//! candidate and scoring it stay with the loop; the loop also groups the
+//! labels into the "approaches already tried" section of later prompts
+//! (`docs/specs/hypothesis-ledger.md`).
 mod supervisor;
 mod types;
 
@@ -14,6 +18,10 @@ use std::path::{Component, Path, PathBuf};
 pub use supervisor::ScriptSupervisor;
 pub use types::{ProposedFile, ScriptBrief, ScriptProposal, SupervisorLimits};
 
+/// Longest approach label, in characters, that
+/// [`ScriptProposal::approach_label`] keeps.
+pub(crate) const APPROACH_CHARS: usize = 60;
+
 /// True when `path` is relative and made only of normal components.
 #[must_use]
 pub fn is_plain_relative(path: &Path) -> bool {
@@ -21,6 +29,29 @@ pub fn is_plain_relative(path: &Path) -> bool {
 }
 
 impl ScriptProposal {
+    /// The approach label with whitespace runs collapsed to one space and cut
+    /// to 60 characters (the last one an ellipsis), or `None` when blank.
+    ///
+    /// Over-long labels are cut rather than refused: the proposal cost a full
+    /// model call and its code may still be good.
+    #[must_use]
+    pub fn approach_label(&self) -> Option<String> {
+        let label = self
+            .approach
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        if label.is_empty() {
+            return None;
+        }
+        if label.chars().count() <= APPROACH_CHARS {
+            return Some(label);
+        }
+        let mut cut: String = label.chars().take(APPROACH_CHARS - 1).collect();
+        cut.push('…');
+        Some(cut)
+    }
+
     /// Checks the proposal against the subject's editable set.
     ///
     /// # Errors

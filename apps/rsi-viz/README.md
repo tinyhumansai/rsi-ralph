@@ -77,6 +77,8 @@ partial-line handling. Its output directories are git-ignored.
 - Proposals and candidates are paired by `ideated.candidate`, the content id
   the proposal materializes into. A `null` candidate means the proposal was
   rejected before materialization; the feed shows it as "not executed".
+- An `ideated.approach` label, when present, is shown next to the proposal id;
+  traces without it (older runs, the hive loop) render as before.
 
 ## Layout
 

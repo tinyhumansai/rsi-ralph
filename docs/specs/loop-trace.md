@@ -53,7 +53,7 @@ Event kinds (stage in brackets is the visualizer's loop-ring stage):
 | `run_started` | `run_id: string, subject: string, goal: {metric: string, direction: "minimize"\|"maximize", target: number\|null}` | — |
 | `epoch_started` | `epoch: u64, incumbent: string` | — |
 | `observed` | `epoch, incumbent: string, incumbent_metric: number\|null, history: u32, rejected: u32` | observe |
-| `ideated` | `epoch, proposal_id: string, parent: string, candidate: string\|null, rationale: string, hypothesis: string` | ideate |
+| `ideated` | `epoch, proposal_id: string, parent: string, candidate: string\|null, rationale: string, hypothesis: string, approach?: string` | ideate |
 | `executed` | `epoch, candidate: string, seed: u64, metric: number\|null, ok: bool, duration_ms: u64` | execute |
 | `measured` | `epoch, candidate: string, mean: number\|null, failures: u32, seeds: u32` | measure |
 | `scored` | `epoch, candidate: string, decision: "accept"\|"reject"\|"inconclusive", estimate: number, lower: number, upper: number, units?: "quality"` | score |
@@ -64,6 +64,11 @@ Event kinds (stage in brackets is the visualizer's loop-ring stage):
 `ideated.candidate` is the content id the proposal materializes into, computed
 from the proposed files before execution, or `null` when the proposal was
 refused before materialization (malformed, or a path outside the editable set).
+`ideated.approach` is the proposal's short technique label (see the
+[hypothesis ledger](hypothesis-ledger.md)). It is an additive field, omitted
+when the proposal has no label or was refused, so unlabelled traces (and the
+hive loop's) keep their exact bytes; readers treat a missing field and `null`
+alike.
 
 The baseline run of the starting script is epoch 0: `executed`/`measured`
 events with `candidate` = the baseline id, and no `scored` event.

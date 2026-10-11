@@ -5,7 +5,8 @@
 //! owns the subject applies a proposal, measures the result and decides.
 //!
 //! - [`ScriptSupervisor`] proposes whole-file rewrites of a script through one
-//!   forced tool call to a [`tinyrsi_model::ModelPort`].
+//!   forced tool call to a [`tinyrsi_model::ModelPort`]. Each proposal names
+//!   its technique (`approach`), and the brief may set a sampling temperature.
 //! - [`RetreatEvolver`] runs the tinybackrooms critic-pair retreat to propose
 //!   typed hive patches. [`DurableRetreatMemory`] gives that engine recall
 //!   across runs.

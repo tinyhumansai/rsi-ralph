@@ -2,6 +2,7 @@
  * Proposals, newest first, each with its candidate's measurement and the
  * scored decision with the improvement estimate and its interval. A proposal
  * rejected before materialization (no candidate) is shown as not executed.
+ * A labelled proposal shows its approach next to its id.
  */
 
 import { formatMetric, formatSigned, shortId } from "@/lib/format";
@@ -28,6 +29,7 @@ export function ProposalsFeed({ state }: { state: RunState }) {
             <div className="head">
               <span className="muted">epoch {p.epoch}</span>
               <span className="mono">{p.proposalId}</span>
+              {p.approach ? <span className="approach">{p.approach}</span> : null}
               {p.candidate ? (
                 <span className="mono muted" title={p.candidate}>
                   → {shortId(p.candidate)}

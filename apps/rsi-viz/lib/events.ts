@@ -57,6 +57,8 @@ export interface Ideated {
   candidate: string | null;
   rationale: string;
   hypothesis: string;
+  /** Short label of the proposal's technique; absent or null when unlabelled. */
+  approach?: string | null;
 }
 
 export interface Executed {
@@ -270,6 +272,9 @@ export function parseEnvelope(line: string): ParseResult {
   }
   if (event.kind === "scored" && event.units !== undefined && !UNITS.includes(event.units as string)) {
     return { ok: false, error: "scored.units is not known units" };
+  }
+  if (event.kind === "ideated" && event.approach !== undefined && !matches(event.approach, "string|null")) {
+    return { ok: false, error: "ideated.approach is not string|null" };
   }
   if (event.kind === "run_finished" && !REASONS.includes(event.reason as string)) {
     return { ok: false, error: "run_finished.reason is not a known reason" };

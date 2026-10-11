@@ -119,6 +119,12 @@ pub enum LoopEvent {
         rationale: String,
         /// The checkable claim.
         hypothesis: String,
+        /// Short label of the proposal's technique, such as `"tabu search"`.
+        /// Omitted on the wire when the proposal has none (or was refused
+        /// before materialization), so unlabelled traces keep their bytes;
+        /// readers treat a missing field and `null` alike.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        approach: Option<String>,
     },
     /// One seed of one candidate ran.
     Executed {

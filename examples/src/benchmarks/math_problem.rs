@@ -1,7 +1,7 @@
 //! Math problem: compute pi to 12 digits. Fixtures live in
 //! `examples/math_problem/`.
 use super::{Definition, metric};
-use crate::{Grader, Replies, proposal};
+use crate::{Grader, Replies, proposal, with_approach};
 use tinyrsi::{LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../math_problem/check_pi.py");
@@ -37,23 +37,32 @@ pub(super) fn definition() -> Definition {
 /// More terms, a slower product, then Machin's formula.
 pub(super) fn canned() -> Replies {
     Replies::new([
-        proposal(
-            "The Leibniz series converges slowly; 1,000 terms leave an error near 1e-3.",
-            "200,000 terms gain about two more digits.",
-            "pi.py",
-            MORE_TERMS,
+        with_approach(
+            "Leibniz series",
+            proposal(
+                "The Leibniz series converges slowly; 1,000 terms leave an error near 1e-3.",
+                "200,000 terms gain about two more digits.",
+                "pi.py",
+                MORE_TERMS,
+            ),
         ),
-        proposal(
-            "A product converges differently from a series; try Wallis.",
-            "The Wallis product reaches more digits than the series.",
-            "pi.py",
-            WALLIS,
+        with_approach(
+            "Wallis product",
+            proposal(
+                "A product converges differently from a series; try Wallis.",
+                "The Wallis product reaches more digits than the series.",
+                "pi.py",
+                WALLIS,
+            ),
         ),
-        proposal(
-            "Machin's arctan identity converges geometrically.",
-            "Twenty arctan terms reach full double precision.",
-            "pi.py",
-            MACHIN,
+        with_approach(
+            "Machin arctan formula",
+            proposal(
+                "Machin's arctan identity converges geometrically.",
+                "Twenty arctan terms reach full double precision.",
+                "pi.py",
+                MACHIN,
+            ),
         ),
     ])
 }
