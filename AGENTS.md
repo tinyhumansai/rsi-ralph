@@ -44,6 +44,7 @@ crates/
     │   └── script_loop/      # improvement loop over a plain script
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
+examples/               # `tinyrsi-examples`: math_problem, upgrade_file, hive_goal
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 apps/rsi-viz/           # read-only Next.js loop visualizer
@@ -58,10 +59,11 @@ directory follows the
 
 ### Adding a crate
 
-Add a crate by creating `crates/<name>/` — `members = ["crates/*"]` picks it up
-by existing. Inherit `version`, `edition`, `rust-version`, `license`, and
-`repository` from `[workspace.package]`, take shared dependencies from
-`[workspace.dependencies]`, and opt into the shared lint set with:
+Add a crate by creating `crates/<name>/`; `members = ["crates/*",
+"examples"]` picks it up by existing. Inherit `version`, `edition`,
+`rust-version`, `license`, and `repository` from `[workspace.package]`, take
+shared dependencies from `[workspace.dependencies]`, and opt into the shared
+lint set with:
 
 ```toml
 [lints]
@@ -107,6 +109,9 @@ Supporting commands:
 - `cargo test <filter>` — run a focused subset while iterating.
 - `cargo test -p tinyrsi` — run one crate's suite.
 - `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
+- `cargo run -p tinyrsi-examples --example math_problem` (or `upgrade_file`,
+  `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
+  trace under `target/rsi-examples/` and fails if it misses its goal.
 - `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
 - `cargo run -p tinyrsi-host --example complete_openrouter` — the

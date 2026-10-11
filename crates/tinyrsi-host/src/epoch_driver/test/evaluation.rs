@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     CandidateState, EvalPair, EvalRun, EvalStage, Evaluator, HApprovalGate, HEvalPair, HEvaluator,
-    ScoreComparison, ScoreHealth,
+    LoopEvent, ScoreComparison, ScoreHealth, TraceSink,
 };
 #[derive(Default)]
 pub(super) struct Host {
@@ -143,6 +143,7 @@ fn evaluation_reopens_without_repeating_private_draws_or_human_decision() {
                 ReasonCode::ApprovalDenied
             }
         );
+        assert_epoch_trace(&journal, &archive, &outcome, approved);
         assert_eq!(host.calls, 3);
         assert_eq!(human.calls, 1);
         let dataset = assert_selection_dataset(&mut journal, &archive, proposal_count, &priors);
@@ -348,4 +349,216 @@ fn every_valid_formatter_occurrence_reaches_duplicate_funnel() {
             .all(|r| r.reason == ReasonCode::Duplicate)
     );
     assert_eq!(host.calls, 3);
+    assert_duplicates_are_not_rescored(&archive, &prepared, &outcome);
+}
+
+/// One evaluation, so one measurement and one score; the duplicates repeat a
+/// patch nothing re-ran, and each idea links exactly what it became.
+fn assert_duplicates_are_not_rescored(
+    archive: &Archive,
+    prepared: &PreparedRetreatEpoch,
+    outcome: &RetreatEpochOutcome,
+) {
+    let mut trace = crate::VecTrace::new(crate::ManualClock::new());
+    record_epoch(&mut trace, 1, archive, prepared, outcome).unwrap();
+    let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    assert_eq!(kinds.iter().filter(|k| **k == "measured").count(), 1);
+    assert_eq!(kinds.iter().filter(|k| **k == "scored").count(), 1);
+    assert!(outcome.candidates[0].candidate_id.is_some());
+    let linked: Vec<_> = events
+        .iter()
+        .filter_map(|e| match e {
+            LoopEvent::Ideated { candidate, .. } => Some(candidate.clone()),
+            _ => None,
+        })
+        .collect();
+    let expected: Vec<_> = outcome
+        .candidates
+        .iter()
+        .map(|c| c.candidate_id.clone())
+        .collect();
+    assert_eq!(linked, expected);
+}
+
+/// The epoch's proposals and outcome, recorded on the loop trace, read as the
+/// visualizer expects: ideas, then measurement and score per candidate, an
+/// improvement only when the human approved, and the epoch's end.
+fn assert_epoch_trace(
+    journal: &EpochJournal,
+    archive: &Archive,
+    outcome: &RetreatEpochOutcome,
+    approved: bool,
+) {
+    use crate::{ManualClock, ScoreDecision, VecTrace};
+    let prepared = journal.prepared(1).unwrap();
+    let mut trace = VecTrace::new(ManualClock::new());
+    record_epoch(&mut trace, 7, archive, prepared, outcome).unwrap();
+    let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    let ideas = prepared.proposals.len();
+    assert_eq!(kinds[..ideas], vec!["ideated"; ideas][..]);
+    let count = |kind: &str| kinds.iter().filter(|k| **k == kind).count();
+    // Every candidate that ran is scored; only the evaluated one is measured,
+    // and only an approved one improves the incumbent.
+    let ran = outcome
+        .candidates
+        .iter()
+        .filter(|c| c.candidate_id.is_some() && c.reason != ReasonCode::Duplicate)
+        .count();
+    assert_eq!(count("scored"), ran);
+    assert_eq!(count("measured"), 1);
+    assert_eq!(count("improved"), usize::from(approved));
+    assert_eq!(kinds[ideas], "measured");
+    assert_eq!(kinds.last(), Some(&"epoch_finished"));
+    assert!(events.iter().all(|e| match e {
+        LoopEvent::Ideated {
+            epoch, proposal_id, ..
+        } => *epoch == 7 && proposal_id.starts_with("p7-"),
+        LoopEvent::Measured { epoch, .. }
+        | LoopEvent::Scored { epoch, .. }
+        | LoopEvent::Improved { epoch, .. }
+        | LoopEvent::EpochFinished { epoch, .. } => *epoch == 7,
+        _ => false,
+    }));
+    let scored = events
+        .iter()
+        .find_map(|e| match e {
+            LoopEvent::Scored { decision, .. } => Some(*decision),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        scored,
+        if approved {
+            ScoreDecision::Accept
+        } else {
+            ScoreDecision::Reject
+        }
+    );
+    // Every formalized proposal's idea names the candidate it became.
+    for c in &outcome.candidates {
+        let linked = events.iter().find_map(|e| match e {
+            LoopEvent::Ideated {
+                proposal_id,
+                candidate,
+                ..
+            } if *proposal_id == format!("p7-{}", c.proposal_index) => Some(candidate.clone()),
+            _ => None,
+        });
+        let expected = (c.reason != ReasonCode::Duplicate)
+            .then(|| c.candidate_id.clone())
+            .flatten();
+        assert_eq!(linked, Some(expected));
+    }
+    // The epoch ends on a metric: the accepted candidate's H, or the
+    // incumbent's on the same private draw.
+    let measured = events.iter().find_map(|e| match e {
+        LoopEvent::Measured { mean, .. } => *mean,
+        _ => None,
+    });
+    let finished = events.iter().find_map(|e| match e {
+        LoopEvent::EpochFinished {
+            incumbent_metric, ..
+        } => Some(*incumbent_metric),
+        _ => None,
+    });
+    let finished = finished.unwrap().unwrap();
+    assert_eq!(approved, Some(finished) == measured);
+}
+
+/// A prepared epoch of `n` copies of the fixture proposal.
+fn prepared(epoch: u64, n: usize) -> PreparedRetreatEpoch {
+    PreparedRetreatEpoch {
+        epoch,
+        incumbent_id: "base".into(),
+        mode: GenerationMode::Direct,
+        fingerprint: "f".into(),
+        policy_fingerprint: "p".into(),
+        proposals: vec![proposal(); n],
+        ranked_items: n,
+        invalid_items: 0,
+        meter: crate::GenerationMeter::default(),
+    }
+}
+
+#[test]
+fn an_unmaterialized_proposal_stays_candidate_less_on_the_trace() {
+    use crate::{EpochCandidateOutcome, ManualClock, VecTrace};
+    let dir = tempfile::tempdir().unwrap();
+    let archive = Archive::open(dir.path().join("archive.json")).unwrap();
+    let outcome = RetreatEpochOutcome {
+        epoch: 3,
+        candidates: vec![EpochCandidateOutcome {
+            proposal_index: 2,
+            reason: ReasonCode::Guard,
+            candidate_id: None,
+        }],
+        complete: true,
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    record_epoch(&mut trace, 3, &archive, &prepared(3, 3), &outcome).unwrap();
+    let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    assert_eq!(kinds, ["ideated", "ideated", "ideated", "epoch_finished"]);
+    assert!(events.iter().all(|e| match e {
+        LoopEvent::Ideated { candidate, .. } => candidate.is_none(),
+        LoopEvent::EpochFinished {
+            incumbent,
+            incumbent_metric,
+            ..
+        } => incumbent == "base" && incumbent_metric.is_none(),
+        _ => false,
+    }));
+}
+
+#[test]
+fn a_duplicate_idea_stays_candidate_less_on_the_trace() {
+    use crate::{EpochCandidateOutcome, ManualClock, VecTrace};
+    let dir = tempfile::tempdir().unwrap();
+    let archive = Archive::open(dir.path().join("archive.json")).unwrap();
+    let outcome = RetreatEpochOutcome {
+        epoch: 3,
+        candidates: vec![EpochCandidateOutcome {
+            proposal_index: 0,
+            reason: ReasonCode::Duplicate,
+            candidate_id: Some("sha256:already-evaluated".into()),
+        }],
+        complete: true,
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    record_epoch(&mut trace, 3, &archive, &prepared(3, 1), &outcome).unwrap();
+    // Nothing ran, so the idea must not borrow the earlier candidate's
+    // measurement and decision in the visualizer.
+    assert!(trace.records().iter().all(|r| match &r.event {
+        LoopEvent::Ideated { candidate, .. } => candidate.is_none(),
+        LoopEvent::EpochFinished { .. } => true,
+        _ => false,
+    }));
+}
+
+#[test]
+fn a_failing_trace_sink_surfaces_as_a_trace_error() {
+    use crate::{EpochCandidateOutcome, TraceError};
+    struct Broken;
+    impl TraceSink for Broken {
+        fn record(&mut self, _: LoopEvent) -> std::result::Result<(), TraceError> {
+            Err(TraceError::Io)
+        }
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let archive = Archive::open(dir.path().join("archive.json")).unwrap();
+    let outcome = RetreatEpochOutcome {
+        epoch: 1,
+        candidates: vec![EpochCandidateOutcome {
+            proposal_index: 0,
+            reason: ReasonCode::Guard,
+            candidate_id: None,
+        }],
+        complete: true,
+    };
+    assert_eq!(
+        record_epoch(&mut Broken, 1, &archive, &prepared(1, 1), &outcome),
+        Err(Error::TraceIo)
+    );
 }

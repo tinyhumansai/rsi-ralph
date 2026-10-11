@@ -1058,6 +1058,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyrsi-examples"
+version = "0.2.1"
+dependencies = [
+ "serde_json",
+ "tempfile",
+ "tinyhivemind-hives",
+ "tinyhivemind-lang",
+ "tinyrsi",
+ "tinyrsi-host",
+ "tokio",
+]
+
+[[package]]
 name = "tinyrsi-host"
 version = "0.2.1"
 dependencies = [

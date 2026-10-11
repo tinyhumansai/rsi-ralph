@@ -79,6 +79,7 @@ crates/
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
+examples/               # end-to-end examples: math_problem, upgrade_file, hive_goal
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
 ├── specs/              # behavior and architecture specifications
@@ -161,6 +162,19 @@ host-private directory (default `target/rsi-complete-live`); existing directorie
 are refused to preserve preregistration. The example spends real API tokens.
 It writes protocol and aggregate experiment reports without publishing private
 suite contents. A negative or inconclusive report is a valid result.
+
+## End-to-end examples
+
+[`examples/`](examples/README.md) runs the whole loop (evolve, score, keep
+what is better) on three problems, offline by default:
+
+- `math_problem`: compute π to 12 digits.
+- `upgrade_file`: bring a file up to a written coding standard.
+- `hive_goal`: improve a hive of agents until they solve private tasks.
+
+Run `cargo run -p tinyrsi-examples --example math_problem` (or
+`upgrade_file`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
+`RSI_RUN_ROOT=../../target/rsi-examples`.
 
 ## Improving a plain script
 
