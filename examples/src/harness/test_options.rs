@@ -33,7 +33,10 @@ fn every_flag_is_read() {
         "docs/rsi/results/x",
     ])
     .unwrap();
-    assert_eq!(options.benchmarks, [Benchmark::UpgradeFile, Benchmark::CurveFit]);
+    assert_eq!(
+        options.benchmarks,
+        [Benchmark::UpgradeFile, Benchmark::CurveFit]
+    );
     assert_eq!(options.models.unwrap(), ["a/b", "c/d"]);
     assert_eq!((options.repeats, options.jobs), (5, 2));
     assert_eq!(options.out, Some(PathBuf::from("docs/rsi/results/x")));
@@ -42,7 +45,10 @@ fn every_flag_is_read() {
 #[test]
 fn bad_arguments_are_rejected_with_a_reason() {
     assert_eq!(parse(&["--fast"]).unwrap_err(), "unknown argument --fast");
-    assert_eq!(parse(&["--repeats"]).unwrap_err(), "--repeats needs a value");
+    assert_eq!(
+        parse(&["--repeats"]).unwrap_err(),
+        "--repeats needs a value"
+    );
     assert_eq!(
         parse(&["--repeats", "0"]).unwrap_err(),
         "--repeats needs a whole number of at least 1"

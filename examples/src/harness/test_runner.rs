@@ -37,14 +37,23 @@ fn live_choices_build_a_shared_supervisor_and_judge_without_calling_it() {
         .models(Benchmark::GraphColoring)
         .unwrap();
     assert!(models.judge.is_some());
-    assert!(ModelChoice::Live(String::new()).models(Benchmark::CurveFit).is_err());
+    assert!(
+        ModelChoice::Live(String::new())
+            .models(Benchmark::CurveFit)
+            .is_err()
+    );
     assert_eq!(ModelChoice::Offline.label(), "offline");
 }
 
 #[test]
 fn a_failing_run_is_recorded_without_stopping() {
     let dir = tempfile::tempdir().unwrap();
-    let jobs = plan(&[Benchmark::MathProblem], &[ModelChoice::Offline], 1, dir.path());
+    let jobs = plan(
+        &[Benchmark::MathProblem],
+        &[ModelChoice::Offline],
+        1,
+        dir.path(),
+    );
     let record = run_job(&jobs[0], Path::new("/nonexistent/python"));
     assert_eq!(record.stop, StopReason::Error);
     assert!(record.error.is_some());
@@ -54,7 +63,12 @@ fn a_failing_run_is_recorded_without_stopping() {
 #[test]
 fn an_offline_matrix_runs_in_order_and_writes_its_summary() {
     let dir = tempfile::tempdir().unwrap();
-    let jobs = plan(&[Benchmark::MathProblem], &[ModelChoice::Offline], 2, dir.path());
+    let jobs = plan(
+        &[Benchmark::MathProblem],
+        &[ModelChoice::Offline],
+        2,
+        dir.path(),
+    );
     let seen = Mutex::new(vec![]);
     let records = execute(jobs, &python().unwrap(), 2, &|r| {
         seen.lock().unwrap().push(r.repeat);
@@ -63,7 +77,10 @@ fn an_offline_matrix_runs_in_order_and_writes_its_summary() {
     assert_eq!(records.iter().map(|r| r.repeat).collect::<Vec<_>>(), [1, 2]);
     for record in &records {
         assert!(record.goal_reached, "{record:?}");
-        assert_eq!((record.epochs, record.promotions, record.rejected), (3, 2, 1));
+        assert_eq!(
+            (record.epochs, record.promotions, record.rejected),
+            (3, 2, 1)
+        );
         assert!(record.run_dir.join("ledger.json").exists());
     }
     let summary = Summary {

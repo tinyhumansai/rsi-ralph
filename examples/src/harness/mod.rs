@@ -75,8 +75,7 @@ pub fn repetition(candidates: &[LedgerCandidate]) -> (u32, u32) {
         if same_content || same_idea {
             repeats += 1;
         }
-        let ruled_out =
-            !candidate.promoted && candidate.decision != CandidateDecision::Duplicate;
+        let ruled_out = !candidate.promoted && candidate.decision != CandidateDecision::Duplicate;
         if ruled_out {
             ids.extend(candidate.id.clone());
             if !hypothesis.is_empty() {

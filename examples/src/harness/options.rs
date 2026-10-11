@@ -61,9 +61,9 @@ impl Options {
         let mut args = args.into_iter();
         while let Some(flag) = args.next() {
             let value = match flag.as_str() {
-                "--benchmarks" | "--models" | "--repeats" | "--jobs" | "--out" => args
-                    .next()
-                    .ok_or_else(|| format!("{flag} needs a value"))?,
+                "--benchmarks" | "--models" | "--repeats" | "--jobs" | "--out" => {
+                    args.next().ok_or_else(|| format!("{flag} needs a value"))?
+                }
                 _ => return Err(format!("unknown argument {flag}").into()),
             };
             match flag.as_str() {

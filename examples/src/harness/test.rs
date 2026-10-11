@@ -3,11 +3,16 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use tinyrsi::{
-    CandidateDecision, IncumbentEntry, IntervalUnits, LedgerCandidate, MetricDirection,
-    MetricSpec, ScriptLedger,
+    CandidateDecision, IncumbentEntry, IntervalUnits, LedgerCandidate, MetricDirection, MetricSpec,
+    ScriptLedger,
 };
 
-fn row(epoch: u64, id: Option<&str>, hypothesis: &str, decision: CandidateDecision) -> LedgerCandidate {
+fn row(
+    epoch: u64,
+    id: Option<&str>,
+    hypothesis: &str,
+    decision: CandidateDecision,
+) -> LedgerCandidate {
     LedgerCandidate {
         epoch,
         proposal_id: (epoch > 0).then(|| format!("p{epoch}")),
@@ -71,10 +76,20 @@ fn ledger() -> ScriptLedger {
         candidates: vec![
             row(0, Some("a"), "starting script", CandidateDecision::Baseline),
             promoted(row(1, Some("b"), "DSATUR", CandidateDecision::Accept)),
-            row(1, Some("c"), "Kempe chains reduce colours.", CandidateDecision::Reject),
+            row(
+                1,
+                Some("c"),
+                "Kempe chains reduce colours.",
+                CandidateDecision::Reject,
+            ),
             row(2, Some("c"), "something new", CandidateDecision::Duplicate),
             row(2, None, "escape the workspace", CandidateDecision::Invalid),
-            row(2, Some("d"), "  kempe CHAINS -- reduce colours ", CandidateDecision::Inconclusive),
+            row(
+                2,
+                Some("d"),
+                "  kempe CHAINS -- reduce colours ",
+                CandidateDecision::Inconclusive,
+            ),
             row(2, Some("b"), "DSATUR", CandidateDecision::Duplicate),
         ],
     }
@@ -125,7 +140,13 @@ fn a_run_without_proposals_has_no_repetition_share() {
 
 #[test]
 fn records_carry_the_ledger_counts() {
-    let record = record(cell("graph_coloring", "offline", 2), Some(&ledger()), 42, "d".into(), None);
+    let record = record(
+        cell("graph_coloring", "offline", 2),
+        Some(&ledger()),
+        42,
+        "d".into(),
+        None,
+    );
     assert_eq!(record.benchmark, "graph_coloring");
     assert_eq!(record.repeat, 2);
     assert_eq!(record.stop, StopReason::Stalled);
@@ -163,16 +184,39 @@ fn a_failed_run_is_recorded_as_an_error() {
 
 #[test]
 fn model_labels_are_safe_directory_names() {
-    assert_eq!(model_label("anthropic/claude-sonnet-4.5"), "anthropic_claude-sonnet-4.5");
-    assert_eq!(model_label("openai/gpt-4.1-mini:free"), "openai_gpt-4.1-mini_free");
+    assert_eq!(
+        model_label("anthropic/claude-sonnet-4.5"),
+        "anthropic_claude-sonnet-4.5"
+    );
+    assert_eq!(
+        model_label("openai/gpt-4.1-mini:free"),
+        "openai_gpt-4.1-mini_free"
+    );
     assert_eq!(model_label("offline"), "offline");
 }
 
-fn finished(model: &str, repeat: u32, goal: bool, epochs: u64, tokens: u64, share: Option<f64>) -> RunRecord {
+fn finished(
+    model: &str,
+    repeat: u32,
+    goal: bool,
+    epochs: u64,
+    tokens: u64,
+    share: Option<f64>,
+) -> RunRecord {
     let mut ledger = ledger();
-    ledger.stop = Some(if goal { StopReason::GoalReached } else { StopReason::Stalled });
+    ledger.stop = Some(if goal {
+        StopReason::GoalReached
+    } else {
+        StopReason::Stalled
+    });
     ledger.tokens = tokens;
-    let mut record = record(cell("graph_coloring", model, repeat), Some(&ledger), 1000 * u64::from(repeat), "d".into(), None);
+    let mut record = record(
+        cell("graph_coloring", model, repeat),
+        Some(&ledger),
+        1000 * u64::from(repeat),
+        "d".into(),
+        None,
+    );
     record.epochs = epochs;
     record.repetition_share = share;
     record
@@ -223,14 +267,23 @@ fn the_table_renders_rates_medians_and_dashes() {
         finished("m1", 1, true, 3, 1500, Some(0.5)),
         finished("m1", 2, false, 6, 2500, None),
     ]);
-    let failed = aggregate(&[record(cell("b", "m", 1), None, 0, "d".into(), Some("x".into()))]);
+    let failed = aggregate(&[record(
+        cell("b", "m", 1),
+        None,
+        0,
+        "d".into(),
+        Some("x".into()),
+    )]);
     let table = render_markdown(&[rows, failed].concat());
     let lines: Vec<&str> = table.lines().collect();
     assert_eq!(
         lines[0],
         "| Benchmark | Model | Goal | Epochs to goal | Tokens | Final metric | Repetition | Wall (s) |"
     );
-    assert_eq!(lines[1], "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |");
+    assert_eq!(
+        lines[1],
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"
+    );
     assert_eq!(
         lines[2],
         "| graph_coloring | m1 | 1/2 | 3 | 2000 | 12 colors | 50% | 1.5 |"

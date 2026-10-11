@@ -93,7 +93,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let (json, markdown) = write_summary(&out, &summary, &header)?;
     println!("\n{}", render_markdown(&summary.rows));
-    println!("summary: {}\n         {}", json.display(), markdown.display());
+    println!(
+        "summary: {}\n         {}",
+        json.display(),
+        markdown.display()
+    );
     // Offline, every canned run must reach its goal; CI runs this example.
     let missed = summary.runs.iter().filter(|r| !r.goal_reached).count();
     if !live() && missed > 0 {
@@ -103,7 +107,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Milliseconds as seconds, for display.
-#[expect(clippy::cast_precision_loss, reason = "wall times stay far below 2^53 ms")]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "wall times stay far below 2^53 ms"
+)]
 fn seconds(ms: u64) -> f64 {
     ms as f64 / 1000.0
 }

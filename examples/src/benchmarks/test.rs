@@ -15,13 +15,26 @@ fn names_round_trip_and_unknown_names_are_none() {
 #[test]
 fn every_benchmark_has_a_canned_supervisor_and_judges_only_where_scored() {
     for benchmark in Benchmark::ALL {
-        assert!(benchmark.offline_supervisor().remaining() >= 3, "{benchmark:?}");
+        assert!(
+            benchmark.offline_supervisor().remaining() >= 3,
+            "{benchmark:?}"
+        );
         let judged = matches!(benchmark, Benchmark::MathProblem | Benchmark::UpgradeFile);
         assert_eq!(benchmark.offline_judge().is_some(), judged, "{benchmark:?}");
         assert_eq!(benchmark.offline_models().judge.is_some(), judged);
         let definition = benchmark.definition();
-        assert!(definition.fixtures.iter().any(|(f, _)| *f == definition.editable));
-        assert!(definition.fixtures.iter().any(|(f, _)| *f == definition.checker));
+        assert!(
+            definition
+                .fixtures
+                .iter()
+                .any(|(f, _)| *f == definition.editable)
+        );
+        assert!(
+            definition
+                .fixtures
+                .iter()
+                .any(|(f, _)| *f == definition.checker)
+        );
     }
     let models = Benchmark::CurveFit.offline_models();
     assert!(format!("{models:?}").contains("judge: false"));
@@ -48,9 +61,11 @@ fn a_judged_benchmark_without_a_judge_fails_before_writing() {
 #[test]
 fn metric_only_benchmarks_ignore_a_judge() {
     let judge: Arc<dyn ModelPort> = Arc::new(Benchmark::MathProblem.offline_supervisor());
-    assert!(Benchmark::GraphColoring
-        .scorer("coloring.py", Some(judge))
-        .is_ok());
+    assert!(
+        Benchmark::GraphColoring
+            .scorer("coloring.py", Some(judge))
+            .is_ok()
+    );
 }
 
 #[test]
@@ -61,10 +76,17 @@ fn the_math_problem_reaches_its_goal_offline() {
         dir: dir.path().join("math"),
     };
     let report = Benchmark::MathProblem
-        .run(&run, &python().unwrap(), Benchmark::MathProblem.offline_models())
+        .run(
+            &run,
+            &python().unwrap(),
+            Benchmark::MathProblem.offline_models(),
+        )
         .unwrap();
     assert_eq!(report.reason, tinyrsi::StopReason::GoalReached);
-    assert_eq!((report.epochs, report.promotions, report.rejected), (3, 2, 1));
+    assert_eq!(
+        (report.epochs, report.promotions, report.rejected),
+        (3, 2, 1)
+    );
     assert!(run.dir.join("events.jsonl").exists());
     assert!(run.dir.join("workspace/check_pi.py").exists());
 }

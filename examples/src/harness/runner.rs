@@ -66,7 +66,12 @@ pub struct Job {
 
 /// Every benchmark × model × repeat, in that nesting order, under `out`.
 #[must_use]
-pub fn plan(benchmarks: &[Benchmark], models: &[ModelChoice], repeats: u32, out: &Path) -> Vec<Job> {
+pub fn plan(
+    benchmarks: &[Benchmark],
+    models: &[ModelChoice],
+    repeats: u32,
+    out: &Path,
+) -> Vec<Job> {
     let mut jobs = vec![];
     for &benchmark in benchmarks {
         for model in models {

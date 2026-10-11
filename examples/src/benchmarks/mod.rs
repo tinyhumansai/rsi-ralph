@@ -26,8 +26,8 @@ use crate::{Grader, Replies};
 use std::{error::Error, path::Path, sync::Arc};
 use tinyrsi::{
     Composite, JsonlTrace, JudgeLimits, LlmJudge, LoopPolicy, LoopReport, MetricDirection,
-    MetricScorer, MetricSpec, ModelPort, MonotonicClock, Projected, RunLocation, ScriptCandidate,
-    ScriptCommand, ScriptSubject, ScriptSupervisor, Scorer, SupervisorLimits,
+    MetricScorer, MetricSpec, ModelPort, MonotonicClock, Projected, RunLocation, Scorer,
+    ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, SupervisorLimits,
     run_script_loop_with,
 };
 
@@ -223,11 +223,7 @@ impl Benchmark {
             Self::MathProblem => (0.7, 0.3),
             Self::UpgradeFile => (0.6, 0.4),
         };
-        let judge = LlmJudge::new(
-            judge.ok_or("judge required")?,
-            1,
-            JudgeLimits::default(),
-        )?;
+        let judge = LlmJudge::new(judge.ok_or("judge required")?, 1, JudgeLimits::default())?;
         let source = Projected::new(
             move |c: &ScriptCandidate| {
                 c.sources
