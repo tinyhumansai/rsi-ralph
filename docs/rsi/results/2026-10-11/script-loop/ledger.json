@@ -1,0 +1,918 @@
+{
+  "run_id": "curve-fit-1791702628-28661",
+  "subject": "curve_fit.py",
+  "metric": {
+    "name": "rmse",
+    "direction": "minimize",
+    "target": 0.06
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "tokens": 44558,
+  "stop": "stalled",
+  "incumbents": [
+    {
+      "epoch": 0,
+      "id": "c6d1b3f0a334",
+      "metric": 0.6437833333333334
+    },
+    {
+      "epoch": 1,
+      "id": "9d42f39da7ef",
+      "metric": 0.4578756666666666
+    },
+    {
+      "epoch": 2,
+      "id": "97099e434d8a",
+      "metric": 0.413403
+    },
+    {
+      "epoch": 4,
+      "id": "930ec09e845f",
+      "metric": 0.25769033333333335
+    }
+  ],
+  "candidates": [
+    {
+      "epoch": 0,
+      "proposal_id": null,
+      "id": "c6d1b3f0a334",
+      "parent": null,
+      "rationale": "baseline",
+      "hypothesis": "starting script",
+      "paths": [],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.771909,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.567277,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.592164,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.6437833333333334,
+      "decision": "baseline",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-0",
+      "id": "9d42f39da7ef",
+      "parent": "c6d1b3f0a334",
+      "rationale": "The original linear model is too simple for the likely non-linear data. A cubic polynomial fit via least squares is still fast and deterministic, and should reduce the held-out RMSE by better modeling the underlying curve.",
+      "hypothesis": "Fitting a cubic polynomial using least squares will better capture the signal's shape and reduce RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 38,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "accept",
+      "estimate": 0.18590766666666667,
+      "lower": 0.09009938142067257,
+      "upper": 0.28171595191266074,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-1",
+      "id": "e0b0cdb3265a",
+      "parent": "c6d1b3f0a334",
+      "rationale": "The original model fits a linear function by gradient descent, which may be too simple for the data. A quadratic fit using a closed-form least squares solution is still fast and deterministic, and can model curvature, likely improving prediction accuracy and lowering RMSE.",
+      "hypothesis": "Fitting a quadratic polynomial using least squares will better capture the curvature in the data and reduce the held-out RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 37,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/e0b0cdb3265a/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/e0b0cdb3265a/model.py\", line 21\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        },
+        {
+          "seed": 2,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 24,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/e0b0cdb3265a/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/e0b0cdb3265a/model.py\", line 21\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        },
+        {
+          "seed": 3,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 21,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/e0b0cdb3265a/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/e0b0cdb3265a/model.py\", line 21\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        }
+      ],
+      "mean": null,
+      "decision": "reject",
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 1,
+      "proposal_id": "p1-2",
+      "id": "70a817f8f66d",
+      "parent": "c6d1b3f0a334",
+      "rationale": "The original model fits a linear function by gradient descent, which may be too simple for the data. A quadratic fit using a closed-form least squares solution is still fast and deterministic, and can model curvature, likely improving prediction accuracy and lowering RMSE.",
+      "hypothesis": "Fitting a quadratic polynomial using a closed-form least squares solution will better capture the curvature in the data and reduce the held-out RMSE compared to a linear model.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 32,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/70a817f8f66d/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/70a817f8f66d/model.py\", line 22\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        },
+        {
+          "seed": 2,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 21,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/70a817f8f66d/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/70a817f8f66d/model.py\", line 22\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        },
+        {
+          "seed": 3,
+          "metric": null,
+          "error": "script run exited unsuccessfully",
+          "duration_ms": 19,
+          "stderr_tail": "Traceback (most recent call last):\n  File \"<run-dir>/candidates/70a817f8f66d/curve_fit.py\", line 14, in <module>\n    import model\n  File \"<run-dir>/candidates/70a817f8f66d/model.py\", line 22\n    n        for r in range(3):\n             ^^^\nSyntaxError: invalid syntax\n"
+        }
+      ],
+      "mean": null,
+      "decision": "reject",
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-0",
+      "id": "0e6d37584abb",
+      "parent": "9d42f39da7ef",
+      "rationale": "The previous attempt to fit a cubic polynomial was syntactically incorrect. This corrected implementation uses a stable Gaussian elimination to solve the normal equations for polynomial regression, which should better fit the data's nonlinearities and improve prediction accuracy while remaining deterministic and fast.",
+      "hypothesis": "Fitting a cubic polynomial using least squares with a stable Gaussian elimination implementation will improve the model's ability to capture the data's curvature and reduce held-out RMSE compared to simpler models.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 20,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "reject",
+      "estimate": -0.0,
+      "lower": -0.0,
+      "upper": 0.0,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-1",
+      "id": "a30db14a96f8",
+      "parent": "9d42f39da7ef",
+      "rationale": "Increasing the polynomial degree to 4 allows the model to fit more complex curvature in the data, potentially improving prediction accuracy while still being deterministic and fast.",
+      "hypothesis": "Fitting a polynomial of degree 4 using least squares with Gaussian elimination will better capture the data's nonlinearities and reduce held-out RMSE compared to degree 3 polynomial.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.458291,
+          "error": null,
+          "duration_ms": 27,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.380258,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.455664,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.43140433333333333,
+      "decision": "accept",
+      "estimate": 0.02647133333333333,
+      "lower": 0.010876410983058162,
+      "upper": 0.0420662556836085,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 2,
+      "proposal_id": "p2-2",
+      "id": "97099e434d8a",
+      "parent": "9d42f39da7ef",
+      "rationale": "Increasing the polynomial degree to 5 allows the model to fit more complex patterns in the data. Using a stable Gaussian elimination ensures numerical stability and determinism. This should improve prediction accuracy and lower RMSE while remaining fast and deterministic.",
+      "hypothesis": "Fitting a polynomial of degree 5 using least squares with stable Gaussian elimination will better capture the data's complexity and reduce held-out RMSE compared to degree 3.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.449468,
+          "error": null,
+          "duration_ms": 29,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.360381,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.43036,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.413403,
+      "decision": "accept",
+      "estimate": 0.04447266666666666,
+      "lower": 0.03319169115723287,
+      "upper": 0.05575364217610045,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-0",
+      "id": "339a9e66ccc8",
+      "parent": "97099e434d8a",
+      "rationale": "A higher-degree polynomial can fit more complex patterns in the data, which may improve prediction accuracy on the held-out set, as long as the fitting remains stable and does not overfit excessively.",
+      "hypothesis": "Increasing the polynomial degree to 7 will allow the model to better capture the underlying complexity and curvature of the data, potentially reducing the held-out RMSE compared to a degree 5 polynomial.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.395786,
+          "error": null,
+          "duration_ms": 32,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.400479,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.438868,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.411711,
+      "decision": "inconclusive",
+      "estimate": 0.0016920000000000084,
+      "lower": -0.05340430477627328,
+      "upper": 0.05678830477627329,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-1",
+      "id": "6f8d3fac49df",
+      "parent": "97099e434d8a",
+      "rationale": "A degree 5 polynomial may overfit the noisy training data, causing worse performance on held-out data. A degree 4 polynomial is simpler and may better balance bias and variance, improving prediction accuracy on unseen points.",
+      "hypothesis": "Reducing the polynomial degree to 4 will reduce overfitting and improve generalization, potentially lowering the held-out RMSE compared to degree 5.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.458291,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.380258,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.455664,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.43140433333333333,
+      "decision": "reject",
+      "estimate": -0.01800133333333333,
+      "lower": -0.0276997479345853,
+      "upper": -0.008302918732081364,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 3,
+      "proposal_id": "p3-2",
+      "id": "b7abeb27f14c",
+      "parent": "97099e434d8a",
+      "rationale": "A cubic polynomial is simpler and less prone to overfitting noisy data than a degree 5 polynomial, which should improve prediction accuracy on unseen points.",
+      "hypothesis": "Reducing the polynomial degree to 3 will reduce overfitting and improve generalization, potentially lowering the held-out RMSE compared to degree 5.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "reject",
+      "estimate": -0.04447266666666666,
+      "lower": -0.05575364217610045,
+      "upper": -0.03319169115723287,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-0",
+      "id": "1fe93842a519",
+      "parent": "97099e434d8a",
+      "rationale": "A polynomial of degree 6 is a moderate increase in model complexity that may better fit the data's shape without excessive overfitting, improving prediction accuracy on unseen points.",
+      "hypothesis": "Increasing the polynomial degree to 6 will allow the model to better capture the underlying complexity and curvature of the data, potentially reducing the held-out RMSE compared to degree 5.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.441509,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.385537,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.454398,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.427148,
+      "decision": "reject",
+      "estimate": -0.013745000000000007,
+      "lower": -0.035458596140053214,
+      "upper": 0.007968596140053196,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-1",
+      "id": "339a9e66ccc8",
+      "parent": "97099e434d8a",
+      "rationale": "A polynomial of degree 7 is a moderate increase in model complexity that may better fit the data's shape without excessive overfitting, improving prediction accuracy on unseen points.",
+      "hypothesis": "Increasing the polynomial degree to 7 will allow the model to better capture the underlying complexity and curvature of the data, potentially reducing the held-out RMSE compared to degree 5.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [],
+      "mean": null,
+      "decision": "duplicate",
+      "estimate": null,
+      "lower": null,
+      "upper": null,
+      "promoted": false,
+      "note": "content already evaluated in this run"
+    },
+    {
+      "epoch": 4,
+      "proposal_id": "p4-2",
+      "id": "930ec09e845f",
+      "parent": "97099e434d8a",
+      "rationale": "A polynomial of degree 8 is a moderate increase in model complexity that may better fit the data's shape without excessive overfitting, improving prediction accuracy on unseen points.",
+      "hypothesis": "Increasing the polynomial degree to 8 will allow the model to better capture the underlying complexity and curvature of the data, potentially reducing the held-out RMSE compared to degree 5.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.232209,
+          "error": null,
+          "duration_ms": 35,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.24841,
+          "error": null,
+          "duration_ms": 26,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.292452,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.25769033333333335,
+      "decision": "accept",
+      "estimate": 0.1557126666666667,
+      "lower": 0.09237078634163128,
+      "upper": 0.21905454699170213,
+      "promoted": true,
+      "note": null
+    },
+    {
+      "epoch": 5,
+      "proposal_id": "p5-0",
+      "id": "afb41619c59f",
+      "parent": "930ec09e845f",
+      "rationale": "Legendre polynomials form an orthogonal basis on [-1,1], which improves numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 4 reduces overfitting to noise, improving held-out RMSE.",
+      "hypothesis": "Using a lower-degree polynomial (degree 4) with Legendre polynomial basis improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.458291,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.380258,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.455664,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.43140433333333333,
+      "decision": "reject",
+      "estimate": -0.173714,
+      "lower": -0.22912435633645875,
+      "upper": -0.11830364366354126,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 5,
+      "proposal_id": "p5-1",
+      "id": "9b18161d5910",
+      "parent": "930ec09e845f",
+      "rationale": "Legendre polynomials form an orthogonal basis on [-1,1], which improves numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 5 reduces overfitting to noise, improving held-out RMSE.",
+      "hypothesis": "Using a lower-degree polynomial (degree 5) with Legendre polynomial basis improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.449468,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.360381,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.43036,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.413403,
+      "decision": "reject",
+      "estimate": -0.1557126666666667,
+      "lower": -0.21905454699170213,
+      "upper": -0.09237078634163128,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 5,
+      "proposal_id": "p5-2",
+      "id": "1dc1dae384aa",
+      "parent": "930ec09e845f",
+      "rationale": "Chebyshev polynomials form an orthogonal basis on [-1,1], which improves numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 6 reduces overfitting to noise, improving held-out RMSE.",
+      "hypothesis": "Using a polynomial of degree 6 with Chebyshev polynomial basis reduces overfitting and improves numerical stability, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.441509,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.385537,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.454398,
+          "error": null,
+          "duration_ms": 16,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.427148,
+      "decision": "reject",
+      "estimate": -0.1694576666666667,
+      "lower": -0.21179841668889046,
+      "upper": -0.12711691664444294,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 6,
+      "proposal_id": "p6-0",
+      "id": "646463b5a1db",
+      "parent": "930ec09e845f",
+      "rationale": "Legendre polynomials form an orthogonal basis on [-1,1], which improves numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 6 reduces overfitting to noise, improving held-out RMSE.",
+      "hypothesis": "Using a polynomial of degree 6 with Legendre polynomial basis reduces overfitting and improves numerical stability, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.441509,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.385537,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.454398,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.427148,
+      "decision": "reject",
+      "estimate": -0.1694576666666667,
+      "lower": -0.21179841668889046,
+      "upper": -0.12711691664444294,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 6,
+      "proposal_id": "p6-1",
+      "id": "94c56a7b5259",
+      "parent": "930ec09e845f",
+      "rationale": "Reducing the polynomial degree to 4 and using an orthogonal polynomial basis (Legendre) improves numerical stability and reduces overfitting to noise, which should improve held-out RMSE.",
+      "hypothesis": "Using a lower-degree polynomial (degree 4) with Legendre polynomial basis reduces overfitting and improves numerical stability, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.491382,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.415648,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.466597,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.4578756666666666,
+      "decision": "reject",
+      "estimate": -0.20018533333333333,
+      "lower": -0.2593076390656972,
+      "upper": -0.14106302760096942,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 6,
+      "proposal_id": "p6-2",
+      "id": "6f4178cd0d5e",
+      "parent": "930ec09e845f",
+      "rationale": "Chebyshev polynomials form an orthogonal basis on [-1,1], improving numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 5 reduces overfitting to noise. Using Cholesky decomposition to solve the normal equations is numerically stable and efficient.",
+      "hypothesis": "Using a lower-degree polynomial (degree 5) with Chebyshev polynomial basis and solving normal equations via Cholesky decomposition improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 174.152384,
+          "error": null,
+          "duration_ms": 23,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 34.088989,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 52.665435,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 86.968936,
+      "decision": "reject",
+      "estimate": -86.71124566666667,
+      "lower": -174.57409724877385,
+      "upper": 1.151605915440527,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 7,
+      "proposal_id": "p7-0",
+      "id": "9570c24f2e2f",
+      "parent": "930ec09e845f",
+      "rationale": "Legendre polynomials form an orthogonal basis on [-1,1], improving numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 5 reduces overfitting to noise. Using Cholesky decomposition to solve the normal equations is numerically stable and efficient.",
+      "hypothesis": "Using a lower-degree polynomial (degree 5) with Legendre polynomial basis and solving normal equations via Cholesky decomposition improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.449468,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.360381,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.43036,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.413403,
+      "decision": "reject",
+      "estimate": -0.1557126666666667,
+      "lower": -0.21905454699170213,
+      "upper": -0.09237078634163128,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 7,
+      "proposal_id": "p7-1",
+      "id": "1a418fb92b89",
+      "parent": "930ec09e845f",
+      "rationale": "Legendre polynomials form an orthogonal basis on [-1,1], improving numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 6 reduces overfitting to noise. Using Cholesky decomposition to solve the normal equations is numerically stable and efficient.",
+      "hypothesis": "Using a degree 6 polynomial with Legendre polynomial basis and solving normal equations via Cholesky decomposition improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 0.441509,
+          "error": null,
+          "duration_ms": 21,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 0.385537,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 0.454398,
+          "error": null,
+          "duration_ms": 18,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 0.427148,
+      "decision": "reject",
+      "estimate": -0.1694576666666667,
+      "lower": -0.21179841668889046,
+      "upper": -0.12711691664444294,
+      "promoted": false,
+      "note": null
+    },
+    {
+      "epoch": 7,
+      "proposal_id": "p7-2",
+      "id": "e1297d33fff4",
+      "parent": "930ec09e845f",
+      "rationale": "Chebyshev polynomials form an orthogonal basis on [-1,1], improving numerical stability of polynomial fitting compared to the standard monomial basis. Reducing the polynomial degree to 6 reduces overfitting to noise. Using Cholesky decomposition to solve the normal equations is numerically stable and efficient.",
+      "hypothesis": "Using a degree 6 polynomial with Chebyshev polynomial basis and solving normal equations via Cholesky decomposition improves numerical stability and reduces overfitting, leading to better generalization and lower held-out RMSE.",
+      "paths": [
+        "model.py"
+      ],
+      "runs": [
+        {
+          "seed": 1,
+          "metric": 379.340724,
+          "error": null,
+          "duration_ms": 24,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 2,
+          "metric": 70.012419,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        },
+        {
+          "seed": 3,
+          "metric": 161.030126,
+          "error": null,
+          "duration_ms": 19,
+          "stderr_tail": ""
+        }
+      ],
+      "mean": 203.46108966666668,
+      "decision": "reject",
+      "estimate": -203.20339933333332,
+      "lower": -386.7826618483229,
+      "upper": -19.624136818343743,
+      "promoted": false,
+      "note": null
+    }
+  ]
+}
