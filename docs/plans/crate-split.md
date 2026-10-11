@@ -46,7 +46,9 @@ separate commits from moves.
 6. **`tinyrsi-evolve`.**
    - Move `retreat/`, `retreat_memory/` and `script_loop/supervisor.rs` as
      `ScriptSupervisor`.
-   - Add the `Evolver` port, `RetreatEvolver` and `ScriptedEvolver`.
+   - Add the `Evolver` port with its associated `Proposal` type,
+     `RetreatEvolver` and `ScriptedEvolver`. Materializing a proposal stays
+     in the loop.
    - `retreat` takes a `RetreatDossier` view instead of `observation::Dossier`.
 7. **Core and host.**
    - Rewire `script_loop` onto `Scorer` and `Evolver`.

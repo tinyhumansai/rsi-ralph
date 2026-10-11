@@ -78,10 +78,23 @@ listed above it.
 ones the feature gated. `memory` and `observation` compile without the feature
 today, so they stay in `tinyrsi` and keep their paths; only the
 `MemorySnapshot` implementation for `SnapshotMemoryStore`, which already
-needed the feature, moves to `tinyrsi-host` beside the trait. Each crate has its own `Error` and `Result`. A crate's
-error wraps the errors of the crates it depends on, with `#[from]`. `tinyrsi`
-re-exports every crate below it, and `tinyrsi-host` re-exports `tinyrsi`, so
-existing `tinyrsi::Name` paths keep resolving.
+needed the feature, moves to `tinyrsi-host` beside the trait.
+
+Each crate has its own `Error` and `Result`. A crate converts the errors of the
+crates it depends on into the variants its callers already match. `tinyrsi`
+re-exports every crate below it, so existing `tinyrsi::Name` paths keep
+resolving for everything that was not behind the `host` feature.
+
+**Host-feature paths do break.** `tinyrsi` cannot re-export `tinyrsi-host`,
+because the host crate depends on it. Items that were reachable only with
+`--features host` therefore move to `tinyrsi_host::Name`:
+`CoordinatorHost`, `DeploymentStore`, `MemorySnapshot`,
+`CoordinatorEvaluator`, `EvidenceJournal`, the `epoch_driver` items and the
+rest. A consumer replaces `tinyrsi = { features = ["host"] }` with a
+dependency on `tinyrsi-host` and changes those imports.
+`tinyrsi-host` re-exports `tinyrsi`, so after that one change a single import
+root covers both. The release notes for the version that drops the feature
+must list this migration.
 
 ### Scorer port
 
@@ -127,38 +140,66 @@ Implementations:
   It sets `eligible` only when that calibration passes its threshold. An
   uncalibrated judge still assesses, but by rule 2 it can never produce an
   `Accept` on its own.
-- `BackroomsJudge`: runs tinybackrooms' `judge`, `originality` and
-  `elaboration` scorers over the candidate rendered as one item, through a
-  `Conversant`. Its total maps into `(0, 1)`. It carries the same calibration
-  gate as `LlmJudge`.
+- `BackroomsJudge`: tinybackrooms' consensual-assessment judge, aimed at a
+  goal. N independent raters score goal fit from 1 to 7 (optionally times
+  novelty, tinybackrooms' quality gate) through any tinybackrooms
+  `Conversant`, and their mean maps into `[0, 1]`. tinybackrooms' own scorer
+  is private, so this reuses its method and backends rather than its code.
+  It carries the same calibration gate as `LlmJudge`.
 - `Composite`: a weighted mean of members' per-seed qualities. Weights are
   positive and sum to one. Its `eligible` is the weighted mean of the
   *eligible members only*, with their weights renormalized, or `None` when no
-  member is eligible. Its `metric` is set only when exactly one member carries
-  one. So a high-weight uncalibrated judge can widen the margin, but the
-  eligible evidence must still show an improvement by itself.
+  member is eligible. It carries `metric` only when it has a single member
+  that carries one. A blend's decision is driven by blended qualities, and a
+  metric interval reported beside it could contradict that decision (an
+  `Accept` beside a negative metric interval). So a blend reports its
+  interval in quality units. A high-weight uncalibrated judge can widen the
+  margin, but the eligible evidence must still show an improvement by itself.
 - `VerifierScorer` (in `tinyrsi-verify`): a `HostVerifier` or Lake check per
   seed. A pass is quality `1 - ε` and a failure is `ε`.
 
 ### Evolver port
 
 ```rust
-pub trait Evolver<S> {
+pub trait Evolver<S: ?Sized> {
+    /// What this evolver proposes: a change to apply, not a new subject.
+    type Proposal;
     fn propose(&self, incumbent: &S, goal: &Goal, context: &EvolveContext<'_>)
-        -> Result<Proposed<S>>;
+        -> Result<Proposed<Self::Proposal>>;
+}
+
+pub struct Proposed<P> {
+    pub tokens: u64,                         // measured model tokens spent
+    pub proposals: Vec<Result<P, Rejection>>, // in the evolver's rank order
 }
 ```
 
-`EvolveContext` carries the epoch, the proposal index and seed, the score
-history and the last `rejected_context` rejected candidates with their decision
-and notes. `Proposed<S>` carries measured tokens and either a candidate or a
-malformed-proposal error that the loop records and continues past, which is
-the script loop's current behavior. Implementations:
+An evolver proposes *changes*; it does not build candidates. Its proposals
+have their own type, because what an evolver reads is not what it writes.
+The script supervisor reads a `ScriptSubject` and writes a `ScriptProposal`
+(files to replace). Retreat reads a `Package` and writes ranked `Proposal`s
+(typed patches with predictions). Turning a proposal into a candidate
+(materializing files, applying a patch, pinning memory) stays with the loop
+that owns the subject, as it does today.
 
-- `ScriptSupervisor`: today's `Supervisor`, unchanged in prompt and tool
-  schema.
-- `RetreatEvolver`: wraps `generate_retreat` for a `Package`.
-- `ScriptedEvolver`: replays canned candidates, for tests and offline examples.
+`proposals` keeps the evolver's order, so retreat's ranking survives, and
+each proposal carries its own metadata (rationale, hypothesis, prediction).
+A `Rejection` is a proposal the evolver produced but could not validate (a
+malformed reply, a path outside the editable set). The loop records it and
+continues past it, which is the script loop's current behavior. A transport
+failure is the outer `Err` and ends the run.
+
+`EvolveContext` carries the epoch, the proposal index and seed, the score
+history, and the last `rejected_context` rejected candidates with their
+decision and notes. Implementations:
+
+- `ScriptSupervisor`: `Evolver<ScriptSubject, Proposal = ScriptProposal>`,
+  today's `Supervisor`, unchanged in prompt and tool schema. It yields one
+  proposal per call.
+- `RetreatEvolver`: `Evolver<Package, Proposal = Proposal>`, wrapping
+  `generate_retreat`. It yields the ranked list.
+- `ScriptedEvolver<S, P>`: replays canned proposals, for tests and offline
+  examples.
 
 ### Observe
 
