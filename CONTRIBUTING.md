@@ -12,7 +12,7 @@ submodules, then run the four checks CI runs:
 
 ```sh
 git submodule update --init --recursive
-cargo fmt --all -- --check
+cargo fmt -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
@@ -59,7 +59,7 @@ regardless.
 
 ## Pull Request Checklist
 
-- [ ] `cargo fmt --all -- --check`
+- [ ] `cargo fmt -- --check`
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings`
 - [ ] `cargo build --all-targets --all-features`
 - [ ] `cargo test --all-features`
