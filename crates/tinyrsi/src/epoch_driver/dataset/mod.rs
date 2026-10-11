@@ -49,6 +49,14 @@ impl EpochJournal {
                 .normalized_evaluations()
                 .iter()
                 .any(|e| e.epoch == epoch && e.incumbent_id == entry.incumbent_id)
+            || archive.proposals().iter().any(|event| {
+                event.epoch == epoch
+                    && prepared.proposals.iter().any(|p| {
+                        event.patch == p.patch
+                            && event.rationale == format!("{}: {}", p.title, p.mechanism)
+                            && event.transcript_refs == p.transcript_refs
+                    })
+            })
         {
             return Err(Error::InvalidProposal);
         }

@@ -347,6 +347,8 @@ fn corrupt_final_reasons_cannot_override_observed_approval_or_stage_decisions() 
         (false, ReasonCode::NoGain),
         (false, ReasonCode::Inconclusive),
         (false, ReasonCode::NotReplicated),
+        (false, ReasonCode::Duplicate),
+        (false, ReasonCode::HostFailure),
     ] {
         let dir = tempfile::tempdir().unwrap();
         let (mut archive, checkpoint, dossier, epoch) = fixtures(&dir.path().join("a"));
@@ -360,7 +362,7 @@ fn corrupt_final_reasons_cannot_override_observed_approval_or_stage_decisions() 
             &epoch,
             memory.clone(),
             Arc::new(Named {
-                proposals: vec![proposal()],
+                proposals: vec![proposal(); 3],
                 model: None,
                 calls: Arc::new(AtomicUsize::new(0)),
             }),
@@ -377,6 +379,48 @@ struct Stages {
     fail: Option<EvalStage>,
     selection: Vec<f64>,
     confirmation: f64,
+}
+#[test]
+fn prefilter_only_external_attempts_also_freeze_probability_registration() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, checkpoint, dossier, epoch) = fixtures(&dir.path().join("a"));
+    let memory = memory(&dir.path().join("m"));
+    let mut journal = EpochJournal::open(dir.path().join("j")).unwrap();
+    prepare(
+        &mut journal,
+        &archive,
+        &checkpoint,
+        &dossier,
+        &epoch,
+        memory,
+        Arc::new(Named {
+            proposals: vec![proposal()],
+            model: None,
+            calls: Arc::new(AtomicUsize::new(0)),
+        }),
+    )
+    .unwrap();
+    let mut wrong = epoch.clone();
+    wrong.epoch.class = PatchClass::Prompt;
+    let result = crate::run_proposal_h(
+        &mut archive,
+        &wrong,
+        &proposal(),
+        &mut Host::default(),
+        &mut Human {
+            approve: false,
+            calls: 0,
+        },
+    )
+    .unwrap();
+    assert_eq!(result.reason, ReasonCode::WrongClass);
+    assert_eq!(archive.normalized_declarations().len(), 0);
+    assert_eq!(archive.normalized_evaluations().len(), 0);
+    assert!(
+        journal
+            .register_proposal_priors(1, &[Some(0.5)], &archive)
+            .is_err()
+    );
 }
 #[test]
 fn actual_rejection_receipts_match_their_observed_terminal_stage() {

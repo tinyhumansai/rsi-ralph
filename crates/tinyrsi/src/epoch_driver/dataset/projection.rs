@@ -32,6 +32,15 @@ pub(super) fn project(
         let interrupted = entry.evaluating && index == entry.outcome.candidates.len();
         let ambiguous = interrupted && prepared.proposals[..index].contains(proposal);
         let duplicate = receipt.is_some_and(|r| r.reason == ReasonCode::Duplicate);
+        if let Some(receipt) = receipt {
+            validate_terminal(
+                receipt,
+                entry,
+                proposal,
+                &prepared.proposals[..index],
+                archive,
+            )?;
+        }
         if let Some(id) = receipt.and_then(|r| r.candidate_id.as_ref())
             && archive.package(id).is_none()
         {
@@ -122,6 +131,37 @@ fn build_dataset(
         meter: entry.meter.clone(),
         generation_complete,
         rows,
+    }
+}
+
+/// Requires an actual archived terminal event even when suppressing duplicate labels.
+fn validate_terminal(
+    receipt: &super::super::EpochCandidateOutcome,
+    entry: &Entry,
+    proposal: &crate::Proposal,
+    earlier: &[crate::Proposal],
+    archive: &Archive,
+) -> Result<()> {
+    if receipt.reason == ReasonCode::Duplicate
+        && !earlier.iter().any(|p| p.patch == proposal.patch)
+        && archive.normalized_evaluations().iter().any(|e| {
+            e.epoch == entry.epoch
+                && e.incumbent_id == entry.incumbent_id
+                && e.proposal.patch == proposal.patch
+        })
+    {
+        return Err(Error::InvalidRecord);
+    }
+    if archive.proposals().iter().any(|event| {
+        event.epoch == entry.epoch
+            && event.patch == proposal.patch
+            && event.rationale == format!("{}: {}", proposal.title, proposal.mechanism)
+            && event.transcript_refs == proposal.transcript_refs
+            && event.reason == format!("{:?}", receipt.reason)
+    }) {
+        Ok(())
+    } else {
+        Err(Error::InvalidRecord)
     }
 }
 

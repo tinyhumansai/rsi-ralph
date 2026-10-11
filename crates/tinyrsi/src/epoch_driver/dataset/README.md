@@ -53,3 +53,10 @@ The journal and archive open with their usual exclusive locks. Keep generation
 sidecars together with the journal. JSON output contains the safe dataset and its
 metrics; private storage contents remain in those files. Empty generations have no valid nonzero top-k. The example still reports their
 generation receipts, provenance and accounting, with `metrics: null`.
+
+Every completed receipt requires a matching archived terminal event, including
+duplicates and prefilter stops. First-time prior registration also rejects a
+matching external prefilter-only attempt. If a first occurrence is marked
+duplicate while the same epoch already has measurements for its patch, the
+attempt history is ambiguous and projection rejects it; it does not erase the
+observed attempt or guess which occurrence owned it.
