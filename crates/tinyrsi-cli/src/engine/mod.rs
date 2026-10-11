@@ -10,7 +10,7 @@
 //! to `events.jsonl`, `ledger.json` and `run.json` as it happens.
 //!
 //! An epoch whose hive changed nothing while the model provider refused its
-//! calls is not an ordinary empty epoch: see [`refusal`].
+//! calls is not an ordinary empty epoch: see the `refusal` module.
 
 use std::{
     collections::BTreeMap,
