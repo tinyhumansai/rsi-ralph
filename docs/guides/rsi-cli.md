@@ -78,8 +78,7 @@ Every section with a safe default may be left out (see the hive language's
 [`loops/graph-coloring/hive`](../../loops/graph-coloring/hive) is a complete
 two-seat example. Multi-seat hives should widen `coordinator.round_width`
 (and `policies.routing`/`division`), whose defaults of 1 run one turn at a
-time. tinyrsi
-adds the hive tools and the turn-taking rules itself.
+time. tinyrsi adds the hive tools and the turn-taking rules itself.
 
 ## 4. Tune creativity, models, keys and money
 
