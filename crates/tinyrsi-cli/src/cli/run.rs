@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use tinyrsi_gateway::{Gateway, GatewayConfig, Price};
+use tinyrsi_gateway::{Gateway, GatewayConfig, Price, UpstreamCalls};
 use tinyrsi_model::OpenRouterModel;
 use tinyrsi_score::{JudgeLimits, LlmJudge};
 
@@ -36,6 +36,10 @@ impl Meter for GatewayMeter<'_> {
     fn remaining_usd(&self) -> Option<f64> {
         let remaining = self.0.spend().remaining_usd();
         remaining.is_finite().then_some(remaining)
+    }
+
+    fn upstream_calls(&self) -> UpstreamCalls {
+        self.0.upstream_calls()
     }
 }
 
@@ -162,6 +166,12 @@ pub(super) fn run(
             summary.checkout.display()
         ),
     )?;
+    for warning in &summary.warnings {
+        say(out, &format!("warning: {warning}"))?;
+    }
+    if let Some(error) = &summary.error {
+        say(out, &format!("error: {error}"))?;
+    }
     let spend = gateway.spend();
     say(
         out,

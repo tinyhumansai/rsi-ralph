@@ -11,7 +11,8 @@ pub enum RunStatus {
     Running,
     /// The loop stopped on a stop reason.
     Finished,
-    /// The loop stopped on an error.
+    /// The loop stopped on an error, or because the model provider refused
+    /// every call of an epoch.
     Failed,
     /// The process died while the run was marked running.
     Interrupted,
@@ -42,6 +43,13 @@ pub struct RunRecord {
     pub epochs: u32,
     /// Model spend so far, in US dollars.
     pub spend_usd: f64,
-    /// Error message for a failed run, scrubbed of key values.
+    /// Error message for a failed run, scrubbed of key values. A run that
+    /// stopped on `provider_refused` names the provider's status and
+    /// message here.
     pub error: Option<String>,
+    /// Problems that did not stop the run, one line each, such as an epoch
+    /// in which the provider refused some of the hive's calls. Omitted when
+    /// empty, and empty in a `run.json` written before it existed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
 }
