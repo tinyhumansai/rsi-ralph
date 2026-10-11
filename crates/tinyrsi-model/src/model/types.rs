@@ -38,6 +38,7 @@ pub struct ModelRequest {
     pub(super) timeout_ms: u64,
     pub(super) tool: Option<(String, serde_json::Value)>,
     pub(super) input_bound: u64,
+    pub(super) temperature: Option<f64>,
 }
 impl std::fmt::Debug for ModelRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

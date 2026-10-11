@@ -39,9 +39,25 @@ impl ModelRequest {
             timeout_ms,
             tool: None,
             input_bound: 0,
+            temperature: None,
         };
         request.validate()?;
         Ok(request)
+    }
+    /// Sets the sampling temperature; providers default to 0 without one.
+    /// # Errors
+    /// Rejects a temperature outside `0..=2`.
+    pub fn with_temperature(mut self, temperature: f64) -> Result<Self> {
+        if !(0.0..=2.0).contains(&temperature) {
+            return Err(Error::InvalidRequest);
+        }
+        self.temperature = Some(temperature);
+        Ok(self)
+    }
+    /// The requested sampling temperature, if any.
+    #[must_use]
+    pub fn temperature(&self) -> Option<f64> {
+        self.temperature
     }
     /// Adds a provider-native structured tool and reserves its schema tokens.
     /// # Errors
@@ -232,7 +248,7 @@ impl OpenRouterModel {
         Self::decode(request, &value)
     }
     fn body(&self, request: &ModelRequest) -> Value {
-        let mut body = json!({"model":self.model,"temperature":0,"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
+        let mut body = json!({"model":self.model,"temperature":request.temperature.unwrap_or(0.0),"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
         if let Some((name, schema)) = &request.tool {
             body["tools"] =
                 json!([{"type":"function","function":{"name":name,"parameters":schema}}]);
@@ -364,6 +380,7 @@ impl ModelConversant {
         system: String,
         messages: &[tinybackrooms::Message],
         tool: Option<(String, Value)>,
+        temperature: Option<f32>,
     ) -> Result<ModelRequest> {
         let prompt = serde_json::to_string(&messages).map_err(|_| Error::InvalidRequest)?;
         let mut req = ModelRequest::new(
@@ -376,6 +393,9 @@ impl ModelConversant {
         )?;
         if let Some((name, schema)) = tool {
             req = req.with_tool(name, schema)?;
+        }
+        if let Some(t) = temperature {
+            req = req.with_temperature(f64::from(t).clamp(0.0, 2.0))?;
         }
         let mut meter = self.meter.lock().map_err(|_| Error::CallFailed)?;
         let reserved = meter
@@ -426,7 +446,7 @@ impl tinybackrooms::Conversant for ModelConversant {
                 return Err(backend_error(Error::InvalidRequest));
             }
             let req = self
-                .request(r.system, &r.messages, None)
+                .request(r.system, &r.messages, None, Some(r.temperature))
                 .map_err(backend_error)?;
             let reply = self.execute(req).await.map_err(backend_error)?;
             Ok(tinybackrooms::TurnReply {
@@ -445,7 +465,7 @@ impl tinybackrooms::Conversant for ModelConversant {
                 return Err(backend_error(Error::InvalidRequest));
             }
             let req = self
-                .request(r.system, &r.messages, Some((r.tool, r.schema)))
+                .request(r.system, &r.messages, Some((r.tool, r.schema)), None)
                 .map_err(backend_error)?;
             let reply = self.execute(req).await.map_err(backend_error)?;
             Ok(tinybackrooms::StructuredReply {
