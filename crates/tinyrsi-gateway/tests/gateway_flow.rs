@@ -58,14 +58,19 @@ async fn mock_chat(
         .into_response(),
         // Success headers, one event, then the connection drops mid-body.
         "cut" => {
-            let chunks: Vec<Result<&'static str, std::io::Error>> = vec![
-                Ok("data: {\"choices\":[]}\n\n"),
-                Err(std::io::Error::other("upstream dropped")),
-            ];
+            use futures_util::StreamExt as _;
+            let first = futures_util::stream::once(async {
+                Ok::<_, std::io::Error>("data: {\"choices\":[]}\n\n")
+            });
+            // The drop comes after the headers and first event have gone out.
+            let dropped = futures_util::stream::once(async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Err(std::io::Error::other("upstream dropped"))
+            });
             Response::builder()
                 .status(StatusCode::OK)
                 .header("content-type", "text/event-stream")
-                .body(axum::body::Body::from_stream(futures_util::stream::iter(chunks)))
+                .body(axum::body::Body::from_stream(first.chain(dropped)))
                 .unwrap()
         }
         _ if body["stream"] == json!(true) => {
