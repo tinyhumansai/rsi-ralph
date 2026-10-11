@@ -810,7 +810,11 @@ fn drops_first_connection() -> (String, std::thread::JoinHandle<()>) {
             if let Some(end) = text.find("\r\n\r\n") {
                 let length = text[..end]
                     .lines()
-                    .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                    .find_map(|l| {
+                        l.to_ascii_lowercase()
+                            .strip_prefix("content-length:")
+                            .map(|v| v.trim().parse::<usize>().unwrap())
+                    })
                     .unwrap_or(0);
                 if request.len() >= end + 4 + length {
                     break;

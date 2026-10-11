@@ -322,6 +322,12 @@ async fn status(State(proxy): Shared) -> Response {
     axum::Json(json!({ "run": run, "total": total })).into_response()
 }
 
+/// Whether `error` failed the request before any response arrived: a refused
+/// or reset connection, not a timeout and not an answer the client rejected.
+fn never_answered(error: &reqwest::Error) -> bool {
+    (error.is_connect() || error.is_request()) && !error.is_timeout()
+}
+
 /// Runs a forward on its own task and waits for it.
 ///
 /// axum drops a handler's future when the client disconnects. A forward
@@ -442,13 +448,21 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         endpoint.path()
     );
     let call = proxy.calls.dispatched();
-    let sent = proxy
-        .client
-        .post(url)
-        .bearer_auth(&proxy.config.api_key)
-        .json(&prepared.body)
-        .send()
-        .await;
+    let send = || {
+        proxy
+            .client
+            .post(&url)
+            .bearer_auth(&proxy.config.api_key)
+            .json(&prepared.body)
+            .send()
+    };
+    let mut sent = send().await;
+    // A pooled keep-alive connection the upstream has already closed fails
+    // before any response; the upstream never saw the request, so it is sent
+    // once more on a fresh connection.
+    if sent.as_ref().is_err_and(never_answered) {
+        sent = send().await;
+    }
     let response = match sent {
         Ok(response) => response,
         Err(error) => {
