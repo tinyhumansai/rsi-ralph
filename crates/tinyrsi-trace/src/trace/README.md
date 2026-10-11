@@ -37,4 +37,5 @@ for byte.
 - Readers may see a partial last line while a write is in flight and must
   buffer until the newline.
 - Absent numbers are `null`, never omitted; the schema has no optional fields.
-- A sink failure is `Error::TraceIo`; the script loop treats it as fatal.
+- A sink failure is `tinyrsi_trace::Error::Io`, which converts into
+  `tinyrsi::Error::TraceIo`; the script loop treats it as fatal.

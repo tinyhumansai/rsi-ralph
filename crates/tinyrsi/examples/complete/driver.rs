@@ -324,6 +324,8 @@ impl Trials {
                 estimate: evaluation.map_or(0.0, |e| e.comparison.delta),
                 lower: evaluation.map_or(0.0, |e| e.comparison.lower),
                 upper: evaluation.map_or(0.0, |e| e.comparison.upper),
+                // The run's goal metric is normalized H itself.
+                units: tinyrsi::IntervalUnits::Metric,
             })?;
             if let (true, Some(e)) = (accepted, evaluation) {
                 self.trace.record(LoopEvent::Improved {

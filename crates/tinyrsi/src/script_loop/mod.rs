@@ -441,6 +441,7 @@ impl LoopState<'_> {
             estimate,
             lower,
             upper,
+            units: tinyrsi_trace::IntervalUnits::Metric,
         })
     }
 
