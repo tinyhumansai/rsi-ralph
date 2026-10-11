@@ -133,7 +133,7 @@ impl Engine<'_> {
                 record.status = RunStatus::Failed;
                 record.stop_reason = Some(StopReason::Error);
                 record.error = Some(store::scrub(
-                    &crate::error::chain(&e),
+                    &crate::error::chain(e),
                     self.secrets.iter().map(String::as_str),
                 ));
             }
