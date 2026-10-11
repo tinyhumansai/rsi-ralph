@@ -2,9 +2,13 @@
 //!
 //! The script loop in `tinyrsi` renders a [`ScriptBrief`] from its ledger and
 //! asks a [`ScriptSupervisor`] for a [`ScriptProposal`]: whole-file
-//! replacements of editable files, with a rationale and a checkable
-//! hypothesis. Applying the proposal, running the candidate and scoring it
-//! stay with the loop.
+//! replacements of editable files, with a rationale, a checkable hypothesis,
+//! a short `approach` label naming the technique, and, when it retries an
+//! approach, what is different this time. The brief carries the slot's
+//! sampling temperature, if any. Applying the proposal, running the
+//! candidate and scoring it stay with the loop; the loop also groups the
+//! labels into the "approaches already tried" section of later prompts
+//! (`docs/specs/hypothesis-ledger.md`).
 mod supervisor;
 mod types;
 
