@@ -29,3 +29,5 @@ this repository.
 - [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — crate-by-crate extraction order.
 - [`hive-penalties.md`](hive-penalties.md) — four stacked penalty changes.
+- [`loop-benchmarks.md`](loop-benchmarks.md) — shared benchmarks, measurement,
+  runner.

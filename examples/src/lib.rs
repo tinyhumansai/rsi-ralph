@@ -8,6 +8,11 @@
 //! `target/rsi-examples/<example>/<run>/events.jsonl` ([`run_location`]), the
 //! directory `apps/rsi-viz` lists with `RSI_RUN_ROOT=target/rsi-examples`.
 //!
+//! The script-loop subjects are defined once in [`benchmarks`], which both
+//! the example binaries and the `benchmarks` runner call; [`harness`] holds
+//! the runner's measurement (per-run records, repetition share, aggregation
+//! and the comparison table).
+//!
 //! # Example
 //!
 //! ```
@@ -23,6 +28,9 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tinyrsi::{ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, RunLocation};
+
+pub mod benchmarks;
+pub mod harness;
 
 /// Whether the examples should call a real model.
 #[must_use]
@@ -40,9 +48,25 @@ pub fn live_or(offline: Arc<dyn ModelPort>) -> Result<Arc<dyn ModelPort>, Box<dy
     if !live() {
         return Ok(offline);
     }
-    let model = std::env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4.1-mini".into());
+    let model = default_live_model();
     println!("live model: openrouter {model}");
-    Ok(Arc::new(tinyrsi::OpenRouterModel::new(model)?))
+    live_model(&model)
+}
+
+/// The model id `OPENROUTER_MODEL` names, or `openai/gpt-4.1-mini`.
+#[must_use]
+pub fn default_live_model() -> String {
+    std::env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4.1-mini".into())
+}
+
+/// An `OpenRouter` model port for the model id `model`, without reading the
+/// environment (the API key is read per call).
+///
+/// # Errors
+///
+/// Returns an error for an empty or control-containing model id.
+pub fn live_model(model: &str) -> Result<Arc<dyn ModelPort>, Box<dyn Error>> {
+    Ok(Arc::new(tinyrsi::OpenRouterModel::new(model.to_owned())?))
 }
 
 /// A fresh run directory under `target/rsi-examples/<example>/`.

@@ -46,6 +46,38 @@ cargo run -p tinyrsi-examples --example hive_goal
   (the trace's `measured` row shows the failed seeds) and its reworded copy
   is stopped `COOLDOWN` without being evaluated.
 
+## Benchmarking the loop
+
+`benchmarks` runs the four script-loop subjects (`curve_fit`,
+`graph_coloring`, `math_problem`, `upgrade_file`) as a matrix of benchmark ×
+supervisor model × repeat and writes one comparison table: goal rate, median
+epochs to goal, median tokens, median final metric, mean repetition share and
+median wall time.
+
+```sh
+cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2
+TINYRSI_LIVE_OPENROUTER=1 OPENROUTER_API_KEY=... \
+  cargo run -p tinyrsi-examples --example benchmarks -- \
+  --models anthropic/claude-sonnet-4.5,openai/gpt-4.1-mini --repeats 5 --jobs 2
+```
+
+| Flag | Default |
+| --- | --- |
+| `--benchmarks a,b` | all four |
+| `--models m1,m2` | `OPENROUTER_MODEL`, else `openai/gpt-4.1-mini` (live only) |
+| `--repeats N` | 1 |
+| `--jobs N` | 1 (runs executed concurrently) |
+| `--out DIR` | `target/rsi-benchmarks/<unix-seconds>/` |
+
+Offline, every run uses the benchmark's canned supervisor under the model
+label `offline`, `--models` is ignored, and the command fails if any run
+misses its goal. Each run writes `<out>/<benchmark>/<model>/<repeat>/`
+(`events.jsonl`, `ledger.json`); `<out>/summary.json` and `<out>/summary.md`
+hold the per-run records and the table. Pass
+`--out docs/rsi/results/<date>/benchmarks` to keep a live result. The
+repetition share and every column are defined in the
+[loop benchmarks spec](../docs/specs/loop-benchmarks.md).
+
 ## Watching a run
 
 Every run writes `target/rsi-examples/<example>/<run>/events.jsonl`. Point the
@@ -67,6 +99,12 @@ output cap. Read the safety note in the
 ## Layout
 
 - `src/lib.rs`: shared plumbing: the offline `Replies` and `Grader` model
-  stand-ins, run directories, and the Python interpreter lookup.
+  stand-ins, run directories, the Python interpreter lookup, and
+  `live_model(id)`.
+- `src/benchmarks/`: each script-loop subject (fixtures, brief, scorer,
+  policy, canned replies) defined once, for the examples and the runner. The
+  curve-fit fixtures are embedded from `crates/tinyrsi/examples/script_loop/`.
+- `src/harness/`: the runner's command line, matrix execution, per-run
+  records, repetition share, aggregation and table.
 - `<example>/main.rs`: the example. Python fixtures sit beside it: a fixed
   checker, a starting file, and `proposals/` for the canned rewrites.

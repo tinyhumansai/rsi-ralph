@@ -123,6 +123,7 @@ Supporting commands:
 - `cargo run -p tinyrsi-cli -- check loops/graph-coloring` (or `run`, `runs`,
   `show`, `serve`) — the `tinyrsi` binary over a loop folder; see
   `docs/guides/rsi-cli.md`.
+- `cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
 - `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
 - `cargo run -p tinyrsi-host --example complete_openrouter` — the

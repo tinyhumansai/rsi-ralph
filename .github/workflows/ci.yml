@@ -83,6 +83,7 @@ jobs:
           cargo run -p tinyrsi-examples --example math_problem
           cargo run -p tinyrsi-examples --example upgrade_file
           cargo run -p tinyrsi-examples --example hive_goal
+          cargo run -p tinyrsi-examples --example benchmarks -- --repeats 1
 
       # `cargo build --all-targets` only *compiles* an example. `AGENTS.md`
       # promises `cargo run -p tinyrsi --example basic` works, and a compiled

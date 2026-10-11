@@ -34,3 +34,5 @@ See [`host-runtime.md`](host-runtime.md) or
   crates; TinyBus module removal.
 - [`hive-penalties.md`](hive-penalties.md) — attributing candidate failures,
   the strike ledger, cooldown, revocation and generator feedback.
+- [`loop-benchmarks.md`](loop-benchmarks.md) — benchmark × model × repeat
+  runner and comparison table for the script loop.
