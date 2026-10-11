@@ -238,7 +238,7 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
     let lead: Value = requests
         .iter()
-        .find(|request| request.url.path().starts_with("/lead/"))
+        .find(|request| request.url.path() == "/lead/v1/chat/completions")
         .map(|request| serde_json::from_slice(&request.body).unwrap())
         .unwrap();
     assert!(lead.to_string().contains("END YOUR TURN"));
