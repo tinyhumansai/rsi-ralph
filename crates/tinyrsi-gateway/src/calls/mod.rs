@@ -4,7 +4,9 @@
 //! tally answers the question a loop asks while it runs: how many calls
 //! reached the provider since a given moment, and did the provider refuse
 //! them? A provider refusal is an answer with a non-success status (a key
-//! over its limit answers `403`, a rate limit `429`) or no answer at all.
+//! over its limit answers `403`, a rate limit `429`) or no complete answer:
+//! a connection that fails, or a body that breaks off, even after success
+//! headers. A stream is counted when it ends, not when its headers arrive.
 //! Calls the gateway refuses itself, such as one over budget, never reach
 //! the provider and are not counted.
 

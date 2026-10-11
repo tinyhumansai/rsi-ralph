@@ -124,8 +124,8 @@ tinyrsi serve                        # the UI over all stored runs
 ```
 
 If the model provider refuses every call of an epoch (a key over its spending
-limit, say), the run stops as `failed` with reason `provider_refused`, and
-`show` prints the provider's status and message on its `error` line. Partial
+limit, say), the run stops as `failed` with reason `provider_refused`, `tinyrsi run`
+exits with status 1, and `show` prints the provider's status and message on its `error` line. Partial
 refusals in an epoch that changed nothing appear as `warning` lines and the
 run goes on.
 

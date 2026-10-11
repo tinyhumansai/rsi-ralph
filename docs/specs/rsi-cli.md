@@ -230,8 +230,9 @@ itself, such as one over budget, are not provider refusals.
 - When the provider refused every call of an epoch, the run stops with
   reason `provider_refused` and status `failed`, and `run.json`'s `error`
   names the refusal, such as `provider refused 2 of 2 model calls (403: Key
-  limit exceeded (daily limit) …)`. Rerunning does not help until the key or
-  provider is fixed.
+  limit exceeded (daily limit) …)`. `tinyrsi run` prints the summary and
+  then fails with that line, exit status 1. Rerunning does not help until the
+  key or provider is fixed.
 - An empty epoch with no refusals behaves as before.
 
 Provider messages are scrubbed of key values before they are stored.
@@ -279,7 +280,8 @@ records the merged manifest in its frozen loop copy. The incumbent score cache
 is keyed on `env` as well as the revision and scorers, so a limited score never
 stands in for a full one.
 
-Exit status is 0 on success, 1 on a loop error, 2 on invalid input.
+Exit status is 0 on success, 1 on a loop error (including a run stopped on
+`provider_refused`), 2 on invalid input.
 
 ## Invariants
 
