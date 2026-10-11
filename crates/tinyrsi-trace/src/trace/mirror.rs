@@ -47,8 +47,11 @@ impl TraceSink for TracingTrace {
                 run_id, subject, ..
             } => {
                 self.epoch = None;
+                // An explicit empty parent: a run is its own trace, never a
+                // child of whatever span the host happens to be inside.
                 self.run = Some(tracing::span!(
                     target: TARGET,
+                    parent: None,
                     Level::INFO,
                     "rsi.run",
                     run_id = %run_id,
