@@ -789,3 +789,76 @@ fn drop_stops_the_gateway_and_releases_the_ledger() {
     let again = Gateway::start(config()).unwrap();
     assert!((again.spend().total_limit_usd - 3.0).abs() < 1e-12);
 }
+
+/// An upstream that closes its first connection without answering (as a
+/// server does to a pooled keep-alive connection it has already dropped), then
+/// answers every later one with a priced chat completion.
+fn drops_first_connection() -> (String, std::thread::JoinHandle<()>) {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let handle = std::thread::spawn(move || {
+        let (first, _) = listener.accept().unwrap();
+        drop(first);
+        let (mut second, _) = listener.accept().unwrap();
+        let mut request = Vec::new();
+        let mut chunk = [0_u8; 4096];
+        loop {
+            let read = second.read(&mut chunk).unwrap();
+            request.extend_from_slice(&chunk[..read]);
+            let text = String::from_utf8_lossy(&request);
+            if let Some(end) = text.find("\r\n\r\n") {
+                let length = text[..end]
+                    .lines()
+                    .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                    .unwrap_or(0);
+                if request.len() >= end + 4 + length {
+                    break;
+                }
+            }
+            if read == 0 {
+                break;
+            }
+        }
+        let body = json!({
+            "id": "x", "object": "chat.completion", "model": GLM_FLASH,
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 1, "total_tokens": 4, "cost": 0.000_001}
+        })
+        .to_string();
+        write!(
+            second,
+            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .unwrap();
+    });
+    (format!("http://{addr}/v1"), handle)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_connection_dropped_before_any_response_is_retried_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let (upstream, server) = drops_first_connection();
+    let mut config = GatewayConfig::new(
+        KEY,
+        dir.path().join("run"),
+        dir.path().join("total.json"),
+        5.0,
+        50.0,
+    );
+    config.upstream = upstream;
+    let gateway = Gateway::start(config).unwrap();
+    let client = reqwest::Client::builder().no_proxy().build().unwrap();
+    let response = client
+        .post(format!("{}/v1/chat/completions", gateway.base_url()))
+        .json(&json!({"model": GLM_FLASH, "messages": [{"role": "user", "content": "hi"}]}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    server.join().unwrap();
+    let calls = gateway.upstream_calls();
+    assert_eq!(calls.refused, 0);
+    gateway.shutdown().unwrap();
+}
