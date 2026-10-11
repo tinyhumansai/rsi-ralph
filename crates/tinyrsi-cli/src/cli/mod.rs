@@ -123,79 +123,9 @@ pub fn execute(
 ) -> Result<()> {
     let store = Store::new(cli.home.unwrap_or_else(|| Store::default_home(lookup)));
     match cli.command {
-        Command::Check { r#loop } => {
-            let parsed = load(&r#loop)?;
-            Keys::resolve(&parsed, &r#loop, lookup)?;
-            let m = &parsed.manifest;
-            say(
-                out,
-                &format!(
-                    "ok: {} ({} subject, {} scorers, decide {} by {}, hive lead {})",
-                    m.name,
-                    match m.subject.kind {
-                        manifest::SubjectKind::Dir => "dir",
-                        manifest::SubjectKind::Git => "git",
-                    },
-                    m.score.scorers.len(),
-                    m.score.decide.on,
-                    serde_json::to_string(&m.score.decide.test)
-                        .unwrap_or_default()
-                        .trim_matches('"'),
-                    m.hive.lead
-                ),
-            )
-        }
-        Command::Runs { r#loop } => {
-            for r in store.list_runs(r#loop.as_deref())? {
-                let shown = r
-                    .incumbent_score
-                    .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"));
-                say(
-                    out,
-                    &format!(
-                        "{}/{}\t{}\tepochs {}\tscore {}\t${:.2}",
-                        r.r#loop,
-                        r.id,
-                        status(r.status),
-                        r.epochs,
-                        shown,
-                        r.spend_usd
-                    ),
-                )?;
-            }
-            Ok(())
-        }
-        Command::Show { run } => {
-            let (dir, r) = store.find_run(&run)?;
-            say(out, &format!("run       {}/{}", r.r#loop, r.id))?;
-            say(out, &format!("status    {}", status(r.status)))?;
-            if let Some(reason) = r.stop_reason {
-                say(
-                    out,
-                    &format!(
-                        "stopped   {}",
-                        serde_json::to_string(&reason)
-                            .unwrap_or_default()
-                            .trim_matches('"')
-                    ),
-                )?;
-            }
-            say(out, &format!("epochs    {}", r.epochs))?;
-            say(
-                out,
-                &format!(
-                    "incumbent {} ({})",
-                    r.incumbent,
-                    r.incumbent_score
-                        .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"))
-                ),
-            )?;
-            say(out, &format!("spend     ${:.2}", r.spend_usd))?;
-            if let Some(error) = r.error {
-                say(out, &format!("error     {error}"))?;
-            }
-            say(out, &format!("folder    {}", dir.path.display()))
-        }
+        Command::Check { r#loop } => check(&r#loop, lookup, out),
+        Command::Runs { r#loop } => runs(&store, r#loop.as_deref(), out),
+        Command::Show { run } => show(&store, &run, out),
         Command::Serve { port } => {
             let server = serve::start(store, local(port))?;
             say(out, &format!("serving {}", server.url()))?;
@@ -246,6 +176,73 @@ pub fn execute(
             )
         }
     }
+}
+
+/// The wire name of a serializable enum, such as `max_epochs`.
+fn wire(value: &impl serde::Serialize) -> String {
+    serde_json::to_string(value)
+        .unwrap_or_default()
+        .trim_matches('"')
+        .to_owned()
+}
+
+fn score_text(score: Option<f64>) -> String {
+    score.map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"))
+}
+
+fn check(dir: &Path, lookup: &dyn Fn(&str) -> Option<String>, out: &mut dyn Write) -> Result<()> {
+    let parsed = load(dir)?;
+    Keys::resolve(&parsed, dir, lookup)?;
+    let m = &parsed.manifest;
+    say(
+        out,
+        &format!(
+            "ok: {} ({} subject, {} scorers, decide {} by {}, hive lead {})",
+            m.name,
+            wire(&m.subject.kind),
+            m.score.scorers.len(),
+            m.score.decide.on,
+            wire(&m.score.decide.test),
+            m.hive.lead
+        ),
+    )
+}
+
+fn runs(store: &Store, loop_name: Option<&str>, out: &mut dyn Write) -> Result<()> {
+    for r in store.list_runs(loop_name)? {
+        say(
+            out,
+            &format!(
+                "{}/{}\t{}\tepochs {}\tscore {}\t${:.2}",
+                r.r#loop,
+                r.id,
+                status(r.status),
+                r.epochs,
+                score_text(r.incumbent_score),
+                r.spend_usd
+            ),
+        )?;
+    }
+    Ok(())
+}
+
+fn show(store: &Store, run: &str, out: &mut dyn Write) -> Result<()> {
+    let (dir, r) = store.find_run(run)?;
+    say(out, &format!("run       {}/{}", r.r#loop, r.id))?;
+    say(out, &format!("status    {}", status(r.status)))?;
+    if let Some(reason) = r.stop_reason {
+        say(out, &format!("stopped   {}", wire(&reason)))?;
+    }
+    say(out, &format!("epochs    {}", r.epochs))?;
+    say(
+        out,
+        &format!("incumbent {} ({})", r.incumbent, score_text(r.incumbent_score)),
+    )?;
+    say(out, &format!("spend     ${:.2}", r.spend_usd))?;
+    if let Some(error) = r.error {
+        say(out, &format!("error     {error}"))?;
+    }
+    say(out, &format!("folder    {}", dir.path.display()))
 }
 
 fn load(dir: &Path) -> Result<Loop> {
