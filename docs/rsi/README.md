@@ -7,6 +7,9 @@ approval before live deployment. Selected lineage and deployed runtime state are
 recorded separately.
 
 - [Framework](specs/rsi-framework.md): epoch, ownership and phase boundaries.
+- [Loop walkthrough](loop-walkthrough.md): one epoch traced through the live
+  example and every file it writes, with lock caveats. See also the
+  [architecture overview](../architecture.md) and [glossary](../glossary.md).
 - [Phase status](phases.md): implemented P1–P6 mechanisms and experimental limits.
 - [Remaining work audit](remaining-work.md): issue acceptance gaps after the
   merged host and scoring work, with the next implementation boundary.

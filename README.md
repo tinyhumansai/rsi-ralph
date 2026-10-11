@@ -150,6 +150,13 @@ cargo install cargo-llvm-cov         # once, before running the coverage gate
 ```
 
 
+## Loop visualizer
+
+[`apps/rsi-viz`](apps/rsi-viz/README.md) is a read-only Next.js app that lists
+runs under `target/` and follows a loop's `events.jsonl` live: current stage,
+metric by epoch, proposals with their decisions, and the incumbent lineage.
+`cd apps/rsi-viz && npm ci && npm run dev`.
+
 ## Live OpenRouter smoke test
 
 With an existing `OPENROUTER_API_KEY` in your environment:

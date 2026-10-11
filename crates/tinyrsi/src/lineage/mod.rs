@@ -1,10 +1,12 @@
 //! The improvement lineage: the ledger of graded candidates the RSI loop
 //! produces.
 //!
-//! A module root like this one documents the module, wires its pieces
-//! together, and exposes the smallest useful API. Substantial type definitions
-//! belong in a sibling `types.rs` (here, the contract crate), and unit tests
-//! belong in `test.rs`, wired in at the bottom of this file.
+//! This is the ledger the `TinyBus` module serves through `Append` and `Head`.
+//! It is separate from, and much smaller than, the host-side `Archive`, which
+//! holds the full proposal and evaluation history. The entry type lives in the
+//! contract crate (`tinyrsi_bus::lineage`), so this module holds behavior only.
+//! See this directory's `README.md` for how the two ledgers relate and why the
+//! served ledger does not survive a module restart.
 //!
 //! [`Lineage`] holds [`GradeEntry`] records in step order. Recording requires
 //! each entry's [`GradeEntry::step`] to continue the ledger exactly, and every

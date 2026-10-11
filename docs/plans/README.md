@@ -25,3 +25,6 @@ See [`example-retry-policy.md`](example-retry-policy.md) for a test-first sample
 
 - [`loop-trace.md`](loop-trace.md) — loop trace types, clocks and sinks.
 - [`script-loop.md`](script-loop.md) — script loop, example and hive trace.
+- [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).
+See [`epoch-evidence.md`](epoch-evidence.md) for a test-first plan delivered in
+this repository.

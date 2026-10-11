@@ -12,14 +12,26 @@ def generate(seed):
         raise ValueError('expected 32-byte private seed')
     rng = random.Random(int.from_bytes(seed, 'big'))
     stages, used_seeds = {}, set()
+    used_divisions, used_moduli, used_inverses = set(), set(), set()
     for stage in ('screen', 'selection', 'confirmation', 'anchor'):
         a, b = rng.randrange(10000, 1000000), rng.randrange(20, 200)
+        while (a, b) in used_divisions:
+            a, b = rng.randrange(10000, 1000000), rng.randrange(20, 200)
+        used_divisions.add((a, b))
         q, r = divmod(a, b)
         p, other = rng.sample([7, 11, 13, 17, 19, 23, 29, 31], 2)
         n = p * other
+        while n in used_moduli:
+            p, other = rng.sample([7, 11, 13, 17, 19, 23, 29, 31], 2)
+            n = p * other
+        used_moduli.add(n)
         residue = next(x for x in range(n - 1, 0, -1) if (x * x - x) % n == 0)
         modulus = rng.choice([101, 103, 107, 109, 113, 127, 131, 137])
         unit = rng.randrange(2, modulus)
+        while (unit, modulus) in used_inverses:
+            modulus = rng.choice([101, 103, 107, 109, 113, 127, 131, 137])
+            unit = rng.randrange(2, modulus)
+        used_inverses.add((unit, modulus))
         inverse = pow(unit, -1, modulus)
         statements = [
             ('euclid', f'({q} * {b} + {r} : Nat) = {a} ∧ {r} < {b}'),

@@ -1,4 +1,12 @@
 //! Host-owned strong verification with identity-bound artifact evidence.
+//!
+//! `VerifierRegistry` freezes which checks apply to which node and seat.
+//! `VerifiedRunner` binds an artifact to its episode, seat, node and
+//! transcript references and submits coordinator completion only after the
+//! required checks pass. Process, schema, golden, Lean and pinned Lake
+//! checkers run under host control with private inputs. See this directory's
+//! `README.md` for the process sandbox boundary and `lake/README.md` for the
+//! pinned toolchain rules.
 pub(crate) mod lake;
 mod runner;
 mod types;

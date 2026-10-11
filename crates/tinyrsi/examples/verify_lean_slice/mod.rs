@@ -25,6 +25,15 @@ fn decode(bytes: &[u8]) -> Result<types::Slice, Box<dyn std::error::Error>> {
     {
         return Err("invalid private Lean slice".into());
     }
+    let theorems = slice
+        .stages
+        .values()
+        .flatten()
+        .map(|goal| &goal.theorem)
+        .collect::<BTreeSet<_>>();
+    if theorems.len() != 12 {
+        return Err("invalid private Lean slice".into());
+    }
     Ok(slice)
 }
 

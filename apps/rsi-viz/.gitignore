@@ -1,0 +1,11 @@
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+# Runs written by scripts/simulate-run.mjs
+fixtures/live-*/
+# Written by `next dev` when it detects a coding agent; repository guidance
+# lives in the root AGENTS.md.
+AGENTS.md
+CLAUDE.md

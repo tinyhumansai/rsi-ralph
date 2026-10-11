@@ -5,7 +5,7 @@ take over. Create one for behavior that changes a public API, crosses module
 boundaries, introduces a durable data format, or has meaningful operational
 constraints.
 
-Use a short kebab-case filename such as `retry-policy.md`. Each specification
+Use a short kebab-case filename such as `host-runtime.md`. Each specification
 should contain:
 
 1. **Status and owner** — Draft, Accepted, Implemented, or Superseded.
@@ -26,3 +26,8 @@ See [`example-retry-policy.md`](example-retry-policy.md) for a complete sample.
 
 - [`loop-trace.md`](loop-trace.md) — the append-only `events.jsonl` loop trace.
 - [`script-loop.md`](script-loop.md) — the plain-script improvement loop.
+- [`rsi-viz.md`](rsi-viz.md) — read-only live visualizer for loop traces
+  and run snapshots (`apps/rsi-viz/`).
+  
+See [`host-runtime.md`](host-runtime.md) or
+[`epoch-evidence.md`](epoch-evidence.md) for specifications from this repository.
