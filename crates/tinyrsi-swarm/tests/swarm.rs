@@ -224,15 +224,7 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     assert_eq!(lines[0]["event"]["kind"], "swarm_started");
     assert!(dirs.run.join(HIVE_DB).exists());
 
-    // No run file carries the model key.
-    for file in files(&dirs.run) {
-        let bytes = std::fs::read(&file).unwrap();
-        assert!(
-            !String::from_utf8_lossy(&bytes).contains(MODEL_KEY),
-            "{} carries the model key",
-            file.display()
-        );
-    }
+    assert_no_file_contains(&dirs.run, MODEL_KEY);
 
     // Each seat's prompt carries the hive rules; nobody is offered `wait`.
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
