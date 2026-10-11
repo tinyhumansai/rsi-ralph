@@ -92,7 +92,7 @@ stops. No current percentile-bootstrap test asserts anytime-valid inference.
 | Geometric diagnostic | S `geometric_diagnostic_uses_frozen_weights_without_clipping_family_scores`, `geometric_diagnostic_distinguishes_zero_from_undefined_negative_families`, `geometric_diagnostic_rejects_missing_unknown_and_nonfinite_families`; available through `geometric_family_mean` without changing persisted score reports |
 | Pairwise prior / subjective panel | Future: swapped positions, blindness, ties, abstentions, disconnected Bradley–Terry graph, frozen judge versions |
 | Calibrated EV / successive halving | Future: invalid/zero costs, uncensored eligibility labels, frozen round limits, exploration share, smaller-patch ties |
-| Outcome dataset and metrics | Future: per-occurrence source/prior rows, missing/censored labels, Brier/Spearman/precision@k, no confirmation/anchor leakage |
+| Outcome dataset and metrics | E `actual_model_seed_and_occurrences_survive_reopen_and_changed_models_cannot_reuse_generation`, `observed_stages_and_selection_labels_remain_distinct_from_confirmation_and_interruption`; dataset `brier_and_top_k_use_selection_eligibility_not_approval`, `spearman_uses_average_tied_ranks_and_detects_constant_vectors`, `censored_and_unresolved_labels_never_become_negative_or_drop_from_top_k`. Empirical prior calibration remains outstanding. |
 | Ordinal calibration / human collection | Future: rubric version, label provenance, sample size, disagreement, zero-trust judge and private-data boundaries |
 | Memory health / attribution | Future: writer identity after reassignment, recall-use/clipping/latency denominators, growth, contamination lineage |
 

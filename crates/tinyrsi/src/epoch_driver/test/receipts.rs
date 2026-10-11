@@ -337,6 +337,18 @@ async fn completed_journals_reject_missing_pending_or_mismatched_receipts_and_re
         .as_object_mut()
         .unwrap()
         .remove("generation_mode");
+    for field in [
+        "model",
+        "generation_seed",
+        "proposal_sources",
+        "priors",
+        "selection_binding",
+    ] {
+        legacy["entries"]["1"]
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+    }
     std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
     let journal = EpochJournal::open(path).unwrap();
     assert!(journal.generation_receipts(1).unwrap().is_none());

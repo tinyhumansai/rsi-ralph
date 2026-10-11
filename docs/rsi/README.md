@@ -15,6 +15,8 @@ recorded separately.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.
 - [Durable epoch evidence](../specs/epoch-evidence.md): callback identities,
   atomic dossiers and the offline two-epoch demonstration.
+- [Proposal outcome receipts](proposal-outcomes.md): source occurrences, frozen
+  probability priors and selection-only descriptive metrics.
 - [P1 offline receipts](p1-evidence.md): measured turns and observed checker
   passes retained across restart and repeated checkpoints.
 - [Verified decomposition](specs/way-of-working.md): blueprint and verification model.

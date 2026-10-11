@@ -89,6 +89,7 @@ pub async fn prepare_retreat_epoch(
     input: RetreatEpochInput<'_>,
 ) -> Result<PreparedRetreatEpoch> {
     validate_input(&input, &memory)?;
+    let model = model_identity(port.as_ref(), &memory)?;
     let previous = journal.state.entries.get(&input.epoch.epoch.id).cloned();
     let incumbent_id = previous
         .as_ref()
@@ -102,7 +103,9 @@ pub async fn prepare_retreat_epoch(
     let fingerprint = fingerprint(&input, &incumbent_id)?;
     if let Some(previous) = previous {
         journal.generation_receipts(input.epoch.epoch.id)?;
-        if previous.fingerprint != fingerprint {
+        if previous.fingerprint != fingerprint
+            || (previous.generation_seed.is_some() && previous.model != model)
+        {
             return Err(Error::InvalidProposal);
         }
         let prepared = previous.prepared.ok_or(Error::HostFailed)?;
@@ -142,13 +145,8 @@ pub async fn prepare_retreat_epoch(
         input.budget.output_tokens,
         input.budget.timeout_ms,
     )?);
-    let mut entry = Entry::intent(
-        input.epoch.epoch.id,
-        incumbent_id,
-        fingerprint,
-        backend.meter()?,
-        input.mode,
-    );
+    let mut entry =
+        Entry::for_generation(&input, incumbent_id, fingerprint, backend.meter()?, model);
     journal.commit_entry(entry.clone())?;
     let receipts = Arc::new(super::receipts::ReceiptStore::create(
         &journal.path,
@@ -157,14 +155,12 @@ pub async fn prepare_retreat_epoch(
         input.mode,
         journal.writer_lock.clone(),
     )?);
-    let audited = Arc::new(AuditedConversant {
-        receipts: receipts.clone(),
-        memory: memory.clone(),
-        backend: backend.clone(),
-        schema: request.output.schema.clone(),
-        invalid: AtomicUsize::new(0),
-        attempts: Mutex::new(Vec::new()),
-    });
+    let audited = Arc::new(AuditedConversant::new(
+        backend.clone(),
+        memory.clone(),
+        receipts.clone(),
+        request.output.schema.clone(),
+    ));
     let response = generate(
         audited.clone(),
         memory.clone(),
@@ -186,6 +182,22 @@ pub async fn prepare_retreat_epoch(
     };
     finish_preparation(journal, entry, values, &memory, &input)
 }
+/// Captures public adapter provenance and guards it before durable intent or dispatch.
+fn model_identity(
+    port: &dyn ModelPort,
+    memory: &DurableRetreatMemory,
+) -> Result<Option<crate::ModelIdentity>> {
+    let model = port.identity();
+    if let Some(model) = &model {
+        if !super::dataset::model_valid(model) {
+            return Err(Error::InvalidProposal);
+        }
+        memory.validate_public_text(
+            &serde_json::to_string(model).map_err(|_| Error::InvalidProposal)?,
+        )?;
+    }
+    Ok(model)
+}
 fn validate_prepared(prepared: &PreparedRetreatEpoch, memory: &DurableRetreatMemory) -> Result<()> {
     for proposal in &prepared.proposals {
         memory.validate_public_text(
@@ -204,7 +216,8 @@ fn finish_preparation(
     let mut proposals = Vec::new();
     let mut invalid_items = entry.invalid_items;
     let mut ranked_items = 0;
-    for (index, value) in generated.values.into_iter().enumerate() {
+    let mut sources = Vec::new();
+    for (index, (source, value)) in generated.values.into_iter().enumerate() {
         let decoded = serde_json::from_value::<Proposal>(value.clone());
         if let Ok(proposal) = decoded
             && proposal.prediction.metric == "normalized_h"
@@ -212,6 +225,7 @@ fn finish_preparation(
         {
             ranked_items += usize::from(index < generated.ranked_items);
             proposals.push(proposal);
+            sources.push(source);
         } else {
             invalid_items = invalid_items.saturating_add(1);
         }
@@ -229,11 +243,12 @@ fn finish_preparation(
     };
     entry.invalid_items = prepared.invalid_items;
     entry.prepared = Some(prepared.clone());
+    entry.proposal_sources = Some(sources);
     journal.commit_entry(entry)?;
     Ok(prepared)
 }
 struct Generated {
-    values: Vec<Value>,
+    values: Vec<(super::dataset::Origin, Value)>,
     ranked_items: usize,
 }
 
@@ -257,7 +272,7 @@ async fn generate(
             .ok_or(Error::InvalidProposal)?;
         return Ok(Generated {
             ranked_items: values.len(),
-            values,
+            values: bind_occurrences(values, &backend, false)?,
         });
     }
     let engine = Engine::new(backend.clone()).with_memory(memory);
@@ -271,26 +286,38 @@ async fn generate(
     }) {
         return Err(Error::HostFailed);
     }
-    let mut values: Vec<_> = response.items.into_iter().map(|item| item.value).collect();
+    let values: Vec<_> = response.items.into_iter().map(|item| item.value).collect();
     let ranked_items = values.len();
-    let mut remaining = values.clone();
-    for attempt in backend
-        .attempts
-        .lock()
-        .map_err(|_| Error::HostFailed)?
-        .iter()
-    {
-        if let Some(index) = remaining.iter().position(|selected| selected == attempt) {
-            remaining.remove(index);
-        } else {
-            values.push(attempt.clone());
-        }
-    }
     Ok(Generated {
-        values,
+        values: bind_occurrences(values, &backend, true)?,
         ranked_items,
     })
 }
+/// Binds ranking results back to formatter occurrences without deduplicating copies.
+fn bind_occurrences(
+    values: Vec<Value>,
+    backend: &AuditedConversant,
+    include_unranked: bool,
+) -> Result<Vec<(super::dataset::Origin, Value)>> {
+    let mut remaining = backend
+        .attempts
+        .lock()
+        .map_err(|_| Error::HostFailed)?
+        .clone();
+    let mut bound = Vec::new();
+    for value in values {
+        let index = remaining
+            .iter()
+            .position(|(_, v)| *v == value)
+            .ok_or(Error::HostFailed)?;
+        bound.push(remaining.remove(index));
+    }
+    if include_unranked {
+        bound.extend(remaining);
+    }
+    Ok(bound)
+}
+
 fn validate_observation(input: &RetreatEpochInput<'_>) -> Result<()> {
     let id = input.epoch.epoch.id;
     let observed = input
@@ -345,9 +372,26 @@ struct AuditedConversant {
     backend: Arc<ModelConversant>,
     schema: Value,
     invalid: AtomicUsize,
-    attempts: Mutex<Vec<Value>>,
+    attempts: Mutex<Vec<(super::dataset::Origin, Value)>>,
     receipts: Arc<super::receipts::ReceiptStore>,
     memory: Arc<DurableRetreatMemory>,
+}
+impl AuditedConversant {
+    fn new(
+        backend: Arc<ModelConversant>,
+        memory: Arc<DurableRetreatMemory>,
+        receipts: Arc<super::receipts::ReceiptStore>,
+        schema: Value,
+    ) -> Self {
+        Self {
+            backend,
+            memory,
+            receipts,
+            schema,
+            invalid: AtomicUsize::new(0),
+            attempts: Mutex::new(Vec::new()),
+        }
+    }
 }
 impl Conversant for AuditedConversant {
     fn turn(
@@ -362,6 +406,7 @@ impl Conversant for AuditedConversant {
     ) -> tinybackrooms::BoxFuture<'_, tinybackrooms::Result<tinybackrooms::StructuredReply>> {
         Box::pin(async move {
             let proposals = request.tool == "submit_items";
+            let run_id = format!("{:x}", Sha256::digest(request.seat.run_id.as_bytes()));
             let call = if proposals {
                 Some(self.receipts.begin().map_err(audit_error)?)
             } else {
@@ -379,6 +424,7 @@ impl Conversant for AuditedConversant {
                 }
             };
             if proposals {
+                let call_id = call.ok_or_else(|| audit_error(Error::HostFailed))?;
                 let validator = jsonschema::validator_for(&self.schema).map_err(|_| {
                     tinybackrooms::Error::Conversant("invalid frozen proposal schema".into())
                 })?;
@@ -436,8 +482,20 @@ impl Conversant for AuditedConversant {
                         .extend(
                             items
                                 .iter()
-                                .filter(|item| validator.is_valid(item))
-                                .cloned(),
+                                .enumerate()
+                                .filter(|(_, item)| validator.is_valid(item))
+                                .map(|(item_index, item)| {
+                                    (
+                                        super::dataset::Origin {
+                                            occurrence: super::ProposalOccurrence {
+                                                call_id,
+                                                item_index,
+                                            },
+                                            run_id: run_id.clone(),
+                                        },
+                                        item.clone(),
+                                    )
+                                }),
                         );
                 }
             }

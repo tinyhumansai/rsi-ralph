@@ -34,6 +34,13 @@ restart; interrupted calls with missing usage remain explicitly unknown. Run
 `cargo run -p tinyrsi --features host --example observe_epochs` for the offline
 two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
 
+`EpochJournal::proposal_dataset` links typed formatter occurrences and committed
+predictions to selection-only labels, preserving missing and censored outcomes.
+Optional probabilities are frozen before evaluation; Brier, tied-rank Spearman
+and precision-at-k report their denominators without using confirmation or anchor
+measurements. See the [dataset contract](crates/tinyrsi/src/epoch_driver/dataset/README.md)
+and the `proposal_metrics` example for reporting an existing private host run.
+
 The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
 adapter. It installs supported prompts, context, recall and conduct caps, and
 rejects unsupported models, tools, MCP and policies explicitly. A custom

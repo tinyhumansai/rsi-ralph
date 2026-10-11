@@ -125,10 +125,16 @@ fn validate(state: &Snapshot) -> Result<()> {
         || state.entries.iter().any(|(id, e)| {
             *id != e.epoch
                 || e.incumbent_id.is_empty()
+                || super::dataset::validate(e).is_err()
                 || (e.generation_receipts && e.generation_mode.is_none())
                 || e.fingerprint.len() != 64
                 || !e.fingerprint.bytes().all(|b| b.is_ascii_hexdigit())
                 || e.outcome.epoch != e.epoch
+                || e.outcome
+                    .candidates
+                    .iter()
+                    .enumerate()
+                    .any(|(index, r)| r.proposal_index != index)
                 || (e.evaluating && e.outcome.complete)
                 || e.prepared.as_ref().is_some_and(|p| {
                     p.epoch != e.epoch
@@ -176,6 +182,21 @@ fn read_receipts(path: &Path, entry: &Entry) -> Result<Option<super::GenerationA
         })
     {
         return Err(Error::ArchiveCorrupt);
+    }
+    if let Some(sources) = &entry.proposal_sources {
+        let audit = audit.as_ref().ok_or(Error::ArchiveCorrupt)?;
+        for source in sources {
+            let call = audit
+                .calls
+                .iter()
+                .find(|c| c.id == source.occurrence.call_id)
+                .ok_or(Error::ArchiveCorrupt)?;
+            if call.items.get(source.occurrence.item_index)
+                != Some(&super::GenerationDisposition::Decoded)
+            {
+                return Err(Error::ArchiveCorrupt);
+            }
+        }
     }
     Ok(audit)
 }

@@ -1,0 +1,107 @@
+{
+  "dataset": {
+    "epoch": 1,
+    "fingerprint": "012955f07ff498fcfffc3c653daad0843e6648e6cd5b4dbaab133034aa3d62c2",
+    "generation": {
+      "calls": [
+        {
+          "id": 1,
+          "items": [
+            "decoded",
+            "decoded",
+            "decoded"
+          ],
+          "status": "returned"
+        }
+      ],
+      "epoch": 1,
+      "fingerprint": "012955f07ff498fcfffc3c653daad0843e6648e6cd5b4dbaab133034aa3d62c2",
+      "mode": "direct",
+      "version": 1
+    },
+    "generation_complete": true,
+    "generation_seed": 42,
+    "meter": {
+      "attempted_calls": 1,
+      "cap": 500000,
+      "denied_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 10,
+      "output_tokens": 10,
+      "reserved_tokens": 9017
+    },
+    "mode": "direct",
+    "model": null,
+    "rows": [
+      {
+        "candidate_id": "sha256:e432e4bcd386be38f63acf53c2fbe31c9beccc31d9c70cf186d1e6ecb86ffadb",
+        "formatter_run_id": "d15690f08a575024650b01ffac892cfd2b93e6c57c140f1b6d9e47753cabd579",
+        "interrupted": false,
+        "label": "observed",
+        "occurrence": {
+          "call_id": 1,
+          "item_index": 0
+        },
+        "predicted_gain": 0.05,
+        "prior": 0.8,
+        "proposal_index": 0,
+        "ranked": true,
+        "reason": "APPROVAL_DENIED",
+        "selection": {
+          "delta": 0.3999999999999999,
+          "eligible": true,
+          "lower": 0.3999999999999999,
+          "upper": 0.3999999999999999
+        },
+        "stage": "confirmation"
+      },
+      {
+        "candidate_id": null,
+        "formatter_run_id": "d15690f08a575024650b01ffac892cfd2b93e6c57c140f1b6d9e47753cabd579",
+        "interrupted": false,
+        "label": "duplicate",
+        "occurrence": {
+          "call_id": 1,
+          "item_index": 1
+        },
+        "predicted_gain": 0.05,
+        "prior": 0.8,
+        "proposal_index": 1,
+        "ranked": true,
+        "reason": "DUPLICATE",
+        "selection": null,
+        "stage": "generated"
+      },
+      {
+        "candidate_id": null,
+        "formatter_run_id": "d15690f08a575024650b01ffac892cfd2b93e6c57c140f1b6d9e47753cabd579",
+        "interrupted": false,
+        "label": "duplicate",
+        "occurrence": {
+          "call_id": 1,
+          "item_index": 2
+        },
+        "predicted_gain": 0.05,
+        "prior": 0.8,
+        "proposal_index": 2,
+        "ranked": true,
+        "reason": "DUPLICATE",
+        "selection": null,
+        "stage": "generated"
+      }
+    ],
+    "version": 1
+  },
+  "metrics": {
+    "brier": 0.03999999999999998,
+    "brier_pairs": 1,
+    "gain_pairs": 1,
+    "k": 3,
+    "missing_labels": 2,
+    "missing_priors": 0,
+    "precision_at_k": null,
+    "rows": 3,
+    "spearman": null,
+    "top_k_observed": 1
+  }
+}
