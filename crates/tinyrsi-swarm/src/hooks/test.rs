@@ -18,6 +18,9 @@ fn hooks() -> (tempfile::TempDir, SwarmHooks, mpsc::Receiver<SwarmEvent>) {
 
 fn scope(seat: &str) -> TurnScope {
     TurnScope {
+        turn_id: "turn-1".into(),
+        session_id: None,
+        scheduled_job_id: None,
         agent_id: seat.into(),
         episode: None,
         message_ids: vec!["brief".into()],
