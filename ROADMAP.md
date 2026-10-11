@@ -25,10 +25,10 @@ published 24-attempt experiment is inconclusive.
   selection and confirmation stages (`orchestrator/`), normalized H scoring
   and bootstrap (`crates/tinyrsi-score/src/scoring/`), private suites and `CoordinatorEvaluator`
   (`suites/`), immutable memory snapshots (`memory/`).
-- P3 verified decomposition: `Blueprint` (`blueprint/`), `VerifierRegistry`
+- P3 verified decomposition: `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
-  (`verification/`), plus a pinned-toolchain `lake build` checker
-  (`verification/lake/`) validated on 12 private reference proofs
+  (`crates/tinyrsi-verify/src/verification/`), plus a pinned-toolchain `lake build` checker
+  (`crates/tinyrsi-verify/src/verification/lake/`) validated on 12 private reference proofs
   ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets

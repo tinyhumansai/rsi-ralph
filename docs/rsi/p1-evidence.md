@@ -30,7 +30,7 @@ Implementation: [evidence contract](../specs/epoch-evidence.md),
 [test-first plan](../plans/epoch-evidence.md),
 [journal design](../../crates/tinyrsi/src/evidence_journal/README.md).
 Regression suites: `evidence_journal/test.rs`, `suites/test_journal.rs`,
-`verification/test.rs` and the existing `archive/test*.rs` files.
+`crates/tinyrsi-verify/src/verification/test.rs` and the existing `archive/test*.rs` files.
 
 Host admission must be stopped and runners joined at an epoch boundary. Upstream
 transcript and episode reads are separate snapshots. A remote response lost

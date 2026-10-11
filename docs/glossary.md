@@ -166,18 +166,18 @@ for prompts, `ManageRoster` for roster, `BetweenSessions` for topology,
 policy and goals. The host does not act on it yet; `CoordinatorHost` always
 rebuilds.
 
-**Blueprint.** `Blueprint` (`blueprint/`): a dependency DAG of
+**Blueprint.** `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`): a dependency DAG of
 `BlueprintNode`s, each with a `Verifier` kind. Nodes become verified only
 through the host's `report`. The host's per-node checker results
 (`VerifierOutcome` with a `NodeStatus`) become the dossier's `failed_nodes` /
 `open_nodes`, which proposals must cite in `Prediction::nodes`.
 
-**Verifier.** `VerifierKind` (`blueprint/types.rs`) ranks evidence from
+**Verifier.** `VerifierKind` (`crates/tinyrsi-verify/src/blueprint/types.rs`) ranks evidence from
 `Proof` down to `Rubric` and `Preference` (the last two are weak).
-`HostVerifier` (`verification/types.rs`) is the concrete check: `Process`,
+`HostVerifier` (`crates/tinyrsi-verify/src/verification/types.rs`) is the concrete check: `Process`,
 `Golden`, `Schema`, `Lean` (a restricted proof block checked directly) or
 `Lake` (a frozen project built with a pinned Lean toolchain; see
-`verification/lake/README.md`).
+`crates/tinyrsi-verify/src/verification/lake/README.md`).
 
 **Approval gate.** `HApprovalGate::approve_h`
 (`orchestrator/normalized/types.rs`): the only path from a confirmed

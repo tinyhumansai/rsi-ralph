@@ -27,6 +27,7 @@ crates/
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
+├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -38,10 +39,7 @@ crates/
     │   ├── retreat/          # tinybackrooms request/response contract
     │   ├── retreat_memory/   # durable recall cache for the retreat Engine
     │   ├── memory/           # immutable hive-memory snapshot store
-    │   ├── blueprint/        # verified decomposition DAG
-    │   ├── verification/     # host checkers and controlled completion
     │   ├── script_loop/      # improvement loop over a plain script
-    │   ├── process/          # bounded child-process runner
     │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
     │   ├── evidence_journal/ # [host] measured turn callbacks and epoch receipts
     │   ├── host/             # [host] DeploymentStore, CoordinatorHost
