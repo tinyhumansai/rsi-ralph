@@ -254,6 +254,14 @@ impl JudgeCalibration {
         })
     }
 
+    /// Whether the judge agrees with humans better than chance and at least
+    /// as well as the threshold, so its grades may support a decision on
+    /// their own. This is exactly when its rubric weight is positive.
+    #[must_use]
+    pub fn passes(&self) -> bool {
+        self.weight().is_ok_and(|w| w > 0.0)
+    }
+
     /// Measured Cohen's kappa; negative values indicate worse than chance.
     #[must_use]
     pub fn agreement(&self) -> f64 {

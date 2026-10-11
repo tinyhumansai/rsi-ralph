@@ -1058,6 +1058,10 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tinybackrooms",
+ "tinyrsi-model",
+ "tinyrsi-trace",
+ "tinyrsi-types",
 ]
 
 [[package]]

@@ -86,6 +86,9 @@ pub enum Error {
     /// The supervisor's reply is not exactly one well-formed proposal.
     #[error("supervisor reply is not a well-formed proposal")]
     SupervisorMalformed,
+    /// A judge's reply was not one well-formed grade in range.
+    #[error("judge reply is not a well-formed grade")]
+    JudgeMalformed,
 }
 
 /// Model-boundary failures keep the variants this crate has always reported:
@@ -112,6 +115,8 @@ impl From<tinyrsi_score::Error> for Error {
     fn from(error: tinyrsi_score::Error) -> Self {
         match error {
             tinyrsi_score::Error::HostFailed => Self::HostFailed,
+            tinyrsi_score::Error::JudgeMalformed => Self::JudgeMalformed,
+            tinyrsi_score::Error::Model(model) => model.into(),
             _ => Self::InvalidEvaluation,
         }
     }

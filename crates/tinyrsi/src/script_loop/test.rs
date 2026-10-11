@@ -480,3 +480,49 @@ fn prompt_shows_goal_history_rejections_and_sources() {
     };
     assert!(prompt(&s, &empty, &sources, 3).contains("None yet."));
 }
+
+#[test]
+fn the_scoring_crate_reproduces_script_loop_scores_exactly() {
+    use tinyrsi_score::{Goal, MetricScorer, Scorer, decide};
+    // A small deterministic generator, so the cases are varied but fixed.
+    let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+    let mut next = move || {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        f64::from(u32::try_from(state >> 40).unwrap()) / f64::from(1_u32 << 24) * 4.0 - 2.0
+    };
+    let goal = Goal::new("improve the metric");
+    for case in 0..200_u64 {
+        let direction = if case % 2 == 0 {
+            crate::MetricDirection::Minimize
+        } else {
+            crate::MetricDirection::Maximize
+        };
+        let seeds: Vec<u64> = (0..2 + case % 4).collect();
+        let incumbent: Vec<f64> = seeds.iter().map(|_| next()).collect();
+        let shift = next();
+        let candidate: Vec<f64> = incumbent.iter().map(|m| m + shift + next() * 0.1).collect();
+        let policy = crate::EvalPolicy {
+            margin: if case % 3 == 0 { 0.0 } else { 0.01 },
+            ..crate::EvalPolicy::default()
+        };
+        let old = score(&seeds, &incumbent, &candidate, direction, &policy).unwrap();
+        let scorer = MetricScorer::new(direction);
+        let new = decide(
+            &scorer.assess(&incumbent, &goal, &seeds).unwrap(),
+            &scorer.assess(&candidate, &goal, &seeds).unwrap(),
+            &seeds,
+            &policy,
+        )
+        .unwrap();
+        assert_eq!(new.decision, old.decision, "case {case}");
+        assert_eq!(
+            new.estimate.to_bits(),
+            old.estimate.to_bits(),
+            "case {case}"
+        );
+        assert_eq!(new.lower.to_bits(), old.lower.to_bits(), "case {case}");
+        assert_eq!(new.upper.to_bits(), old.upper.to_bits(), "case {case}");
+    }
+}

@@ -15,6 +15,12 @@ pub enum Error {
     /// A host-owned trial executor failed.
     #[error("host operation failed")]
     HostFailed,
+    /// A judge's reply was not one well-formed grade in range.
+    #[error("judge reply is not a well-formed grade")]
+    JudgeMalformed,
+    /// A judge's model call failed, overspent or was refused.
+    #[error(transparent)]
+    Model(#[from] tinyrsi_model::Error),
 }
 
 /// The crate's standard result type.

@@ -12,6 +12,10 @@ categories = ["development-tools"]
 publish = false
 
 [dependencies]
+tinyrsi-types = { workspace = true }
+tinyrsi-model = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tinybackrooms = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

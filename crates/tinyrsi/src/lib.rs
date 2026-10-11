@@ -114,6 +114,10 @@ pub use tinyrsi_score::{
     ScoreHealth, ScorePenalties, ScoringPolicy, ScoringPolicySpec, VerifierTier, compare,
     compare_h, ensure_independent, geometric_family_mean, score,
 };
+pub use tinyrsi_score::{
+    Assessment, BackroomsJudge, Composite, Decision, Goal, JudgeLimits, LlmJudge, MetricEvidence,
+    MetricScorer, Projected, Scorer, ScriptedScorer, decide,
+};
 
 pub use archive::NormalizedApprovalEvent;
 

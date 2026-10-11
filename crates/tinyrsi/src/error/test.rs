@@ -72,3 +72,22 @@ fn model_errors_map_onto_the_variants_callers_already_match() {
         Error::HostFailed
     );
 }
+
+#[test]
+fn scoring_errors_map_onto_the_variants_callers_already_match() {
+    use tinyrsi_score::Error as Score;
+    assert_eq!(
+        Error::from(Score::InvalidEvaluation),
+        Error::InvalidEvaluation
+    );
+    assert_eq!(Error::from(Score::HostFailed), Error::HostFailed);
+    assert_eq!(Error::from(Score::JudgeMalformed), Error::JudgeMalformed);
+    assert_eq!(
+        Error::from(Score::Model(tinyrsi_model::Error::CallFailed)),
+        Error::HostFailed
+    );
+    assert_eq!(
+        Error::JudgeMalformed.to_string(),
+        "judge reply is not a well-formed grade"
+    );
+}
