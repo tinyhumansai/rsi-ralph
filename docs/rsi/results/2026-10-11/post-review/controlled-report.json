@@ -1,0 +1,146 @@
+{
+  "accepted": "Accepted",
+  "approval": "user-authorized context-only sandbox; not a production human approval service",
+  "comparisons": [
+    {
+      "comparison": {
+        "candidate": {
+          "health": {
+            "cost_ratio": 0.9777365491651205,
+            "false_claim_rate": 0.25,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.975,
+          "per_family": {
+            "code": 1.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.975,
+          "value": 0.975
+        },
+        "decision": {
+          "Accept": {
+            "reason": "paired H lower bound exceeds margin"
+          }
+        },
+        "delta": 0.5249999999999999,
+        "incumbent": {
+          "health": {
+            "cost_ratio": 1.0,
+            "false_claim_rate": 0.5,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.45,
+          "per_family": {
+            "code": 0.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.45,
+          "value": 0.45
+        },
+        "lower": 0.5249999999999999,
+        "upper": 0.5249999999999999
+      },
+      "stage": "Screen"
+    },
+    {
+      "comparison": {
+        "candidate": {
+          "health": {
+            "cost_ratio": 0.9777365491651205,
+            "false_claim_rate": 0.25,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.975,
+          "per_family": {
+            "code": 1.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.975,
+          "value": 0.975
+        },
+        "decision": {
+          "Accept": {
+            "reason": "paired H lower bound exceeds margin"
+          }
+        },
+        "delta": 0.5249999999999999,
+        "incumbent": {
+          "health": {
+            "cost_ratio": 1.0,
+            "false_claim_rate": 0.5,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.45,
+          "per_family": {
+            "code": 0.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.45,
+          "value": 0.45
+        },
+        "lower": 0.5249999999999999,
+        "upper": 0.5249999999999999
+      },
+      "stage": "Selection"
+    },
+    {
+      "comparison": {
+        "candidate": {
+          "health": {
+            "cost_ratio": 0.9777365491651205,
+            "false_claim_rate": 0.25,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.975,
+          "per_family": {
+            "code": 1.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.975,
+          "value": 0.975
+        },
+        "decision": {
+          "Accept": {
+            "reason": "paired H lower bound exceeds margin"
+          }
+        },
+        "delta": 0.5249999999999999,
+        "incumbent": {
+          "health": {
+            "cost_ratio": 1.0,
+            "false_claim_rate": 0.5,
+            "tamper_rate": 0.0
+          },
+          "lower": 0.45,
+          "per_family": {
+            "code": 0.0,
+            "harness": 1.0,
+            "proof": 0.0,
+            "reference": 1.0
+          },
+          "upper": 0.45,
+          "value": 0.45
+        },
+        "lower": 0.5249999999999999,
+        "upper": 0.5249999999999999
+      },
+      "stage": "Confirmation"
+    }
+  ],
+  "denied": "ApprovalDenied",
+  "deployment_and_parent_rollback": true,
+  "generation_tokens": 645,
+  "purpose": "isolated integration validation, outside preregistered comparison",
+  "source": "live"
+}

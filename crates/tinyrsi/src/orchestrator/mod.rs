@@ -3,10 +3,14 @@
 //! The host owns private tasks, memory forks and activation. This module selects
 //! a durable design and returns its activation granularity; it never writes to
 //! a live coordinator or silently bypasses approval.
+mod normalized;
 mod types;
 use crate::{
     Archive, Comparison, Error, EvalDecision, EvalPolicy, EvalRun, PatchClass, ProposalEvent,
     Result, compare, ensure_independent,
+};
+pub use normalized::{
+    HApprovalGate, HCandidateOutcome, HEpoch, HEvalPair, HEvaluator, run_proposal_h,
 };
 use std::collections::BTreeMap;
 use tinyhivemind_lang::{
@@ -302,6 +306,15 @@ fn decision_reason(stage: EvalStage, c: &Comparison) -> Option<ReasonCode> {
     }
 }
 fn prefilter(archive: &Archive, epoch: &Epoch, p: &Proposal) -> Option<ReasonCode> {
+    prefilter_for(archive, epoch, p, "verified_quality", Some(1.0))
+}
+fn prefilter_for(
+    archive: &Archive,
+    epoch: &Epoch,
+    p: &Proposal,
+    metric: &str,
+    maximum_gain: Option<f64>,
+) -> Option<ReasonCode> {
     if p.patch.class != epoch.class {
         return Some(ReasonCode::WrongClass);
     }
@@ -309,10 +322,10 @@ fn prefilter(archive: &Archive, epoch: &Epoch, p: &Proposal) -> Option<ReasonCod
         || [&p.title, &p.mechanism, &p.risk, &p.effort]
             .iter()
             .any(|s| s.trim().is_empty())
-        || p.prediction.metric != "verified_quality"
+        || p.prediction.metric != metric
         || !p.prediction.minimum_gain.is_finite()
         || p.prediction.minimum_gain <= 0.
-        || p.prediction.minimum_gain > 1.
+        || maximum_gain.is_some_and(|maximum| p.prediction.minimum_gain > maximum)
         || p.prediction.nodes.is_empty()
     {
         return Some(ReasonCode::Untestable);

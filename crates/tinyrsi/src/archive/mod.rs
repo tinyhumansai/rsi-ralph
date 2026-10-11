@@ -1,4 +1,5 @@
 //! Exclusive durable candidate history, proposal evidence and active ancestry.
+mod normalized;
 mod replay;
 mod types;
 #[cfg(test)]
@@ -13,7 +14,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use tinyhivemind_lang::Package;
 use tinyhivemind_lang::lineage::{self, Record, Verdict, VersionMetadata};
-pub use types::{EvaluationEvent, ProposalDeclaration, ProposalEvent};
+pub use types::{
+    EvaluationEvent, NormalizedApprovalEvent, NormalizedDeclarationEvent,
+    NormalizedEvaluationEvent, ProposalDeclaration, ProposalEvent,
+};
 use types::{Event, Snapshot};
 
 #[derive(Debug)]
@@ -80,7 +84,7 @@ impl Archive {
             Ok(bytes) => {
                 let snapshot: Snapshot =
                     serde_json::from_slice(&bytes).map_err(|_| Error::ArchiveCorrupt)?;
-                if snapshot.version != 1 {
+                if !matches!(snapshot.version, 1 | 2) {
                     return Err(Error::ArchiveCorrupt);
                 }
                 let mut state = State::default();
@@ -295,7 +299,18 @@ impl Archive {
             next.push(event)?;
         }
         let snapshot = Snapshot {
-            version: 1,
+            version: if next.events.iter().any(|event| {
+                matches!(
+                    event,
+                    Event::NormalizedDeclaration { .. }
+                        | Event::NormalizedEvaluation { .. }
+                        | Event::NormalizedApproval { .. }
+                )
+            }) {
+                2
+            } else {
+                1
+            },
             events: next.events.clone(),
         };
         let bytes = serde_json::to_vec(&snapshot).map_err(|_| Error::ArchiveIo)?;
@@ -353,3 +368,6 @@ mod test_evidence;
 
 #[cfg(test)]
 mod test_float;
+
+#[cfg(test)]
+mod test_normalized;

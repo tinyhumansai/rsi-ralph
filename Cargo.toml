@@ -51,7 +51,13 @@ tinyhivemind-lang = { path = "vendor/tinyhivemind/crates/tinyhivemind-lang" }
 tinyhivemind-hives = { path = "vendor/tinyhivemind/crates/tinyhivemind-hives", default-features = false }
 # Creative retreat engine and its exact validated request contract.
 tinybackrooms = { path = "vendor/tinybackrooms/crates/tinybackrooms" }
-# Temporary directories exercise crash-safe archive persistence in tests.
+# Cross-process locks protect durable host memory transactions.
+fs2 = "0.4"
+# Artifact and private-suite fingerprints bind evidence to immutable inputs.
+sha2 = "0.10"
+# Host-owned schema verifiers use the same pure validator as the retreat engine.
+jsonschema = { version = "0.58", default-features = false }
+# Staged verifier workspaces and atomic durable writes use checkout-local files.
 tempfile = "3"
 # The bus payload types are serialized into TinyBus frames.
 serde = { version = "1", features = ["derive"] }

@@ -546,3 +546,18 @@ fn zero_cost_tolerance_preserves_integer_precision() {
         EvalDecision::Reject { .. }
     ));
 }
+
+#[test]
+fn scoring_policy_spec_revalidates_serialized_configuration() {
+    let original = policy(&["code"]);
+    let spec = original.spec();
+    let decoded: ScoringPolicySpec =
+        serde_json::from_slice(&serde_json::to_vec(&spec).unwrap()).unwrap();
+    assert_eq!(decoded.build().unwrap(), original);
+    let mut invalid = decoded.clone();
+    invalid.resamples = 199;
+    assert!(invalid.build().is_err());
+    invalid = decoded;
+    invalid.anchors.push(invalid.anchors[0].clone());
+    assert!(invalid.build().is_err());
+}

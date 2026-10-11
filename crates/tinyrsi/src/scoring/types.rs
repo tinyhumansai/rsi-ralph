@@ -109,3 +109,21 @@ pub struct AnchorLedger {
     pub(super) regression_streak: usize,
     pub(super) gap_streak: usize,
 }
+
+/// Serializable trusted-host specification rebuilt through policy validation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScoringPolicySpec {
+    /// Frozen reference anchors, one per task family.
+    pub anchors: Vec<FamilyAnchor>,
+    /// Fixed health and cost penalty coefficients.
+    pub penalties: ScorePenalties,
+    /// Required positive lower-bound normalized gain.
+    pub margin: f64,
+    /// Fractional allowed token-cost increase.
+    pub cost_tolerance: f64,
+    /// Number of task-and-seed bootstrap draws, at least 200.
+    pub resamples: u32,
+    /// Deterministic bootstrap stream seed.
+    pub bootstrap_seed: u64,
+}

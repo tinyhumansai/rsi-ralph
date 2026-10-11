@@ -30,6 +30,24 @@ pub struct ProposalDeclaration {
     pub proposal: crate::Proposal,
 }
 
+/// Frozen normalized host configuration committed before candidate execution.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NormalizedDeclarationEvent {
+    /// Frozen host epoch identity.
+    pub epoch: u64,
+    /// Exact proposal inputs declared before any pinning or evaluation.
+    pub proposal: crate::Proposal,
+    /// Active accepted incumbent at preregistration.
+    pub incumbent_id: String,
+    /// Base host scoring policy; prediction-adjusted margin is derived later.
+    pub policy: crate::ScoringPolicySpec,
+    /// Hard per-run budget frozen before model execution.
+    pub budget: crate::Budget,
+    /// Immutable fingerprints for Screen, Selection, and Confirmation.
+    pub suite_ids: std::collections::BTreeMap<String, String>,
+}
+
 /// Exact paired host outcomes retained separately from summary objectives.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -51,6 +69,52 @@ pub struct EvaluationEvent {
     /// Host comparison recomputed and verified when the archive is replayed.
     #[serde(default)]
     pub comparison: Option<crate::Comparison>,
+}
+
+/// Exact normalized evidence tied to the incumbent, proposal, and frozen suites.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NormalizedEvaluationEvent {
+    /// Prepared candidate content identity, including pinned memory.
+    pub candidate_id: String,
+    /// Accepted incumbent identity when the attempt started.
+    pub incumbent_id: String,
+    /// Host epoch of the original proposal declaration.
+    pub epoch: u64,
+    /// Exact proposal with a `normalized_h` prediction.
+    pub proposal: crate::Proposal,
+    /// Screen, Selection, or Confirmation.
+    pub stage: String,
+    /// Actual private suite fingerprint supplied by the host executor.
+    pub suite_id: String,
+    /// All three frozen suite identities, committed from the first stage.
+    pub suite_ids: std::collections::BTreeMap<String, String>,
+    /// Incumbent outcomes on the paired private draw.
+    pub incumbent: Vec<crate::EvalRun>,
+    /// Candidate outcomes on that same private draw.
+    pub candidate: Vec<crate::EvalRun>,
+    /// Measured incumbent health rates and reference cost ratio.
+    pub incumbent_health: crate::ScoreHealth,
+    /// Measured candidate health rates and relative token cost.
+    pub candidate_health: crate::ScoreHealth,
+    /// Shared per-run hard cap.
+    pub budget: crate::Budget,
+    /// Exact validated host policy including the prediction-adjusted margin.
+    pub policy: crate::scoring::ScoringPolicySpec,
+    /// Recomputed bootstrap evidence; never a converted raw-quality comparison.
+    pub comparison: crate::ScoreComparison,
+}
+
+/// Human decision bound to exact confirmed normalized evidence.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NormalizedApprovalEvent {
+    /// Exact prepared design reviewed by the human.
+    pub candidate_id: String,
+    /// Exact confirmed normalized comparison supplied to the approval gate.
+    pub comparison: crate::ScoreComparison,
+    /// Human approval or denial; unavailable approval is not approval.
+    pub approved: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -76,6 +140,15 @@ pub(super) enum Event {
     },
     Evaluation {
         evaluation: EvaluationEvent,
+    },
+    NormalizedDeclaration {
+        declaration: Box<NormalizedDeclarationEvent>,
+    },
+    NormalizedEvaluation {
+        evaluation: Box<NormalizedEvaluationEvent>,
+    },
+    NormalizedApproval {
+        approval: Box<NormalizedApprovalEvent>,
     },
 }
 

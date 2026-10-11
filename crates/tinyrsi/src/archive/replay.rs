@@ -10,6 +10,7 @@ impl State {
         match &event {
             Event::Candidate { record, package } => {
                 lineage::verify(record, package).map_err(|_| Error::InvalidRecord)?;
+                self.validate_normalized_record(record, package)?;
                 if self
                     .prepared
                     .get(&record.id)
@@ -87,6 +88,13 @@ impl State {
                 }
             }
             Event::Evaluation { evaluation } => validate_evaluation(evaluation)?,
+            Event::NormalizedDeclaration { declaration } => {
+                self.validate_normalized_declaration(declaration)?;
+            }
+            Event::NormalizedEvaluation { evaluation } => self.validate_normalized(evaluation)?,
+            Event::NormalizedApproval { approval } => {
+                self.validate_normalized_approval(approval)?;
+            }
         }
         self.events.push(event);
         Ok(())

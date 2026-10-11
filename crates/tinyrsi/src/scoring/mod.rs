@@ -11,10 +11,41 @@ use crate::{Budget, EvalDecision, EvalPolicy, EvalRun, Result};
 mod types;
 pub use types::{
     AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
-    ScorePenalties, ScoringPolicy,
+    ScorePenalties, ScoringPolicy, ScoringPolicySpec,
 };
 
+impl ScoringPolicySpec {
+    /// Build a validated immutable policy from persisted host configuration.
+    ///
+    /// # Errors
+    /// Returns [`crate::Error::InvalidEvaluation`] for invalid anchors, penalties,
+    /// limits, or bootstrap settings; deserialization alone is not validation.
+    pub fn build(&self) -> Result<ScoringPolicy> {
+        ScoringPolicy::new(
+            self.anchors.clone(),
+            self.penalties.clone(),
+            self.margin,
+            self.cost_tolerance,
+            self.resamples,
+            self.bootstrap_seed,
+        )
+    }
+}
+
 impl ScoringPolicy {
+    /// Export the exact frozen settings for evidence persistence and replay.
+    #[must_use]
+    pub fn spec(&self) -> ScoringPolicySpec {
+        ScoringPolicySpec {
+            anchors: self.anchors.values().cloned().collect(),
+            penalties: self.penalties.clone(),
+            margin: self.margin,
+            cost_tolerance: self.cost_tolerance,
+            resamples: self.resamples,
+            bootstrap_seed: self.bootstrap_seed,
+        }
+    }
+
     /// Freeze reference anchors, penalty coefficients, and bootstrap settings.
     ///
     /// # Errors
