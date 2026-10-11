@@ -39,6 +39,7 @@ off. Override any field before calling `start`.
 | `Gateway::base_url()` / `addr()` | `http://127.0.0.1:PORT` and the bound address. |
 | `Gateway::tagged_url(phase, seat)` | `<base>/__tag/<phase>/<seat>/v1`, percent-encoded. |
 | `Gateway::spend()` | `Spend { run_usd, total_usd, run_limit_usd, total_limit_usd }`, read in-process; `Spend::remaining_usd()` is the tighter of the two caps. |
+| `Gateway::upstream_calls()` | `UpstreamCalls { sent, refused, last_refusal }`: calls forwarded to the provider and how many it refused (a non-success status, or no answer as `502`), with the latest `Refusal { status, message }`. `UpstreamCalls::since(&earlier)` isolates one phase's calls. Calls the gateway refuses itself are not counted. |
 | `Gateway::shutdown()` | Stops accepting, finishes open connections, waits up to `DRAIN_LIMIT` for calls still settling, releases the lock. `Drop` does the same. |
 | `PriceTable`, `Price`, `Limits` | The model allowlist with per-token price ceilings and provider pins; completion-length and reasoning-effort limits. |
 | `Error`, `Result` | One `thiserror` enum for every refusal and failure. |
@@ -78,6 +79,11 @@ reached. Upstream statuses and bodies otherwise pass through.
    client disconnects mid-call.
 5. **Meter** one JSON line in `<run_dir>/meter.jsonl` per call, admitted or
    refused, with its tags, model, status, reservation, cost and tokens.
+6. **Tally** every forwarded call in memory once its body has ended:
+   answered with success, refused by the provider, or unreachable (a failed
+   connection, or a body that broke off, counted as `502`). The provider's message (its
+   `error.message`, else the body) is kept for the latest refusal, on one
+   line and at most 300 characters, after key redaction.
 
 Ledgers are JSON files written atomically after every change. A reservation
 left in flight by a crashed process becomes `uncertain` (still charged) the

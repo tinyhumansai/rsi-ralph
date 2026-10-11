@@ -208,9 +208,34 @@ exit 0; the last non-empty stderr line is recorded as the reason.
    until idle or `wall_secs`, then for each changed candidate: surface check,
    gates, scorers if the `score_reserve_usd` is still affordable, decision.
 4. Promote the accepted candidate with the best deciding score.
-5. Stop on `goal_reached`, `stalled`, `budget`, `max_epochs` or `error`.
+5. Stop on `goal_reached`, `stalled`, `budget`, `max_epochs`,
+   `provider_refused` or `error`.
 
 Candidates with no change are recorded as `empty` and not scored.
+
+### Provider refusals
+
+A hive whose model calls the provider refuses changes nothing, which would
+otherwise look like a hive with no ideas and end the run as `stalled`. The
+gateway therefore tallies what the provider made of every forwarded call
+(`Gateway::upstream_calls`: calls sent, calls refused with a non-success
+status or never answered, and the latest refusal's status and message), and
+the engine compares readings taken around the hive. Calls the gateway refuses
+itself, such as one over budget, are not provider refusals.
+
+- When an epoch changed nothing and the provider refused some of its calls,
+  the engine writes a `provider_refused` trace event and adds a warning to
+  `run.json`, such as `epoch 1: provider refused 1 of 3 model calls (429:
+  Rate limit exceeded)`. The run goes on.
+- When the provider refused every call of an epoch, the run stops with
+  reason `provider_refused` and status `failed`, and `run.json`'s `error`
+  names the refusal, such as `provider refused 2 of 2 model calls (403: Key
+  limit exceeded (daily limit) …)`. `tinyrsi run` prints the summary and
+  then fails with that line, exit status 1. Rerunning does not help until the
+  key or provider is fixed.
+- An empty epoch with no refusals behaves as before.
+
+Provider messages are scrubbed of key values before they are stored.
 
 ## Run store
 
@@ -219,7 +244,7 @@ Candidates with no change are recorded as `empty` and not scored.
 ```text
 runs/<loop>/<run-id>/
   loop/          frozen copy of the loop folder
-  run.json       status, times, stop reason, incumbent, spend
+  run.json       status, times, stop reason, error, warnings, incumbent, spend
   events.jsonl   loop trace (loop-trace.md)
   ledger.json    every candidate with gate, scores and decision
   epoch-<n>/     brief.md, ideas.json, swarm/, candidates/, steps/
@@ -229,7 +254,8 @@ retreat/         retreat memory per loop
 ```
 
 `run.json` and `ledger.json` are rewritten atomically. A run whose process died
-is shown as `interrupted`.
+is shown as `interrupted`. `tinyrsi run`, `tinyrsi show` and the UI print a
+run's `error` and each of its `warnings`.
 
 ## CLI
 
@@ -254,7 +280,8 @@ records the merged manifest in its frozen loop copy. The incumbent score cache
 is keyed on `env` as well as the revision and scorers, so a limited score never
 stands in for a full one.
 
-Exit status is 0 on success, 1 on a loop error, 2 on invalid input.
+Exit status is 0 on success, 1 on a loop error (including a run stopped on
+`provider_refused`), 2 on invalid input.
 
 ## Invariants
 

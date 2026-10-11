@@ -24,7 +24,13 @@ export type Decision = "accept" | "reject" | "inconclusive";
 export type IntervalUnits = "metric" | "quality";
 
 /** Why the loop stopped. */
-export type FinishReason = "goal_reached" | "max_epochs" | "stalled" | "budget" | "error";
+export type FinishReason =
+  | "goal_reached"
+  | "max_epochs"
+  | "stalled"
+  | "budget"
+  | "error"
+  | "provider_refused";
 
 export interface RunStarted {
   kind: "run_started";
@@ -107,6 +113,20 @@ export interface EpochFinished {
   incumbent_metric: number | null;
 }
 
+/** The model provider refused calls in an epoch whose hive changed nothing. */
+export interface ProviderRefused {
+  kind: "provider_refused";
+  epoch: number;
+  /** Model calls the hive sent this epoch. */
+  calls: number;
+  /** Of those, calls refused or never answered. */
+  refused: number;
+  /** HTTP status of the latest refusal; 502 when the provider was unreachable. */
+  status: number;
+  /** The provider's message for the latest refusal. */
+  message: string;
+}
+
 export interface RunFinished {
   kind: "run_finished";
   reason: FinishReason;
@@ -125,6 +145,7 @@ export type LoopEvent =
   | Scored
   | Improved
   | EpochFinished
+  | ProviderRefused
   | RunFinished;
 
 /** One line of `events.jsonl`. */
@@ -203,12 +224,19 @@ const FIELDS: Record<LoopEvent["kind"], Record<string, FieldType>> = {
   },
   improved: { epoch: "number", from: "string", to: "string", metric: "number" },
   epoch_finished: { epoch: "number", incumbent: "string", incumbent_metric: "number|null" },
+  provider_refused: {
+    epoch: "number",
+    calls: "number",
+    refused: "number",
+    status: "number",
+    message: "string",
+  },
   run_finished: { reason: "string", incumbent: "string", incumbent_metric: "number|null" },
 };
 
 const DECISIONS: readonly string[] = ["accept", "reject", "inconclusive"];
 const UNITS: readonly string[] = ["metric", "quality"];
-const REASONS: readonly string[] = ["goal_reached", "max_epochs", "stalled", "budget", "error"];
+const REASONS: readonly string[] = ["goal_reached", "max_epochs", "stalled", "budget", "error", "provider_refused"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -14,7 +14,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use serde_json::{Value, json};
-use tinyrsi_gateway::{Error, GLM_FLASH, Gateway, GatewayConfig};
+use tinyrsi_gateway::{Error, GLM_FLASH, Gateway, GatewayConfig, Refusal, UpstreamCalls};
 
 const KEY: &str = "sk-or-test-SECRET-7f3a9c";
 
@@ -35,6 +35,12 @@ async fn mock_chat(
     match text {
         "reject" => (StatusCode::BAD_REQUEST, Json(json!({"error": "bad"}))).into_response(),
         "crash" => (StatusCode::INTERNAL_SERVER_ERROR, "oops").into_response(),
+        // OpenRouter's shape for a key over its spending limit.
+        "limit" => (
+            StatusCode::FORBIDDEN,
+            Json(json!({"error": {"message": "Key limit exceeded (daily limit).", "code": 403}})),
+        )
+            .into_response(),
         // A misbehaving upstream that echoes the credential it was sent.
         "echo" => (
             StatusCode::UNAUTHORIZED,
@@ -50,6 +56,23 @@ async fn mock_chat(
             json!({"choices": [], "usage": {"prompt_tokens": 1000, "completion_tokens": 1000}}),
         )
         .into_response(),
+        // Success headers, one event, then the connection drops mid-body.
+        "cut" => {
+            use futures_util::StreamExt as _;
+            let first = futures_util::stream::once(async {
+                Ok::<_, std::io::Error>("data: {\"choices\":[]}\n\n")
+            });
+            // The drop comes after the headers and first event have gone out.
+            let dropped = futures_util::stream::once(async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Err(std::io::Error::other("upstream dropped"))
+            });
+            Response::builder()
+                .status(StatusCode::OK)
+                .header("content-type", "text/event-stream")
+                .body(axum::body::Body::from_stream(first.chain(dropped)))
+                .unwrap()
+        }
         _ if body["stream"] == json!(true) => {
             let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\ndata: {\"choices\":[],\"usage\":{\"cost\":0.001,\"prompt_tokens\":5,\"completion_tokens\":1}}\n\ndata: [DONE]\n\n";
             ([("content-type", "text/event-stream")], sse).into_response()
@@ -324,6 +347,91 @@ async fn upstream_rejections_cost_nothing_and_crashes_keep_the_reservation() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn counts_upstream_refusals_with_their_status_and_message() {
+    let h = Harness::start(5.0, 50.0);
+    assert_eq!(h.gateway.upstream_calls(), UpstreamCalls::default());
+    assert_eq!(
+        h.chat("/v1/chat/completions", "hello", json!({})).await.0,
+        200
+    );
+    assert_eq!(
+        h.chat("/v1/chat/completions", "crash", json!({})).await.0,
+        500
+    );
+    let before = h.gateway.upstream_calls();
+    assert_eq!((before.sent, before.refused), (2, 1));
+    assert_eq!(
+        before.last_refusal,
+        Some(Refusal {
+            status: 500,
+            message: "oops".into()
+        })
+    );
+    assert_eq!(
+        h.chat("/v1/chat/completions", "limit", json!({})).await.0,
+        403
+    );
+    assert_eq!(
+        h.chat("/v1/chat/completions", "echo", json!({})).await.0,
+        401
+    );
+    let after = h.gateway.upstream_calls();
+    assert_eq!((after.sent, after.refused), (4, 3));
+    let echoed = after.last_refusal.clone().unwrap();
+    assert_eq!(echoed.status, 401);
+    assert!(!echoed.message.contains(KEY), "{}", echoed.message);
+    let delta = after.since(&before);
+    assert_eq!((delta.sent, delta.refused), (2, 2));
+    assert_eq!(
+        h.chat("/v1/chat/completions", "limit", json!({})).await.0,
+        403
+    );
+    assert_eq!(
+        h.gateway.upstream_calls().last_refusal,
+        Some(Refusal {
+            status: 403,
+            message: "Key limit exceeded (daily limit).".into()
+        })
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_call_whose_body_breaks_off_counts_as_refused() {
+    let h = Harness::start(5.0, 50.0);
+    for stream in [true, false] {
+        let body = json!({"model": GLM_FLASH, "stream": stream, "max_tokens": 100,
+            "messages": [{"role": "user", "content": "cut"}]});
+        let response = h
+            .client
+            .post(format!("{}/v1/chat/completions", h.base()))
+            .json(&body)
+            .send()
+            .await
+            .unwrap();
+        // Whatever reaches the client, the body never completes cleanly.
+        let _ = response.bytes().await;
+    }
+    h.wait_for_meter_rows(2).await;
+    let calls = h.gateway.upstream_calls();
+    assert_eq!((calls.sent, calls.refused), (2, 2), "{calls:?}");
+    assert_eq!(calls.last_refusal.unwrap().status, 502);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn calls_the_gateway_refuses_itself_are_not_upstream_calls() {
+    let h = Harness::start(0.01, 50.0);
+    let (status, _) = h
+        .chat(
+            "/v1/chat/completions",
+            "hello",
+            json!({"max_tokens": 16000}),
+        )
+        .await;
+    assert_eq!(status, 402);
+    assert_eq!(h.gateway.upstream_calls(), UpstreamCalls::default());
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn prices_token_counts_when_cost_is_missing() {
     let h = Harness::start(5.0, 50.0);
     assert_eq!(
@@ -444,6 +552,11 @@ async fn unreachable_upstreams_return_502_and_keep_the_reservation() {
         .unwrap();
     assert!(ledgers["run"]["uncertain_usd"].as_f64().unwrap() > 0.0);
     assert!(gateway.spend().run_usd > 0.0);
+    let calls = gateway.upstream_calls();
+    assert_eq!((calls.sent, calls.refused), (1, 1));
+    let refusal = calls.last_refusal.unwrap();
+    assert_eq!(refusal.status, 502);
+    assert!(!refusal.message.contains(KEY), "{}", refusal.message);
     gateway.shutdown().unwrap();
 }
 

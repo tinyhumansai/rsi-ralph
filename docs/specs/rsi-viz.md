@@ -47,7 +47,7 @@ The trace wire format is owned by the script-loop PR (`docs/specs/loop-trace.md`
 once it lands): one envelope `{seq, elapsed_ms, event}` per line, where
 `event.kind` is one of `run_started`, `epoch_started`, `observed`, `ideated`,
 `executed`, `measured`, `scored`, `improved`, `epoch_finished`,
-`run_finished`. Optional values are `null`, except the additive fields
+`provider_refused`, `run_finished`. Optional values are `null`, except the additive fields
 `scored.units` and `ideated.approach`, which are omitted when absent (a
 reader treats missing and `null` alike). The visualizer mirrors this schema
 exactly in `lib/events.ts` and adds no fields.

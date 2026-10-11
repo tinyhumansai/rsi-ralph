@@ -16,6 +16,7 @@ fn record(id: &str, started_at: u64, status: RunStatus, pid: u32) -> RunRecord {
         epochs: 1,
         spend_usd: 0.25,
         error: None,
+        warnings: Vec::new(),
     }
 }
 
@@ -102,6 +103,27 @@ fn pins_the_run_record_stored_form() {
             "finished_at": null, "stop_reason": null, "incumbent": "incumbent",
             "incumbent_score": 7.0, "epochs": 1, "spend_usd": 0.25, "error": null
         })
+    );
+}
+
+#[test]
+fn run_record_warnings_are_omitted_when_empty_and_default_when_missing() {
+    let mut warned = record("a", 10, RunStatus::Finished, 1);
+    warned.stop_reason = Some(tinyrsi_trace::StopReason::ProviderRefused);
+    warned.warnings = vec!["epoch 1: provider refused 1 of 2 model calls (429: slow)".into()];
+    let json = serde_json::to_value(&warned).unwrap();
+    assert_eq!(json["stop_reason"], "provider_refused");
+    assert_eq!(
+        json["warnings"],
+        serde_json::json!(["epoch 1: provider refused 1 of 2 model calls (429: slow)"])
+    );
+    assert_eq!(serde_json::from_value::<RunRecord>(json).unwrap(), warned);
+    // A `run.json` written before warnings existed still reads.
+    let mut old = serde_json::to_value(record("a", 10, RunStatus::Finished, 1)).unwrap();
+    old.as_object_mut().unwrap().remove("warnings");
+    assert_eq!(
+        serde_json::from_value::<RunRecord>(old).unwrap().warnings,
+        Vec::<String>::new()
     );
 }
 

@@ -12,12 +12,16 @@
 //!    ceiling when it reports none, keeping the whole reservation when it
 //!    reports nothing), even if the client disconnected mid-call;
 //! 5. appends a row to `<run_dir>/meter.jsonl` tagged with the caller's
-//!    phase, seat and candidate.
+//!    phase, seat and candidate;
+//! 6. tallies what the provider made of each forwarded call, so a loop can
+//!    tell a provider that refuses every call (a key over its limit, say)
+//!    from a hive that simply changed nothing.
 //!
 //! [`Gateway::start`] runs it in-process on its own background thread and
 //! Tokio runtime, so a synchronous caller such as the `tinyrsi` CLI can
 //! start one per run, hand [`Gateway::tagged_url`] to each client as its
-//! OpenAI-compatible base URL, read [`Gateway::spend`] between steps, and
+//! OpenAI-compatible base URL, read [`Gateway::spend`] and
+//! [`Gateway::upstream_calls`] between steps, and
 //! [`Gateway::shutdown`] at the end.
 //!
 //! # Example
@@ -61,6 +65,7 @@
 //! because the run configuration is text-only, and it listens on loopback
 //! only.
 
+mod calls;
 mod error;
 mod gateway;
 mod ledger;
@@ -71,6 +76,7 @@ mod proxy;
 mod request;
 mod usage;
 
+pub use calls::{Refusal, UpstreamCalls};
 pub use error::{Error, Result};
 pub use gateway::{DEFAULT_LISTEN, DEFAULT_UPSTREAM, DRAIN_LIMIT, Gateway, GatewayConfig, Spend};
 pub use price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable};

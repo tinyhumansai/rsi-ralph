@@ -305,3 +305,14 @@ fn an_epoch_interrupted_by_a_failed_run_ends_in_error() {
     let scored = spans.iter().find(|s| s.name == "scored").unwrap();
     assert_eq!(scored.status, SpanStatus::Ok);
 }
+
+#[test]
+fn a_run_stopped_by_provider_refusals_ends_in_error() {
+    let mut builder = SpanBuilder::default();
+    let mut finished = None;
+    for event in run(StopReason::ProviderRefused) {
+        finished = builder.push(&event, 0);
+    }
+    let spans = finished.unwrap();
+    assert_eq!(spans[0].status, SpanStatus::Error);
+}

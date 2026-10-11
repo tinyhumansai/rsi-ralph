@@ -21,6 +21,7 @@ use std::sync::mpsc::{Receiver, sync_channel};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use crate::calls::UpstreamCalls;
 use crate::error::{Error, Result};
 use crate::ledger::{Budgets, Ledger};
 use crate::lock::LedgerLock;
@@ -149,6 +150,14 @@ impl Gateway {
             run_limit_usd: run.limit_usd,
             total_limit_usd: total.limit_usd,
         }
+    }
+
+    /// What the provider made of the calls forwarded to it so far. Take a
+    /// reading before and after a phase and compare them with
+    /// [`UpstreamCalls::since`] to see that phase's calls alone.
+    #[must_use]
+    pub fn upstream_calls(&self) -> UpstreamCalls {
+        self.proxy.upstream_calls()
     }
 
     /// Stops the gateway and waits for its thread to finish.

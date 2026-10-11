@@ -8,9 +8,10 @@ use std::{
     sync::Arc,
 };
 
-use tinyrsi_gateway::{Gateway, GatewayConfig, Price};
+use tinyrsi_gateway::{Gateway, GatewayConfig, Price, UpstreamCalls};
 use tinyrsi_model::OpenRouterModel;
 use tinyrsi_score::{JudgeLimits, LlmJudge};
+use tinyrsi_trace::StopReason;
 
 use super::say;
 use crate::{
@@ -36,6 +37,10 @@ impl Meter for GatewayMeter<'_> {
     fn remaining_usd(&self) -> Option<f64> {
         let remaining = self.0.spend().remaining_usd();
         remaining.is_finite().then_some(remaining)
+    }
+
+    fn upstream_calls(&self) -> UpstreamCalls {
+        self.0.upstream_calls()
     }
 }
 
@@ -179,6 +184,9 @@ pub(super) fn run(
             summary.checkout.display()
         ),
     )?;
+    for warning in &summary.warnings {
+        say(out, &format!("warning: {warning}"))?;
+    }
     let spend = gateway.spend();
     say(
         out,
@@ -186,7 +194,13 @@ pub(super) fn run(
             "spend: ${:.2} this run, ${:.2} in total",
             spend.run_usd, spend.total_usd
         ),
-    )
+    )?;
+    // The run is stored and reported; the command still fails, so scripts
+    // see a provider that refused everything as the failure it is.
+    if summary.reason == StopReason::ProviderRefused {
+        return Err(Error::ProviderRefused(summary.error.unwrap_or_default()));
+    }
+    Ok(())
 }
 
 /// `tinyrsi score`.

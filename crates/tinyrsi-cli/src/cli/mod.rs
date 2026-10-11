@@ -261,6 +261,9 @@ fn show(store: &Store, run: &str, out: &mut dyn Write) -> Result<()> {
     if let Some(error) = r.error {
         say(out, &format!("error     {error}"))?;
     }
+    for warning in &r.warnings {
+        say(out, &format!("warning   {warning}"))?;
+    }
     say(out, &format!("folder    {}", dir.path.display()))
 }
 

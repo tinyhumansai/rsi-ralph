@@ -20,6 +20,7 @@ const REASON_LABEL = {
   stalled: "stalled",
   budget: "budget spent",
   error: "error",
+  provider_refused: "provider refused",
 } as const;
 
 export function TraceView({ runId }: { runId: string }) {

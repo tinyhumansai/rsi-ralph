@@ -6,6 +6,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use tinyrsi_gateway::UpstreamCalls;
 
 use crate::{
     Result,
@@ -65,12 +66,19 @@ pub trait Ideator {
     fn outcome(&mut self, epoch: u32, promoted: bool) -> Result<()>;
 }
 
-/// Model spend so far.
+/// Model spend so far, and what the provider made of the calls.
 pub trait Meter {
     /// Dollars spent in this run.
     fn spent_usd(&self) -> f64;
     /// Dollars that may still be spent before a cap trips, if capped.
     fn remaining_usd(&self) -> Option<f64>;
+    /// Calls forwarded to the model provider so far and how many it
+    /// refused. The engine compares readings taken around the hive to tell
+    /// a provider refusing calls from a hive that changed nothing. The
+    /// default reports no calls, for meters that cannot see them.
+    fn upstream_calls(&self) -> UpstreamCalls {
+        UpstreamCalls::default()
+    }
 }
 
 /// Where a candidate ended up.
