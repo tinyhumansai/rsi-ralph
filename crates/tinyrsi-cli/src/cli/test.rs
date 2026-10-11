@@ -109,6 +109,7 @@ fn runs_and_show_read_the_store() {
             epochs: 2,
             spend_usd: 0.5,
             error: Some("boom".into()),
+            warnings: Vec::new(),
         },
     )
     .unwrap();
@@ -130,6 +131,44 @@ fn runs_and_show_read_the_store() {
     assert_eq!(exit_code(&missing), 2);
     let (empty, out) = exec(&["--home", h, "runs", "--loop", "other"], true);
     assert!(empty.is_ok() && out.is_empty());
+}
+
+#[test]
+fn show_names_a_provider_refusal_and_the_warnings() {
+    let home = tempfile::tempdir().unwrap();
+    let store = Store::new(home.path());
+    let run = store
+        .create_run("demo", Some("r3"), &BTreeMap::new())
+        .unwrap();
+    write_json(
+        &run.record_path(),
+        &RunRecord {
+            id: "r3".into(),
+            r#loop: "demo".into(),
+            status: RunStatus::Failed,
+            pid: 1,
+            started_at: 1,
+            finished_at: Some(2),
+            stop_reason: Some(tinyrsi_trace::StopReason::ProviderRefused),
+            incumbent: "abc".into(),
+            incumbent_score: Some(0.0),
+            epochs: 2,
+            spend_usd: 0.0,
+            error: Some("provider refused 2 of 2 model calls (403: Key limit exceeded)".into()),
+            warnings: vec!["epoch 1: provider refused 1 of 3 model calls (429: slow down)".into()],
+        },
+    )
+    .unwrap();
+    let h = home.path().to_str().unwrap();
+    let (ok, out) = exec(&["--home", h, "show", "demo/r3"], true);
+    assert!(ok.is_ok());
+    for line in [
+        "stopped   provider_refused",
+        "error     provider refused 2 of 2 model calls (403: Key limit exceeded)",
+        "warning   epoch 1: provider refused 1 of 3 model calls (429: slow down)",
+    ] {
+        assert!(out.contains(line), "{line} in {out}");
+    }
 }
 
 #[test]
@@ -240,6 +279,7 @@ fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
             epochs: 0,
             spend_usd: 0.0,
             error: None,
+            warnings: Vec::new(),
         },
     )
     .unwrap();

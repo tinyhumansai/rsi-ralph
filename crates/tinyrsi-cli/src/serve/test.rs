@@ -33,6 +33,7 @@ fn served() -> (tempfile::TempDir, Server) {
             epochs: 1,
             spend_usd: 0.0,
             error: None,
+            warnings: Vec::new(),
         },
     )
     .unwrap();

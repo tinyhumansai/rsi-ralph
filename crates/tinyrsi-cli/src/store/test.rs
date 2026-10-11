@@ -16,6 +16,7 @@ fn record(id: &str, started_at: u64, status: RunStatus, pid: u32) -> RunRecord {
         epochs: 1,
         spend_usd: 0.25,
         error: None,
+        warnings: Vec::new(),
     }
 }
 
