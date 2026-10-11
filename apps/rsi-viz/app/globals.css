@@ -339,7 +339,7 @@ svg text {
 .feed .approach {
   color: var(--muted);
   font-size: 0.8rem;
-  border: 1px solid var(--border, currentColor);
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0 8px;
 }
