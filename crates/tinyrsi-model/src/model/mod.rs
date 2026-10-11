@@ -94,6 +94,17 @@ impl ModelRequest {
     pub fn prompt(&self) -> &str {
         &self.prompt
     }
+    /// The provider-native tool the reply must call, as its name and JSON
+    /// schema, or `None` for a free-text request.
+    ///
+    /// A port that serves a request with a tool must force that tool and
+    /// return its arguments as the reply content.
+    #[must_use]
+    pub fn tool(&self) -> Option<(&str, &Value)> {
+        self.tool
+            .as_ref()
+            .map(|(name, schema)| (name.as_str(), schema))
+    }
     /// Reproducible request seed.
     #[must_use]
     pub fn seed(&self) -> u64 {
