@@ -25,8 +25,11 @@
 //! binary and the library agree on every stored format.
 
 mod error;
+pub mod brief;
+pub mod gate;
 pub mod keys;
 pub mod manifest;
+pub mod score;
 pub mod step;
 pub mod store;
 pub mod subject;
