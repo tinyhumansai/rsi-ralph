@@ -96,7 +96,11 @@ role) and `openai/text-embedding-3-small` are built in; any other model a seat,
 judge or the retreat uses needs an entry in `budget.prices`:
 `{ "<model>": { "prompt_per_mtok", "completion_per_mtok", "provider" } }`,
 dollars per million tokens and the one upstream provider it may route to.
-`check` fails on a used model with no price.
+`check` fails on a used model with no price. A `provider` of `"*"` pins no
+provider and sends no `OpenRouter` routing object, leaving the choice to the
+upstream; use it when `TINYRSI_UPSTREAM` points the gateway at another
+OpenAI-compatible router (for example a local model ladder) instead of
+`https://openrouter.ai/api/v1`. The price ceilings still bound the spend.
 
 **`creativity`.** `temperature` (0–2) is the default for seats that do not set
 `config.temperature` in `hive.json`. `retreat` runs a tinybackrooms creative

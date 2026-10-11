@@ -6,7 +6,7 @@ use serde_json::json;
 
 use super::{Endpoint, Limits, PROMPT_SLACK_TOKENS, prepare};
 use crate::error::Error;
-use crate::price::{EMBEDDING, GLM_FLASH, PriceTable, usd};
+use crate::price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable, usd};
 
 fn chat(body: serde_json::Value) -> Result<super::Prepared, Error> {
     prepare(
@@ -32,6 +32,29 @@ fn pins_the_provider_and_price_ceiling() {
             < 1e-9
     );
     assert_eq!(prepared.body["usage"], json!({"include": true}));
+}
+
+#[test]
+fn any_provider_leaves_routing_to_the_upstream() {
+    let mut prices = PriceTable::new();
+    prices.insert(
+        "reasoning",
+        Price {
+            prompt: 0.3e-6,
+            completion: 1.2e-6,
+            provider: ANY_PROVIDER.to_owned(),
+        },
+    );
+    let prepared = prepare(
+        Endpoint::Chat,
+        json!({"model": "reasoning", "messages": [{"role": "user", "content": "hi"}]}),
+        &prices,
+        Limits::default(),
+    )
+    .unwrap();
+    assert!(prepared.body.get("provider").is_none(), "{}", prepared.body);
+    assert_eq!(prepared.body["usage"], json!({"include": true}));
+    assert!(prepared.reserve_usd > 0.0);
 }
 
 #[test]

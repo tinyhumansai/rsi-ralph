@@ -21,7 +21,8 @@ pub struct Price {
     pub prompt: f64,
     /// Dollars per completion token.
     pub completion: f64,
-    /// The only upstream provider the model may be routed to.
+    /// The only upstream provider the model may be routed to, or
+    /// [`ANY_PROVIDER`] to leave routing to the upstream.
     pub provider: String,
 }
 
@@ -29,6 +30,12 @@ pub struct Price {
 ///
 /// Counts above four billion tokens never occur for one call; saturating
 /// keeps the conversion exact for every real count.
+/// A [`Price::provider`] that pins no provider: the upstream routes the
+/// request itself. Use it with an upstream that is a router rather than
+/// `OpenRouter` (set with `TINYRSI_UPSTREAM`), which refuses `OpenRouter`'s
+/// `provider` routing object. The price ceilings still bound spend.
+pub const ANY_PROVIDER: &str = "*";
+
 pub(crate) fn usd(tokens: u64, per_token: f64) -> f64 {
     f64::from(u32::try_from(tokens).unwrap_or(u32::MAX)) * per_token
 }
