@@ -21,15 +21,17 @@ fn hooks() -> (tempfile::TempDir, SwarmHooks, mpsc::Receiver<SwarmEvent>) {
     (dir, SwarmHooks::new(Arc::new(trace)), receiver)
 }
 
+/// The scope of an empty direct turn for `seat`, derived the way the adapter
+/// derives it, from the request's stored form.
 fn scope(seat: &str) -> TurnScope {
-    TurnScope {
-        agent_id: seat.into(),
-        episode: None,
-        message_ids: vec!["brief".into()],
-        senders: vec!["host".into()],
-        destination: Destination::Agent(seat.into()),
-        thread: None,
-    }
+    let request: TurnRequest = serde_json::from_value(serde_json::json!({
+        "agent_id": seat, "session_id": null, "messages": [], "memberships": [],
+        "episode": null, "resumption": null,
+    }))
+    .unwrap();
+    let scope = TurnScope::from_request(&request);
+    assert_eq!(scope.destination, Destination::Agent(seat.into()));
+    scope
 }
 
 fn started(arguments: serde_json::Value, display_detail: Option<&str>) -> AgentProgress {
