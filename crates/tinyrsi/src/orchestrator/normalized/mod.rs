@@ -4,7 +4,7 @@
 //! `normalized_h` prediction, binds immutable private suites and policy, persists
 //! every completed paired comparison, and asks a human about H evidence itself.
 
-use super::{apply_at, event, prefilter_for, prepare};
+use super::{apply_at, event, failure_reason, prefilter_for, prepare};
 use crate::archive::{
     NormalizedApprovalEvent, NormalizedDeclarationEvent, NormalizedEvaluationEvent,
 };
@@ -28,6 +28,9 @@ pub use types::*;
 /// # Errors
 /// Returns invalid configuration or archive failures. Host execution and approval
 /// failures become durable `HostFailure` outcomes without advancing the head.
+/// A candidate that failed runs its incumbent completed
+/// ([`Error::CandidateFailed`]) becomes a durable `Harmful` outcome with a
+/// [`crate::CandidateFailureEvent`].
 pub fn run_proposal_h(
     archive: &mut Archive,
     epoch: &HEpoch,
@@ -97,8 +100,9 @@ pub fn run_proposal_h(
         EvalStage::Selection,
         EvalStage::Confirmation,
     ] {
-        let Some(pair) = flow.measure(stage, evaluator)? else {
-            return flow.stop(ReasonCode::HostFailure);
+        let pair = match flow.measure(stage, evaluator)? {
+            Ok(pair) => pair,
+            Err(reason) => return flow.stop(reason),
         };
         if stage == EvalStage::Confirmation
             && ensure_independent(&flow.selection, &pair.pair.candidate).is_err()
@@ -186,22 +190,27 @@ struct Flow<'a> {
 }
 
 impl Flow<'_> {
+    /// Runs and records one stage, or names why the attempt stops instead.
     fn measure(
         &mut self,
         stage: EvalStage,
         evaluator: &mut impl HEvaluator,
-    ) -> Result<Option<HEvalPair>> {
-        let Ok(pair) = evaluator.evaluate_h(
+    ) -> Result<std::result::Result<HEvalPair, ReasonCode>> {
+        let pair = match evaluator.evaluate_h(
             &self.incumbent,
             &self.candidate,
             stage,
             &self.epoch.epoch.budget,
-        ) else {
-            return Ok(None);
+        ) {
+            Ok(pair) => pair,
+            Err(error) => {
+                return failure_reason(self.archive, &error, &self.id, self.epoch.epoch.id, stage)
+                    .map(Err);
+            }
         };
         let stage_name = format!("{stage:?}");
         if self.epoch.suite_ids.get(&stage_name) != Some(&pair.suite_id) {
-            return Ok(None);
+            return Ok(Err(ReasonCode::HostFailure));
         }
         let Ok(comparison) = compare_h(
             &pair.pair.incumbent,
@@ -211,7 +220,7 @@ impl Flow<'_> {
             &self.epoch.epoch.budget,
             &self.policy,
         ) else {
-            return Ok(None);
+            return Ok(Err(ReasonCode::HostFailure));
         };
         self.archive
             .record_normalized_evaluation(NormalizedEvaluationEvent {
@@ -231,7 +240,7 @@ impl Flow<'_> {
                 comparison: comparison.clone(),
             })?;
         self.last = Some(comparison);
-        Ok(Some(pair))
+        Ok(Ok(pair))
     }
 
     fn metadata(&self, verdict: Verdict) -> Result<VersionMetadata> {

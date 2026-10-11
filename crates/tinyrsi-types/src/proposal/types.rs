@@ -78,4 +78,9 @@ pub enum ReasonCode {
     HostFailure,
     /// Selected, confirmed and human-approved design.
     Accepted,
+    /// The candidate failed runs the incumbent completed on the same draws.
+    Harmful,
+    /// The proposal's patch shape has too many recent strikes; it was stopped
+    /// before any evaluation spend.
+    Cooldown,
 }

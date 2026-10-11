@@ -62,8 +62,17 @@ enum Fault {
 #[derive(Default)]
 struct Host {
     fail: Option<EvalStage>,
+    /// Stage at which the candidate, not the incumbent, fails its runs.
+    harm: Option<EvalStage>,
     fault: Fault,
     stages: Vec<EvalStage>,
+}
+fn candidate_failure() -> crate::CandidateFailure {
+    crate::CandidateFailure {
+        kind: crate::CandidateFailureKind::Crash,
+        failed_runs: 2,
+        runs: 3,
+    }
 }
 impl Evaluator for Host {
     fn pin_memory(&mut self, inc: &CandidateState, _: &Patch) -> Result<BTreeMap<String, u64>> {
@@ -93,6 +102,9 @@ impl HEvaluator for Host {
         self.stages.push(stage);
         if self.fail == Some(stage) {
             return Err(crate::Error::HostFailed);
+        }
+        if self.harm == Some(stage) {
+            return Err(crate::Error::CandidateFailed(candidate_failure()));
         }
         let fresh = stage == EvalStage::Confirmation && !matches!(self.fault, Fault::Reuse);
         let rows = |quality| {
@@ -695,4 +707,177 @@ fn duplicate_dispositions_distinguish_accepted_and_rejected_host_history() {
         drop(archive);
         assert_eq!(Archive::open(path).unwrap().proposal_dispositions(), report);
     }
+}
+
+#[test]
+fn a_candidate_only_failure_stops_harmful_with_durable_failure_evidence() {
+    for stage in [EvalStage::Screen, EvalStage::Selection] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.json");
+        let mut a = Archive::open(&path).unwrap();
+        baseline(&mut a);
+        let mut host = Host {
+            harm: Some(stage),
+            ..Host::default()
+        };
+        let mut human = gate(true);
+        let outcome =
+            run_proposal_h(&mut a, &setup_epoch(), &hproposal(), &mut host, &mut human).unwrap();
+        assert_eq!(outcome.reason, ReasonCode::Harmful);
+        assert_eq!(human.calls, 0);
+        let id = outcome.candidate_id.unwrap();
+        let failures = a.candidate_failures();
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].candidate_id, id);
+        assert_eq!(failures[0].stage, format!("{stage:?}"));
+        assert_eq!(failures[0].epoch, setup_epoch().epoch.id);
+        assert_eq!(failures[0].kind, crate::CandidateFailureKind::Crash);
+        assert_eq!((failures[0].failed_runs, failures[0].runs), (2, 3));
+        assert_eq!(a.proposals().last().unwrap().reason, "Harmful");
+        // A later-stage failure still concludes the screened design as rejected.
+        assert_eq!(
+            a.rejected().len(),
+            usize::from(stage == EvalStage::Selection)
+        );
+        drop(a);
+        assert_eq!(Archive::open(&path).unwrap().candidate_failures().len(), 1);
+    }
+}
+
+#[test]
+fn a_repeated_harmful_patch_is_a_rejected_duplicate() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+    baseline(&mut a);
+    let mut harmful = Host {
+        harm: Some(EvalStage::Screen),
+        ..Host::default()
+    };
+    let first = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &hproposal(),
+        &mut harmful,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(first.reason, ReasonCode::Harmful);
+    let mut host = Host::default();
+    let again = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &hproposal(),
+        &mut host,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(again.reason, ReasonCode::Duplicate);
+    assert_eq!(host.stages.len(), 0);
+    let rows = a.proposal_dispositions().rows;
+    assert_eq!(rows[0].reason, Some(ReasonCode::Harmful));
+    assert_eq!(
+        rows.last().unwrap().duplicate,
+        Some(crate::DuplicateDisposition::Rejected)
+    );
+}
+
+/// The fixture proposal with a different replacement text: a near-duplicate
+/// that exact deduplication does not catch.
+fn near_duplicate(after: &str) -> Proposal {
+    let mut p = hproposal();
+    if let crate::Operation::Context { after: text, .. } = &mut p.patch.operations[0] {
+        *text = Some(after.into());
+    }
+    p
+}
+
+#[test]
+fn a_same_shape_patch_is_cooled_without_evaluation_until_its_strike_ages_out() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+    baseline(&mut a);
+    let mut harmful = Host {
+        harm: Some(EvalStage::Screen),
+        ..Host::default()
+    };
+    let first = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &hproposal(),
+        &mut harmful,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(first.reason, ReasonCode::Harmful);
+    let declarations = a.declarations().len();
+    let mut counting = Host::default();
+    let cooled = run_proposal_h(
+        &mut a,
+        &setup_epoch(),
+        &near_duplicate("Compute twice.\n"),
+        &mut counting,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(cooled.reason, ReasonCode::Cooldown);
+    assert_eq!(cooled.candidate_id, None);
+    assert_eq!(counting.stages.len(), 0);
+    assert_eq!(a.declarations().len(), declarations);
+    assert_eq!(a.proposals().last().unwrap().reason, "Cooldown");
+    // Window three: epochs 0, 1 and 2 are cooled; epoch 3 evaluates again.
+    let mut later = setup_epoch();
+    later.epoch.id = 3;
+    let eligible = run_proposal_h(
+        &mut a,
+        &later,
+        &near_duplicate("Compute three times.\n"),
+        &mut counting,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(eligible.reason, ReasonCode::Accepted);
+    assert_eq!(counting.stages.len(), 3);
+}
+
+#[test]
+fn confident_regressions_strike_and_two_cool_the_shape() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+    baseline(&mut a);
+    let mut epoch = setup_epoch();
+    epoch.policy.cost_tolerance = 0.2;
+    epoch.policy.penalties.cost = 10.0;
+    for (index, after) in ["Compute once.\n", "Compute twice.\n"].iter().enumerate() {
+        let mut host = Host {
+            fault: Fault::Cost,
+            ..Host::default()
+        };
+        let outcome = run_proposal_h(
+            &mut a,
+            &epoch,
+            &near_duplicate(after),
+            &mut host,
+            &mut gate(true),
+        )
+        .unwrap();
+        assert_eq!(outcome.reason, ReasonCode::NoGain);
+        assert_eq!(a.penalties().strikes.len(), index + 1);
+    }
+    assert!(
+        a.penalties()
+            .strikes
+            .iter()
+            .all(|s| s.kind == crate::StrikeKind::Regressed)
+    );
+    let mut host = Host::default();
+    let third = run_proposal_h(
+        &mut a,
+        &epoch,
+        &near_duplicate("Compute thrice.\n"),
+        &mut host,
+        &mut gate(true),
+    )
+    .unwrap();
+    assert_eq!(third.reason, ReasonCode::Cooldown);
+    assert_eq!(host.stages.len(), 0);
 }

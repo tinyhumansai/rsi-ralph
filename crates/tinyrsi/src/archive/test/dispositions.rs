@@ -133,6 +133,8 @@ fn both_coarse_reason_spellings_are_recognized_without_changing_wire_contract() 
         ReasonCode::ApprovalDenied,
         ReasonCode::HostFailure,
         ReasonCode::Accepted,
+        ReasonCode::Harmful,
+        ReasonCode::Cooldown,
     ];
     for reason in reasons {
         stop(&mut archive, &record.patch, &format!("{reason:?}"));
@@ -140,7 +142,7 @@ fn both_coarse_reason_spellings_are_recognized_without_changing_wire_contract() 
         stop(&mut archive, &record.patch, wire.as_str().unwrap());
     }
     let report = archive.proposal_dispositions();
-    assert_eq!(report.rows.len(), 24);
+    assert_eq!(report.rows.len(), 28);
     for (rows, expected) in report.rows.chunks(2).zip(reasons) {
         assert_eq!(rows[0].reason, Some(expected));
         assert_eq!(rows[1].reason, Some(expected));
@@ -152,5 +154,21 @@ fn both_coarse_reason_spellings_are_recognized_without_changing_wire_contract() 
     assert_eq!(
         serde_json::to_value(DuplicateDisposition::Rejected).unwrap(),
         "DUP_REJECTED"
+    );
+}
+
+#[test]
+fn a_cooled_stop_is_not_rejected_history() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut archive = Archive::open(dir.path().join("a.json")).unwrap();
+    let base = baseline(&mut archive);
+    let (record, _) = child(&archive, &base, 31, Verdict::Rejected);
+    stop(&mut archive, &record.patch, "Cooldown");
+    stop(&mut archive, &record.patch, "Duplicate");
+    let report = archive.proposal_dispositions();
+    assert_eq!(report.rows[0].reason, Some(ReasonCode::Cooldown));
+    assert_eq!(
+        report.rows[1].duplicate,
+        Some(DuplicateDisposition::Unresolved)
     );
 }

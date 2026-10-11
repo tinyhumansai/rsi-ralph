@@ -10,7 +10,61 @@ pub use evolver::{RetreatBrief, RetreatEvolver};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use tinyrsi_types::{Package, Proposal, ProposalEvent};
-pub use types::{RetreatDossier, RetreatOutput, RetreatTransport};
+pub use types::{PriorIdea, PriorOutcome, RetreatDossier, RetreatOutput, RetreatTransport};
+
+impl PriorOutcome {
+    /// The outcome a stop reason implies on its own: `crashed` for
+    /// `Harmful`, `flat` for `NoGain`, `NotReplicated` and `Inconclusive`,
+    /// `cooled` for `Cooldown`, `denied` for `ApprovalDenied`, and none for
+    /// any other reason. Only the host's strike ledger can say `regressed`.
+    #[must_use]
+    pub fn from_reason(reason: &str) -> Option<Self> {
+        match public_reason(reason) {
+            "Harmful" => Some(Self::Crashed),
+            "NoGain" | "NotReplicated" | "Inconclusive" => Some(Self::Flat),
+            "Cooldown" => Some(Self::Cooled),
+            "ApprovalDenied" => Some(Self::Denied),
+            _ => None,
+        }
+    }
+}
+
+impl PriorIdea {
+    /// The seed for an archived stop, with the outcome its reason implies.
+    #[must_use]
+    pub fn from_event(event: &ProposalEvent) -> Self {
+        Self {
+            epoch: event.epoch,
+            class: event.patch.class,
+            reason: public_reason(&event.reason),
+            operation_count: event.patch.operations.len(),
+            outcome: PriorOutcome::from_reason(&event.reason),
+        }
+    }
+
+    /// The same seed with a host-known outcome, such as `regressed`.
+    #[must_use]
+    pub fn with_outcome(mut self, outcome: PriorOutcome) -> Self {
+        self.outcome = Some(outcome);
+        self
+    }
+
+    /// The coarse outcome this seed reports.
+    #[must_use]
+    pub fn outcome(&self) -> Option<PriorOutcome> {
+        self.outcome
+    }
+
+    fn seed(&self) -> Value {
+        json!({
+            "epoch": self.epoch,
+            "class": self.class,
+            "reason": self.reason,
+            "operation_count": self.operation_count,
+            "outcome": self.outcome,
+        })
+    }
+}
 
 /// Builds a JSON request for tinybackrooms `POST /v1/generate`.
 ///
@@ -18,6 +72,8 @@ pub use types::{RetreatDossier, RetreatOutput, RetreatTransport};
 /// redacted dossier counters and rejection metadata. It excludes constitution,
 /// seat factory configuration, goal acceptance criteria and raw rejected edits.
 /// Only namespace routing is requested; persistence is owned by tinybackrooms.
+/// Each rejected attempt becomes a [`PriorIdea`] seed whose outcome follows
+/// from its reason alone.
 ///
 /// # Errors
 /// Returns [`Error::InvalidProposal`] for an empty or unsafe hive identifier,
@@ -27,6 +83,22 @@ pub fn build_retreat_request(
     dossier: &impl RetreatDossier,
     incumbent: &Package,
     rejected: &[ProposalEvent],
+) -> Result<Value> {
+    let priors: Vec<_> = rejected.iter().map(PriorIdea::from_event).collect();
+    build_retreat_request_with_priors(hive_id, dossier, incumbent, &priors)
+}
+
+/// Builds the same request as [`build_retreat_request`] from host-prepared
+/// prior-idea seeds, in the given order.
+///
+/// # Errors
+/// Returns [`Error::InvalidProposal`] for an empty or unsafe hive identifier,
+/// or a malformed canonical JSON frontmatter header.
+pub fn build_retreat_request_with_priors(
+    hive_id: &str,
+    dossier: &impl RetreatDossier,
+    incumbent: &Package,
+    priors: &[PriorIdea],
 ) -> Result<Value> {
     if hive_id.is_empty()
         || !hive_id
@@ -43,17 +115,7 @@ pub fn build_retreat_request(
     redact(&mut public, &secrets);
     let mut evidence = serde_json::to_value(dossier).map_err(|_| Error::InvalidProposal)?;
     redact(&mut evidence, &secrets);
-    let prior: Vec<_> = rejected
-        .iter()
-        .map(|event| {
-            json!({
-                "epoch": event.epoch,
-                "class": event.patch.class,
-                "reason": public_reason(&event.reason),
-                "operation_count": event.patch.operations.len(),
-            })
-        })
-        .collect();
+    let prior: Vec<_> = priors.iter().map(PriorIdea::seed).collect();
     let request = json!({
         "input": {
             "brief": "Propose one guarded hive edit per item to address the public failure dossier. Use concrete mechanisms, testable quality-gain predictions, evidence references, risks and effort. A critic must challenge each mechanism before revision. Model scores do not establish improvement.",
@@ -105,6 +167,24 @@ pub fn typed_retreat_request(
 ) -> Result<tinybackrooms::GenerateRequest> {
     serde_json::from_value(build_retreat_request(
         hive_id, dossier, incumbent, rejected,
+    )?)
+    .map_err(|_| Error::InvalidProposal)
+}
+
+/// Builds the validated tinybackrooms request from host-prepared prior-idea
+/// seeds.
+///
+/// # Errors
+/// Returns [`Error::InvalidProposal`] for unsafe public input, malformed
+/// frontmatter, or a request rejected by tinybackrooms contract validation.
+pub fn typed_retreat_request_with_priors(
+    hive_id: &str,
+    dossier: &impl RetreatDossier,
+    incumbent: &Package,
+    priors: &[PriorIdea],
+) -> Result<tinybackrooms::GenerateRequest> {
+    serde_json::from_value(build_retreat_request_with_priors(
+        hive_id, dossier, incumbent, priors,
     )?)
     .map_err(|_| Error::InvalidProposal)
 }
@@ -405,6 +485,8 @@ fn public_reason(reason: &str) -> &'static str {
         "ApprovalDenied" => "ApprovalDenied",
         "HostFailure" => "HostFailure",
         "Accepted" => "Accepted",
+        "Harmful" => "Harmful",
+        "Cooldown" => "Cooldown",
         _ => "Other",
     }
 }

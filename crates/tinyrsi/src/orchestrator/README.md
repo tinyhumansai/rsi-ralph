@@ -37,6 +37,7 @@ selection, independent confirmation and an explicit human gate.
 | Empty fields, wrong metric, non-positive gain, no nodes | `Untestable` |
 | Transcript refs or nodes not in the epoch | `Ungrounded` |
 | Same patch already recorded or proposed | `Duplicate` |
+| Patch shape cooled by recent strikes (`Archive::penalties`, `Epoch::penalty`) | `Cooldown` |
 | Declaration written to the archive (both funnels) | — |
 | Patch fails to apply (`patch::apply`) | `Unformalizable` or `Guard` |
 | Read-only memory, goal acceptance or untouched watermark changed | `Guard` |
@@ -47,6 +48,7 @@ selection, independent confirmation and an explicit human gate.
 | Selection: reject or inconclusive | `NoGain` / `Inconclusive` |
 | Confirmation reuses a task or seed, rejects, or is inconclusive | `NotReplicated` |
 | Evaluator or approval service error | `HostFailure` |
+| Evaluator reports `Error::CandidateFailed` (candidate failed runs the incumbent completed) | `Harmful`, after a `CandidateFailureEvent` |
 | Human says no | `ApprovalDenied` |
 | Human says yes | `Accepted`, with `apply_at` set |
 

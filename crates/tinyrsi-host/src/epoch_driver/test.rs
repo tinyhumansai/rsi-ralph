@@ -152,6 +152,7 @@ fn fixtures(path: &std::path::Path) -> (Archive, DeploymentCheckpoint, Dossier, 
             transcript_refs: vec![1],
             failure_nodes: vec!["n".into()],
             budget: Budget { max_tokens: 100 },
+            penalty: crate::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: ScoringPolicySpec {
@@ -450,3 +451,47 @@ mod failures;
 mod receipts;
 
 mod dataset;
+
+#[test]
+fn only_a_non_default_penalty_policy_changes_the_policy_fingerprint() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, _, mut epoch) = fixtures(&dir.path().join("a"));
+    let frozen = generation::policy_fingerprint(&epoch).unwrap();
+    // Pinned before penalties existed: default settings keep every journal valid.
+    assert_eq!(
+        frozen,
+        generation::policy_fingerprint(&epoch.clone()).unwrap()
+    );
+    epoch.epoch.penalty = crate::PenaltyPolicy {
+        strikes: 1,
+        window_epochs: 5,
+    };
+    assert_ne!(generation::policy_fingerprint(&epoch).unwrap(), frozen);
+}
+
+#[test]
+fn prior_ideas_list_struck_attempts_first_with_their_outcome() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, _, _, _) = fixtures(&dir.path().join("a"));
+    for reason in ["Guard", "Harmful", "NoGain"] {
+        archive
+            .record_proposal(crate::ProposalEvent {
+                epoch: 1,
+                patch: proposal().patch,
+                rationale: "r".into(),
+                reason: reason.into(),
+                transcript_refs: vec![1],
+            })
+            .unwrap();
+    }
+    let priors = generation::prior_ideas(&archive);
+    let outcomes: Vec<_> = priors.iter().map(crate::PriorIdea::outcome).collect();
+    assert_eq!(
+        outcomes,
+        [
+            Some(crate::PriorOutcome::Crashed),
+            None,
+            Some(crate::PriorOutcome::Flat),
+        ]
+    );
+}

@@ -54,8 +54,9 @@ pub use error::{Error, Result};
 pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
-    Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
-    ProposalDispositionRow,
+    Archive, CandidateFailureEvent, DuplicateDisposition, EvaluationEvent, PatchShape,
+    PenaltyPolicy, PenaltyReport, ProposalDeclaration, ProposalDispositionReport,
+    ProposalDispositionRow, Strike, StrikeKind,
 };
 pub use observation::*;
 pub use orchestrator::*;
@@ -63,18 +64,19 @@ pub use tinyhivemind_lang;
 // Shared proposal data and the language's own definitions, re-exported so
 // hosts name one crate.
 pub use tinyrsi_types::{
-    CandidateState, EvalStage, Operation, Package, Patch, PatchClass, Prediction, Proposal,
-    ProposalEvent, ReasonCode, Record, VersionMetadata,
+    CandidateFailure, CandidateFailureKind, CandidateState, EvalStage, Operation, Package, Patch,
+    PatchClass, Prediction, Proposal, ProposalEvent, ReasonCode, Record, VersionMetadata,
 };
 
 pub use archive::NormalizedEvaluationEvent;
 // Evolution: the Evolver port, the script supervisor, retreat and its memory.
 pub use tinyrsi_evolve::{
-    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, Proposed,
-    ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver, RetreatMemoryOutcome,
-    RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief, ScriptProposal,
-    ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
-    decode_retreat_response, generate_retreat, generate_retreat_with_engine, typed_retreat_request,
+    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, PriorIdea,
+    PriorOutcome, Proposed, ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver,
+    RetreatMemoryOutcome, RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief,
+    ScriptProposal, ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
+    build_retreat_request_with_priors, decode_retreat_response, generate_retreat,
+    generate_retreat_with_engine, typed_retreat_request, typed_retreat_request_with_priors,
 };
 // Checkers: blueprints, verifier registry, verified completion.
 pub use tinyrsi_verify::{

@@ -95,8 +95,30 @@ impl State {
             Event::NormalizedApproval { approval } => {
                 self.validate_normalized_approval(approval)?;
             }
+            Event::CandidateFailure { failure } => self.validate_candidate_failure(failure)?,
+            Event::Revocation { candidate_id, .. } => {
+                if self.active.as_ref() != Some(candidate_id) {
+                    return Err(Error::InvalidRecord);
+                }
+            }
         }
         self.events.push(event);
+        Ok(())
+    }
+
+    /// A failure names a known candidate, a funnel stage and consistent counts.
+    fn validate_candidate_failure(&self, failure: &super::CandidateFailureEvent) -> Result<()> {
+        if !(self.prepared.contains_key(&failure.candidate_id)
+            || self.packages.contains_key(&failure.candidate_id))
+            || !matches!(
+                failure.stage.as_str(),
+                "Screen" | "Selection" | "Confirmation"
+            )
+            || failure.failed_runs == 0
+            || failure.failed_runs > failure.runs
+        {
+            return Err(Error::InvalidRecord);
+        }
         Ok(())
     }
 

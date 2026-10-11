@@ -195,6 +195,7 @@ impl DeferredRunner {
                 .map_or_else(|| self.model.clone(), |r| r.model(self.model.clone())),
             request: model_request,
             meter: meter.clone(),
+            failure: Arc::new(Mutex::new(None)),
             timeout_ms: self.timeout_ms,
         });
         let mut verified = VerifiedRunner::new(&coordinator, producer, registry, blueprint)?;

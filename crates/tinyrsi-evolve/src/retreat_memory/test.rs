@@ -84,6 +84,7 @@ async fn fails_closed_on_corruption_and_bounds() {
             epoch: 1,
             candidate_id: "id".into(),
             status: RetreatOutcomeStatus::Rejected,
+            shape: None,
         })
         .unwrap();
     assert_eq!(memory.outcomes().unwrap().len(), 1);
@@ -117,7 +118,8 @@ fn rejects_invalid_configuration_wrong_hive_and_contaminated_outcomes() {
         m.record_outcome(RetreatMemoryOutcome {
             epoch: 1,
             candidate_id: "secret".into(),
-            status: RetreatOutcomeStatus::Approved
+            status: RetreatOutcomeStatus::Approved,
+            shape: None,
         })
         .is_err()
     );
@@ -125,6 +127,7 @@ fn rejects_invalid_configuration_wrong_hive_and_contaminated_outcomes() {
         epoch: 1,
         candidate_id: "id".into(),
         status: RetreatOutcomeStatus::Approved,
+        shape: None,
     })
     .unwrap();
     drop(m);
@@ -256,7 +259,8 @@ async fn rejects_json_escaped_protected_values_before_durable_storage() {
             .record_outcome(RetreatMemoryOutcome {
                 epoch: 1,
                 candidate_id: "ok".into(),
-                status: RetreatOutcomeStatus::Rejected
+                status: RetreatOutcomeStatus::Rejected,
+                shape: None,
             })
             .is_ok()
     );
@@ -265,7 +269,8 @@ async fn rejects_json_escaped_protected_values_before_durable_storage() {
             .record_outcome(RetreatMemoryOutcome {
                 epoch: 1,
                 candidate_id: "ok".into(),
-                status: RetreatOutcomeStatus::Rejected
+                status: RetreatOutcomeStatus::Rejected,
+                shape: None,
             })
             .is_ok()
     );
@@ -274,7 +279,8 @@ async fn rejects_json_escaped_protected_values_before_durable_storage() {
             .record_outcome(RetreatMemoryOutcome {
                 epoch: 1,
                 candidate_id: "ok".into(),
-                status: RetreatOutcomeStatus::Approved
+                status: RetreatOutcomeStatus::Approved,
+                shape: None,
             })
             .is_err()
     );
@@ -313,6 +319,7 @@ async fn rolling_windows_keep_latest_epochs_and_outcomes_after_reopen() {
                 epoch,
                 candidate_id: format!("id-{epoch}"),
                 status: RetreatOutcomeStatus::Rejected,
+                shape: None,
             })
             .unwrap();
     }
@@ -376,6 +383,7 @@ async fn byte_eviction_is_independent_and_rejects_every_incoming_protected_or_ov
                 epoch,
                 candidate_id: format!("id-{epoch}"),
                 status: RetreatOutcomeStatus::Approved,
+                shape: None,
             })
             .unwrap();
     }
@@ -391,7 +399,8 @@ async fn byte_eviction_is_independent_and_rejects_every_incoming_protected_or_ov
                 .record_outcome(RetreatMemoryOutcome {
                     epoch: 5,
                     candidate_id,
-                    status: RetreatOutcomeStatus::Approved
+                    status: RetreatOutcomeStatus::Approved,
+                    shape: None,
                 })
                 .is_err()
         );
@@ -416,6 +425,7 @@ fn outcome_idempotency_is_scoped_to_the_retained_window() {
         epoch: 1,
         candidate_id: "one".into(),
         status: RetreatOutcomeStatus::Rejected,
+        shape: None,
     };
     memory.record_outcome(first.clone()).unwrap();
     memory.record_outcome(first.clone()).unwrap();
@@ -427,8 +437,93 @@ fn outcome_idempotency_is_scoped_to_the_retained_window() {
             epoch: 2,
             candidate_id: "two".into(),
             status: RetreatOutcomeStatus::Rejected,
+            shape: None,
         })
         .unwrap();
     memory.record_outcome(changed.clone()).unwrap();
     assert_eq!(memory.outcomes().unwrap(), vec![changed]);
+}
+
+#[tokio::test]
+async fn harmful_and_regressed_outcomes_round_trip_and_recall_an_avoid_line() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("memory.json");
+    let memory =
+        DurableRetreatMemory::open(&path, "h", MemoryLimits::default(), vec!["SECRET".into()])
+            .unwrap();
+    let harmful = RetreatMemoryOutcome {
+        epoch: 1,
+        candidate_id: "sha256:a".into(),
+        status: RetreatOutcomeStatus::Harmful,
+        shape: Some("context: context context/main.md#tools".into()),
+    };
+    let regressed = RetreatMemoryOutcome {
+        epoch: 2,
+        candidate_id: "sha256:b".into(),
+        status: RetreatOutcomeStatus::Regressed,
+        shape: Some("policy: json /manifest/policies".into()),
+    };
+    let rejected = RetreatMemoryOutcome {
+        epoch: 2,
+        candidate_id: "sha256:c".into(),
+        status: RetreatOutcomeStatus::Rejected,
+        shape: None,
+    };
+    for outcome in [&harmful, &regressed, &rejected] {
+        memory.record_outcome(outcome.clone()).unwrap();
+    }
+    assert_eq!(
+        serde_json::to_value(&harmful).unwrap(),
+        serde_json::json!({"epoch": 1, "candidate_id": "sha256:a", "status": "harmful",
+            "shape": "context: context context/main.md#tools"})
+    );
+    assert_eq!(
+        serde_json::to_value(&rejected).unwrap(),
+        serde_json::json!({"epoch": 2, "candidate_id": "sha256:c", "status": "rejected"})
+    );
+    assert_eq!(
+        serde_json::to_value(RetreatOutcomeStatus::Regressed).unwrap(),
+        "regressed"
+    );
+    let contaminated = RetreatMemoryOutcome {
+        epoch: 3,
+        candidate_id: "sha256:d".into(),
+        status: RetreatOutcomeStatus::Harmful,
+        shape: Some("context: context SECRET".into()),
+    };
+    assert!(memory.record_outcome(contaminated).is_err());
+    memory
+        .store(
+            "project:rsi-h/agent:retreat",
+            vec!["old".into(), "idea".into()],
+        )
+        .await
+        .unwrap();
+    drop(memory);
+    let memory = DurableRetreatMemory::open(&path, "h", MemoryLimits::default(), vec![]).unwrap();
+    assert_eq!(
+        memory.outcomes().unwrap(),
+        vec![harmful, regressed, rejected]
+    );
+    let recalled = memory
+        .recall("project:rsi-h/agent:retreat", "", 2)
+        .await
+        .unwrap();
+    assert_eq!(
+        recalled,
+        vec![
+            "Avoid these patch shapes; the host measured them breaking or regressing the hive: \
+             context: context context/main.md#tools (crashed); \
+             policy: json /manifest/policies (regressed)."
+                .to_owned(),
+            "idea".to_owned(),
+        ]
+    );
+    assert_eq!(
+        memory
+            .recall("project:rsi-h/agent:retreat", "", 0)
+            .await
+            .unwrap(),
+        Vec::<String>::new()
+    );
 }

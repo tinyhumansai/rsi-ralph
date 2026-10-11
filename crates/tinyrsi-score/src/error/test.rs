@@ -18,3 +18,18 @@ fn keeps_the_messages_callers_already_see() {
         "model call failed"
     );
 }
+
+#[test]
+fn a_candidate_failure_names_the_candidate_not_the_host() {
+    let failure = tinyrsi_types::CandidateFailure {
+        kind: tinyrsi_types::CandidateFailureKind::Crash,
+        failed_runs: 1,
+        runs: 2,
+    };
+    let error = Error::CandidateFailed(failure);
+    assert_eq!(
+        error.to_string(),
+        "candidate failed runs the incumbent completed"
+    );
+    assert_ne!(error, Error::HostFailed);
+}

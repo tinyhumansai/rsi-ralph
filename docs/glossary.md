@@ -152,6 +152,26 @@ evaluator or approval service failed, not the proposal.
 reasons in order and splits `Duplicate` into `DUP_ACCEPTED`, `DUP_REJECTED`
 and `DUP_UNRESOLVED` by what the earlier identical patch led to.
 
+**Harmful.** `ReasonCode::Harmful` (`HARMFUL`): the candidate failed runs the
+incumbent completed on the same private draws, by crashing, timing out,
+overrunning its token reservation or lowering to a hive the evaluator cannot
+run. `CoordinatorEvaluator` runs the incumbent arm first to tell this apart
+from `HostFailure`, and the archive keeps a `CandidateFailureEvent` with the
+failure kind and counts. It is a terminal rejection and a strike.
+
+**Strike.** `Strike` (`archive/penalty/`): durable evidence that a patch shape
+made the hive worse, projected by `Archive::penalties` into a
+`PenaltyReport`. `Harmful` comes from a `HARMFUL` stop, `Regressed` from a
+`NO_GAIN` or `NOT_REPLICATED` stop whose normalized upper bound is below zero,
+and `Revoked` from a rollback recorded by `Archive::revoke`. Host failures,
+inconclusive evidence, approval denials and prefilter stops are not strikes.
+
+**Cooldown.** `ReasonCode::Cooldown` (`COOLDOWN`): the proposal's patch shape
+has too many strikes within the epoch's `PenaltyPolicy` window (one `Harmful`
+or `Revoked` strike, or `strikes` of any kind within `window_epochs`), so the
+prefilter stops it before any evaluation spend. Not terminal: the shape is
+eligible again once its strikes leave the window.
+
 ## Changing the hive
 
 **Patch.** A `tinyhivemind_lang::patch::Patch`: a list of typed `Operation`s
@@ -160,6 +180,11 @@ and one `PatchClass`. Applied by `patch::apply` inside the orchestrator.
 **Patch class.** `PatchClass`: `Context`, `Memory`, `Prompt`, `Roster`,
 `Topology`, `Policy` or `Goal`. Each epoch allows exactly one class
 (`Epoch::class`); a proposal of another class stops as `WrongClass`.
+
+**Patch shape.** `PatchShape` (`archive/penalty/`): a patch's class plus its
+sorted `(operation tag, target)` pairs, ignoring literal values. Two patches
+that edit the same targets with different text share a shape, which is how
+strikes and cooldown catch near-duplicates that exact deduplication misses.
 
 **ApplyAt.** `ApplyAt` (`orchestrator/types.rs`): the activation boundary an
 approved change would need, derived from its class by `apply_at`

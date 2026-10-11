@@ -490,3 +490,77 @@ fn the_engine_seed_is_the_dossier_epoch() {
     let request = build_retreat_request("hive", &dossier(), &Package::default(), &[]).unwrap();
     assert_eq!(request["config"]["seed"], 7);
 }
+
+#[test]
+fn prior_idea_seeds_carry_a_coarse_outcome_and_no_private_fields() {
+    let event = |reason: &str| ProposalEvent {
+        epoch: 4,
+        patch: Patch {
+            class: PatchClass::Context,
+            operations: vec![Operation::Context {
+                path: "context/public.md".into(),
+                item: "PRIVATE_ITEM".into(),
+                before: None,
+                after: Some("PRIVATE_BODY".into()),
+            }],
+        },
+        rationale: "PRIVATE_RATIONALE".into(),
+        reason: reason.into(),
+        transcript_refs: vec![9],
+    };
+    let events = [
+        "Harmful",
+        "NoGain",
+        "Cooldown",
+        "ApprovalDenied",
+        "Guard",
+        "NotReplicated",
+    ]
+    .map(event);
+    let mut priors: Vec<PriorIdea> = events.iter().map(PriorIdea::from_event).collect();
+    priors[5] = priors[5].clone().with_outcome(PriorOutcome::Regressed);
+    assert_eq!(priors[0].outcome(), Some(PriorOutcome::Crashed));
+    let request =
+        build_retreat_request_with_priors("hive", &dossier(), &Package::default(), &priors)
+            .unwrap();
+    let seeds: serde_json::Value =
+        serde_json::from_str(request["input"]["seeds"][2]["text"].as_str().unwrap()).unwrap();
+    let seed = |reason: &str, outcome: serde_json::Value| {
+        json!({"epoch": 4, "class": "context", "reason": reason, "operation_count": 1,
+            "outcome": outcome})
+    };
+    assert_eq!(
+        seeds,
+        json!([
+            seed("Harmful", json!("crashed")),
+            seed("NoGain", json!("flat")),
+            seed("Cooldown", json!("cooled")),
+            seed("ApprovalDenied", json!("denied")),
+            seed("Guard", json!(null)),
+            seed("NotReplicated", json!("regressed")),
+        ])
+    );
+    let text = request.to_string();
+    for private in [
+        "PRIVATE_ITEM",
+        "PRIVATE_BODY",
+        "PRIVATE_RATIONALE",
+        "delta",
+        "upper",
+    ] {
+        assert!(!text.contains(private), "leaked {private}");
+    }
+    // The original builder derives the same seeds from reasons alone.
+    let plain = build_retreat_request("hive", &dossier(), &Package::default(), &events).unwrap();
+    let plain: serde_json::Value =
+        serde_json::from_str(plain["input"]["seeds"][2]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(plain[5], seed("NotReplicated", json!("flat")));
+    assert_eq!(
+        typed_retreat_request_with_priors("hive", &dossier(), &Package::default(), &priors)
+            .unwrap()
+            .input
+            .seeds
+            .len(),
+        3
+    );
+}

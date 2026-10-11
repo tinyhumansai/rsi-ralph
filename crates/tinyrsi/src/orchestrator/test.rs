@@ -69,6 +69,7 @@ pub(super) fn epoch() -> Epoch {
         transcript_refs: vec![1],
         failure_nodes: vec!["n1".into()],
         budget: Budget { max_tokens: 100 },
+        penalty: crate::PenaltyPolicy::default(),
         policy: EvalPolicy::default(),
     }
 }
@@ -76,6 +77,8 @@ struct Harness {
     gain: f64,
     stages: Vec<EvalStage>,
     fail: bool,
+    /// Stage at which the candidate, not the incumbent, fails its runs.
+    harm: Option<EvalStage>,
     confirmation_gain: Option<f64>,
 }
 impl Evaluator for Harness {
@@ -93,6 +96,13 @@ impl Evaluator for Harness {
             return Err(crate::Error::HostFailed);
         }
         self.stages.push(stage);
+        if self.harm == Some(stage) {
+            return Err(crate::Error::CandidateFailed(crate::CandidateFailure {
+                kind: crate::CandidateFailureKind::Timeout,
+                failed_runs: 1,
+                runs: 3,
+            }));
+        }
         let fresh = stage == EvalStage::Confirmation;
         let rows = |quality| {
             (0..3)
@@ -131,6 +141,7 @@ fn harness(gain: f64) -> Harness {
         gain,
         stages: vec![],
         fail: false,
+        harm: None,
         confirmation_gain: None,
     }
 }
@@ -485,4 +496,24 @@ fn cannot_unfreeze_read_only_memory_and_learn_in_one_patch() {
         prepare(&incumbent, &p, &mut Pin),
         Err(ReasonCode::Guard)
     ));
+}
+
+#[test]
+fn a_candidate_only_failure_stops_the_raw_funnel_as_harmful() {
+    for stage in [EvalStage::Screen, EvalStage::Confirmation] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut a = Archive::open(dir.path().join("a.json")).unwrap();
+        baseline(&mut a);
+        let mut h = harness(0.3);
+        h.harm = Some(stage);
+        let out = run_proposal(&mut a, &epoch(), &proposal(), &mut h, &mut Gate(true)).unwrap();
+        assert_eq!(out.reason, ReasonCode::Harmful);
+        assert!(out.apply_at.is_none());
+        let failures = a.candidate_failures();
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].stage, format!("{stage:?}"));
+        assert_eq!(failures[0].kind, crate::CandidateFailureKind::Timeout);
+        assert_eq!(Some(&failures[0].candidate_id), out.candidate_id.as_ref());
+        assert_eq!(a.proposals().last().unwrap().reason, "Harmful");
+    }
 }

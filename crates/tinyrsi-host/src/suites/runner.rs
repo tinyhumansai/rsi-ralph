@@ -1,10 +1,10 @@
 //! Isolated coordinator trials and host-metered artifact production.
 use super::PrivateTask;
 use crate::{
-    ArtifactFuture, ArtifactProducer, ArtifactSubmission, Blueprint, BlueprintNode, CandidateState,
-    Error, EvalRun, HostVerifier, ModelPort, ModelRequest, NodeStatus, Result, SnapshotMemoryStore,
-    VerificationBinding, VerifiedRunner, Verifier, VerifierDeclaration, VerifierKind,
-    VerifierRegistry,
+    ArtifactFuture, ArtifactProducer, ArtifactSubmission, Blueprint, BlueprintNode,
+    CandidateFailureKind, CandidateState, Error, EvalRun, HostVerifier, ModelError, ModelPort,
+    ModelRequest, NodeStatus, Result, SnapshotMemoryStore, VerificationBinding, VerifiedRunner,
+    Verifier, VerifierDeclaration, VerifierKind, VerifierRegistry,
 };
 use crate::{Budget, QualityRubric, VerifierTier, VerifyError};
 use std::fmt::Write;
@@ -30,17 +30,38 @@ pub(super) struct Configuration {
     pub hive: LoweredHive,
     pub memory: BTreeMap<String, BTreeMap<String, String>>,
 }
+/// Who a failed trial is charged to, as far as the trial itself can tell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Blame {
+    /// The hive under test failed the trial in this way.
+    Hive(CandidateFailureKind),
+    /// The provider call or the host itself failed, whatever the hive.
+    Host,
+}
+/// One failed trial, with who the producer observed failing it.
+///
+/// A timeout or a reply over its reservation is the hive's; a failed
+/// provider call is the host's; anything else is a hive crash. Only the
+/// paired evaluator decides whether the failure is the candidate's.
+#[derive(Debug)]
+pub(super) struct RunFailure {
+    pub error: Error,
+    pub blame: Blame,
+}
 pub(super) fn configuration(
     state: &CandidateState,
     memory: &SnapshotMemoryStore,
     model_name: Option<&str>,
 ) -> Result<Configuration> {
-    let hive = tinyhivemind_lang::lower(&state.package).map_err(|_| Error::InvalidRecord)?;
+    let hive = lower(state)?;
     validate(&hive, model_name)?;
     Ok(Configuration {
         hive,
         memory: memory.read(&state.package, &state.memory_watermarks)?,
     })
+}
+pub(super) fn lower(state: &CandidateState) -> Result<LoweredHive> {
+    tinyhivemind_lang::lower(&state.package).map_err(|_| Error::InvalidRecord)
 }
 pub(super) fn validate(hive: &LoweredHive, model_name: Option<&str>) -> Result<()> {
     if !hive.topology.is_empty()
@@ -152,6 +173,8 @@ pub(super) struct Producer {
     pub model: Arc<dyn ModelPort>,
     pub request: ModelRequest,
     pub meter: Arc<Mutex<Option<(u64, u64)>>>,
+    /// The first way a model call failed, read back by the trial runner.
+    pub failure: Arc<Mutex<Option<Blame>>>,
     pub timeout_ms: u64,
 }
 impl ArtifactProducer for Producer {
@@ -159,16 +182,31 @@ impl ArtifactProducer for Producer {
         let model = self.model.clone();
         let request = self.request.clone();
         let meter = self.meter.clone();
+        let failure = self.failure.clone();
         let timeout = self.timeout_ms;
         Box::pin(async move {
+            let note = |kind| {
+                if let Ok(mut slot) = failure.lock() {
+                    slot.get_or_insert(kind);
+                }
+                VerifyError::HostFailed
+            };
             let reply = tokio::time::timeout(
                 std::time::Duration::from_millis(timeout),
                 model.generate(request.clone()),
             )
             .await
-            .map_err(|_| VerifyError::HostFailed)?
-            .map_err(|_| VerifyError::HostFailed)?;
-            request.check(&reply).map_err(|_| VerifyError::HostFailed)?;
+            .map_err(|_| note(Blame::Hive(CandidateFailureKind::Timeout)))?
+            .map_err(|error| {
+                note(if error == ModelError::InvalidRequest {
+                    Blame::Hive(CandidateFailureKind::OverBudget)
+                } else {
+                    Blame::Host
+                })
+            })?;
+            request
+                .check(&reply)
+                .map_err(|_| note(Blame::Hive(CandidateFailureKind::OverBudget)))?;
             *meter.lock().map_err(|_| VerifyError::HostFailed)? =
                 Some((reply.input_tokens, reply.output_tokens));
             Ok(ArtifactSubmission {
@@ -197,10 +235,28 @@ pub(super) fn blueprint(task: &PrivateTask) -> Result<Blueprint> {
         status: NodeStatus::Open,
     }])?)
 }
+/// Runs one isolated trial, naming how it failed when it does.
 pub(super) async fn run(
     task: &PrivateTask,
     config: &Configuration,
     limits: RunOptions,
+) -> std::result::Result<EvalRun, RunFailure> {
+    let failure = Arc::new(Mutex::new(None));
+    let result = trial(task, config, limits, failure.clone()).await;
+    result.map_err(|error| RunFailure {
+        error,
+        blame: failure
+            .lock()
+            .ok()
+            .and_then(|blame| *blame)
+            .unwrap_or(Blame::Hive(CandidateFailureKind::Crash)),
+    })
+}
+async fn trial(
+    task: &PrivateTask,
+    config: &Configuration,
+    limits: RunOptions,
+    failure: Arc<Mutex<Option<Blame>>>,
 ) -> Result<EvalRun> {
     let request = request(task, config, &limits)?;
     let coordinator = Arc::new(
@@ -217,6 +273,7 @@ pub(super) async fn run(
         model: limits.model.clone(),
         request,
         meter: meter.clone(),
+        failure,
         timeout_ms: limits.timeout_ms,
     });
     let registry = Arc::new(VerifierRegistry::new(vec![VerifierDeclaration {
