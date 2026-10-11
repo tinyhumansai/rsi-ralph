@@ -27,6 +27,7 @@ use futures_util::StreamExt;
 use serde_json::{Value, json};
 use tokio::sync::Notify;
 
+use crate::calls::{CallTally, UpstreamCalls};
 use crate::error::Error;
 use crate::ledger::{Budgets, LedgerState, Reservation};
 use crate::meter::{Meter, MeterRow, Tags};
@@ -77,6 +78,7 @@ pub(crate) struct Proxy {
     config: ProxyConfig,
     budgets: Mutex<Budgets>,
     meter: Meter,
+    calls: CallTally,
     client: reqwest::Client,
     sequence: AtomicU64,
     active: AtomicUsize,
@@ -95,6 +97,7 @@ impl Proxy {
             config,
             budgets: Mutex::new(budgets),
             meter,
+            calls: CallTally::default(),
             client,
             sequence: AtomicU64::new(0),
             active: AtomicUsize::new(0),
@@ -128,6 +131,11 @@ impl Proxy {
         let budgets = self.budgets.lock().unwrap_or_else(PoisonError::into_inner);
         let (run, total) = budgets.states();
         (run.clone(), total.clone())
+    }
+
+    /// What the provider made of the calls forwarded so far.
+    pub(crate) fn upstream_calls(&self) -> UpstreamCalls {
+        self.calls.snapshot()
     }
 
     /// Waits until no call is between reserving and settling, or `limit`
@@ -444,6 +452,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         Ok(response) => response,
         Err(error) => {
             let error = Error::Upstream(proxy.redact(&error.to_string()));
+            proxy.calls.unreachable(&error.to_string());
             let settle_error = proxy.settle(reservation, None);
             proxy.record(&row(
                 &prepared.model,
@@ -460,6 +469,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
+        proxy.calls.answered(response.status().as_u16(), &[]);
         return stream_through(in_flight, prepared, reservation, response, move |outcome| {
             row(&outcome.0, outcome.1)
         });
@@ -480,6 +490,7 @@ async fn buffered(
 ) -> (Response, Outcome) {
     let status = response.status();
     let bytes = proxy.redact_body(response.bytes().await.unwrap_or_default());
+    proxy.calls.answered(status.as_u16(), &bytes);
     let usage = serde_json::from_slice::<Value>(&bytes)
         .map_or_else(|_| Usage::default(), |v| Usage::from_body(&v));
     let price = proxy.config.prices.get(&prepared.model).ok();
