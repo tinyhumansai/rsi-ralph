@@ -1,12 +1,13 @@
 [workspace]
 resolver = "3"
 # Every crate in this repository lives under `crates/`, one directory per
-# package, each directory named for the package it holds. There is no root
+# package, each directory named for the package it holds; `examples/` is the
+# one exception, a package of runnable end-to-end examples. There is no root
 # package: the library a host depends on is `crates/tinyrsi`, the same as any
 # other member. Keeping the root virtual is what makes that uniform — a root
 # package would make one crate structurally different from the rest for no
 # reason other than history.
-members = ["crates/*"]
+members = ["crates/*", "examples"]
 # `vendor/` holds the pinned tinyhivemind and tinybackrooms submodules, each
 # its own workspace with its own lockfile. `worktrees/` holds `git worktree`
 # checkouts of this same repository; each contains a full copy of this manifest
@@ -31,6 +32,8 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 tinyrsi-types = { path = "crates/tinyrsi-types" }
 # The loop library the host runtime builds on.
 tinyrsi = { path = "crates/tinyrsi" }
+# The hive host runtime, which the examples package drives end to end.
+tinyrsi-host = { path = "crates/tinyrsi-host" }
 # Paired comparison, normalized scoring, experiments and the `Scorer` port.
 tinyrsi-score = { path = "crates/tinyrsi-score" }
 # Host checkers, blueprints and the bounded process runner.
