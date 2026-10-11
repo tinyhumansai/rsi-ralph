@@ -28,9 +28,13 @@ after rename, local state follows the visible snapshot even if directory sync
 reports failure. Symlink snapshots and lock files are rejected.
 
 Engine selection stores discovery proposals, not RSI approvals. Explicit
-`record_outcome` calls maintain a separate window of host approved/rejected
-candidate identities. These labels are never presented as creative discovery
-entries. Repeating an identical outcome is idempotent while its epoch/candidate
+`record_outcome` calls maintain a separate window of host approved, rejected,
+harmful and regressed candidate identities. Harmful and regressed outcomes may
+carry a public patch `shape` (class and edited targets, never values); a shape
+containing a protected string is rejected. The labels themselves are never
+presented as creative discovery entries: recall instead returns one leading
+`Avoid these patch shapes ...` line naming the harmful and regressed shapes,
+followed by the most recent discovery entries, within the requested limit. Repeating an identical outcome is idempotent while its epoch/candidate
 pair remains retained; contradictory classification is rejected within that
 window. After eviction, cache-local deduplication no longer remembers the pair;
 authoritative history and replay policy belong to the archive/journal.

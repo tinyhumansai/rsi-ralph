@@ -11,7 +11,7 @@ impl ModelPort for Marked {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let system = request.system().to_owned();
         Box::pin(async move {
-            if system.contains("CRASH") {
+            if system.contains("OUTAGE") {
                 return Err(ModelError::CallFailed);
             }
             if system.contains("REFUSE") {
@@ -68,18 +68,36 @@ fn failed(kind: CandidateFailureKind, failed_runs: u32) -> Error {
 
 #[test]
 fn a_candidate_only_crash_is_attributed_to_the_candidate() {
+    let crash = runner::Blame::Hive(CandidateFailureKind::Crash);
+    assert_eq!(
+        charge(&[crash, crash], 2).unwrap(),
+        Some(failed(CandidateFailureKind::Crash, 2))
+    );
+    assert_eq!(charge(&[], 2).unwrap(), None);
+}
+
+#[test]
+fn any_host_owned_failure_makes_the_draw_a_host_failure() {
+    let crash = runner::Blame::Hive(CandidateFailureKind::Crash);
+    assert_eq!(
+        charge(&[crash, runner::Blame::Host], 2).unwrap(),
+        Some(Error::HostFailed)
+    );
+}
+
+#[test]
+fn a_provider_outage_on_the_candidate_arm_stays_a_host_failure() {
     let (mut evaluator, model, _dir) = evaluator(1000);
-    let outcome = screen(&mut evaluator, &state(), &marked("CRASH"));
-    assert_eq!(outcome.unwrap_err(), failed(CandidateFailureKind::Crash, 2));
-    // The incumbent's two seeds ran first, then both candidate seeds.
+    let outcome = screen(&mut evaluator, &state(), &marked("OUTAGE"));
+    assert_eq!(outcome.unwrap_err(), Error::HostFailed);
     assert_eq!(model.calls.load(Ordering::SeqCst), 4);
 }
 
 #[test]
 fn an_incumbent_crash_stays_a_host_failure_and_never_runs_the_candidate() {
-    for candidate in [state(), marked("CRASH")] {
+    for candidate in [state(), marked("OUTAGE")] {
         let (mut evaluator, model, _dir) = evaluator(1000);
-        let outcome = screen(&mut evaluator, &marked("CRASH"), &candidate);
+        let outcome = screen(&mut evaluator, &marked("OUTAGE"), &candidate);
         assert_eq!(outcome.unwrap_err(), Error::HostFailed);
         assert_eq!(model.calls.load(Ordering::SeqCst), 2);
     }

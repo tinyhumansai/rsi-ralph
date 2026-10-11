@@ -71,7 +71,9 @@ candidate did not, the stage returns `Error::CandidateFailed` with a
 `CandidateFailure`: `unsupported` for a candidate hive that fails validation
 or lacks a task's seat, `over_budget` for a request that cannot be reserved or
 a reply over its reservation, `timeout` for a provider timeout, and `crash`
-otherwise. Every candidate job still runs, so `failed_runs` counts all of the
+otherwise. A failed provider call or a panicked job is the host's even on the
+candidate arm: if any candidate failure is, the stage returns `HostFailed`
+and the patch is not charged. Every candidate job still runs, so `failed_runs` counts all of the
 draw's failed candidate runs and `runs` its candidate runs; anchor draws keep
 stopping at the first failed batch. The orchestrator records the stop as
 `HARMFUL` (see `docs/specs/hive-penalties.md`).
