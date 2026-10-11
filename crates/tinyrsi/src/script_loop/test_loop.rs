@@ -736,7 +736,10 @@ fn accepts_a_candidate_no_worse_on_any_seed_and_better_on_one() {
     let candidate = &ledger.candidates[1];
     assert_eq!(candidate.decision, CandidateDecision::Accept);
     assert!(candidate.promoted);
-    assert!(candidate.lower.unwrap() < 0.0, "the paired interval alone is inconclusive");
+    assert!(
+        candidate.lower.unwrap() < 0.0,
+        "the paired interval alone is inconclusive"
+    );
     assert_eq!(candidate.note.as_deref(), Some(DOMINANCE_NOTE));
     assert_eq!(ledger.incumbents.len(), 2);
 }
@@ -744,7 +747,10 @@ fn accepts_a_candidate_no_worse_on_any_seed_and_better_on_one() {
 #[test]
 fn leaves_a_dominating_candidate_inconclusive_when_dominance_is_off() {
     let ledger = dominance_run(["11", "6", "6"], ["6", "6", "6"], false);
-    assert_eq!(ledger.candidates[1].decision, CandidateDecision::Inconclusive);
+    assert_eq!(
+        ledger.candidates[1].decision,
+        CandidateDecision::Inconclusive
+    );
     assert!(!ledger.candidates[1].promoted && ledger.candidates[1].note.is_none());
 }
 
@@ -752,7 +758,10 @@ fn leaves_a_dominating_candidate_inconclusive_when_dominance_is_off() {
 fn dominance_needs_no_regression_on_any_seed_and_a_strict_gain() {
     // Better on two seeds, worse on one: still inconclusive.
     let mixed = dominance_run(["14", "12", "13"], ["6", "6", "14"], true);
-    assert_eq!(mixed.candidates[1].decision, CandidateDecision::Inconclusive);
+    assert_eq!(
+        mixed.candidates[1].decision,
+        CandidateDecision::Inconclusive
+    );
     // Equal on every seed: no gain, so not accepted.
     let tied = dominance_run(["11", "6", "6"], ["11", "6", "6.0"], true);
     assert_ne!(tied.candidates[1].decision, CandidateDecision::Accept);

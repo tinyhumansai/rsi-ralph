@@ -201,8 +201,14 @@ fn dominance_is_no_loss_on_any_seed_and_a_gain_on_one() {
     assert!(dominates(&incumbent, &measured(&[6.0, 6.0, 13.0], min)));
     assert!(!dominates(&incumbent, &measured(&[6.0, 6.0, 14.0], min)));
     assert!(!dominates(&incumbent, &incumbent));
-    assert!(dominates(&measured(&[1.0, 2.0], max), &measured(&[1.0, 3.0], max)));
-    assert!(!dominates(&measured(&[1.0, 2.0], max), &measured(&[1.0, 1.0], max)));
+    assert!(dominates(
+        &measured(&[1.0, 2.0], max),
+        &measured(&[1.0, 3.0], max)
+    ));
+    assert!(!dominates(
+        &measured(&[1.0, 2.0], max),
+        &measured(&[1.0, 1.0], max)
+    ));
 }
 
 #[test]
