@@ -1,4 +1,4 @@
-"""Fixed checker for the graph-colouring example (standard library only).
+"""Score function for the graph-colouring loop (standard library only).
 
 The loop never edits this file. For each seed it builds a random graph with a
 hidden 6-colouring: 150 vertices are split into six secret classes and every
@@ -6,7 +6,8 @@ pair from different classes is joined with probability 0.35. Vertex labels and
 edge order are shuffled, and the seed is removed from the environment before
 the solver is imported, so the classes cannot be recovered from the input.
 
-It calls ``coloring.color(n, edges)`` from the editable ``coloring.py`` and
+It imports ``coloring.color(n, edges)`` from the candidate folder in
+``$RSI_CANDIDATE`` (the seed comes from ``$RSI_SEED``) and
 checks the answer: one non-negative integer per vertex, with no edge joining
 two vertices of the same colour. A valid colouring prints
 ``METRIC colors=<distinct colours used>`` (lower is better; 6 is optimal for
