@@ -417,6 +417,9 @@ fn validate_score(s: &ScoreSpec) -> Result<()> {
             ));
         }
     }
+    if s.parallel == 0 {
+        return Err(Error::field("score.parallel", "must be at least 1"));
+    }
     let d = &s.decide;
     let decider = s.scorers.iter().find(|scorer| scorer.id == d.on);
     match decider {
