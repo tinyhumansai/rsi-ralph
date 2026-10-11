@@ -7,7 +7,7 @@
 //! cargo run --example basic
 //! ```
 
-use tinyrsi::{Error, GradeEntry, Lineage, LineageAppendRequest, Verdict, append, head};
+use tinyrsi::{Error, GradeEntry, Lineage, Verdict};
 
 fn main() -> tinyrsi::Result<()> {
     let mut lineage = Lineage::new();
@@ -25,10 +25,10 @@ fn main() -> tinyrsi::Result<()> {
     ];
     for (step, grade, verdict, rationale) in steps {
         let entry = GradeEntry::new(step, "sha256:abc", grade, verdict, rationale);
-        append(&mut lineage, LineageAppendRequest::new(entry))?;
+        lineage.append(entry)?;
     }
 
-    match head(&lineage).entry {
+    match lineage.head() {
         Some(incumbent) => println!(
             "incumbent is step {} at grade {:.3} ({})",
             incumbent.step, incumbent.grade, incumbent.rationale
@@ -38,7 +38,7 @@ fn main() -> tinyrsi::Result<()> {
 
     // Failure modes are part of the public contract; show them too.
     let replay = GradeEntry::new(0, "sha256:abc", 0.5, Verdict::Accepted, "replay");
-    match append(&mut lineage, LineageAppendRequest::new(replay)) {
+    match lineage.append(replay) {
         Ok(recorded) => println!("recorded: {recorded}"),
         Err(Error::StepOutOfOrder) => println!("expected failure: replayed step rejected"),
         Err(Error::EmptyField) => println!("expected failure: empty field rejected"),

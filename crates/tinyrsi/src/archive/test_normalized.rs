@@ -1,7 +1,7 @@
 //! Normalized evidence rejects forged decisions, policies, and approval bypasses.
 #![expect(clippy::unwrap_used, reason = "assert deterministic archive fixtures")]
 use super::*;
-use crate::scoring::ScoringPolicySpec;
+use crate::ScoringPolicySpec;
 use crate::{
     Budget, EvalRun, FamilyAnchor, Operation, Patch, PatchClass, Prediction, Proposal, ScoreHealth,
     ScorePenalties,

@@ -17,8 +17,7 @@ where it cannot drift.
    work, scoring, experiments and measured results.
 
 The repository root has [`ROADMAP.md`](../ROADMAP.md) (shipped, next, out of
-scope) and [`MODULE.md`](../MODULE.md) (what the released TinyBus module
-serves).
+scope).
 
 ## Where docs live
 

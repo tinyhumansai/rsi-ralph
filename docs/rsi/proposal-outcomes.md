@@ -7,7 +7,7 @@ final reasons. Each proposal occurrence keeps its own row, including duplicates.
 Only the selection draw contributes measured gain and eligibility labels.
 
 [Implementation contract](../specs/proposal-outcomes.md) and
-[API and limitations](../../crates/tinyrsi/src/epoch_driver/dataset/README.md)
+[API and limitations](../../crates/tinyrsi-host/src/epoch_driver/dataset/README.md)
 describe binding, missingness and privacy rules.
 
 ## Offline protocol fixture
@@ -27,7 +27,7 @@ The example reads existing private files without repeating model or checker
 calls:
 
 ```sh
-cargo run -p tinyrsi --features host --example proposal_metrics --   target/outcome-demo/journal.json target/outcome-demo/archive.json 1 3
+cargo run -p tinyrsi-host --example proposal_metrics --   target/outcome-demo/journal.json target/outcome-demo/archive.json 1 3
 ```
 
 Private journal/archive files stay outside published evidence. Legacy unknown

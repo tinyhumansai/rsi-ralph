@@ -1,5 +1,10 @@
 # Spec: TinyBus module release
 
+> **Superseded** by [crate split](crate-split.md) and
+> [ADR 0002](../adr/0002-split-crates-drop-bus.md): the TinyBus module, its
+> contract crate and the native release archives were removed. Kept as a
+> record only.
+
 The module ships as a native `cdylib` per platform, verified before release.
 
 ## Requirements

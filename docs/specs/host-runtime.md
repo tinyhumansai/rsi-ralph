@@ -2,8 +2,8 @@
 
 TinyRSI is the external host of a typed hive improvement loop. It records the
 selected design separately from the deployed coordinator, evaluates against
-immutable private checks, and requires explicit human approval. The optional
-`host` feature enables the concrete asynchronous coordinator/SQLite adapter and
+immutable private checks, and requires explicit human approval. The
+`tinyrsi-host` crate (formerly the optional `host` feature) holds the concrete asynchronous coordinator/SQLite adapter and
 private suite evaluator. Existing bus lineage methods remain compatible.
 
 ## Durable state boundaries

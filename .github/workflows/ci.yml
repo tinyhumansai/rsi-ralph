@@ -60,50 +60,35 @@ jobs:
         run: cargo test --all-features
 
       - name: Test frozen checker grammar and example preflight
-        run: python3 -m unittest discover -s crates/tinyrsi/examples/complete -p 'test_*.py'
+        run: python3 -m unittest discover -s crates/tinyrsi-host/examples/complete -p 'test_*.py'
 
       - name: Test independent private benchmark oracles
         run: python3 -m unittest discover -s scripts/benchmarks -p 'test_*.py'
 
       - name: Test private benchmark adapter
-        run: cargo test -p tinyrsi --all-features --example private_benchmark
+        run: cargo test -p tinyrsi-host --example private_benchmark
 
       - name: Test private Lean slice curation and adapter
         run: |
           python3 -m unittest discover -s scripts/lean -p 'test_*.py'
-          cargo test -p tinyrsi --all-features --example verify_lean_slice
+          cargo test -p tinyrsi-host --example verify_lean_slice
 
       - name: Test default features
         run: cargo test
+
+      # The end-to-end examples run offline (canned models, scripted judges)
+      # and fail if the loop no longer reaches its goal.
+      - name: Run the end-to-end examples
+        run: |
+          cargo run -p tinyrsi-examples --example math_problem
+          cargo run -p tinyrsi-examples --example upgrade_file
+          cargo run -p tinyrsi-examples --example hive_goal
 
       # `cargo build --all-targets` only *compiles* an example. `AGENTS.md`
       # promises `cargo run -p tinyrsi --example basic` works, and a compiled
       # example can still fail on its first line.
       - name: Run the bundled example
         run: cargo run -p tinyrsi --example basic
-
-      # `crates/tinyrsi-bus` exists so a host can name the payload types
-      # without compiling the module. That promise is invisible in a diff,
-      # because a forbidden dependency arrives transitively through a feature
-      # someone enabled one crate away — so it is asserted rather than
-      # documented.
-      #
-      # The FORWARD form is required. `cargo tree -i <crate> -p tinyrsi-bus`
-      # discards the `-p` scope, prints the whole-workspace inverse tree, and
-      # exits 0 looking clean even when this crate is the one at fault.
-      - name: Assert the contract crate stays transport-free
-        run: |
-          set -euo pipefail
-          forbidden="$(cargo tree -p tinyrsi-bus -e normal,build --prefix none \
-            | grep -Ei 'tinybus|tokio|reqwest|ureq|hyper|rusqlite|git2' || true)"
-          if [ -n "$forbidden" ]; then
-            echo "tinyrsi-bus pulled in a dependency its manifest forbids:" >&2
-            echo "$forbidden" >&2
-            echo >&2
-            echo "The contract is what a host compiles against. It must stay free" >&2
-            echo "of transports, async runtimes, HTTP clients and native libraries." >&2
-            exit 1
-          fi
 
       - name: Require 90% line coverage in every source file
         run: .github/scripts/check-file-coverage.sh 90 coverage.json
@@ -144,7 +129,7 @@ jobs:
           submodules: recursive
 
       # `rust-version` is inherited from `[workspace.package]`, so every member
-      # reports the same value. Read it off the package the module ships as
+      # reports the same value. Read it off the `tinyrsi` package
       # rather than off `packages[0]`, whose order cargo does not promise.
       - name: Read rust-version from Cargo.toml
         id: msrv
