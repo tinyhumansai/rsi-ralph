@@ -571,10 +571,9 @@ where
             }
         }
         drop(tx);
-        // Counted only now: a stream that broke off was never answered.
-        match &failure {
-            Some(message) => proxy.calls.unreachable(message),
-            None => proxy.calls.answered(200, &[]),
+        // Only now is it known: a stream that broke off was never answered.
+        if let Some(message) = &failure {
+            proxy.calls.unreachable(message);
         }
         let usage = scanner.finish();
         let cost = proxy

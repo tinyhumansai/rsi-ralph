@@ -6,7 +6,8 @@
 //! them? A provider refusal is an answer with a non-success status (a key
 //! over its limit answers `403`, a rate limit `429`) or no complete answer:
 //! a connection that fails, or a body that breaks off, even after success
-//! headers. A stream is counted when it ends, not when its headers arrive.
+//! headers. A call counts as sent when it is forwarded; a stream's refusal is
+//! known only once its body ends.
 //! Calls the gateway refuses itself, such as one over budget, never reach
 //! the provider and are not counted.
 
