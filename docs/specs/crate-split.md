@@ -87,6 +87,14 @@ variants its own functions always returned. So `run_script_loop`,
 `run_proposal_h` and the rest still fail with `tinyrsi::Error::HostFailed`,
 `InvalidEvaluation`, and so on.
 
+`tinyrsi-host` is the one exception: it has no `Error` of its own and returns
+`tinyrsi::Error`. Its modules moved out of a Cargo feature unchanged, and every
+failure they report is already a core variant (`HostFailed`, `ArchiveIo`,
+`ArchiveLocked`, `InvalidRecord` and the rest), largely raised by the core
+archive and orchestrator they drive. A host enum would duplicate those variants
+and add a lossless conversion at every call without giving callers anything to
+match on. It gets its own type once it has a failure core cannot express.
+
 **Error types of moved functions do change.** A function that moved returns
 its new crate's error, even when it is reached through a `tinyrsi::`
 re-export: `tinyrsi::compare` returns `tinyrsi_score::Error`, and
@@ -173,7 +181,9 @@ decision function, and it applies three rules:
    are the mean paired metric improvement `s * (candidate - incumbent)` plus
    or minus the policy's standard-error multiple, in metric units. This is
    exactly what `script_loop/score.rs` reports today. Otherwise they are in
-   quality units.
+   quality units. A `metric` without one value per seed, or two metrics that
+   disagree on direction, is `InvalidEvaluation`: a malformed metric never
+   silently changes the units.
 
 Implementations:
 
@@ -306,7 +316,11 @@ removed; `Lineage::append` and `Lineage::head` remain.
 - A judge without passing calibration can never be the reason a candidate is
   accepted: `decide` requires acceptance on accept-eligible evidence alone.
 - Archive JSON, `ledger.json` and `events.jsonl` keep their exact bytes for the
-  same inputs. The existing pinned tests stay unchanged and green.
+  same inputs. The existing pinned tests stay unchanged and green. Only runs
+  under `run_script_loop_with` add to the ledger: a `units: "quality"` field on
+  rows whose interval is in scorer qualities (omitted for metric units), an
+  `error` decision for a candidate the scorer failed on, and scorer tokens in
+  `tokens` and against `token_budget`.
 - Every public item keeps a rustdoc comment. Every source file keeps at least
   90% line coverage.
 
