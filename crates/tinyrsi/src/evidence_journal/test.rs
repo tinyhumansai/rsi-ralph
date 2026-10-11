@@ -5,6 +5,7 @@ use crate::{Error, MemoryHealth, VerificationBinding, VerificationEvidence};
 use std::sync::Arc;
 use tinyhivemind_hives::{Coordinator, CoordinatorOptions, MemoryStorage};
 
+/// Supplies a binary checker result bound to the deterministic fixture invocation.
 fn evidence() -> VerificationEvidence {
     VerificationEvidence {
         binding: VerificationBinding {
@@ -20,6 +21,7 @@ fn evidence() -> VerificationEvidence {
         exit_code: None,
     }
 }
+/// Creates a Coordinator whose observer state is controlled by each test.
 async fn coordinator() -> Coordinator {
     Coordinator::new(
         "test".into(),
@@ -31,6 +33,7 @@ async fn coordinator() -> Coordinator {
 }
 
 #[tokio::test]
+/// Pins exactly-once consumption across callback replay and journal reopen.
 async fn restart_and_duplicate_callbacks_preserve_exactly_one_measured_turn_per_epoch() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("evidence.json");
@@ -65,6 +68,7 @@ async fn restart_and_duplicate_callbacks_preserve_exactly_one_measured_turn_per_
 }
 
 #[tokio::test]
+/// Distinguishes unknown response cost from a measured zero-token invocation.
 async fn interrupted_intents_block_epochs_until_explicitly_retained_as_unknown() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("evidence.json");
@@ -94,6 +98,7 @@ async fn interrupted_intents_block_epochs_until_explicitly_retained_as_unknown()
 }
 
 #[test]
+/// Rejects rewritten measurements and checker evidence from another invocation.
 fn conflicting_usage_checker_bindings_and_unknown_turns_are_rejected() {
     let dir = tempfile::tempdir().unwrap();
     let journal = EvidenceJournal::open(dir.path().join("evidence")).unwrap();
@@ -138,6 +143,7 @@ fn conflicting_usage_checker_bindings_and_unknown_turns_are_rejected() {
 }
 
 #[tokio::test]
+/// Keeps uncommitted consumption retryable while freezing successful epoch receipts.
 async fn persistence_failure_does_not_consume_turns_or_epoch_and_epoch_replay_is_frozen() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("evidence");
@@ -183,6 +189,7 @@ async fn persistence_failure_does_not_consume_turns_or_epoch_and_epoch_replay_is
 }
 
 #[test]
+/// Prevents concurrent writers and rejects corrupt state without persisting payloads.
 fn writer_lock_corrupt_snapshots_and_private_payloads_fail_closed() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("evidence");
@@ -208,6 +215,7 @@ fn writer_lock_corrupt_snapshots_and_private_payloads_fail_closed() {
 }
 
 #[tokio::test]
+/// Replays derived dossier and cursor invariants against targeted snapshot mutations.
 async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries() {
     let dir = tempfile::tempdir().unwrap();
     let journal = EvidenceJournal::open(dir.path().join("evidence")).unwrap();
@@ -287,6 +295,7 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
 }
 
 #[tokio::test]
+/// Retains checker failure when accounting arrives later and fails closed on poisoning.
 async fn failed_checks_before_usage_retain_failure_and_poisoned_collectors_fail_closed() {
     let dir = tempfile::tempdir().unwrap();
     let journal = Arc::new(EvidenceJournal::open(dir.path().join("evidence")).unwrap());
@@ -313,6 +322,7 @@ async fn failed_checks_before_usage_retain_failure_and_poisoned_collectors_fail_
 }
 
 #[tokio::test]
+/// Rejects cross-epoch turn reassignment even when derived totals remain plausible.
 async fn replay_rejects_reassigning_measured_turns_to_different_epochs() {
     let dir = tempfile::tempdir().unwrap();
     let journal = EvidenceJournal::open(dir.path().join("evidence")).unwrap();
@@ -342,6 +352,7 @@ async fn replay_rejects_reassigning_measured_turns_to_different_epochs() {
 
 #[cfg(unix)]
 #[test]
+/// Protects target paths while recovering only a provably uncommitted temporary write.
 fn storage_rejects_symlinks_directories_and_discards_only_uncommitted_temporary_files() {
     use std::os::unix::fs::symlink;
     let dir = tempfile::tempdir().unwrap();

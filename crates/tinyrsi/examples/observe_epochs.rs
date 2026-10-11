@@ -16,6 +16,7 @@ use tinyrsi::{
 
 struct OfflineProvider;
 impl ModelPort for OfflineProvider {
+    /// Returns deterministic offline accounting used by this demonstration only.
     fn generate(&self, _: ModelRequest) -> ModelFuture {
         Box::pin(async {
             // This deterministic adapter supplies its own measured accounting.
@@ -28,6 +29,7 @@ impl ModelPort for OfflineProvider {
         })
     }
 }
+/// Builds a minimal package with one real task-capable seat and desk.
 fn package() -> Result<Package> {
     let mut package = Package::default();
     package
@@ -65,6 +67,7 @@ fn package() -> Result<Package> {
     Ok(package)
 }
 
+/// Runs two observed epochs with SQLite and journal reopen between them.
 async fn run(root: &Path) -> Result<()> {
     std::fs::create_dir_all(root).map_err(|_| Error::ArchiveIo)?;
     let path = root.join("evidence.json");
@@ -158,6 +161,7 @@ async fn run(root: &Path) -> Result<()> {
     Ok(())
 }
 #[tokio::main]
+/// Writes redacted receipts under the caller-selected persistent output directory.
 async fn main() -> Result<()> {
     let root = std::env::args_os()
         .nth(1)

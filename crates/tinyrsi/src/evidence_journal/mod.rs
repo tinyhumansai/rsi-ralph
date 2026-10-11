@@ -32,6 +32,7 @@ impl EvidenceJournal {
             store: Mutex::new(storage::Store::open(path.as_ref())?),
         })
     }
+    /// Acquires the collector; poisoning prevents further evidence mutation.
     fn lock(&self) -> Result<MutexGuard<'_, storage::Store>> {
         self.store.lock().map_err(|_| Error::HostFailed)
     }
@@ -235,6 +236,7 @@ impl EvidenceJournal {
         Ok(self.lock()?.state.epochs.values().cloned().collect())
     }
 }
+/// Derives the dossier from measured callbacks and lists unknown costs separately.
 fn build_epoch(
     epoch: u64,
     observation: crate::Observation,

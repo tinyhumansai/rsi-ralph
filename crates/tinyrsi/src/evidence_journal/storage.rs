@@ -14,6 +14,7 @@ pub(super) struct Store {
     lock: File,
 }
 impl Store {
+    /// Locks, validates the committed snapshot and discards an uncommitted sidecar.
     pub(super) fn open(input: &Path) -> Result<Self> {
         let parent = input
             .parent()
@@ -56,6 +57,7 @@ impl Store {
         validate(&state)?;
         Ok(Self { state, path, lock })
     }
+    /// Validates and atomically replaces the snapshot before publishing in-memory state.
     pub(super) fn save(&mut self, next: State) -> Result<()> {
         validate(&next)?;
         let bytes = serde_json::to_vec(&next).map_err(|_| Error::ArchiveIo)?;
@@ -83,10 +85,12 @@ impl Store {
     }
 }
 impl Drop for Store {
+    /// Releases the OS lock when the last store owner is dropped.
     fn drop(&mut self) {
         let _ = fs2::FileExt::unlock(&self.lock);
     }
 }
+/// Appends a suffix to the entire file name, retaining its original extension.
 pub(super) fn sidecar(path: &Path, suffix: &str) -> PathBuf {
     let mut name = path.as_os_str().to_os_string();
     name.push(format!(".{suffix}"));

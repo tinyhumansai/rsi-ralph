@@ -60,6 +60,7 @@ pub(super) struct State {
     pub settled: BTreeSet<String>,
 }
 impl Default for State {
+    /// Starts format version one with the first invocation ID and no consumed turns.
     fn default() -> Self {
         Self {
             version: 1,

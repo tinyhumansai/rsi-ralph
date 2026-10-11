@@ -2,6 +2,7 @@
 use super::{RecordedTurn, RecordedTurnStatus, State, build_epoch};
 use crate::{Error, Result, VerificationEvidence};
 use std::collections::BTreeSet;
+/// Checks invocation identity, ordered references and binary deterministic results.
 pub(super) fn validate_checker(turn: &RecordedTurn, evidence: &VerificationEvidence) -> Result<()> {
     let binding = &evidence.binding;
     if binding.seat_id != turn.seat_id
@@ -23,6 +24,7 @@ pub(super) fn validate_checker(turn: &RecordedTurn, evidence: &VerificationEvide
     }
     Ok(())
 }
+/// Recomputes receipts and verifies contiguous IDs and exactly-once consumption.
 pub(super) fn validate(state: &State) -> Result<()> {
     let check = || -> Result<()> {
         if state.version != 1
