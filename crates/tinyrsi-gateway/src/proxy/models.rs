@@ -89,11 +89,26 @@ fn limits_by_id(body: &Value) -> HashMap<String, Map<String, Value>> {
             let id = entry.get("id")?.as_str()?;
             let limits: Map<String, Value> = LIMIT_FIELDS
                 .iter()
-                .filter_map(|field| Some(((*field).to_owned(), entry.get(*field)?.clone())))
+                .filter_map(|field| Some(((*field).to_owned(), limit(entry.get(*field)?)?)))
                 .collect();
             (!limits.is_empty()).then(|| (id.to_owned(), limits))
         })
         .collect()
+}
+
+/// A limit field's value, with an object (`top_provider`) reduced to its own
+/// limit fields so nothing else the upstream nests there — a price, a
+/// description — reaches the listing. An object with no limits is dropped.
+fn limit(value: &Value) -> Option<Value> {
+    let Some(object) = value.as_object() else {
+        return Some(value.clone());
+    };
+    let kept: Map<String, Value> = LIMIT_FIELDS
+        .iter()
+        .filter(|field| **field != "top_provider")
+        .filter_map(|field| Some(((*field).to_owned(), object.get(*field)?.clone())))
+        .collect();
+    (!kept.is_empty()).then_some(Value::Object(kept))
 }
 
 #[cfg(test)]

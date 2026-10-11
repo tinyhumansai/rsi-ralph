@@ -44,3 +44,22 @@ fn an_entry_keeps_its_id_and_object_whatever_the_upstream_says() {
         json!({"id": "bare", "object": "model"})
     );
 }
+
+#[test]
+fn a_nested_top_provider_keeps_only_its_limits() {
+    let body = json!({"data": [
+        {"id": "m", "top_provider": {
+            "context_length": 128_000,
+            "max_completion_tokens": 8192,
+            "pricing": {"prompt": "9"},
+            "description": "secret-ish",
+        }},
+        {"id": "bare", "top_provider": {"is_moderated": true}},
+    ]});
+    let limits = limits_by_id(&body);
+    assert_eq!(
+        limits["m"]["top_provider"],
+        json!({"context_length": 128_000, "max_completion_tokens": 8192})
+    );
+    assert!(!limits.contains_key("bare"));
+}
