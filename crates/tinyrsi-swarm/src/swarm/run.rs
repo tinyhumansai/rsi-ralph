@@ -1,5 +1,7 @@
 //! The swarm's async body: runtime, coordinator, seats, brief, drain.
 
+use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
@@ -9,10 +11,11 @@ use openhuman_embed::{Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolG
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
+use tinyhivemind_lang::LoweredHive;
 use tinyhivemind_openhuman::OpenHumanHost;
 
 use super::{RUNTIME_SEAT, SeatUsage, SwarmOutcome, SwarmRequest, seat};
-use crate::event::{Redactor, StopReason, SwarmEvent};
+use crate::event::{Redactor, SeatInfo, StopReason, SwarmEvent};
 use crate::hooks::SwarmHooks;
 use crate::mirror::Mirror;
 use crate::package::Hive;
@@ -62,36 +65,14 @@ pub(super) async fn run(
         .with_turn_timeout(request.turn)?
         .with_hooks(hooks.clone())?;
 
-    let mut seats = Vec::new();
-    for plan in &hive.seats {
-        let (spec, info) = seat::spec(plan, &request, &lowered.context);
-        let agent = runtime.agent(spec).map_err(|source| Error::Agent {
-            seat: plan.seat.id.clone(),
-            source: Box::new(source),
-        })?;
-        host.register_agent(agent).await?;
-        seats.push(info);
-    }
-    for desk in &lowered.desks {
-        coordinator
-            .create_hive(HiveInfo {
-                hive_id: desk.id.clone(),
-                name: desk.name.clone(),
-                description: desk.description.clone(),
-                members: Vec::new(),
-            })
-            .await?;
-        for member in &desk.members {
-            coordinator.join_hive(&desk.id, member).await?;
-        }
-    }
+    let seats = register_seats(&hive, &request, &runtime, &host).await?;
+    open_desks(&coordinator, lowered).await?;
     trace.emit(SwarmEvent::SwarmStarted {
         hive: lowered.id.clone(),
         lead: request.lead.clone(),
         desks: lowered.desks.iter().map(|desk| desk.id.clone()).collect(),
         seats,
     });
-
     coordinator
         .send_as_host(SendMessage {
             message_id: BRIEF_ID.into(),
@@ -107,27 +88,7 @@ pub(super) async fn run(
             starters: Vec::new(),
         })
         .await?;
-
-    let mirror = Arc::new(Mirror::default());
-    let watcher = tokio::spawn({
-        let (mirror, coordinator, trace) = (mirror.clone(), coordinator.clone(), trace.clone());
-        async move {
-            loop {
-                // A failed read is retried next tick and by the final flush.
-                let _ = mirror.flush(&coordinator, &trace);
-                tokio::time::sleep(MIRROR_INTERVAL).await;
-            }
-        }
-    });
-    let drained = tokio::time::timeout(request.wall, coordinator.run_until_idle()).await;
-    watcher.abort();
-    // The abort's cancellation error is the expected result.
-    let _ = watcher.await;
-    mirror.flush(&coordinator, &trace)?;
-    let (stop, report) = match drained {
-        Ok(report) => (StopReason::Idle, report?),
-        Err(_) => (StopReason::WallClock, RunReport::default()),
-    };
+    let (stop, report) = drain(&coordinator, &trace, request.wall).await?;
     trace.emit(SwarmEvent::SwarmFinished {
         stop,
         completed: report.completed,
@@ -136,16 +97,7 @@ pub(super) async fn run(
     });
     trace.finish()?;
 
-    let mut usage = hooks.usage();
-    let seats = hive
-        .seats
-        .iter()
-        .map(|plan| {
-            let id = plan.seat.id.clone();
-            let seat = usage.remove(&id).unwrap_or_else(SeatUsage::default);
-            (id, seat)
-        })
-        .collect();
+    let seats = usage(&hive, hooks.usage());
     // Release every handle on the runtime before the next swarm builds one.
     drop(host);
     drop(coordinator);
@@ -159,14 +111,94 @@ pub(super) async fn run(
     })
 }
 
+/// Builds and registers one agent per seat, in manifest order.
+async fn register_seats(
+    hive: &Hive,
+    request: &SwarmRequest,
+    runtime: &Runtime,
+    host: &OpenHumanHost,
+) -> Result<Vec<SeatInfo>> {
+    let mut seats = Vec::new();
+    for plan in &hive.seats {
+        let (spec, info) = seat::spec(plan, request, &hive.lowered.context);
+        let agent = runtime.agent(spec).map_err(|source| Error::Agent {
+            seat: plan.seat.id.clone(),
+            source: Box::new(source),
+        })?;
+        host.register_agent(agent).await?;
+        seats.push(info);
+    }
+    Ok(seats)
+}
+
+/// Creates every desk of the package with its members.
+async fn open_desks(coordinator: &Coordinator, lowered: &LoweredHive) -> Result<()> {
+    for desk in &lowered.desks {
+        coordinator
+            .create_hive(HiveInfo {
+                hive_id: desk.id.clone(),
+                name: desk.name.clone(),
+                description: desk.description.clone(),
+                members: Vec::new(),
+            })
+            .await?;
+        for member in &desk.members {
+            coordinator.join_hive(&desk.id, member).await?;
+        }
+    }
+    Ok(())
+}
+
+/// Runs the coordinator until idle or `wall`, mirroring its transcript.
+async fn drain(
+    coordinator: &Coordinator,
+    trace: &Arc<Trace>,
+    wall: Duration,
+) -> Result<(StopReason, RunReport)> {
+    let mirror = Arc::new(Mirror::default());
+    let watcher = tokio::spawn({
+        let (mirror, coordinator, trace) = (mirror.clone(), coordinator.clone(), trace.clone());
+        async move {
+            loop {
+                // A failed read is retried next tick and by the final flush.
+                let _ = mirror.flush(&coordinator, &trace);
+                tokio::time::sleep(MIRROR_INTERVAL).await;
+            }
+        }
+    });
+    let drained = tokio::time::timeout(wall, coordinator.run_until_idle()).await;
+    watcher.abort();
+    // The abort's cancellation error is the expected result.
+    let _ = watcher.await;
+    mirror.flush(coordinator, trace)?;
+    Ok(match drained {
+        Ok(report) => (StopReason::Idle, report?),
+        Err(_) => (StopReason::WallClock, RunReport::default()),
+    })
+}
+
+/// Every seat's tally, with a zero entry for seats that never ran.
+fn usage(hive: &Hive, mut tally: BTreeMap<String, SeatUsage>) -> BTreeMap<String, SeatUsage> {
+    hive.seats
+        .iter()
+        .map(|plan| {
+            let id = plan.seat.id.clone();
+            let seat = tally.remove(&id).unwrap_or_default();
+            (id, seat)
+        })
+        .collect()
+}
+
 /// The brief, followed by each candidate's checkout.
 pub(super) fn kickoff(request: &SwarmRequest) -> String {
     let mut body = request.brief.clone();
     for (seat, path) in &request.candidates {
-        body.push_str(&format!(
+        // Writing to a `String` cannot fail.
+        let _ = write!(
+            body,
             "\n\nCandidate checkout for {seat}: {}",
             path.display()
-        ));
+        );
     }
     body
 }
@@ -187,7 +219,7 @@ pub(super) fn runtime_config() -> RuntimeConfig {
 /// pack's schemas advertised (seats are coding agents), and its own model
 /// calls tagged [`RUNTIME_SEAT`].
 async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
-    Runtime::builder()
+    let builder = Runtime::builder()
         .config(runtime_config())
         .workspace(Workspace::dir(workspace))
         .provider(
@@ -198,8 +230,9 @@ async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
             .model(request.default_model.clone()),
         )
         .access(Access::readonly())
-        .tool_groups(ToolGroups::packed().with("coding", GroupMode::Advertised))
-        .build()
+        .tool_groups(ToolGroups::packed().with("coding", GroupMode::Advertised));
+    // The build future is large; keep it off the caller's stack frame.
+    Box::pin(builder.build())
         .await
         .map_err(|error| Error::Runtime(Box::new(error)))
 }
