@@ -7,21 +7,18 @@
 //! file), switching that provider to its direct route, and the seat's allow
 //! list gains the search tools.
 //!
-//! # Known upstream limitation
-//!
-//! `OpenHuman` (pinned `vendor/openhuman`) offers the tools from the agent's
-//! config, but its search proxy re-reads `config.toml` and the process
-//! environment before every call (`modules/search/proxy.rs`), and runs one
-//! process-wide module. A per-seat key therefore selects the tools without
-//! yet authenticating their calls; they answer "web search is not
-//! available" until the proxy uses the config it is given. The wiring here
-//! is the intended seam and needs no change when that is fixed upstream.
+//! The key is pinned as an in-memory `SearchHostCredential`
+//! (`SearchConfig::pin_host_credential`): it is never written to the saved
+//! `api_key` fields, never serialized, and prints redacted. `OpenHuman`'s
+//! search proxy uses a pinned config as given and reconfigures its shared
+//! module per caller, so two seats with different keys never see each
+//! other's.
 
 mod types;
 
 use std::collections::BTreeSet;
 
-use openhuman_embed::RuntimeConfig;
+use openhuman_embed::{RuntimeConfig, SearchHostCredential};
 pub use types::ToolKey;
 
 use crate::{Error, Result};
@@ -85,29 +82,16 @@ pub(crate) fn tool_names(keys: &[ToolKey]) -> Vec<String> {
     }
 }
 
-/// Writes `keys` into one seat's agent config.
+/// Pins `keys` into one seat's agent config.
+///
+/// [`validate`] has already refused every provider `OpenHuman` cannot pin,
+/// so a refusal here is unreachable and the key is simply not pinned.
 pub(crate) fn apply(config: &mut RuntimeConfig, keys: &[ToolKey]) {
-    for key in keys {
-        if key.capability != WEB_SEARCH {
-            continue;
-        }
-        let search = &mut config.search;
-        let credentials = match key.provider.as_str() {
-            "brave" => &mut search.brave,
-            "exa" => &mut search.exa,
-            "gemini" => &mut search.gemini,
-            "parallel" => &mut search.parallel,
-            "querit" => &mut search.querit,
-            "tavily" => &mut search.tavily,
-            "tinyfish" => &mut search.tinyfish,
-            _ => continue,
-        };
-        credentials.api_key = Some(key.secret.clone());
-        search.enabled = Some(true);
-        // Replace any managed entry with the default settings: enabled, on
-        // the direct route a bring-your-own key authenticates.
-        search.providers.remove(&key.provider);
-        search.providers.entry(key.provider.clone()).or_default();
+    for key in keys.iter().filter(|key| key.capability == WEB_SEARCH) {
+        let pinned = config
+            .search
+            .pin_host_credential(&key.provider, SearchHostCredential::new(key.secret.clone()));
+        debug_assert!(pinned.is_ok(), "validate admits only pinnable providers");
     }
 }
 

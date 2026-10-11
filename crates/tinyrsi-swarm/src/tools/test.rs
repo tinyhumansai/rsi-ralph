@@ -80,27 +80,21 @@ fn a_search_key_enables_its_provider_on_the_direct_route() {
         ],
     );
     assert_eq!(config.search.enabled, Some(true));
-    assert_eq!(
-        config.search.gemini.api_key.as_deref(),
-        Some("AIza-test-secret")
-    );
-    assert_eq!(
-        config.search.brave.api_key.as_deref(),
-        Some("AIza-test-secret")
-    );
-    assert_eq!(config.search.exa.api_key, None);
-    // Default settings are enabled on the direct route; a fresh config has
-    // Gemini on the managed route instead.
-    let mut empty = config.search.providers.clone();
-    empty.clear();
-    let direct = *empty.entry(String::new()).or_default();
-    assert_eq!(config.search.providers["gemini"], direct);
-    assert_ne!(RuntimeConfig::default().search.providers["gemini"], direct);
+    for provider in ["gemini", "brave"] {
+        assert!(config.search.host_credential(provider).is_some(), "{provider}");
+    }
+    assert!(config.search.host_credential("exa").is_none());
     assert!(!config.search.providers.contains_key("unknown"));
+    // The key lives only in memory: not in the saved fields, not serialized,
+    // not in debug output.
+    assert_eq!(config.search.gemini.api_key, None);
+    let saved = serde_json::to_string(&config.search).unwrap();
+    assert!(!saved.contains("AIza-test-secret"));
+    assert!(!format!("{:?}", config.search).contains("AIza-test-secret"));
     for provider in SEARCH_PROVIDERS {
         let mut config = RuntimeConfig::default();
         apply(&mut config, &[key(WEB_SEARCH, provider, None)]);
-        assert!(config.search.providers.contains_key(provider), "{provider}");
+        assert!(config.search.host_credential(provider).is_some(), "{provider}");
     }
 }
 
