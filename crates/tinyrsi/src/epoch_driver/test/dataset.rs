@@ -302,10 +302,132 @@ fn priors_reject_invalid_values_changes_and_retroactive_external_evaluation() {
             .is_err()
     );
 }
+#[test]
+fn interrupted_duplicate_does_not_inherit_an_earlier_occurrence_measurement() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, checkpoint, dossier, epoch) = fixtures(&dir.path().join("a"));
+    let memory = memory(&dir.path().join("m"));
+    let path = dir.path().join("j");
+    let mut journal = EpochJournal::open(&path).unwrap();
+    prepare(
+        &mut journal,
+        &archive,
+        &checkpoint,
+        &dossier,
+        &epoch,
+        memory.clone(),
+        Arc::new(Named {
+            proposals: vec![proposal(); 2],
+            model: None,
+            calls: Arc::new(AtomicUsize::new(0)),
+        }),
+    )
+    .unwrap();
+    evaluate(&mut journal, &mut archive, &epoch, &memory, false);
+    let mut entry = journal.state.entries[&1].clone();
+    entry.outcome.candidates.truncate(1);
+    entry.outcome.complete = false;
+    entry.evaluating = true;
+    journal.commit_entry(entry).unwrap();
+    drop(journal);
+    let journal = EpochJournal::open(path).unwrap();
+    let dataset = journal.proposal_dataset(1, &archive).unwrap().unwrap();
+    assert_eq!(dataset.rows[0].label, ProposalLabel::Observed);
+    assert_eq!(dataset.rows[1].label, ProposalLabel::Interrupted);
+    assert!(dataset.rows[1].selection.is_none());
+    assert!(dataset.rows[1].candidate_id.is_none());
+    assert_eq!(dataset.metrics(2).unwrap().gain_pairs, 1);
+}
+
+#[test]
+fn corrupt_final_reasons_cannot_override_observed_approval_or_stage_decisions() {
+    for (approved, corrupt) in [
+        (false, ReasonCode::Accepted),
+        (true, ReasonCode::ApprovalDenied),
+        (false, ReasonCode::NoGain),
+        (false, ReasonCode::Inconclusive),
+        (false, ReasonCode::NotReplicated),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let (mut archive, checkpoint, dossier, epoch) = fixtures(&dir.path().join("a"));
+        let memory = memory(&dir.path().join("m"));
+        let mut journal = EpochJournal::open(dir.path().join("j")).unwrap();
+        prepare(
+            &mut journal,
+            &archive,
+            &checkpoint,
+            &dossier,
+            &epoch,
+            memory.clone(),
+            Arc::new(Named {
+                proposals: vec![proposal()],
+                model: None,
+                calls: Arc::new(AtomicUsize::new(0)),
+            }),
+        )
+        .unwrap();
+        evaluate(&mut journal, &mut archive, &epoch, &memory, approved);
+        let mut entry = journal.state.entries[&1].clone();
+        entry.outcome.candidates[0].reason = corrupt;
+        journal.commit_entry(entry).unwrap();
+        assert!(journal.proposal_dataset(1, &archive).is_err());
+    }
+}
 struct Stages {
     fail: Option<EvalStage>,
     selection: Vec<f64>,
     confirmation: f64,
+}
+#[test]
+fn actual_rejection_receipts_match_their_observed_terminal_stage() {
+    for (reason, quality, confirmation) in [
+        (ReasonCode::NoGain, vec![0.0; 3], 0.6),
+        (ReasonCode::Inconclusive, vec![0.2, 0.6, 0.2], 0.6),
+        (ReasonCode::NotReplicated, vec![0.6; 3], 0.0),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let (mut archive, checkpoint, dossier, epoch) = fixtures(&dir.path().join("a"));
+        let memory = memory(&dir.path().join("m"));
+        let mut journal = EpochJournal::open(dir.path().join("j")).unwrap();
+        prepare(
+            &mut journal,
+            &archive,
+            &checkpoint,
+            &dossier,
+            &epoch,
+            memory.clone(),
+            Arc::new(Named {
+                proposals: vec![proposal()],
+                model: None,
+                calls: Arc::new(AtomicUsize::new(0)),
+            }),
+        )
+        .unwrap();
+        evaluate_retreat_epoch(
+            &mut journal,
+            &mut archive,
+            &epoch,
+            &mut Stages {
+                fail: None,
+                selection: quality,
+                confirmation,
+            },
+            &mut Human {
+                approve: false,
+                calls: 0,
+            },
+            &memory,
+        )
+        .unwrap();
+        let dataset = journal.proposal_dataset(1, &archive).unwrap().unwrap();
+        assert_eq!(dataset.rows[0].reason, Some(reason));
+        if reason != ReasonCode::Inconclusive {
+            let mut entry = journal.state.entries[&1].clone();
+            entry.outcome.candidates[0].reason = ReasonCode::Inconclusive;
+            journal.commit_entry(entry).unwrap();
+            assert!(journal.proposal_dataset(1, &archive).is_err());
+        }
+    }
 }
 impl Evaluator for Stages {
     fn pin_memory(&mut self, inc: &CandidateState, _: &Patch) -> Result<BTreeMap<String, u64>> {

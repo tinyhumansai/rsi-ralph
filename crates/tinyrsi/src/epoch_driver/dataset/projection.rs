@@ -30,6 +30,7 @@ pub(super) fn project(
     for (index, proposal) in prepared.proposals.iter().enumerate() {
         let receipt = entry.outcome.candidates.get(index);
         let interrupted = entry.evaluating && index == entry.outcome.candidates.len();
+        let ambiguous = interrupted && prepared.proposals[..index].contains(proposal);
         let duplicate = receipt.is_some_and(|r| r.reason == ReasonCode::Duplicate);
         if let Some(id) = receipt.and_then(|r| r.candidate_id.as_ref())
             && archive.package(id).is_none()
@@ -41,7 +42,7 @@ pub(super) fn project(
             .copied()
             .filter(|e| {
                 !duplicate
-                    && (receipt.is_some() || interrupted)
+                    && (receipt.is_some() || (interrupted && !ambiguous))
                     && e.epoch == entry.epoch
                     && e.incumbent_id == entry.incumbent_id
                     && e.proposal == *proposal
@@ -52,6 +53,7 @@ pub(super) fn project(
             && !duplicate
         {
             validate_receipt(receipt, entry, proposal, &events, &matching)?;
+            validate_disposition(receipt, &matching, archive)?;
         }
         validate_events(entry, &matching, proposal.prediction.minimum_gain)?;
         let last = matching.last();
@@ -178,8 +180,8 @@ fn validate_receipt(
     matching: &[&NormalizedEvaluationEvent],
 ) -> Result<()> {
     let required = match receipt.reason {
-        ReasonCode::Accepted | ReasonCode::ApprovalDenied => 3,
-        ReasonCode::Inconclusive | ReasonCode::NotReplicated => 2,
+        ReasonCode::Accepted | ReasonCode::ApprovalDenied | ReasonCode::NotReplicated => 3,
+        ReasonCode::Inconclusive => 2,
         ReasonCode::NoGain => 1,
         _ => 0,
     };
@@ -194,4 +196,63 @@ fn validate_receipt(
         return Err(Error::InvalidRecord);
     }
     Ok(())
+}
+
+/// Validates final reasons against observed decisions and exact human approval.
+fn validate_disposition(
+    receipt: &super::super::EpochCandidateOutcome,
+    events: &[&NormalizedEvaluationEvent],
+    archive: &Archive,
+) -> Result<()> {
+    let approval = archive
+        .normalized_approvals()
+        .into_iter()
+        .find(|a| receipt.candidate_id.as_ref() == Some(&a.candidate_id));
+    let last = events.last();
+    let valid = match receipt.reason {
+        ReasonCode::Accepted | ReasonCode::ApprovalDenied => {
+            events.len() == 3
+                && events[1..]
+                    .iter()
+                    .all(|e| matches!(e.comparison.decision, EvalDecision::Accept { .. }))
+                && approval.is_some_and(|a| {
+                    a.approved == (receipt.reason == ReasonCode::Accepted)
+                        && last.is_some_and(|e| a.comparison == e.comparison)
+                })
+        }
+        ReasonCode::NoGain => {
+            approval.is_none()
+                && last.is_some_and(|e| {
+                    e.stage != "Confirmation"
+                        && matches!(e.comparison.decision, EvalDecision::Reject { .. })
+                })
+        }
+        ReasonCode::Inconclusive => {
+            approval.is_none()
+                && last.is_some_and(|e| {
+                    e.stage == "Selection"
+                        && matches!(e.comparison.decision, EvalDecision::Inconclusive { .. })
+                })
+        }
+        ReasonCode::NotReplicated => {
+            approval.is_none()
+                && last.is_some_and(|e| {
+                    e.stage == "Confirmation"
+                        && archive.proposals().iter().any(|p| {
+                            p.epoch == e.epoch
+                                && p.patch == e.proposal.patch
+                                && p.rationale
+                                    == format!("{}: {}", e.proposal.title, e.proposal.mechanism)
+                                && p.transcript_refs == e.proposal.transcript_refs
+                                && p.reason == "NotReplicated"
+                        })
+                })
+        }
+        _ => true,
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(Error::InvalidRecord)
+    }
 }
