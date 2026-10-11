@@ -1,0 +1,118 @@
+[
+  {
+    "epoch": 1,
+    "turn_ids": [
+      1
+    ],
+    "interrupted_turns": [],
+    "unmetered_turns": [],
+    "observation": {
+      "transcript": [
+        {
+          "sequence": 0,
+          "seat_id": "hivemind:host",
+          "episode_id": "episode:0"
+        },
+        {
+          "sequence": 1,
+          "seat_id": "alice",
+          "episode_id": "episode:0"
+        }
+      ],
+      "episodes": [
+        {
+          "episode_id": "episode:0",
+          "opened_at": 0,
+          "phase": "Settled"
+        }
+      ]
+    },
+    "dossier": {
+      "epoch": 1,
+      "transcript_sequences": [
+        0,
+        1
+      ],
+      "failed_episodes": [],
+      "open_episodes": [],
+      "failed_nodes": [],
+      "open_nodes": [],
+      "seat_usage": {
+        "alice": {
+          "turns": 1,
+          "input_tokens": 10,
+          "output_tokens": 2,
+          "wasted_turns": 0
+        }
+      },
+      "wasted_turns": 0,
+      "memory_health": {
+        "retrieval_failures": 0,
+        "write_failures": 0,
+        "stale_entries": 0,
+        "repeated_failed_attempts": 0,
+        "unused_recalls": 0,
+        "clipped_recalls": 0,
+        "contradictory_entries": 0
+      }
+    }
+  },
+  {
+    "epoch": 2,
+    "turn_ids": [
+      2
+    ],
+    "interrupted_turns": [],
+    "unmetered_turns": [],
+    "observation": {
+      "transcript": [
+        {
+          "sequence": 2,
+          "seat_id": "hivemind:host",
+          "episode_id": "episode:2"
+        },
+        {
+          "sequence": 3,
+          "seat_id": "alice",
+          "episode_id": "episode:2"
+        }
+      ],
+      "episodes": [
+        {
+          "episode_id": "episode:2",
+          "opened_at": 2,
+          "phase": "Settled"
+        }
+      ]
+    },
+    "dossier": {
+      "epoch": 2,
+      "transcript_sequences": [
+        2,
+        3
+      ],
+      "failed_episodes": [],
+      "open_episodes": [],
+      "failed_nodes": [],
+      "open_nodes": [],
+      "seat_usage": {
+        "alice": {
+          "turns": 1,
+          "input_tokens": 10,
+          "output_tokens": 2,
+          "wasted_turns": 0
+        }
+      },
+      "wasted_turns": 0,
+      "memory_health": {
+        "retrieval_failures": 0,
+        "write_failures": 0,
+        "stale_entries": 0,
+        "repeated_failed_attempts": 0,
+        "unused_recalls": 0,
+        "clipped_recalls": 0,
+        "contradictory_entries": 0
+      }
+    }
+  }
+]

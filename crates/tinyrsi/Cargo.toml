@@ -52,3 +52,7 @@ workspace = true
 [[example]]
 name = "complete_openrouter"
 required-features = ["host"]
+
+[[example]]
+name = "observe_epochs"
+required-features = ["host"]

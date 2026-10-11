@@ -8,7 +8,7 @@ Implemented mechanisms and experimental efficacy are separate claims.
 
 | Phase | Implemented mechanism | Evidence boundary |
 | --- | --- | --- |
-| P1 — Observe and record | Durable redacted observations, dossiers, prepared snapshots and replay-validated archive | Host owns actual usage callbacks and admission exclusion |
+| P1 — Observe and record | Durable measured turn/checker callbacks, atomic redacted epoch dossiers, prepared snapshots and replay-validated archive | Host owns admission exclusion; interrupted responses before a durable callback remain explicitly unknown |
 | P2 — Human-gated shadow loop | Normalized preregistration, isolated private suites, exact memory pinning, fresh confirmation and explicit approval | Private configuration and host checker trust remain external |
 | P3 — Verified decomposition | Real Coordinator-backed verification/completion gate, executable/schema/reference/Lean checks and multi-seat DAG integration | Executing generated code requires a host sandbox; stock Lean is required for proof claims |
 | P4 — Creative retreat | Actual tinybackrooms Engine, durable scoped memory, epoch journal and complete typed attempt capture | Failed calls and invalid formatting remain failures/counters |
@@ -22,6 +22,19 @@ phases together with the observation cursor and epoch. Reopening the store
 retains those windows and avoids counting settled episodes again.
 `Dossier::build` combines observations with measured host token/turn and verifier
 callbacks; message bodies, failure text and private oracle contents are omitted.
+
+`EvidenceJournal` adds the durable callback pump: invocation IDs are recorded
+before dispatch, provider usage before artifact delivery, and checker evidence
+before controlled completion. Atomic epoch receipts consume each measured turn
+once together with the observation cursor and dossier. Duplicate callbacks and
+repeated checkpoints survive restart without recounting. Open turns block
+checkpointing; explicitly interrupted turns retain evidence and expose missing
+usage. The offline `observe_epochs` example consumes coordinator notifications,
+executes two actual checked turns across SQLite/journal reopen, and writes public
+receipts under `target/rsi-observe-epochs/`. See the
+[evidence contract](../specs/epoch-evidence.md) and
+[implementation plan](../plans/epoch-evidence.md). Coordinator transcript/episode
+reads remain separate snapshots, so hosts must stop admission at boundaries.
 
 `Archive` uses the language's original `Record` and `Package`, validates
 ancestry/content identities, and preserves prepared unscored states. It retains

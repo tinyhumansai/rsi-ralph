@@ -18,6 +18,13 @@ pub trait ArtifactProducer: Send + Sync {
     /// Produces an artifact for the host-selected authorization.
     fn produce(&self, request: TurnRequest, binding: VerificationBinding) -> ArtifactFuture;
 }
+/// Host callback invoked after a real checker and before DAG/completion updates.
+pub trait VerificationObserver: Send + Sync {
+    /// Persist redacted observed evidence; failure prevents completion.
+    /// # Errors
+    /// Returns a persistence or identity error, causing the runner to park.
+    fn observe(&self, evidence: &VerificationEvidence) -> crate::Result<()>;
+}
 /// Controlled runner that verifies every artifact before completing its episode.
 pub struct VerifiedRunner {
     coordinator: Weak<Coordinator>,
@@ -27,6 +34,7 @@ pub struct VerifiedRunner {
     blueprints: Arc<Mutex<BTreeMap<String, Blueprint>>>,
     evidence: Arc<Mutex<Vec<VerificationEvidence>>>,
     references: SharedReferences,
+    observer: Option<Arc<dyn VerificationObserver>>,
 }
 impl VerifiedRunner {
     /// Builds a runner without granting the producer coordinator access.
@@ -56,7 +64,14 @@ impl VerifiedRunner {
             blueprints: Arc::new(Mutex::new(BTreeMap::new())),
             evidence: Arc::new(Mutex::new(vec![])),
             references: Arc::new(Mutex::new(BTreeMap::new())),
+            observer: None,
         })
+    }
+    /// Require a successful host evidence callback before marking a node verified.
+    #[must_use]
+    pub fn with_observer(mut self, observer: Arc<dyn VerificationObserver>) -> Self {
+        self.observer = Some(observer);
+        self
     }
     /// Public identity-bound checker results, without private verifier output.
     /// # Errors
@@ -78,6 +93,7 @@ impl AgentRunner for VerifiedRunner {
         let blueprints = self.blueprints.clone();
         let evidence = self.evidence.clone();
         let references = self.references.clone();
+        let observer = self.observer.clone();
         Box::pin(async move {
             let session = request
                 .session_id
@@ -131,8 +147,14 @@ impl AgentRunner for VerifiedRunner {
             };
             let passed = result.passed;
             if let Ok(mut log) = evidence.lock() {
-                log.push(result);
+                log.push(result.clone());
             } else {
+                return Ok(parked());
+            }
+            if observer
+                .as_ref()
+                .is_some_and(|sink| sink.observe(&result).is_err())
+            {
                 return Ok(parked());
             }
             let complete = {
