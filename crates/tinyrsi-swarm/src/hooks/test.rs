@@ -4,7 +4,7 @@
 use std::sync::mpsc;
 
 use openhuman_embed::LastTurnUsage;
-use tinyhivemind_hives::Destination;
+use tinyhivemind_hives::{Destination, TurnRequest};
 
 use super::*;
 use crate::event::Redactor;
