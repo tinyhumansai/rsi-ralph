@@ -8,7 +8,6 @@ use super::{Budgets, Ledger, LedgerState};
 use crate::error::Error;
 
 /// A throwaway directory: `.0` is its path, `.1` keeps it alive.
-/// reads in the tests below.
 struct Scratch(std::path::PathBuf, tempfile::TempDir);
 
 impl Scratch {
