@@ -158,7 +158,11 @@ fn serve_serves_the_store_until_stopped() {
         let _ = execute(cli, &env(true), &mut Lines(sender));
     });
     let line = lines.recv().unwrap();
-    let url = line.trim().strip_prefix("serving http://").unwrap().to_owned();
+    let url = line
+        .trim()
+        .strip_prefix("serving http://")
+        .unwrap()
+        .to_owned();
     let mut stream = std::net::TcpStream::connect(url).unwrap();
     write!(stream, "GET /api/runs HTTP/1.1\r\n\r\n").unwrap();
     let mut reply = String::new();
@@ -171,7 +175,13 @@ fn run_without_a_key_fails_before_starting_anything() {
     let home = tempfile::tempdir().unwrap();
     let dir = example();
     let (result, out) = exec(
-        &["--home", home.path().to_str().unwrap(), "run", dir.to_str().unwrap(), "--no-serve"],
+        &[
+            "--home",
+            home.path().to_str().unwrap(),
+            "run",
+            dir.to_str().unwrap(),
+            "--no-serve",
+        ],
         false,
     );
     assert!(matches!(result, Err(Error::MissingKeys { .. })));
@@ -186,7 +196,14 @@ fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
     let dir = example();
     let checkout = dir.join("subject");
     let (ok, out) = exec(
-        &["--home", h, "score", dir.to_str().unwrap(), "--checkout", checkout.to_str().unwrap()],
+        &[
+            "--home",
+            h,
+            "score",
+            dir.to_str().unwrap(),
+            "--checkout",
+            checkout.to_str().unwrap(),
+        ],
         true,
     );
     assert!(ok.is_ok(), "{ok:?}");
@@ -194,7 +211,9 @@ fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
     let runs = Store::new(home.path()).list_runs(None).unwrap();
     assert!(runs.is_empty(), "a scoring folder is not a run");
     let store = Store::new(home.path());
-    let run = store.create_run("demo", Some("r2"), &BTreeMap::new()).unwrap();
+    let run = store
+        .create_run("demo", Some("r2"), &BTreeMap::new())
+        .unwrap();
     write_json(
         &run.record_path(),
         &RunRecord {
@@ -215,5 +234,7 @@ fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
     .unwrap();
     let (ok, out) = exec(&["--home", h, "show", "demo/r2"], true);
     assert!(ok.is_ok());
-    assert!(out.contains("incumbent abc (-)") && !out.contains("stopped") && !out.contains("error"));
+    assert!(
+        out.contains("incumbent abc (-)") && !out.contains("stopped") && !out.contains("error")
+    );
 }

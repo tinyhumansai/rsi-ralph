@@ -134,6 +134,9 @@ fn a_loop_without_an_enabled_retreat_has_none_and_one_with_it_builds() {
     files.insert("rsi.json".into(), m.to_string());
     let parsed = manifest::parse(&files).unwrap();
     let retreat = Retreat::new(&parsed, &store, &gateway).unwrap().unwrap();
-    assert_eq!(retreat.memory, Some(store.retreat_dir("graph-coloring").join("ideas.json")));
+    assert_eq!(
+        retreat.memory,
+        Some(store.retreat_dir("graph-coloring").join("ideas.json"))
+    );
     assert!(format!("{retreat:?}").contains("ideas: 2"));
 }

@@ -37,7 +37,8 @@ fn takes_editing_seats_models_and_tool_keys_from_the_loop() {
 #[test]
 fn a_tool_key_without_a_value_is_missing() {
     let parsed = example(|m| {
-        m["keys"] = serde_json::json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
+        m["keys"] =
+            serde_json::json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
     });
     assert!(matches!(
         Hive::new(&parsed, &Keys::default(), "http://x"),
