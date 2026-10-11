@@ -53,7 +53,7 @@ use tinyrsi_host::{
     GenerationBudget, GenerationMode, HEpoch, JsonlTrace, LoopEvent, MemoryHealth, MemoryLimits,
     MetricDirection, ModelPort, MonotonicClock, NodeStatus, PatchClass, ReasonCode,
     RetreatEpochInput, RunGoal, SnapshotMemoryStore, StopReason, TraceSink, VerifierOutcome,
-    evaluate_retreat_epoch, prepare_retreat_epoch, record_ideated, record_outcome,
+    evaluate_retreat_epoch, prepare_retreat_epoch, record_epoch,
 };
 
 /// Epochs before the run gives up; offline needs two.
@@ -235,7 +235,6 @@ impl HiveLoop {
                 budget: &generation(),
             },
         ))?;
-        record_ideated(&mut self.trace, label, &prepared)?;
         let outcome = evaluate_retreat_epoch(
             &mut self.journal,
             &mut self.archive,
@@ -244,7 +243,7 @@ impl HiveLoop {
             &mut hive::ContextOnlyApproval,
             &self.discovery,
         )?;
-        record_outcome(&mut self.trace, label, &self.archive, &incumbent, &outcome)?;
+        record_epoch(&mut self.trace, label, &self.archive, &prepared, &outcome)?;
         let mut accepted = None;
         for candidate in &outcome.candidates {
             let proposal = &prepared.proposals[candidate.proposal_index];
