@@ -64,22 +64,25 @@ pub fn normalize_hypothesis(hypothesis: &str) -> String {
 /// same content id or the same non-empty normalized hypothesis.
 #[must_use]
 pub fn repetition(candidates: &[LedgerCandidate]) -> (u32, u32) {
-    let mut ids = HashSet::new();
-    let mut hypotheses = HashSet::new();
+    let mut ruled_out_ids = HashSet::new();
+    let mut ruled_out_ideas = HashSet::new();
     let (mut repeats, mut proposals) = (0, 0);
     for candidate in candidates.iter().filter(|c| c.epoch > 0) {
         proposals += 1;
         let hypothesis = normalize_hypothesis(&candidate.hypothesis);
-        let same_content = candidate.id.as_ref().is_some_and(|id| ids.contains(id));
-        let same_idea = !hypothesis.is_empty() && hypotheses.contains(&hypothesis);
+        let same_content = candidate
+            .id
+            .as_ref()
+            .is_some_and(|id| ruled_out_ids.contains(id));
+        let same_idea = !hypothesis.is_empty() && ruled_out_ideas.contains(&hypothesis);
         if same_content || same_idea {
             repeats += 1;
         }
         let ruled_out = !candidate.promoted && candidate.decision != CandidateDecision::Duplicate;
         if ruled_out {
-            ids.extend(candidate.id.clone());
+            ruled_out_ids.extend(candidate.id.clone());
             if !hypothesis.is_empty() {
-                hypotheses.insert(hypothesis);
+                ruled_out_ideas.insert(hypothesis);
             }
         }
     }
