@@ -90,6 +90,7 @@ fn covers_the_observed_and_failed_execution_shapes() {
         (StopReason::Stalled, "stalled"),
         (StopReason::Budget, "budget"),
         (StopReason::Error, "error"),
+        (StopReason::ProviderRefused, "provider_refused"),
     ] {
         assert_eq!(
             serde_json::to_string(&reason).unwrap(),
@@ -109,6 +110,21 @@ fn covers_the_observed_and_failed_execution_shapes() {
         serde_json::to_string(&MetricDirection::Maximize).unwrap(),
         "\"maximize\""
     );
+}
+
+#[test]
+fn provider_refused_names_the_epoch_counts_status_and_message() {
+    let event = LoopEvent::ProviderRefused {
+        epoch: 1,
+        calls: 2,
+        refused: 2,
+        status: 403,
+        message: "Key limit exceeded".into(),
+    };
+    let wire = r#"{"kind":"provider_refused","epoch":1,"calls":2,"refused":2,"status":403,"message":"Key limit exceeded"}"#;
+    assert_eq!(serde_json::to_string(&event).unwrap(), wire);
+    assert_eq!(serde_json::from_str::<LoopEvent>(wire).unwrap(), event);
+    assert_eq!(event.kind(), "provider_refused");
 }
 
 fn started() -> LoopEvent {
