@@ -59,3 +59,16 @@ uses `DeploymentStore` to activate or roll back exact accepted snapshots.
 
 [Selection-only outcome datasets](dataset/README.md) connect these occurrence
 identities to frozen priors, measured selection labels and descriptive metrics.
+
+## Loop trace
+
+`record_ideated` and `record_outcome` write a hive epoch onto the loop trace
+(`tinyrsi_trace::TraceSink`), so `apps/rsi-viz` shows hive epochs exactly as it
+shows script runs. After `prepare_retreat_epoch`, `record_ideated` emits one
+`ideated` per proposal (`p<epoch>-<i>`). After `evaluate_retreat_epoch`,
+`record_outcome` emits `measured` (the H estimate, when evaluated), `scored`
+(accepted only after human approval), `improved` for an accepted candidate,
+and `epoch_finished`. The host still emits `run_started`, `epoch_started`,
+`observed` and `run_finished`, and chooses the epoch label, because only it
+knows where its run begins and what it observed. `examples/complete` shows the
+full sequence.
