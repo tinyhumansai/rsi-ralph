@@ -538,3 +538,60 @@ fn a_failing_scorer_ends_the_run_with_its_error() {
         Some("run_finished")
     );
 }
+
+/// A proposal that writes `content` to `path`.
+fn edit(path: &str, content: &str) -> ScriptProposal {
+    ScriptProposal {
+        rationale: "r".into(),
+        hypothesis: "h".into(),
+        files: vec![tinyrsi_evolve::ProposedFile {
+            path: path.into(),
+            content: content.into(),
+        }],
+    }
+}
+
+#[test]
+fn validates_proposals_from_any_evolver_before_applying_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let evolver = tinyrsi_evolve::ScriptedEvolver::one_each([
+        edit("../escape.sh", "rm -rf /"),
+        edit("/tmp/absolute.sh", "rm -rf /"),
+    ]);
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &evolver, &policy(1, 2), &run, &mut trace).unwrap();
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [
+            CandidateDecision::Baseline,
+            CandidateDecision::Invalid,
+            CandidateDecision::Invalid
+        ]
+    );
+    assert!(!dir.path().join("escape.sh").exists());
+    assert!(ledger.candidates[1..].iter().all(|c| c.id.is_none()));
+}
+
+#[test]
+fn rejects_a_batch_of_more_than_one_proposal() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = location(dir.path());
+    let evolver = tinyrsi_evolve::ScriptedEvolver::new([tinyrsi_evolve::Proposed {
+        tokens: 0,
+        proposals: vec![
+            Ok(edit("run.sh", &loss("0.3"))),
+            Ok(edit("run.sh", &loss("0.2"))),
+        ],
+    }]);
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &evolver, &policy(1, 1), &run, &mut trace).unwrap();
+    let ledger = ledger(&run);
+    assert_eq!(
+        decisions(&ledger),
+        [CandidateDecision::Baseline, CandidateDecision::Invalid]
+    );
+}

@@ -57,7 +57,8 @@ impl<S: ?Sized> Scorer<S> for Composite<'_, S> {
     ///
     /// Returns [`Error::InvalidEvaluation`] for no members, a non-positive or
     /// non-finite weight, weights that do not sum to one, or a member whose
-    /// assessment does not have one quality per seed; and any member's error.
+    /// assessment does not have one quality (and eligible quality) per seed
+    /// in `[0, 1]`; and any member's error. Token totals saturate.
     fn assess(&self, subject: &S, goal: &Goal, seeds: &[u64]) -> Result<Assessment> {
         let sum: f64 = self.members.iter().map(|(w, _)| w).sum();
         if self.members.is_empty()
@@ -72,9 +73,12 @@ impl<S: ?Sized> Scorer<S> for Composite<'_, S> {
         let mut assessments = Vec::with_capacity(self.members.len());
         for (weight, scorer) in &self.members {
             let assessment = scorer.assess(subject, goal, seeds)?;
-            let aligned = |q: &Vec<f64>| q.len() == seeds.len();
-            if !aligned(&assessment.qualities)
-                || assessment.eligible.as_ref().is_some_and(|e| !aligned(e))
+            // Checked before blending: a weighted mean can hide an
+            // out-of-range member inside [0, 1].
+            let valid =
+                |q: &Vec<f64>| q.len() == seeds.len() && q.iter().all(|v| (0.0..=1.0).contains(v));
+            if !valid(&assessment.qualities)
+                || assessment.eligible.as_ref().is_some_and(|e| !valid(e))
             {
                 return Err(Error::InvalidEvaluation);
             }
@@ -103,7 +107,9 @@ impl<S: ?Sized> Scorer<S> for Composite<'_, S> {
                 _ => None,
             },
             rationale: (!rationale.is_empty()).then(|| rationale.join("\n\n")),
-            tokens: assessments.iter().map(|(_, a)| a.tokens).sum(),
+            tokens: assessments
+                .iter()
+                .fold(0, |sum: u64, (_, a)| sum.saturating_add(a.tokens)),
         })
     }
 }

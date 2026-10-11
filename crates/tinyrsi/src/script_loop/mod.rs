@@ -433,13 +433,17 @@ impl LoopState<'_> {
             self.supervisor
                 .propose(&brief, &Goal::new(self.subject.brief.clone()), &context)?;
         self.ledger.tokens = self.ledger.tokens.saturating_add(proposed.tokens);
-        // The script loop asks for one proposal per call; an evolver that
-        // returned none produced nothing usable.
-        Ok(proposed
-            .proposals
-            .into_iter()
-            .next()
-            .unwrap_or(Err(tinyrsi_evolve::Error::SupervisorMalformed))
+        // The script loop asks for one proposal per call: none, or a batch
+        // it would have to silently truncate, is malformed. Every proposal is
+        // validated here, whichever evolver produced it, before `apply` can
+        // write a path.
+        let mut proposals = proposed.proposals.into_iter();
+        let proposal = match (proposals.next(), proposals.next()) {
+            (Some(only), None) => only,
+            _ => Err(tinyrsi_evolve::Error::SupervisorMalformed),
+        };
+        Ok(proposal
+            .and_then(|p| p.validate(&self.subject.editable).map(|()| p))
             .map_err(Error::from))
     }
 

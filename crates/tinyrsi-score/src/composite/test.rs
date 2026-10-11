@@ -134,3 +134,36 @@ fn a_projection_scores_one_view_of_a_richer_subject() {
     assert_eq!(a.metric.unwrap().values, vec![0.1, 0.2, 0.3]);
     assert!(format!("{scorer:?}").contains("Minimize"));
 }
+
+#[test]
+fn rejects_member_qualities_outside_the_unit_interval_before_blending() {
+    // 2.0 and 0.0 would blend to a valid-looking 1.0.
+    let mut wild = at(0.5, true);
+    wild.qualities = vec![2.0; 3];
+    let mix = Composite::new()
+        .with(0.5, fixed(wild))
+        .with(0.5, fixed(at(0.1, false)));
+    assert_eq!(
+        mix.assess("s", &goal(), &SEEDS),
+        Err(Error::InvalidEvaluation)
+    );
+    let mut wild_eligible = at(0.5, true);
+    wild_eligible.eligible = Some(vec![f64::NAN; 3]);
+    let mix = Composite::new()
+        .with(0.5, fixed(wild_eligible))
+        .with(0.5, fixed(at(0.5, true)));
+    assert_eq!(
+        mix.assess("s", &goal(), &SEEDS),
+        Err(Error::InvalidEvaluation)
+    );
+}
+
+#[test]
+fn saturates_member_token_totals_instead_of_overflowing() {
+    let mut heavy = at(0.5, true);
+    heavy.tokens = u64::MAX;
+    let mix = Composite::new()
+        .with(0.5, fixed(heavy.clone()))
+        .with(0.5, fixed(heavy));
+    assert_eq!(mix.assess("s", &goal(), &SEEDS).unwrap().tokens, u64::MAX);
+}

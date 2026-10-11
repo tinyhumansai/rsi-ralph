@@ -131,7 +131,13 @@ impl Scorer<str> for BackroomsJudge {
                     },
                     model: self.model.clone(),
                     system: SYSTEM.to_owned(),
-                    messages: vec![Message::user(text.clone())],
+                    // A Conversant has no seed channel and may ignore the
+                    // seat, so the message itself names the draw: otherwise
+                    // a seeded backend repeats one rating as N.
+                    messages: vec![Message::user(format!(
+                        "{text}\n# Rating\nrater {rater}, draw {}\n",
+                        super::llm::rater_seed(*seed, rater)
+                    ))],
                     tool: TOOL.to_owned(),
                     schema: self.schema(),
                 }));
