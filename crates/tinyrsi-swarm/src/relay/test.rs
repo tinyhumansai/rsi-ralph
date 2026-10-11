@@ -25,12 +25,18 @@ fn a_seats_last_word_to_the_lead_is_stranded() {
         message(1, "lead", "implementer-a"),
         message(2, "implementer-a", "lead"),
     ];
-    assert_eq!(stranded_reply(&transcript, "lead").map(|m| m.sequence), Some(2));
+    assert_eq!(
+        stranded_reply(&transcript, "lead").map(|m| m.sequence),
+        Some(2)
+    );
 }
 
 #[test]
 fn nothing_is_stranded_when_the_lead_spoke_last_or_the_reply_went_elsewhere() {
-    let lead_last = [message(1, "implementer-a", "lead"), message(2, "lead", "hivemind:host")];
+    let lead_last = [
+        message(1, "implementer-a", "lead"),
+        message(2, "lead", "hivemind:host"),
+    ];
     assert!(stranded_reply(&lead_last, "lead").is_none());
     let to_someone_else = [message(1, "implementer-a", "reviewer")];
     assert!(stranded_reply(&to_someone_else, "lead").is_none());

@@ -19,7 +19,8 @@ pub(crate) const MAX_RELAYS: usize = 3;
 /// to another seat, or posted to a desk do not count.
 pub(crate) fn stranded_reply<'a>(transcript: &'a [Message], lead: &str) -> Option<&'a Message> {
     let last = transcript.last()?;
-    let from_seat = last.sender != lead && !last.sender.is_empty() && !last.sender.starts_with("hivemind:");
+    let from_seat =
+        last.sender != lead && !last.sender.is_empty() && !last.sender.starts_with("hivemind:");
     let to_lead = matches!(&last.destination, Destination::Agent(id) if id == lead);
     (from_seat && to_lead).then_some(last)
 }

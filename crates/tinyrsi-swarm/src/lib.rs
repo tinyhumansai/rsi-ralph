@@ -68,6 +68,7 @@ mod hooks;
 mod mirror;
 mod package;
 mod prompt;
+mod relay;
 mod swarm;
 mod tools;
 mod trace;

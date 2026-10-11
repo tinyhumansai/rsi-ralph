@@ -19,6 +19,7 @@ use crate::event::{Redactor, SeatInfo, StopReason, SwarmEvent};
 use crate::hooks::SwarmHooks;
 use crate::mirror::Mirror;
 use crate::package::Hive;
+use crate::relay::{MAX_RELAYS, relay_message, stranded_reply};
 use crate::trace::Trace;
 use crate::{Error, Result};
 
@@ -88,7 +89,7 @@ pub(super) async fn run(
             starters: Vec::new(),
         })
         .await?;
-    let (stop, report) = drain(&coordinator, &trace, request.wall).await?;
+    let (stop, report) = drain(&coordinator, &trace, &request.lead, request.wall).await?;
     trace.emit(SwarmEvent::SwarmFinished {
         stop,
         completed: report.completed,
@@ -150,9 +151,14 @@ async fn open_desks(coordinator: &Coordinator, lowered: &LoweredHive) -> Result<
 }
 
 /// Runs the coordinator until idle or `wall`, mirroring its transcript.
+///
+/// Each time it goes idle on a seat's unread reply to `lead`
+/// ([`stranded_reply`]), the reply is relayed to the lead and the run goes on,
+/// at most [`MAX_RELAYS`] times.
 async fn drain(
     coordinator: &Coordinator,
     trace: &Arc<Trace>,
+    lead: &str,
     wall: Duration,
 ) -> Result<(StopReason, RunReport)> {
     let mirror = Arc::new(Mirror::default());
@@ -166,15 +172,33 @@ async fn drain(
             }
         }
     });
-    let drained = tokio::time::timeout(wall, coordinator.run_until_idle()).await;
+    let deadline = tokio::time::Instant::now() + wall;
+    let mut total = RunReport::default();
+    let mut relays = 0;
+    let stop = loop {
+        let Ok(report) = tokio::time::timeout_at(deadline, coordinator.run_until_idle()).await
+        else {
+            break StopReason::WallClock;
+        };
+        let report = report?;
+        total.completed += report.completed;
+        total.failed += report.failed;
+        total.parked += report.parked;
+        if relays == MAX_RELAYS {
+            break StopReason::Idle;
+        }
+        let transcript = coordinator.read_transcript(None)?;
+        let Some(reply) = stranded_reply(&transcript, lead) else {
+            break StopReason::Idle;
+        };
+        coordinator.send_as_host(relay_message(reply, lead)).await?;
+        relays += 1;
+    };
     watcher.abort();
     // The abort's cancellation error is the expected result.
     let _ = watcher.await;
     mirror.flush(coordinator, trace)?;
-    Ok(match drained {
-        Ok(report) => (StopReason::Idle, report?),
-        Err(_) => (StopReason::WallClock, RunReport::default()),
-    })
+    Ok((stop, total))
 }
 
 /// Every seat's tally, with a zero entry for seats that never ran.
