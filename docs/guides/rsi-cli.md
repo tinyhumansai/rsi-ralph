@@ -50,7 +50,9 @@ A score function is any command. It runs in the loop folder with
   "failures": [ { "id": "q3", "type": "temporal", "text": "what went wrong" } ] }
 ```
 
-`failures` are shown to the hive in the next brief. A score function that
+`failures` and `metrics` are shown to the hive in the next brief; put anything
+the hive must not see, such as held-out accuracy, in a `"private": {...}` map
+instead. A score function that
 calls models itself (a reader, a judge, an embedder) should send them through
 the run's gateway so they count against the budget: `$RSI_GATEWAY/__tag/<phase>/<name>/v1`
 is an OpenAI-compatible base URL that needs no key. Pick how a candidate wins:
