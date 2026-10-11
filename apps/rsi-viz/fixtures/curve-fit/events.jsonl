@@ -1,0 +1,31 @@
+{"seq":0,"elapsed_ms":0,"event":{"kind":"run_started","run_id":"curve-fit-1","subject":"curve_fit.py","goal":{"metric":"rmse","direction":"minimize","target":0.05}}}
+{"seq":1,"elapsed_ms":3,"event":{"kind":"executed","epoch":0,"candidate":"a1b2c3d4e5f6","seed":1,"metric":0.42,"ok":true,"duration_ms":120}}
+{"seq":2,"elapsed_ms":4,"event":{"kind":"measured","epoch":0,"candidate":"a1b2c3d4e5f6","mean":0.42,"failures":0,"seeds":1}}
+{"seq":3,"elapsed_ms":5,"event":{"kind":"epoch_started","epoch":1,"incumbent":"a1b2c3d4e5f6"}}
+{"seq":4,"elapsed_ms":5,"event":{"kind":"observed","epoch":1,"incumbent":"a1b2c3d4e5f6","incumbent_metric":0.42,"history":1,"rejected":0}}
+{"seq":5,"elapsed_ms":900,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-0","parent":"a1b2c3d4e5f6","rationale":"linear model underfits","hypothesis":"cubic features cut rmse"}}
+{"seq":6,"elapsed_ms":1100,"event":{"kind":"executed","epoch":1,"candidate":"0f9e8d7c6b5a","seed":1,"metric":0.11,"ok":true,"duration_ms":130}}
+{"seq":7,"elapsed_ms":1101,"event":{"kind":"measured","epoch":1,"candidate":"0f9e8d7c6b5a","mean":0.11,"failures":0,"seeds":1}}
+{"seq":8,"elapsed_ms":1102,"event":{"kind":"scored","epoch":1,"candidate":"0f9e8d7c6b5a","decision":"accept","estimate":0.31,"lower":0.28,"upper":0.34}}
+{"seq":9,"elapsed_ms":1102,"event":{"kind":"improved","epoch":1,"from":"a1b2c3d4e5f6","to":"0f9e8d7c6b5a","metric":0.11}}
+{"seq":10,"elapsed_ms":1103,"event":{"kind":"epoch_finished","epoch":1,"incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11}}
+{"seq":11,"elapsed_ms":1104,"event":{"kind":"epoch_started","epoch":2,"incumbent":"0f9e8d7c6b5a"}}
+{"seq":12,"elapsed_ms":1105,"event":{"kind":"observed","epoch":2,"incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11,"history":2,"rejected":0}}
+{"seq":13,"elapsed_ms":2010,"event":{"kind":"ideated","epoch":2,"proposal_id":"p2-0","parent":"0f9e8d7c6b5a","rationale":"residuals oscillate at high x","hypothesis":"a degree-9 polynomial fits the oscillation"}}
+{"seq":14,"elapsed_ms":2015,"event":{"kind":"ideated","epoch":2,"proposal_id":"p2-1","parent":"0f9e8d7c6b5a","rationale":"noise dominates the remaining error","hypothesis":"ridge regularisation lowers held-out rmse"}}
+{"seq":15,"elapsed_ms":2200,"event":{"kind":"executed","epoch":2,"candidate":"5e4d3c2b1a09","seed":1,"metric":0.19,"ok":true,"duration_ms":160}}
+{"seq":16,"elapsed_ms":2201,"event":{"kind":"measured","epoch":2,"candidate":"5e4d3c2b1a09","mean":0.19,"failures":0,"seeds":1}}
+{"seq":17,"elapsed_ms":2202,"event":{"kind":"scored","epoch":2,"candidate":"5e4d3c2b1a09","decision":"reject","estimate":-0.08,"lower":-0.11,"upper":-0.05}}
+{"seq":18,"elapsed_ms":2400,"event":{"kind":"executed","epoch":2,"candidate":"9a8b7c6d5e4f","seed":1,"metric":0.105,"ok":true,"duration_ms":140}}
+{"seq":19,"elapsed_ms":2401,"event":{"kind":"measured","epoch":2,"candidate":"9a8b7c6d5e4f","mean":0.105,"failures":0,"seeds":1}}
+{"seq":20,"elapsed_ms":2402,"event":{"kind":"scored","epoch":2,"candidate":"9a8b7c6d5e4f","decision":"inconclusive","estimate":0.005,"lower":-0.02,"upper":0.03}}
+{"seq":21,"elapsed_ms":2403,"event":{"kind":"epoch_finished","epoch":2,"incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11}}
+{"seq":22,"elapsed_ms":2404,"event":{"kind":"epoch_started","epoch":3,"incumbent":"0f9e8d7c6b5a"}}
+{"seq":23,"elapsed_ms":2405,"event":{"kind":"observed","epoch":3,"incumbent":"0f9e8d7c6b5a","incumbent_metric":0.11,"history":3,"rejected":1}}
+{"seq":24,"elapsed_ms":3300,"event":{"kind":"ideated","epoch":3,"proposal_id":"p3-0","parent":"0f9e8d7c6b5a","rationale":"the target is a damped sinusoid, not a polynomial","hypothesis":"fitting a*exp(-b*x)*sin(c*x) brings rmse under 0.05"}}
+{"seq":25,"elapsed_ms":3500,"event":{"kind":"executed","epoch":3,"candidate":"3c2b1a0f9e8d","seed":1,"metric":0.04,"ok":true,"duration_ms":150}}
+{"seq":26,"elapsed_ms":3501,"event":{"kind":"measured","epoch":3,"candidate":"3c2b1a0f9e8d","mean":0.04,"failures":0,"seeds":1}}
+{"seq":27,"elapsed_ms":3502,"event":{"kind":"scored","epoch":3,"candidate":"3c2b1a0f9e8d","decision":"accept","estimate":0.07,"lower":0.06,"upper":0.08}}
+{"seq":28,"elapsed_ms":3502,"event":{"kind":"improved","epoch":3,"from":"0f9e8d7c6b5a","to":"3c2b1a0f9e8d","metric":0.04}}
+{"seq":29,"elapsed_ms":3503,"event":{"kind":"epoch_finished","epoch":3,"incumbent":"3c2b1a0f9e8d","incumbent_metric":0.04}}
+{"seq":30,"elapsed_ms":3504,"event":{"kind":"run_finished","reason":"goal_reached","incumbent":"3c2b1a0f9e8d","incumbent_metric":0.04}}
