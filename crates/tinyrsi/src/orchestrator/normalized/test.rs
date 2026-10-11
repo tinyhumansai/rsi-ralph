@@ -657,3 +657,42 @@ fn normalized_configuration_is_durable_before_pinning_or_evaluation() {
         Err(crate::Error::ArchiveCorrupt)
     ));
 }
+
+#[test]
+fn duplicate_dispositions_distinguish_accepted_and_rejected_host_history() {
+    for approved in [true, false] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("archive.json");
+        let mut archive = Archive::open(&path).unwrap();
+        baseline(&mut archive);
+        let mut host = Host::default();
+        run_proposal_h(
+            &mut archive,
+            &setup_epoch(),
+            &hproposal(),
+            &mut host,
+            &mut gate(approved),
+        )
+        .unwrap();
+        host.stages.clear();
+        let repeated = run_proposal_h(
+            &mut archive,
+            &setup_epoch(),
+            &hproposal(),
+            &mut host,
+            &mut gate(true),
+        )
+        .unwrap();
+        assert_eq!(repeated.reason, ReasonCode::Duplicate);
+        assert_eq!(host.stages, [] as [EvalStage; 0]);
+        let report = archive.proposal_dispositions();
+        let expected = if approved {
+            crate::DuplicateDisposition::Accepted
+        } else {
+            crate::DuplicateDisposition::Rejected
+        };
+        assert_eq!(report.rows.last().unwrap().duplicate, Some(expected));
+        drop(archive);
+        assert_eq!(Archive::open(path).unwrap().proposal_dispositions(), report);
+    }
+}

@@ -36,6 +36,15 @@ pub enum HostVerifier {
         /// Frozen theorem prelude, ending immediately before the generated proof.
         theorem: String,
     },
+    /// Build an immutable core/Std Lean project with an installed pinned Lake.
+    Lake {
+        /// Actual toolchain Lake executable, exact `build` argument and total limits.
+        command: CommandSpec,
+        /// Host-frozen theorem prelude, ending before its restricted proof block.
+        theorem: String,
+        /// Exact stable toolchain identity, such as `leanprover/lean4:v4.34.1`.
+        toolchain: String,
+    },
 }
 /// Immutable mapping from DAG node to its authorized checker and seat.
 #[derive(Clone, Debug)]

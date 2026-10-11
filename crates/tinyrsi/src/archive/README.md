@@ -82,3 +82,6 @@ normalized evidence and approval before accepting it. Legacy unrelated lineage
 records and schema 1 histories retain their existing behavior. A crash prefix
 remains inspectable and replayable; resuming an incomplete normalized run is a
 host decision and is not synthesized by this archive.
+
+`proposal_dispositions` supplies a [safe versioned projection](dispositions/README.md)
+of exact-duplicate history without changing archive events or selection labels.
