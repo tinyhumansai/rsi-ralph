@@ -348,7 +348,10 @@ fn parallel_seeds_run_concurrently() {
     let dir = tempfile::tempdir().unwrap();
     let (card, took) = score_script(dir.path(), SLEEPY, 3);
     let card = card.unwrap();
-    assert!(took < std::time::Duration::from_millis(2500), "took {took:?}");
+    assert!(
+        took < std::time::Duration::from_millis(2500),
+        "took {took:?}"
+    );
     assert!(card.runs["m"].iter().all(|r| r.ok));
     assert_eq!(card.headline, Some(2.0));
 }
@@ -359,7 +362,10 @@ fn parallel_limit_caps_concurrent_seeds() {
     let (card, took) = score_script(dir.path(), SLEEPY, 2);
     assert!(card.unwrap().runs["m"].iter().all(|r| r.ok));
     assert!(took >= std::time::Duration::from_secs(2), "took {took:?}");
-    assert!(took < std::time::Duration::from_millis(2900), "took {took:?}");
+    assert!(
+        took < std::time::Duration::from_millis(2900),
+        "took {took:?}"
+    );
 }
 
 #[test]
@@ -373,7 +379,14 @@ fn parallel_seeds_keep_seed_order_and_report_failures_like_sequential_runs() {
     let strip = |card: Scorecard| -> Vec<(u64, bool, Option<String>, Option<f64>)> {
         card.runs["m"]
             .iter()
-            .map(|r| (r.seed, r.ok, r.reason.clone(), r.result.as_ref().map(|x| x.score)))
+            .map(|r| {
+                (
+                    r.seed,
+                    r.ok,
+                    r.reason.clone(),
+                    r.result.as_ref().map(|x| x.score),
+                )
+            })
             .collect()
     };
     let expected = vec![
@@ -417,7 +430,10 @@ fn parallel_seeds_keep_the_timeout() {
     .unwrap();
     assert!(start.elapsed() < std::time::Duration::from_secs(10));
     assert!(card.runs["m"].iter().all(|r| {
-        !r.ok && r.reason.as_deref().is_some_and(|x| x.starts_with("timed out"))
+        !r.ok
+            && r.reason
+                .as_deref()
+                .is_some_and(|x| x.starts_with("timed out"))
     }));
 }
 

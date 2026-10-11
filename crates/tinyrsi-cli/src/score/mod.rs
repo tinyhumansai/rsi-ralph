@@ -134,7 +134,10 @@ fn run_seeds(
         .unwrap_or(usize::MAX)
         .clamp(1, seeds.len().max(1));
     if workers == 1 {
-        return seeds.iter().map(|&seed| run_seed(ctx, &run(seed))).collect();
+        return seeds
+            .iter()
+            .map(|&seed| run_seed(ctx, &run(seed)))
+            .collect();
     }
     let next = AtomicUsize::new(0);
     let failed = AtomicBool::new(false);
