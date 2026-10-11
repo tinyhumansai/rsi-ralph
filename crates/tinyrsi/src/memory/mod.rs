@@ -143,12 +143,12 @@ impl SnapshotMemoryStore {
     }
     /// Read immutable snapshots from memory already validated by language lowering.
     ///
-    /// This crate-private seam preserves seat bindings without reconstructing an
-    /// incomplete package. The runner separately enforces each seat's recall grants.
+    /// The host runner (`tinyrsi-host`) uses this to preserve seat bindings
+    /// without reconstructing an incomplete package. The runner separately
+    /// enforces each seat's recall grants.
     /// # Errors
     /// Rejects invalid identities, watermarks, namespaces and missing snapshots.
-    #[cfg(feature = "host")]
-    pub(crate) fn read_spec(
+    pub fn read_spec(
         &self,
         memory: &tinyhivemind_lang::MemorySpec,
         marks: &BTreeMap<String, u64>,
@@ -437,16 +437,6 @@ fn image_key(namespace: &str, mark: u64) -> String {
     hash.update([0]);
     hash.update(mark.to_be_bytes());
     format!("{:x}", hash.finalize())
-}
-#[cfg(feature = "host")]
-impl crate::MemorySnapshot for SnapshotMemoryStore {
-    fn restore<'a>(
-        &'a self,
-        package: &'a Package,
-        marks: &'a BTreeMap<String, u64>,
-    ) -> crate::HostFuture<'a, ()> {
-        Box::pin(async move { self.activate(package, marks) })
-    }
 }
 #[cfg(test)]
 mod test;

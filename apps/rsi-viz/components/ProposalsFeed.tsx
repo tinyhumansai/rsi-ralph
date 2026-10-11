@@ -55,7 +55,7 @@ export function ProposalsFeed({ state }: { state: RunState }) {
                 {c.seeds > 0 ? ` over ${c.seeds} seed${c.seeds === 1 ? "" : "s"}` : ""}
                 {c.failures > 0 ? `, ${c.failures} failed` : ""}
                 {c.decision
-                  ? ` · improvement ${formatSigned(c.estimate)} [${formatMetric(c.lower)}, ${formatMetric(c.upper)}]`
+                  ? ` · ${c.units === "quality" ? "quality improvement" : "improvement"} ${formatSigned(c.estimate)} [${formatMetric(c.lower)}, ${formatMetric(c.upper)}]`
                   : ""}
               </p>
             ) : null}

@@ -1,5 +1,5 @@
 //! Public observations contain identifiers and counters, never message bodies.
-use crate::blueprint::NodeStatus;
+use crate::NodeStatus;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 /// A transcript row reference with its private text omitted.

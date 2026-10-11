@@ -86,6 +86,9 @@ pub enum Error {
     /// The supervisor's reply is not exactly one well-formed proposal.
     #[error("supervisor reply is not a well-formed proposal")]
     SupervisorMalformed,
+    /// A judge's reply was not one well-formed grade in range.
+    #[error("judge reply is not a well-formed grade")]
+    JudgeMalformed,
 }
 
 /// Model-boundary failures keep the variants this crate has always reported:
@@ -95,6 +98,55 @@ impl From<tinyrsi_model::Error> for Error {
     fn from(error: tinyrsi_model::Error) -> Self {
         match error {
             tinyrsi_model::Error::InvalidRequest => Self::InvalidEvaluation,
+            _ => Self::HostFailed,
+        }
+    }
+}
+
+/// A trace failure keeps the variant this crate has always reported.
+impl From<tinyrsi_trace::Error> for Error {
+    fn from(_: tinyrsi_trace::Error) -> Self {
+        Self::TraceIo
+    }
+}
+
+/// Scoring failures keep the variants this crate has always reported.
+impl From<tinyrsi_score::Error> for Error {
+    fn from(error: tinyrsi_score::Error) -> Self {
+        match error {
+            tinyrsi_score::Error::HostFailed => Self::HostFailed,
+            tinyrsi_score::Error::JudgeMalformed => Self::JudgeMalformed,
+            tinyrsi_score::Error::Model(model) => model.into(),
+            _ => Self::InvalidEvaluation,
+        }
+    }
+}
+
+/// Checker failures keep the variants this crate has always reported.
+impl From<tinyrsi_verify::Error> for Error {
+    fn from(error: tinyrsi_verify::Error) -> Self {
+        match error {
+            tinyrsi_verify::Error::InvalidBlueprint => Self::InvalidBlueprint,
+            _ => Self::HostFailed,
+        }
+    }
+}
+
+/// Evolution failures keep the variants, and so the messages, this crate has
+/// always reported; the script loop stores a rejected proposal's message in
+/// its ledger.
+impl From<tinyrsi_evolve::Error> for Error {
+    fn from(error: tinyrsi_evolve::Error) -> Self {
+        use tinyrsi_evolve::Error as Evolve;
+        match error {
+            Evolve::InvalidProposal => Self::InvalidProposal,
+            Evolve::ArchiveIo => Self::ArchiveIo,
+            Evolve::ArchiveCorrupt => Self::ArchiveCorrupt,
+            Evolve::ArchiveLocked => Self::ArchiveLocked,
+            Evolve::InvalidScriptSubject => Self::InvalidScriptSubject,
+            Evolve::SupervisorMalformed => Self::SupervisorMalformed,
+            Evolve::ProposalPathOutsideEditable => Self::ProposalPathOutsideEditable,
+            Evolve::Model(model) => model.into(),
             _ => Self::HostFailed,
         }
     }
