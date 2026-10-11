@@ -705,3 +705,56 @@ fn ledger_rows_name_quality_units_and_omit_metric_units() {
     let text = std::fs::read_to_string(run.dir.join("ledger.json")).unwrap();
     assert!(!text.contains("units"));
 }
+
+/// A script printing `METRIC loss=` with one value per seed 1, 2 and 3.
+fn per_seed(values: [&str; 3]) -> String {
+    let [a, b, c] = values;
+    format!(
+        "case \"$TINYRSI_SEED\" in 1) v={a};; 2) v={b};; *) v={c};; esac\necho \"METRIC loss=$v\"\n"
+    )
+}
+
+/// One epoch of one proposal on seeds 1–3, with `accept_dominant` set.
+fn dominance_run(baseline: [&str; 3], candidate: [&str; 3], dominant: bool) -> ScriptLedger {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = subject(dir.path(), &per_seed(baseline));
+    s.seeds = vec![1, 2, 3];
+    let run = location(dir.path());
+    let port = Scripted::new(vec![reply(&per_seed(candidate))]);
+    let policy = LoopPolicy {
+        accept_dominant: dominant,
+        ..policy(1, 1)
+    };
+    run_script_loop(&s, &supervisor(port), &policy, &run, &mut NullTrace).unwrap();
+    ledger(&run)
+}
+
+#[test]
+fn accepts_a_candidate_no_worse_on_any_seed_and_better_on_one() {
+    // The live graph-colouring case: the paired interval spans zero.
+    let ledger = dominance_run(["11", "6", "6"], ["6", "6", "6"], true);
+    let candidate = &ledger.candidates[1];
+    assert_eq!(candidate.decision, CandidateDecision::Accept);
+    assert!(candidate.promoted);
+    assert!(candidate.lower.unwrap() < 0.0, "the paired interval alone is inconclusive");
+    assert_eq!(candidate.note.as_deref(), Some(DOMINANCE_NOTE));
+    assert_eq!(ledger.incumbents.len(), 2);
+}
+
+#[test]
+fn leaves_a_dominating_candidate_inconclusive_when_dominance_is_off() {
+    let ledger = dominance_run(["11", "6", "6"], ["6", "6", "6"], false);
+    assert_eq!(ledger.candidates[1].decision, CandidateDecision::Inconclusive);
+    assert!(!ledger.candidates[1].promoted && ledger.candidates[1].note.is_none());
+}
+
+#[test]
+fn dominance_needs_no_regression_on_any_seed_and_a_strict_gain() {
+    // Better on two seeds, worse on one: still inconclusive.
+    let mixed = dominance_run(["14", "12", "13"], ["6", "6", "14"], true);
+    assert_eq!(mixed.candidates[1].decision, CandidateDecision::Inconclusive);
+    // Equal on every seed: no gain, so not accepted.
+    let tied = dominance_run(["11", "6", "6"], ["11", "6", "6.0"], true);
+    assert_ne!(tied.candidates[1].decision, CandidateDecision::Accept);
+    assert!(!tied.candidates[1].promoted);
+}
