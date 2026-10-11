@@ -105,7 +105,7 @@ git submodule update --init --recursive
 ```
 
 ```sh
-cargo fmt --all -- --check
+cargo fmt -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features

@@ -99,7 +99,7 @@ Run every command from the repository root. These four are the contract; CI
 runs exactly them, so a green local run should mean a green CI run.
 
 ```sh
-cargo fmt --all -- --check
+cargo fmt -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
@@ -107,7 +107,8 @@ cargo test --all-features
 
 Supporting commands:
 
-- `cargo fmt --all` — format before committing.
+- `cargo fmt` — format before committing. Leave off `--all`: it also
+  formats the vendored path dependencies, which are never edited here.
 - `cargo test <filter>` — run a focused subset while iterating.
 - `cargo test -p tinyrsi` — run one crate's suite.
 - `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
