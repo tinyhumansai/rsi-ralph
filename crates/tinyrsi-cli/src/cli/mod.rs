@@ -15,7 +15,7 @@ use clap::{Parser, Subcommand};
 use crate::{
     Error, Result,
     keys::Keys,
-    manifest::{self, Loop},
+    manifest::{self, Loop, Manifest},
     serve,
     store::{RunStatus, Store},
     subject::Subject,
