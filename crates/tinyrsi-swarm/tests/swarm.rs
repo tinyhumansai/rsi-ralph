@@ -261,14 +261,40 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
         .map(|request| serde_json::from_slice(&request.body).unwrap())
         .unwrap();
     assert!(lead.to_string().contains("END YOUR TURN"));
-    let offered: Vec<&str> = lead["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|tool| tool["function"]["name"].as_str())
-        .collect();
-    assert!(offered.contains(&"hivemind_send_agent"), "{offered:?}");
-    assert!(!offered.contains(&"wait") && !offered.contains(&"wait_loop"), "{offered:?}");
+    for seat in ["lead", "implementer-a"] {
+        let offered = offered(&requests, seat);
+        assert!(offered.iter().any(|tool| tool == "hivemind_send_agent"), "{offered:?}");
+        assert!(!offered.iter().any(|tool| tool == "wait" || tool == "wait_loop"), "{offered:?}");
+    }
+    assert!(offered(&requests, "implementer-a").iter().any(|tool| tool == "file_write"));
+    assert!(!offered(&requests, "lead").iter().any(|tool| tool == "file_write"));
+}
+
+#[cfg(feature = "web-search")]
+#[test]
+fn a_search_key_reaches_only_its_seat_and_no_run_file() {
+    const SEARCH_KEY: &str = "AIza-fixture-search-key-5678";
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(model(Duration::ZERO));
+    let dirs = dirs();
+    let mut request = request(&dirs, &server.uri(), Duration::from_secs(120));
+    request.tools.push(tinyrsi_swarm::ToolKey {
+        capability: tinyrsi_swarm::WEB_SEARCH.into(),
+        provider: "gemini".into(),
+        secret: SEARCH_KEY.into(),
+        seats: Some(vec!["implementer-a".into()]),
+    });
+    let mut events = Vec::new();
+    let outcome = run_swarm(request, &mut |event| events.push(event)).unwrap();
+    assert_eq!(outcome.stop, StopReason::Idle);
+
+    let requests = server_runtime.block_on(server.received_requests()).unwrap();
+    let implementer = offered(&requests, "implementer-a");
+    assert!(implementer.iter().any(|tool| tool == "web_answer_tool"), "{implementer:?}");
+    let lead = offered(&requests, "lead");
+    assert!(!lead.iter().any(|tool| tool.starts_with("web_")), "{lead:?}");
+    assert_no_file_contains(&dirs.run, SEARCH_KEY);
+    assert!(!format!("{events:?}").contains(SEARCH_KEY));
 }
 
 #[test]
