@@ -67,7 +67,8 @@ identities to frozen priors, measured selection labels and descriptive metrics.
 shows script runs. Call it after `evaluate_retreat_epoch`: hive candidate ids
 exist only once a proposal is formalized, and the visualizer pairs ideas with
 candidates through `ideated.candidate`. It emits one `ideated` per proposal
-(`p<epoch>-<i>`, naming its candidate or none), then for each candidate this
+(`p<epoch>-<i>`, naming its candidate, or none when it was never formalized
+or duplicated an evaluated patch), then for each candidate this
 epoch evaluated `measured` (the H estimate), `scored` (accepted only after human
 approval) and `improved` when accepted, and finally `epoch_finished` with the
 accepted H or the incumbent's H on the epoch's draw. Evaluations are bound to
