@@ -240,3 +240,7 @@ fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
 
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_options;
+#[cfg(test)]
+mod test_runner;
