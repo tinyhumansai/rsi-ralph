@@ -5,26 +5,14 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "A production-ready tinyrsi for installable TinyBus modules."
+description = "Host-driven improvement loops for tinyhivemind hives and plain scripts."
 documentation = "https://docs.rs/tinyrsi"
 readme = "../../README.md"
-keywords = ["tinybus", "module", "plugin", "tinyrsi"]
+keywords = ["rsi", "self-improvement", "agents", "evaluation", "tinyrsi"]
 categories = ["development-tools"]
 publish = false
 
-[lib]
-# Keep the ordinary Rust library for tests and downstream reuse while also
-# producing the native module artifact that TinyBus loads at runtime.
-crate-type = ["rlib", "cdylib"]
-
 [dependencies]
-# The wire contract: member names, payload types, and the contract version.
-# Re-exported wholesale from `src/lib.rs` so a consumer takes one dependency
-# rather than two, and so `tinyrsi::GradeEntry` and
-# `tinyrsi_bus::GradeEntry` are the same type.
-tinyrsi-bus = { workspace = true }
-tinybus = { workspace = true }
-tinybus-module = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

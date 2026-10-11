@@ -1,20 +1,19 @@
 //! The improvement lineage: the ledger of graded candidates the RSI loop
 //! produces.
 //!
-//! This is the ledger the `TinyBus` module serves through `Append` and `Head`.
 //! It is separate from, and much smaller than, the host-side `Archive`, which
-//! holds the full proposal and evaluation history. The entry type lives in the
-//! contract crate (`tinyrsi_bus::lineage`), so this module holds behavior only.
-//! See this directory's `README.md` for how the two ledgers relate and why the
-//! served ledger does not survive a module restart.
+//! holds the full proposal and evaluation history. See this directory's
+//! `README.md` for how the two ledgers relate.
 //!
 //! [`Lineage`] holds [`GradeEntry`] records in step order. Recording requires
 //! each entry's [`GradeEntry::step`] to continue the ledger exactly, and every
 //! entry to name its snapshot and carry a rationale; the head is the last
 //! accepted entry, which is the incumbent the loop improves next.
 
+mod types;
+
 use crate::{Error, Result};
-use tinyrsi_bus::GradeEntry;
+pub use types::{GradeEntry, Verdict};
 
 /// The lineage ledger.
 ///
@@ -48,8 +47,7 @@ impl Lineage {
     /// # Examples
     ///
     /// ```
-    /// # use tinyrsi::{Lineage, Result};
-    /// # use tinyrsi_bus::{GradeEntry, Verdict};
+    /// # use tinyrsi::{GradeEntry, Lineage, Result, Verdict};
     /// # fn run() -> Result<()> {
     /// let mut lineage = Lineage::new();
     /// lineage.append(GradeEntry::new(0, "sha256:abc", 0.703, Verdict::Accepted, "baseline"))?;
@@ -82,7 +80,7 @@ impl Lineage {
         self.entries
             .iter()
             .rev()
-            .find(|e| e.verdict == tinyrsi_bus::Verdict::Accepted)
+            .find(|e| e.verdict == Verdict::Accepted)
     }
 
     /// Every recorded entry, in step order.

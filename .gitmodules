@@ -1,7 +1,3 @@
-[submodule "vendor/tinybus"]
-	path = vendor/tinybus
-	url = https://github.com/tinyhumansai/tinybus
-	branch = main
 [submodule "vendor/tinyhivemind"]
 	path = vendor/tinyhivemind
 	url = https://github.com/tinyhumansai/tinyhivemind

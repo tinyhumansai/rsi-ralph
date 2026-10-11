@@ -2,16 +2,16 @@
 resolver = "3"
 # Every crate in this repository lives under `crates/`, one directory per
 # package, each directory named for the package it holds. There is no root
-# package: the crate a host loads is `crates/tinyrsi`, the same as any other
-# member. Keeping the root virtual is what makes that uniform — a root package
-# would make one crate structurally different from the rest for no reason other
-# than history, and it is the arrangement this tinyrsi moved away from.
+# package: the library a host depends on is `crates/tinyrsi`, the same as any
+# other member. Keeping the root virtual is what makes that uniform — a root
+# package would make one crate structurally different from the rest for no
+# reason other than history.
 members = ["crates/*"]
-# `vendor/` holds the pinned TinyBus submodule, which is its own workspace with
-# its own lockfile. `worktrees/` holds `git worktree` checkouts of this same
-# repository; each contains a full copy of this manifest and every crate under
-# it, so without this entry cargo walks into them and reports duplicate
-# packages.
+# `vendor/` holds the pinned tinyhivemind and tinybackrooms submodules, each
+# its own workspace with its own lockfile. `worktrees/` holds `git worktree`
+# checkouts of this same repository; each contains a full copy of this manifest
+# and every crate under it, so without this entry cargo walks into them and
+# reports duplicate packages.
 exclude = ["vendor", "worktrees"]
 
 # Shared package metadata. A member inherits a field with `field.workspace =
@@ -25,27 +25,11 @@ license = "GPL-3.0-only"
 repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 
 [workspace.dependencies]
-# The wire contract. `crates/tinyrsi` depends on it and re-exports it, so a
-# host that only makes calls takes this crate alone.
-# No `version` requirement on purpose: the workspace version moves on every
-# release, and a pinned requirement here would stop resolving the moment it did.
-# Nothing in this workspace is published, so the path is the whole address.
-tinyrsi-bus = { path = "crates/tinyrsi-bus" }
-# TinyBus defines the message types, interface macro, and frozen module ABI
-# used by the generated integration. Socket and CLI features are unnecessary
-# here.
-tinybus = { path = "vendor/tinybus/crates/tinybus", version = "0.1.0", default-features = false, features = [
-    "macros",
-    "modules",
-] }
-# The module-side SDK owns the isolated runtime and exports the ABI entrypoints
-# required by TinyBus's dynamic loader.
-tinybus-module = { path = "vendor/tinybus/crates/tinybus-module", version = "0.1.0" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
 thiserror = "2"
-# Pinned declarative hive editing and archive types, shared with bus consumers.
+# Pinned declarative hive editing and archive types.
 tinyhivemind-lang = { path = "vendor/tinyhivemind/crates/tinyhivemind-lang" }
 # Read-only coordinator observations; storage and model clients remain host-owned.
 tinyhivemind-hives = { path = "vendor/tinyhivemind/crates/tinyhivemind-hives", default-features = false }
@@ -59,11 +43,12 @@ sha2 = "0.10"
 jsonschema = { version = "0.58", default-features = false }
 # Staged verifier workspaces and atomic durable writes use checkout-local files.
 tempfile = "3"
-# The bus payload types are serialized into TinyBus frames.
+# Archive, ledger, trace and evidence types derive their stored JSON form.
 serde = { version = "1", features = ["derive"] }
-# Positional frames and durable evidence; exact floats preserve replay comparisons.
+# Durable evidence and traces; exact floats preserve replay comparisons.
 serde_json = { version = "1", features = ["float_roundtrip"] }
-# Module integration tests exercise the real asynchronous in-memory TinyBus.
+# The `host` runtime drives the tinyhivemind coordinator, and async tests use
+# the same runtime.
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 
 # Lints apply to every member that opts in with `[lints] workspace = true`, and
