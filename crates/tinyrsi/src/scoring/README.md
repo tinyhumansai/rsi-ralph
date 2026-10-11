@@ -21,6 +21,14 @@ parts of observations at the boundaries, so one, two, or three families remain
 well-defined. With one family it returns that family's weighted score; with two
 it returns their mean. Cost savings do not earn a direct bonus.
 
+`geometric_family_mean(&estimate.per_family, &policy)` supplies the secondary
+family diagnostic: `exp(sum(w_f * ln(H_f)) / sum(w_f))`. Weights are rescaled
+before accumulation so their sum cannot overflow for large configured weights.
+Zero returns `Some(0.0)`; any negative family returns `None`, even if another
+family is zero. Values above the reference remain above one. Missing, unknown,
+or nonfinite family values fail validation. Health penalties do not apply, and
+the helper changes neither H acceptance gates nor persisted score fields.
+
 ## Bootstrap and paired decisions
 
 Every report includes a two-sided 95% percentile-bootstrap interval, using

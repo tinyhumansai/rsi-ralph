@@ -89,7 +89,7 @@ stops. No current percentile-bootstrap test asserts anytime-valid inference.
 | Monitoring epoch ordering and gaps | S `anchor_monitoring_rejects_bad_evidence_and_resets_skipped_epochs` |
 | Frozen policy replay | S `scoring_policy_spec_revalidates_serialized_configuration`; N `replay_rejects_altered_bootstrap_and_normalized_policy` |
 | Pinned memory and restoration | M `learning_is_pinned_without_changing_live_memory_and_restores_after_reopen` |
-| Geometric diagnostic | Future: positive, zero and negative/undefined families; no clipping |
+| Geometric diagnostic | S `geometric_diagnostic_uses_frozen_weights_without_clipping_family_scores`, `geometric_diagnostic_distinguishes_zero_from_undefined_negative_families`, `geometric_diagnostic_rejects_missing_unknown_and_nonfinite_families`; available through `geometric_family_mean` without changing persisted score reports |
 | Pairwise prior / subjective panel | Future: swapped positions, blindness, ties, abstentions, disconnected Bradley–Terry graph, frozen judge versions |
 | Calibrated EV / successive halving | Future: invalid/zero costs, uncensored eligibility labels, frozen round limits, exploration share, smaller-patch ties |
 | Outcome dataset and metrics | Future: per-occurrence source/prior rows, missing/censored labels, Brier/Spearman/precision@k, no confirmation/anchor leakage |

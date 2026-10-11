@@ -133,7 +133,7 @@ pub use retreat::{
 
 pub use scoring::{
     AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
-    ScorePenalties, ScoringPolicy, compare_h, score,
+    ScorePenalties, ScoringPolicy, compare_h, geometric_family_mean, score,
 };
 
 pub use retreat::{generate_retreat_with_engine, typed_retreat_request};

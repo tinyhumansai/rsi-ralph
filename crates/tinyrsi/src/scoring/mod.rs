@@ -102,6 +102,59 @@ impl ScoringPolicy {
     }
 }
 
+/// Compute the secondary weighted geometric mean of normalized family scores.
+///
+/// Pass [`ScoreEstimate::per_family`] measured under `policy`. Frozen family
+/// weights are exponents normalized by their sum. Scores are never clipped:
+/// any negative family makes the diagnostic undefined (`None`), otherwise any
+/// zero produces `Some(0.0)`. This diagnostic does not change H or its gates.
+/// Weight scaling and log-space accumulation avoid overflowing intermediate
+/// sums and products. No health penalties apply to this family diagnostic.
+///
+/// # Errors
+/// Returns [`crate::Error::InvalidEvaluation`] for missing/unknown families,
+/// nonfinite scores, or nonfinite arithmetic.
+pub fn geometric_family_mean(
+    families: &BTreeMap<String, f64>,
+    policy: &ScoringPolicy,
+) -> Result<Option<f64>> {
+    if families.keys().ne(policy.anchors.keys())
+        || families.values().any(|value| !value.is_finite())
+    {
+        return invalid();
+    }
+    if families.values().any(|value| *value < 0.0) {
+        return Ok(None);
+    }
+    if families.values().any(|value| *value == 0.0) {
+        return Ok(Some(0.0));
+    }
+    let scale = policy
+        .anchors
+        .values()
+        .map(|anchor| anchor.weight)
+        .fold(0.0, f64::max);
+    let total: f64 = policy.anchors.values().map(|a| a.weight / scale).sum();
+    // Center logs on a real family so summation roundoff cannot turn a set of
+    // equal, finite extreme values into an overflowing/underflowing result.
+    let origin = families
+        .values()
+        .next()
+        .ok_or(crate::Error::InvalidEvaluation)?
+        .ln();
+    let offset: f64 = families
+        .iter()
+        .map(|(family, value)| {
+            (policy.anchors[family].weight / scale / total) * (value.ln() - origin)
+        })
+        .sum();
+    let mean = (origin + offset).exp();
+    if !mean.is_finite() {
+        return invalid();
+    }
+    Ok(Some(mean))
+}
+
 /// Compute normalized H and a deterministic 95% percentile-bootstrap interval.
 ///
 /// Task checkpoints are scored before this call, for example by

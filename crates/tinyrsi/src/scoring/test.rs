@@ -561,3 +561,78 @@ fn scoring_policy_spec_revalidates_serialized_configuration() {
     invalid.anchors.push(invalid.anchors[0].clone());
     assert!(invalid.build().is_err());
 }
+
+#[test]
+fn geometric_diagnostic_uses_frozen_weights_without_clipping_family_scores() {
+    let mut scoring = policy(&["code", "math"]);
+    scoring.anchors.get_mut("math").unwrap().weight = 3.0;
+    let families = BTreeMap::from([("code".into(), 0.25), ("math".into(), 4.0)]);
+    let expected = 0.25_f64.powf(0.25) * 4.0_f64.powf(0.75);
+    assert!(
+        (geometric_family_mean(&families, &scoring).unwrap().unwrap() - expected).abs() < 1e-12
+    );
+    for weight in [f64::MAX, f64::MIN_POSITIVE] {
+        for anchor in scoring.anchors.values_mut() {
+            anchor.weight = weight;
+        }
+        assert!((geometric_family_mean(&families, &scoring).unwrap().unwrap() - 1.0).abs() < 1e-12);
+    }
+}
+
+#[test]
+fn geometric_diagnostic_distinguishes_zero_from_undefined_negative_families() {
+    let scoring = policy(&["code", "math"]);
+    let mut families = BTreeMap::from([("code".into(), 0.0), ("math".into(), 4.0)]);
+    assert_eq!(
+        geometric_family_mean(&families, &scoring).unwrap(),
+        Some(0.0)
+    );
+    families.insert("math".into(), -0.1);
+    assert_eq!(geometric_family_mean(&families, &scoring).unwrap(), None);
+    families.insert("code".into(), 1.0);
+    assert_eq!(geometric_family_mean(&families, &scoring).unwrap(), None);
+    let single = policy(&["code"]);
+    for value in [f64::MIN_POSITIVE, 0.5, 2.0, f64::MAX] {
+        let mean = geometric_family_mean(&BTreeMap::from([("code".into(), value)]), &single)
+            .unwrap()
+            .unwrap();
+        assert!((mean / value - 1.0).abs() < 1e-12);
+    }
+}
+
+#[test]
+fn geometric_diagnostic_rejects_missing_unknown_and_nonfinite_families() {
+    let scoring = policy(&["code", "math"]);
+    for families in [
+        BTreeMap::new(),
+        BTreeMap::from([("code".into(), 1.0)]),
+        BTreeMap::from([("code".into(), 1.0), ("unknown".into(), 1.0)]),
+    ] {
+        assert_eq!(
+            geometric_family_mean(&families, &scoring),
+            Err(crate::Error::InvalidEvaluation)
+        );
+    }
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let families = BTreeMap::from([("code".into(), 0.0), ("math".into(), value)]);
+        assert_eq!(
+            geometric_family_mean(&families, &scoring),
+            Err(crate::Error::InvalidEvaluation)
+        );
+    }
+}
+
+#[test]
+fn geometric_diagnostic_keeps_equal_extreme_families_finite() {
+    for count in 1..65 {
+        let names = (0..count)
+            .map(|i| format!("family-{i}"))
+            .collect::<Vec<_>>();
+        let scoring = policy(&names.iter().map(String::as_str).collect::<Vec<_>>());
+        for value in [f64::MAX, f64::from_bits(1)] {
+            let families = names.iter().map(|name| (name.clone(), value)).collect();
+            let mean = geometric_family_mean(&families, &scoring).unwrap().unwrap();
+            assert!((mean / value - 1.0).abs() < 1e-12);
+        }
+    }
+}
