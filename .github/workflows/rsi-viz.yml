@@ -1,0 +1,53 @@
+name: rsi-viz
+
+on:
+  push:
+    paths:
+      - "apps/rsi-viz/**"
+      - ".github/workflows/rsi-viz.yml"
+  pull_request:
+    paths:
+      - "apps/rsi-viz/**"
+      - ".github/workflows/rsi-viz.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/rsi-viz
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # This job executes repository code (npm scripts); don't persist the
+          # token in git config. The visualizer needs no submodules.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/rsi-viz/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

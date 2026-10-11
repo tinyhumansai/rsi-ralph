@@ -20,5 +20,12 @@ After the specification is accepted, create a linked implementation plan in
 [`../plans/`](../plans/README.md). Keep code snippets small enough to clarify
 the contract; production code still belongs under `src/`.
 
+See [`example-retry-policy.md`](example-retry-policy.md) for a complete sample.
+
+## Index
+
+- [`rsi-viz.md`](rsi-viz.md) — read-only live visualizer for loop traces
+  and run snapshots (`apps/rsi-viz/`).
+  
 See [`host-runtime.md`](host-runtime.md) or
 [`epoch-evidence.md`](epoch-evidence.md) for specifications from this repository.
