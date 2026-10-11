@@ -1,0 +1,36 @@
+[package]
+name = "tinyrsi-examples"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Runnable end-to-end TinyRSI examples: a math problem, a file upgrade and a hive of agents."
+readme = "README.md"
+publish = false
+
+[dependencies]
+tinyrsi = { workspace = true }
+tinyrsi-host = { workspace = true }
+serde_json = { workspace = true }
+tinyhivemind-hives = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
+
+[[example]]
+name = "math_problem"
+path = "math_problem/main.rs"
+
+[[example]]
+name = "upgrade_file"
+path = "upgrade_file/main.rs"
+
+[[example]]
+name = "hive_goal"
+path = "hive_goal/main.rs"
