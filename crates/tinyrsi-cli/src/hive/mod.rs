@@ -48,7 +48,7 @@ impl Hive {
     /// and [`Error::MissingKeys`] when a tool key has no value.
     pub fn new(parsed: &Loop, keys: &Keys, base_url: &str) -> Result<Self> {
         let editing = tinyrsi_swarm::editing_seats(&parsed.hive)
-            .map_err(|e| Error::Proposer(e.to_string()))?;
+            .map_err(|e| Error::Proposer(crate::error::chain(&e)))?;
         if editing.is_empty() {
             return Err(Error::Proposer(
                 "no seat edits a candidate: set a seat's config.action_dir to \"{candidate}\""
@@ -111,7 +111,7 @@ impl Proposer for Hive {
             },
             &mut |_| {},
         )
-        .map_err(|e| Error::Proposer(e.to_string()))?;
+        .map_err(|e| Error::Proposer(crate::error::chain(&e)))?;
         Ok(ProposalReport {
             summary: Some(format!(
                 "stopped {}: {} turns completed, {} failed, {} parked",
