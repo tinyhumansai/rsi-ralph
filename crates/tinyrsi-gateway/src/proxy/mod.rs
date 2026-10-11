@@ -469,7 +469,6 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
-        proxy.calls.answered(response.status().as_u16(), &[]);
         return stream_through(in_flight, prepared, reservation, response, move |outcome| {
             row(&outcome.0, outcome.1)
         });
@@ -489,8 +488,18 @@ async fn buffered(
     response: reqwest::Response,
 ) -> (Response, Outcome) {
     let status = response.status();
-    let bytes = proxy.redact_body(response.bytes().await.unwrap_or_default());
-    proxy.calls.answered(status.as_u16(), &bytes);
+    // A body that breaks off is no answer, whatever the status said.
+    let bytes = match response.bytes().await {
+        Ok(bytes) => {
+            let bytes = proxy.redact_body(bytes);
+            proxy.calls.answered(status.as_u16(), &bytes);
+            bytes
+        }
+        Err(error) => {
+            proxy.calls.unreachable(&proxy.redact(&error.to_string()));
+            Bytes::new()
+        }
+    };
     let usage = serde_json::from_slice::<Value>(&bytes)
         .map_or_else(|_| Usage::default(), |v| Usage::from_body(&v));
     let price = proxy.config.prices.get(&prepared.model).ok();
@@ -561,6 +570,11 @@ where
             }
         }
         drop(tx);
+        // Counted only now: a stream that broke off was never answered.
+        match &failure {
+            Some(message) => proxy.calls.unreachable(message),
+            None => proxy.calls.answered(200, &[]),
+        }
         let usage = scanner.finish();
         let cost = proxy
             .config
