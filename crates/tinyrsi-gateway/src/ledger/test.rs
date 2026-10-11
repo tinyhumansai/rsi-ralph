@@ -2,20 +2,19 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use std::path::PathBuf;
+use serde_json::json;
 
-use super::{Budgets, Ledger};
+use super::{Budgets, Ledger, LedgerState};
 use crate::error::Error;
 
-struct Scratch(PathBuf);
+/// A throwaway directory; `.0` is its path, kept as `Scratch::new(..).0`
+/// reads in the tests below.
+struct Scratch(std::path::PathBuf, tempfile::TempDir);
 
 impl Scratch {
-    fn new(name: &str) -> Self {
-        let dir =
-            std::env::temp_dir().join(format!("ohrsi-gw-{}-ledger-{name}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Self(dir)
+    fn new(_name: &str) -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        Self(dir.path().to_path_buf(), dir)
     }
 
     fn budgets(&self, run: f64, total: f64) -> Budgets {
@@ -26,10 +25,20 @@ impl Scratch {
     }
 }
 
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
+#[test]
+fn pins_the_stored_ledger_shape() {
+    assert_eq!(
+        serde_json::to_value(LedgerState::new(5.0)).unwrap(),
+        json!({
+            "limit_usd": 5.0,
+            "settled_usd": 0.0,
+            "uncertain_usd": 0.0,
+            "in_flight_usd": 0.0,
+            "calls": 0,
+            "denied": 0,
+            "breached": false,
+        })
+    );
 }
 
 #[test]
