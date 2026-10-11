@@ -149,7 +149,18 @@ fn decision(d: &EvalDecision) -> ScoreDecision {
     }
 }
 impl ExperimentExecutor for Trials {
-    fn execute_trial(&mut self, request: &TrialRequest) -> Result<TrialEvidence> {
+    /// The scoring crate's port carries only its own errors; a host failure in
+    /// this example is reported as one.
+    fn execute_trial(
+        &mut self,
+        request: &TrialRequest,
+    ) -> std::result::Result<TrialEvidence, tinyrsi::ScoreError> {
+        self.run_trial(request)
+            .map_err(|_| tinyrsi::ScoreError::HostFailed)
+    }
+}
+impl Trials {
+    fn run_trial(&mut self, request: &TrialRequest) -> Result<TrialEvidence> {
         self.index += 1;
         println!(
             "starting trial {:02} {:?}/{:?}",
@@ -268,7 +279,7 @@ impl Trials {
             incumbent: baseline.to_owned(),
             incumbent_metric: None,
         })?;
-        result
+        Ok(result?)
     }
     /// Emits measured/scored/improved per evaluated candidate and the epoch end.
     /// Hive candidates have no per-seed script metric, so `executed` is not

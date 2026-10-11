@@ -29,6 +29,8 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 # workspace version moves on every release, and nothing here is published, so
 # the path is the whole address.
 tinyrsi-types = { path = "crates/tinyrsi-types" }
+# Paired comparison, normalized scoring, experiments and the `Scorer` port.
+tinyrsi-score = { path = "crates/tinyrsi-score" }
 # The loop trace written for the visualizer and mirrored into `tracing`.
 tinyrsi-trace = { path = "crates/tinyrsi-trace" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.

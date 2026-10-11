@@ -107,6 +107,16 @@ impl From<tinyrsi_trace::Error> for Error {
     }
 }
 
+/// Scoring failures keep the variants this crate has always reported.
+impl From<tinyrsi_score::Error> for Error {
+    fn from(error: tinyrsi_score::Error) -> Self {
+        match error {
+            tinyrsi_score::Error::HostFailed => Self::HostFailed,
+            _ => Self::InvalidEvaluation,
+        }
+    }
+}
+
 /// The crate's standard result type.
 ///
 /// Use this alias in public signatures instead of spelling out

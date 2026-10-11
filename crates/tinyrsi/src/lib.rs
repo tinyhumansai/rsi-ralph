@@ -43,10 +43,8 @@ mod blueprint;
 #[cfg(feature = "host")]
 mod epoch_driver;
 mod error;
-mod evaluation;
 #[cfg(feature = "host")]
 mod evidence_journal;
-mod experiment;
 #[cfg(feature = "host")]
 mod host;
 mod lineage;
@@ -56,7 +54,6 @@ mod orchestrator;
 mod process;
 mod retreat;
 mod retreat_memory;
-mod scoring;
 mod script_loop;
 #[cfg(feature = "host")]
 mod suites;
@@ -72,10 +69,6 @@ pub use archive::{
     ProposalDispositionRow,
 };
 pub use blueprint::*;
-pub use evaluation::{
-    Budget, Comparison, EvalDecision, EvalPolicy, EvalRun, JudgeCalibration, QualityRubric,
-    VerifierTier, compare, ensure_independent,
-};
 pub use observation::*;
 pub use orchestrator::*;
 pub use tinyhivemind_lang;
@@ -91,29 +84,35 @@ pub use retreat::{
     generate_retreat,
 };
 
-pub use scoring::{
-    AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
-    ScorePenalties, ScoringPolicy, compare_h, geometric_family_mean, score,
-};
-
 pub use retreat::{generate_retreat_with_engine, typed_retreat_request};
 
 pub use archive::NormalizedEvaluationEvent;
 #[cfg(feature = "host")]
 pub use host::*;
 pub use retreat_memory::*;
-pub use scoring::ScoringPolicySpec;
 pub use verification::*;
 
 #[cfg(feature = "host")]
 pub use epoch_driver::*;
-pub use experiment::*;
+// Scoring: paired comparison, normalized H, experiments.
 pub use memory::SnapshotMemoryStore;
 #[cfg(feature = "host")]
 pub use suites::*;
 pub use tinyrsi_model::{
     BudgetedModel, Error as ModelError, GenerationMeter, ModelConversant, ModelFuture,
     ModelIdentity, ModelPort, ModelReply, ModelRequest, OpenRouterModel, block_on,
+};
+pub use tinyrsi_score::{
+    AblationEstimate, AttemptEvidence, AttemptStatus, EvidenceSource, ExperimentAblation,
+    ExperimentArm, ExperimentExecutor, ExperimentProtocol, ExperimentProtocolSpec,
+    ExperimentReport, ExperimentUncertainty, ExperimentVerdict, SuiteFingerprints, TrialEvidence,
+    TrialFailure, TrialRequest, TrialSeeds, TrialSummary, run_experiment,
+};
+pub use tinyrsi_score::{
+    AnchorLedger, AnchorSignal, Budget, Comparison, Error as ScoreError, EvalDecision, EvalPolicy,
+    EvalRun, FamilyAnchor, JudgeCalibration, QualityRubric, ScoreComparison, ScoreEstimate,
+    ScoreHealth, ScorePenalties, ScoringPolicy, ScoringPolicySpec, VerifierTier, compare,
+    compare_h, ensure_independent, geometric_family_mean, score,
 };
 
 pub use archive::NormalizedApprovalEvent;
