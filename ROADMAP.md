@@ -13,7 +13,9 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**Improvement loop library** (paths under `crates/tinyrsi/src/`)
+**Improvement loop library** (paths under `crates/tinyrsi/src/`, or
+`crates/tinyrsi-host/src/` for `host/`, `suites/`, `epoch_driver/` and
+`evidence_journal/`)
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
   `DeploymentStore::observe` (`host/`), `EvidenceJournal`

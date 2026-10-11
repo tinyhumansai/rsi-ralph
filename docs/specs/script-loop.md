@@ -35,7 +35,7 @@ language model, if the library could run that cycle end to end.
   seeds, a per-seed timeout, an output cap, and optional extra environment.
 - **Policy** (`LoopPolicy`): `max_epochs`, `proposals_per_epoch`, `patience`
   (epochs without promotion before stopping), `token_budget` (measured
-  supervisor tokens), `rejected_context` (how many rejected proposals the
+  supervisor tokens, plus scorer tokens under `run_script_loop_with`), `rejected_context` (how many rejected proposals the
   supervisor sees), and the `EvalPolicy` used for scoring (margin zero by
   default).
 - **Execute:** each candidate is materialized into
@@ -59,7 +59,9 @@ language model, if the library could run that cycle end to end.
   as `compare` requires, and compared with `evaluation::compare`. The
   decision is `compare`'s. The trace's `estimate/lower/upper` are reported in
   metric units: the mean paired improvement `s * (candidate - incumbent)` plus
-  or minus the policy's standard-error multiple.
+  or minus the policy's standard-error multiple. Under `run_script_loop_with`
+  a scorer without metric evidence on both sides reports quality units, and
+  the ledger row says so with `units: "quality"` (omitted for metric units).
 - **Improve:** among the epoch's accepted candidates the one with the best mean
   metric becomes the incumbent and later proposals build on it.
 - **Ideate:** `Supervisor` (now `tinyrsi_evolve::ScriptSupervisor`) wraps a `ModelPort` and makes one forced native
@@ -73,7 +75,7 @@ language model, if the library could run that cycle end to end.
   attempts and the loop continues. A transport failure ends the run.
 - **Stop:** `goal_reached` when the incumbent meets the target (checked after
   the baseline and after each epoch), `stalled` after `patience` epochs without
-  promotion, `budget` when measured supervisor tokens reach `token_budget`
+  promotion, `budget` when measured supervisor (and scorer) tokens reach `token_budget`
   before an ideation call, `max_epochs` otherwise, and `error` when the run
   fails (the error is returned after `run_finished` is written).
 - **Ledger:** `<run>/ledger.json`, rewritten atomically (temporary file,

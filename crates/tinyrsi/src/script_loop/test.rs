@@ -2,9 +2,7 @@
 //! supervisor, plus the shared fixtures the loop tests use.
 #![expect(clippy::unwrap_used, reason = "assert deterministic test fixtures")]
 use super::{prompt::*, score::*, *};
-use crate::{
-    EvalPolicy, MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest, ScoreDecision,
-};
+use crate::{MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest};
 use std::{
     collections::VecDeque,
     path::Path,
@@ -259,51 +257,17 @@ fn reports_failed_missing_and_invalid_seeds() {
 }
 
 #[test]
-fn quality_preserves_metric_order_in_both_directions() {
+fn reports_a_failed_candidates_interval_in_metric_units() {
     let min = MetricDirection::Minimize;
-    let max = MetricDirection::Maximize;
-    assert!(quality(0.1, min) > quality(0.2, min));
-    assert!(quality(0.2, max) > quality(0.1, max));
-    for m in [-1e9, -1.0, 0.0, 1.0, 1e9] {
-        let q = quality(m, min);
-        assert!(q > 0.0 && q < 1.0);
-    }
-    assert!(reaches(0.05, 0.05, min) && !reaches(0.06, 0.05, min));
-    assert!(reaches(0.9, 0.8, max) && !reaches(0.7, 0.8, max));
-    assert!(better(0.1, 0.2, min) && !better(0.2, 0.2, min));
-}
-
-#[test]
-fn reports_the_interval_in_metric_units_with_positive_meaning_better() {
-    let min = MetricDirection::Minimize;
-    assert_eq!(interval(&[], &[], min, 2.0), (0.0, 0.0, 0.0));
+    assert_eq!(failed_interval(&[], &[], min, 2.0), (0.0, 0.0, 0.0));
     assert_eq!(
-        interval(&[Some(0.5), Some(0.5)], &[Some(0.3), None], min, 2.0),
+        failed_interval(&[Some(0.5), Some(0.5)], &[Some(0.3), None], min, 2.0),
         (0.2, 0.2, 0.2)
     );
     let (estimate, lower, upper) =
-        interval(&[Some(1.0), Some(1.0)], &[Some(0.5), Some(0.7)], min, 2.0);
+        failed_interval(&[Some(1.0), Some(1.0)], &[Some(0.5), Some(0.7)], min, 2.0);
     assert!((estimate - 0.4).abs() < 1e-12);
     assert!((lower - 0.2).abs() < 1e-12 && (upper - 0.6).abs() < 1e-12);
-}
-
-#[test]
-fn scores_with_the_paired_evaluation_policy() {
-    let policy = LoopPolicy::default().eval;
-    let min = MetricDirection::Minimize;
-    let better = score(&[1, 2], &[0.51, 0.52], &[0.31, 0.32], min, &policy).unwrap();
-    assert_eq!(better.decision, ScoreDecision::Accept);
-    assert!((better.estimate - 0.2).abs() < 1e-12);
-    let worse = score(&[1, 2], &[0.51, 0.52], &[0.71, 0.72], min, &policy).unwrap();
-    assert_eq!(worse.decision, ScoreDecision::Reject);
-    assert!(worse.upper < 0.0);
-    let noisy = score(&[1, 2], &[0.5, 0.5], &[0.3, 0.6], min, &policy).unwrap();
-    assert_eq!(noisy.decision, ScoreDecision::Inconclusive);
-    let invalid = EvalPolicy {
-        standard_error_multiplier: 1.0,
-        ..policy
-    };
-    assert!(score(&[1, 2], &[0.5, 0.5], &[0.3, 0.3], min, &invalid).is_err());
 }
 
 #[test]
@@ -332,6 +296,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         estimate: None,
         lower: None,
         upper: None,
+        units: IntervalUnits::Metric,
         promoted: false,
         note: None,
     };
@@ -368,50 +333,4 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         ..ledger
     };
     assert!(prompt(&s, &empty, &sources, 3).contains("None yet."));
-}
-
-#[test]
-fn the_scoring_crate_reproduces_script_loop_scores_exactly() {
-    use tinyrsi_score::{Goal, MetricScorer, Scorer, decide};
-    // A small deterministic generator, so the cases are varied but fixed.
-    let mut state = 0x9e37_79b9_7f4a_7c15_u64;
-    let mut next = move || {
-        state ^= state << 13;
-        state ^= state >> 7;
-        state ^= state << 17;
-        f64::from(u32::try_from(state >> 40).unwrap()) / f64::from(1_u32 << 24) * 4.0 - 2.0
-    };
-    let goal = Goal::new("improve the metric");
-    for case in 0..200_u64 {
-        let direction = if case % 2 == 0 {
-            crate::MetricDirection::Minimize
-        } else {
-            crate::MetricDirection::Maximize
-        };
-        let seeds: Vec<u64> = (0..2 + case % 4).collect();
-        let incumbent: Vec<f64> = seeds.iter().map(|_| next()).collect();
-        let shift = next();
-        let candidate: Vec<f64> = incumbent.iter().map(|m| m + shift + next() * 0.1).collect();
-        let policy = crate::EvalPolicy {
-            margin: if case % 3 == 0 { 0.0 } else { 0.01 },
-            ..crate::EvalPolicy::default()
-        };
-        let old = score(&seeds, &incumbent, &candidate, direction, &policy).unwrap();
-        let scorer = MetricScorer::new(direction);
-        let new = decide(
-            &scorer.assess(&incumbent, &goal, &seeds).unwrap(),
-            &scorer.assess(&candidate, &goal, &seeds).unwrap(),
-            &seeds,
-            &policy,
-        )
-        .unwrap();
-        assert_eq!(new.decision, old.decision, "case {case}");
-        assert_eq!(
-            new.estimate.to_bits(),
-            old.estimate.to_bits(),
-            "case {case}"
-        );
-        assert_eq!(new.lower.to_bits(), old.lower.to_bits(), "case {case}");
-        assert_eq!(new.upper.to_bits(), old.upper.to_bits(), "case {case}");
-    }
 }

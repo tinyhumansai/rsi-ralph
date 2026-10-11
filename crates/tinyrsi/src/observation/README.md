@@ -3,8 +3,8 @@
 This module turns a running coordinator into the public evidence a proposal
 model is allowed to see. It reads; it never writes to the coordinator, to
 memory or to disk. Persistence of observations is done by
-`DeploymentStore::observe` (`src/host/`) or `EvidenceJournal`
-(`src/evidence_journal/`).
+`DeploymentStore::observe` (`crates/tinyrsi-host/src/host/`) or
+`EvidenceJournal` (`crates/tinyrsi-host/src/evidence_journal/`).
 
 | File | Responsibility |
 | --- | --- |
