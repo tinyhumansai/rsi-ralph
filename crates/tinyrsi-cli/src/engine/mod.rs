@@ -219,7 +219,11 @@ impl Engine<'_> {
             hasher.update(revision.as_bytes());
             hasher.update(serde_json::to_vec(spec).unwrap_or_default());
             let digest = hasher.finalize();
-            digest.iter().take(8).map(|b| format!("{b:02x}")).collect::<String>()
+            digest
+                .iter()
+                .take(8)
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
         };
         let cached = self
             .store
@@ -354,8 +358,12 @@ impl Engine<'_> {
         for seat in self.proposer.editing_seats() {
             let label = format!("e{epoch}-{seat}");
             let branch = format!("rsi/cand-{}-{label}", self.run.id);
-            let checkout =
-                subject.candidate(&state.incumbent, &label, &branch, &dir.join("candidates").join(&seat))?;
+            let checkout = subject.candidate(
+                &state.incumbent,
+                &label,
+                &branch,
+                &dir.join("candidates").join(&seat),
+            )?;
             candidates.insert(seat, checkout);
         }
         let report = self.proposer.propose(&ProposalRequest {
@@ -382,7 +390,12 @@ impl Engine<'_> {
             self.save(state)?;
         }
         let best = accepted.into_iter().reduce(|a, b| {
-            let score = |i: usize| state.ledger.candidates[i].scorecard.as_ref().and_then(|c| c.headline);
+            let score = |i: usize| {
+                state.ledger.candidates[i]
+                    .scorecard
+                    .as_ref()
+                    .and_then(|c| c.headline)
+            };
             match (score(a), score(b)) {
                 (Some(x), Some(y)) if score::better(&manifest.score, y, x) => b,
                 _ => a,
@@ -395,7 +408,10 @@ impl Engine<'_> {
         let checkout = &candidates[&winner.seat];
         subject.promote(&state.incumbent, checkout)?;
         let revision = subject.revision(&state.incumbent)?;
-        let card = winner.scorecard.clone().unwrap_or_else(|| state.card.clone());
+        let card = winner
+            .scorecard
+            .clone()
+            .unwrap_or_else(|| state.card.clone());
         state.trace.record(LoopEvent::Improved {
             epoch: epoch.into(),
             from: state.revision.clone(),
@@ -477,7 +493,9 @@ impl Engine<'_> {
         })?;
         let steps = dir.join("steps").join(&checkout.label);
         let ctx = self.context(epoch, &state.incumbent);
-        record.gates.push(gate::surface(&manifest.subject, &record.changed));
+        record
+            .gates
+            .push(gate::surface(&manifest.subject, &record.changed));
         if record.gates.iter().all(|g| g.ok) {
             record
                 .gates
@@ -512,7 +530,13 @@ impl Engine<'_> {
             &self.parsed.rubrics,
             Some(&diff),
         )?;
-        emit_measurements(&mut state.trace, epoch, &checkout.label, &card, &manifest.score.decide.on)?;
+        emit_measurements(
+            &mut state.trace,
+            epoch,
+            &checkout.label,
+            &card,
+            &manifest.score.decide.on,
+        )?;
         let verdict = score::decide(&manifest.score, &state.card, &card)?;
         state.trace.record(LoopEvent::Scored {
             epoch: epoch.into(),

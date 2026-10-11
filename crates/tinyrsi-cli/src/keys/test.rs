@@ -7,7 +7,8 @@ fn example() -> Loop {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring");
     let mut files = manifest::load_dir(&dir).unwrap();
     let mut m: serde_json::Value = serde_json::from_str(&files["rsi.json"]).unwrap();
-    m["keys"] = serde_json::json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
+    m["keys"] =
+        serde_json::json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY" } });
     files.insert("rsi.json".into(), m.to_string());
     manifest::parse(&files).unwrap()
 }
@@ -31,8 +32,13 @@ fn resolves_from_the_environment_then_dotenv() {
 fn names_every_missing_key_without_values() {
     let dir = tempfile::tempdir().unwrap();
     let err = Keys::resolve(&example(), dir.path(), &|_| None).unwrap_err();
-    assert!(matches!(&err, Error::MissingKeys { names } if names == &["GEMINI_API_KEY", "OPENROUTER_API_KEY"]));
-    assert_eq!(err.to_string(), "missing keys: GEMINI_API_KEY, OPENROUTER_API_KEY");
+    assert!(
+        matches!(&err, Error::MissingKeys { names } if names == &["GEMINI_API_KEY", "OPENROUTER_API_KEY"])
+    );
+    assert_eq!(
+        err.to_string(),
+        "missing keys: GEMINI_API_KEY, OPENROUTER_API_KEY"
+    );
 }
 
 #[test]

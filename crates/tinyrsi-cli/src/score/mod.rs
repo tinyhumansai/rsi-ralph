@@ -126,7 +126,10 @@ pub fn score_checkout(
 
 #[expect(clippy::cast_precision_loss, reason = "seed counts are tiny")]
 fn mean_score(runs: &[SeedScore]) -> Option<f64> {
-    let values: Option<Vec<f64>> = runs.iter().map(|r| r.result.as_ref().map(|x| x.score)).collect();
+    let values: Option<Vec<f64>> = runs
+        .iter()
+        .map(|r| r.result.as_ref().map(|x| x.score))
+        .collect();
     let values = values.filter(|v| !v.is_empty())?;
     Some(values.iter().sum::<f64>() / values.len() as f64)
 }
@@ -156,7 +159,11 @@ pub fn better(spec: &ScoreSpec, a: f64, b: f64) -> bool {
 /// incumbent with no headline.
 pub fn decide(spec: &ScoreSpec, incumbent: &Scorecard, candidate: &Scorecard) -> Result<Verdict> {
     let on = &spec.decide.on;
-    if let Some(failed) = candidate.runs.get(on).and_then(|r| r.iter().find(|s| !s.ok)) {
+    if let Some(failed) = candidate
+        .runs
+        .get(on)
+        .and_then(|r| r.iter().find(|s| !s.ok))
+    {
         return Ok(Verdict {
             decision: ScoreDecision::Reject,
             estimate: 0.0,
@@ -180,7 +187,11 @@ pub fn decide(spec: &ScoreSpec, incumbent: &Scorecard, candidate: &Scorecard) ->
 fn values(card: &Scorecard, on: &str) -> Result<Vec<f64>> {
     card.runs
         .get(on)
-        .and_then(|runs| runs.iter().map(|r| r.result.as_ref().map(|x| x.score)).collect())
+        .and_then(|runs| {
+            runs.iter()
+                .map(|r| r.result.as_ref().map(|x| x.score))
+                .collect()
+        })
         .ok_or(Error::Score(tinyrsi_score::Error::InvalidEvaluation))
 }
 
@@ -224,7 +235,8 @@ fn decide_seeds(spec: &ScoreSpec, incumbent: &Scorecard, candidate: &Scorecard) 
         margin: d.margin,
         ..EvalPolicy::default()
     };
-    let decision = tinyrsi_score::decide(&assess(incumbent)?, &assess(candidate)?, &d.seeds, &policy)?;
+    let decision =
+        tinyrsi_score::decide(&assess(incumbent)?, &assess(candidate)?, &d.seeds, &policy)?;
     Ok(Verdict {
         decision: decision.decision,
         estimate: decision.estimate,

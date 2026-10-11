@@ -20,7 +20,9 @@ use crate::{
 pub fn surface(spec: &SubjectSpec, changed: &[String]) -> StepOutcome {
     let under = |path: &str, prefix: &str| {
         let prefix = prefix.trim_start_matches("./");
-        path == prefix.trim_end_matches('/') || path.starts_with(prefix) && (prefix.ends_with('/') || path[prefix.len()..].starts_with('/'))
+        path == prefix.trim_end_matches('/')
+            || path.starts_with(prefix)
+                && (prefix.ends_with('/') || path[prefix.len()..].starts_with('/'))
     };
     let outside = changed.iter().find(|path| {
         !spec.editable.iter().any(|p| under(path, p)) || spec.frozen.iter().any(|p| under(path, p))

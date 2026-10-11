@@ -51,7 +51,8 @@ impl Hive {
             .map_err(|e| Error::Proposer(e.to_string()))?;
         if editing.is_empty() {
             return Err(Error::Proposer(
-                "no seat edits a candidate: set a seat's config.action_dir to \"{candidate}\"".into(),
+                "no seat edits a candidate: set a seat's config.action_dir to \"{candidate}\""
+                    .into(),
             ));
         }
         let mut tools = Vec::new();

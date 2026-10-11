@@ -60,7 +60,10 @@ fn run_step(ctx: &StepContext, step: &StepRun) -> StepOutcome {
 #[test]
 fn reports_the_last_stderr_line_of_a_failure() {
     let dir = tempfile::tempdir().unwrap();
-    let cmd = script(dir.path(), "echo first >&2\necho 'leaked a canary' >&2\nexit 3\n");
+    let cmd = script(
+        dir.path(),
+        "echo first >&2\necho 'leaked a canary' >&2\nexit 3\n",
+    );
     let outcome = run_step(&ctx(dir.path()), &step(dir.path(), &cmd));
     assert!(!outcome.ok);
     assert_eq!(outcome.reason.as_deref(), Some("leaked a canary"));
@@ -82,7 +85,10 @@ fn times_out() {
 #[test]
 fn rejects_empty_and_unstartable_commands() {
     let dir = tempfile::tempdir().unwrap();
-    assert!(matches!(run(&ctx(dir.path()), &step(dir.path(), "  ")), Err(Error::Step { .. })));
+    assert!(matches!(
+        run(&ctx(dir.path()), &step(dir.path(), "  ")),
+        Err(Error::Step { .. })
+    ));
     assert!(matches!(
         run(&ctx(dir.path()), &step(dir.path(), "/nonexistent/program")),
         Err(Error::Step { reason, .. }) if reason.contains("could not start")
@@ -107,7 +113,10 @@ fn reads_result_json_or_a_metric_line() {
     assert_eq!(result.failures[0].kind.as_deref(), Some("temporal"));
 
     let other = tempfile::tempdir().unwrap();
-    let cmd = script(other.path(), "echo 'METRIC colors=9'\necho 'METRIC colors=7.5'\n");
+    let cmd = script(
+        other.path(),
+        "echo 'METRIC colors=9'\necho 'METRIC colors=7.5'\n",
+    );
     let run = step(other.path(), &cmd);
     let outcome = run_step(&ctx(other.path()), &run);
     assert!((score_result(&run, &outcome).unwrap().score - 7.5).abs() < 1e-12);
@@ -124,25 +133,41 @@ fn rejects_missing_malformed_and_non_finite_results() {
         duration_ms: 0,
         stdout: "nothing".into(),
     };
-    assert!(matches!(score_result(&run, &outcome), Err(Error::Step { .. })));
+    assert!(matches!(
+        score_result(&run, &outcome),
+        Err(Error::Step { .. })
+    ));
     let out = PathBuf::from(&run.dir).join("out");
     std::fs::create_dir_all(&out).unwrap();
     std::fs::write(out.join("result.json"), "{\"nope\": 1}").unwrap();
-    assert!(matches!(score_result(&run, &outcome), Err(Error::Step { reason, .. }) if reason.starts_with("result.json")));
+    assert!(
+        matches!(score_result(&run, &outcome), Err(Error::Step { reason, .. }) if reason.starts_with("result.json"))
+    );
     std::fs::remove_file(out.join("result.json")).unwrap();
     let infinite = StepOutcome {
         stdout: "METRIC colors=inf".into(),
         ..outcome
     };
-    assert!(matches!(score_result(&run, &infinite), Err(Error::Step { reason, .. }) if reason == "non-finite score"));
+    assert!(
+        matches!(score_result(&run, &infinite), Err(Error::Step { reason, .. }) if reason == "non-finite score")
+    );
 }
 
 #[test]
 fn pins_the_result_stored_form() {
     let result = ScoreResult {
         score: 1.0,
-        splits: BTreeMap::from([("dev".to_owned(), Split { items: BTreeMap::from([("a".to_owned(), 0.0)]) })]),
-        failures: vec![Failure { id: "a".into(), kind: Some("k".into()), text: "t".into() }],
+        splits: BTreeMap::from([(
+            "dev".to_owned(),
+            Split {
+                items: BTreeMap::from([("a".to_owned(), 0.0)]),
+            },
+        )]),
+        failures: vec![Failure {
+            id: "a".into(),
+            kind: Some("k".into()),
+            text: "t".into(),
+        }],
         metrics: BTreeMap::new(),
     };
     assert_eq!(

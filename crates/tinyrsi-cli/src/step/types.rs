@@ -1,10 +1,6 @@
 //! The step contract's inputs and the `result.json` a scorer writes.
 
-use std::{
-    collections::BTreeMap,
-    path::PathBuf,
-    time::Duration,
-};
+use std::{collections::BTreeMap, path::PathBuf, time::Duration};
 
 use serde::{Deserialize, Serialize};
 

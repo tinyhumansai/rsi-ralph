@@ -56,10 +56,7 @@ pub fn run(ctx: &StepContext, step: &StepRun) -> Result<StepOutcome> {
         Exit::Exited { success: true, .. } => (true, None),
         Exit::Exited { code, .. } => (
             false,
-            Some(
-                last_line(&stderr)
-                    .map_or_else(|| format!("exited with {code:?}"), str::to_owned),
-            ),
+            Some(last_line(&stderr).map_or_else(|| format!("exited with {code:?}"), str::to_owned)),
         ),
         Exit::TimedOut => (false, Some(format!("timed out after {:?}", step.timeout))),
         Exit::OutputExceeded => (false, Some("output exceeded 16 MiB".into())),
@@ -91,7 +88,12 @@ fn environment(ctx: &StepContext, step: &StepRun, out: &Path, tmp: &Path) -> Vec
     if let Some(base) = &ctx.model_url {
         env.push((
             "RSI_MODEL_URL".to_owned(),
-            format!("{}/__tag/{}/{}/v1", base.trim_end_matches('/'), "step", step.id),
+            format!(
+                "{}/__tag/{}/{}/v1",
+                base.trim_end_matches('/'),
+                "step",
+                step.id
+            ),
         ));
     }
     env

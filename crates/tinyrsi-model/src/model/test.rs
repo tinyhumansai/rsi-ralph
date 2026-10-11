@@ -197,7 +197,8 @@ fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
                 break;
             }
         }
-        seen.send(String::from_utf8_lossy(&data).into_owned()).unwrap();
+        seen.send(String::from_utf8_lossy(&data).into_owned())
+            .unwrap();
         let body = r#"{"choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":3,"completion_tokens":1}}"#;
         let reply = format!(
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
@@ -205,7 +206,8 @@ fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
         );
         stream.write_all(reply.as_bytes()).unwrap();
     });
-    let model = OpenRouterModel::via("m".into(), &format!("http://{addr}/__tag/judge/q/v1/")).unwrap();
+    let model =
+        OpenRouterModel::via("m".into(), &format!("http://{addr}/__tag/judge/q/v1/")).unwrap();
     assert_eq!(model.call(&request()).unwrap().content, b"ok");
     let head = heard.recv().unwrap();
     assert!(head.starts_with("POST /__tag/judge/q/v1/chat/completions "));
@@ -306,7 +308,10 @@ fn public_provider_identity_survives_budget_wrapping_without_provider_calls() {
 #[test]
 fn a_request_temperature_reaches_the_provider_body() {
     let model = OpenRouterModel::new("m".into()).unwrap();
-    assert_eq!(model.body(&request())["temperature"], serde_json::json!(0.0));
+    assert_eq!(
+        model.body(&request())["temperature"],
+        serde_json::json!(0.0)
+    );
     let warm = request().with_temperature(1.2).unwrap();
     assert_eq!(warm.temperature(), Some(1.2));
     assert_eq!(model.body(&warm)["temperature"], serde_json::json!(1.2));

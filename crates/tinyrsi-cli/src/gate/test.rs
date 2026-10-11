@@ -21,17 +21,28 @@ fn changed(paths: &[&str]) -> Vec<String> {
 
 #[test]
 fn accepts_changes_inside_editable_prefixes() {
-    let s = spec(&["crates/tools/", "coloring.py"], &["crates/tools/api/"], false);
+    let s = spec(
+        &["crates/tools/", "coloring.py"],
+        &["crates/tools/api/"],
+        false,
+    );
     assert!(surface(&s, &changed(&["crates/tools/src/a.rs", "coloring.py"])).ok);
     assert!(surface(&s, &changed(&[])).ok);
 }
 
 #[test]
 fn rejects_frozen_and_outside_paths() {
-    let s = spec(&["crates/tools/", "coloring.py"], &["crates/tools/api/"], false);
+    let s = spec(
+        &["crates/tools/", "coloring.py"],
+        &["crates/tools/api/"],
+        false,
+    );
     let out = surface(&s, &changed(&["crates/tools/api/x.rs"]));
     assert!(!out.ok);
-    assert_eq!(out.reason.as_deref(), Some("crates/tools/api/x.rs is outside the editable surface"));
+    assert_eq!(
+        out.reason.as_deref(),
+        Some("crates/tools/api/x.rs is outside the editable surface")
+    );
     assert!(!surface(&s, &changed(&["crates/toolsmith/a.rs"])).ok);
     assert!(!surface(&s, &changed(&["coloring.py.bak"])).ok);
     let dir = spec(&["src"], &[], false);
@@ -41,7 +52,10 @@ fn rejects_frozen_and_outside_paths() {
 #[test]
 fn can_require_a_test_change() {
     let s = spec(&["src/", "tests/"], &[], true);
-    assert_eq!(surface(&s, &changed(&["src/a.rs"])).reason.as_deref(), Some("no test file changed"));
+    assert_eq!(
+        surface(&s, &changed(&["src/a.rs"])).reason.as_deref(),
+        Some("no test file changed")
+    );
     assert!(surface(&s, &changed(&["src/a.rs", "tests/a_test.rs"])).ok);
 }
 
@@ -57,11 +71,26 @@ fn gates_run_in_order_and_stop_at_the_first_failure() {
         env: BTreeMap::new(),
         inherited: vec![("PATH".into(), "/usr/bin:/bin".into())],
     };
-    let cand = Checkout { label: "c".into(), path: dir.path().to_path_buf() };
+    let cand = Checkout {
+        label: "c".into(),
+        path: dir.path().to_path_buf(),
+    };
     let gates = vec![
-        GateStep { run: "true".into(), cwd: StepCwd::Candidate, timeout_secs: 10 },
-        GateStep { run: "false".into(), cwd: StepCwd::Loop, timeout_secs: 10 },
-        GateStep { run: "true".into(), cwd: StepCwd::Loop, timeout_secs: 10 },
+        GateStep {
+            run: "true".into(),
+            cwd: StepCwd::Candidate,
+            timeout_secs: 10,
+        },
+        GateStep {
+            run: "false".into(),
+            cwd: StepCwd::Loop,
+            timeout_secs: 10,
+        },
+        GateStep {
+            run: "true".into(),
+            cwd: StepCwd::Loop,
+            timeout_secs: 10,
+        },
     ];
     let outcomes = run_gates(&ctx, &gates, &cand, &dir.path().join("gates")).unwrap();
     assert_eq!(outcomes.len(), 2);

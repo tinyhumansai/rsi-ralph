@@ -23,13 +23,24 @@ fn record(id: &str, started_at: u64, status: RunStatus, pid: u32) -> RunRecord {
 fn creates_a_run_with_a_frozen_loop_copy() {
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path());
-    let files = BTreeMap::from([("rsi.json".to_owned(), "{}".to_owned()), ("hive/seats/a.md".to_owned(), "a".to_owned())]);
+    let files = BTreeMap::from([
+        ("rsi.json".to_owned(), "{}".to_owned()),
+        ("hive/seats/a.md".to_owned(), "a".to_owned()),
+    ]);
     let run = store.create_run("demo", Some("r1"), &files).unwrap();
     assert_eq!(run.path, home.path().join("runs/demo/r1"));
-    assert_eq!(fs::read_to_string(run.loop_dir().join("hive/seats/a.md")).unwrap(), "a");
+    assert_eq!(
+        fs::read_to_string(run.loop_dir().join("hive/seats/a.md")).unwrap(),
+        "a"
+    );
     assert!(run.epoch_dir(2).unwrap().ends_with("epoch-2"));
-    assert!(matches!(store.create_run("demo", Some("r1"), &files), Err(Error::RunExists(id)) if id == "r1"));
-    assert!(matches!(store.create_run("demo", Some("../x"), &files), Err(Error::Path { .. })));
+    assert!(
+        matches!(store.create_run("demo", Some("r1"), &files), Err(Error::RunExists(id)) if id == "r1")
+    );
+    assert!(matches!(
+        store.create_run("demo", Some("../x"), &files),
+        Err(Error::Path { .. })
+    ));
     let generated = store.create_run("demo", None, &BTreeMap::new()).unwrap();
     assert_eq!(generated.id.len(), 15);
 }
@@ -38,17 +49,34 @@ fn creates_a_run_with_a_frozen_loop_copy() {
 fn lists_runs_newest_first_and_marks_dead_runs_interrupted() {
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path());
-    let a = store.create_run("demo", Some("a"), &BTreeMap::new()).unwrap();
+    let a = store
+        .create_run("demo", Some("a"), &BTreeMap::new())
+        .unwrap();
     write_json(&a.record_path(), &record("a", 10, RunStatus::Finished, 1)).unwrap();
-    let b = store.create_run("demo", Some("b"), &BTreeMap::new()).unwrap();
+    let b = store
+        .create_run("demo", Some("b"), &BTreeMap::new())
+        .unwrap();
     // A pid far above any real process stands in for a dead owner.
-    write_json(&b.record_path(), &record("b", 20, RunStatus::Running, 4_000_000)).unwrap();
-    let c = store.create_run("other", Some("c"), &BTreeMap::new()).unwrap();
-    write_json(&c.record_path(), &record("c", 30, RunStatus::Running, std::process::id())).unwrap();
+    write_json(
+        &b.record_path(),
+        &record("b", 20, RunStatus::Running, 4_000_000),
+    )
+    .unwrap();
+    let c = store
+        .create_run("other", Some("c"), &BTreeMap::new())
+        .unwrap();
+    write_json(
+        &c.record_path(),
+        &record("c", 30, RunStatus::Running, std::process::id()),
+    )
+    .unwrap();
     fs::write(store.runs_root().join("demo/a/../junk.json"), "x").unwrap();
 
     let all = store.list_runs(None).unwrap();
-    assert_eq!(all.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["c", "b", "a"]);
+    assert_eq!(
+        all.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        vec!["c", "b", "a"]
+    );
     assert_eq!(all[0].status, RunStatus::Running);
     assert_eq!(all[1].status, RunStatus::Interrupted);
     assert_eq!(store.list_runs(Some("demo")).unwrap().len(), 2);
@@ -56,7 +84,12 @@ fn lists_runs_newest_first_and_marks_dead_runs_interrupted() {
     assert_eq!((dir.id.as_str(), found.status), ("a", RunStatus::Finished));
     assert!(matches!(store.find_run("demo/zzz"), Err(Error::NoRun(_))));
     assert!(matches!(store.find_run("nodash"), Err(Error::NoRun(_))));
-    assert!(Store::new(home.path().join("empty")).list_runs(None).unwrap().is_empty());
+    assert!(
+        Store::new(home.path().join("empty"))
+            .list_runs(None)
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[test]
@@ -78,8 +111,14 @@ fn json_documents_round_trip_and_report_decode_errors() {
     let path = dir.path().join("deep/x.json");
     write_json(&path, &vec![1, 2]).unwrap();
     assert_eq!(read_json::<Vec<u32>>(&path).unwrap(), vec![1, 2]);
-    assert!(matches!(read_json::<String>(&path), Err(Error::Store { .. })));
-    assert!(matches!(read_json::<String>(&dir.path().join("none")), Err(Error::Io { .. })));
+    assert!(matches!(
+        read_json::<String>(&path),
+        Err(Error::Store { .. })
+    ));
+    assert!(matches!(
+        read_json::<String>(&dir.path().join("none")),
+        Err(Error::Io { .. })
+    ));
 }
 
 #[test]

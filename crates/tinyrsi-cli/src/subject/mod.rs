@@ -25,7 +25,14 @@ mod types;
 pub use types::{Checkout, Subject};
 
 /// Folders never copied, hashed or compared.
-const SKIPPED: [&str; 6] = [".git", "target", "node_modules", "__pycache__", ".venv", ".pytest_cache"];
+const SKIPPED: [&str; 6] = [
+    ".git",
+    "target",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    ".pytest_cache",
+];
 
 impl Subject {
     /// The subject a manifest describes, with paths resolved against the
@@ -51,7 +58,10 @@ impl Subject {
         match self {
             Self::Dir { source } => copy_tree(source, &path)?,
             Self::Git { repo, branch } => {
-                git(repo, &["worktree", "add", "--detach", &display(&path), branch])?;
+                git(
+                    repo,
+                    &["worktree", "add", "--detach", &display(&path), branch],
+                )?;
             }
         }
         Ok(Checkout {
@@ -86,7 +96,10 @@ impl Subject {
         match self {
             Self::Dir { .. } => copy_tree(&incumbent.path, path)?,
             Self::Git { repo, branch: base } => {
-                git(repo, &["worktree", "add", "-B", branch, &display(path), base])?;
+                git(
+                    repo,
+                    &["worktree", "add", "-B", branch, &display(path), base],
+                )?;
             }
         }
         Ok(Checkout {
@@ -238,7 +251,9 @@ pub(crate) fn copy_tree(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(to).map_err(|e| Error::io("create", to, e))?;
     for entry in fs::read_dir(from).map_err(|e| Error::io("read", from, e))? {
         let entry = entry.map_err(|e| Error::io("read", from, e))?;
-        let kind = entry.file_type().map_err(|e| Error::io("stat", entry.path(), e))?;
+        let kind = entry
+            .file_type()
+            .map_err(|e| Error::io("stat", entry.path(), e))?;
         let name = entry.file_name();
         let target = to.join(&name);
         if kind.is_dir() {

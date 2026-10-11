@@ -130,7 +130,7 @@ pub fn execute(
             say(
                 out,
                 &format!(
-                    "ok: {} ({} subject, {} scorers, decide {} by {:?}, hive lead {})",
+                    "ok: {} ({} subject, {} scorers, decide {} by {}, hive lead {})",
                     m.name,
                     match m.subject.kind {
                         manifest::SubjectKind::Dir => "dir",
@@ -138,14 +138,18 @@ pub fn execute(
                     },
                     m.score.scorers.len(),
                     m.score.decide.on,
-                    m.score.decide.test,
+                    serde_json::to_string(&m.score.decide.test)
+                        .unwrap_or_default()
+                        .trim_matches('"'),
                     m.hive.lead
                 ),
             )
         }
         Command::Runs { r#loop } => {
             for r in store.list_runs(r#loop.as_deref())? {
-                let score = r.incumbent_score.map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"));
+                let score = r
+                    .incumbent_score
+                    .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"));
                 say(
                     out,
                     &format!(
@@ -166,10 +170,26 @@ pub fn execute(
             say(out, &format!("run       {}/{}", r.r#loop, r.id))?;
             say(out, &format!("status    {}", status(r.status)))?;
             if let Some(reason) = r.stop_reason {
-                say(out, &format!("stopped   {}", serde_json::to_string(&reason).unwrap_or_default().trim_matches('"')))?;
+                say(
+                    out,
+                    &format!(
+                        "stopped   {}",
+                        serde_json::to_string(&reason)
+                            .unwrap_or_default()
+                            .trim_matches('"')
+                    ),
+                )?;
             }
             say(out, &format!("epochs    {}", r.epochs))?;
-            say(out, &format!("incumbent {} ({})", r.incumbent, r.incumbent_score.map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"))))?;
+            say(
+                out,
+                &format!(
+                    "incumbent {} ({})",
+                    r.incumbent,
+                    r.incumbent_score
+                        .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}"))
+                ),
+            )?;
             say(out, &format!("spend     ${:.2}", r.spend_usd))?;
             if let Some(error) = r.error {
                 say(out, &format!("error     {error}"))?;
@@ -199,7 +219,15 @@ pub fn execute(
             if let Some(server) = &server {
                 say(out, &format!("ui: {}", server.url()))?;
             }
-            run::run(&parsed, &r#loop, &store, run.as_deref(), epochs, lookup, out)
+            run::run(
+                &parsed,
+                &r#loop,
+                &store,
+                run.as_deref(),
+                epochs,
+                lookup,
+                out,
+            )
         }
         Command::Score {
             r#loop,
@@ -207,7 +235,15 @@ pub fn execute(
             checkout,
         } => {
             let parsed = load(&r#loop)?;
-            run::score(&parsed, &r#loop, &store, &label, checkout.as_deref(), lookup, out)
+            run::score(
+                &parsed,
+                &r#loop,
+                &store,
+                &label,
+                checkout.as_deref(),
+                lookup,
+                out,
+            )
         }
     }
 }

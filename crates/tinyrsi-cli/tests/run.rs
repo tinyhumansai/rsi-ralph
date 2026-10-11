@@ -17,7 +17,11 @@ use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate, matchers::m
 const KEY: &str = "sk-or-fixture-key-0000";
 
 fn completion(message: &Value) -> Value {
-    let finish = if message.get("tool_calls").is_some() { "tool_calls" } else { "stop" };
+    let finish = if message.get("tool_calls").is_some() {
+        "tool_calls"
+    } else {
+        "stop"
+    };
     json!({
         "id": "fixture", "object": "chat.completion", "created": 0, "model": "z-ai/glm-5.3-flash",
         "choices": [{"index": 0, "message": message, "finish_reason": finish}],
@@ -116,8 +120,14 @@ fn stream(reply: &Value) -> String {
     let finish = reply["choices"][0]["finish_reason"].clone();
     format!(
         "{}{}data: [DONE]\n\n",
-        chunk(json!({"index": 0, "delta": delta, "finish_reason": null}), None),
-        chunk(json!({"index": 0, "delta": {}, "finish_reason": finish}), Some(&reply["usage"]))
+        chunk(
+            json!({"index": 0, "delta": delta, "finish_reason": null}),
+            None
+        ),
+        chunk(
+            json!({"index": 0, "delta": {}, "finish_reason": finish}),
+            Some(&reply["usage"])
+        )
     )
 }
 
@@ -201,16 +211,25 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     assert!(printed.contains("after 1 promotions"), "{printed}");
 
     let run = home.join("runs/graph-coloring/e2e");
-    let record: Value = serde_json::from_str(&std::fs::read_to_string(run.join("run.json")).unwrap()).unwrap();
+    let record: Value =
+        serde_json::from_str(&std::fs::read_to_string(run.join("run.json")).unwrap()).unwrap();
     assert_eq!(record["status"], "finished");
-    let ledger: Value = serde_json::from_str(&std::fs::read_to_string(run.join("ledger.json")).unwrap()).unwrap();
+    let ledger: Value =
+        serde_json::from_str(&std::fs::read_to_string(run.join("ledger.json")).unwrap()).unwrap();
     assert_eq!(ledger["candidates"][0]["status"], "promoted");
     assert_eq!(ledger["candidates"][0]["changed"], json!(["coloring.py"]));
     // First fit uses 17 colours on these graphs; DSATUR uses fewer.
     let baseline = ledger["epochs"][0]["incumbent"].as_str().unwrap();
     assert_ne!(record["incumbent"].as_str().unwrap(), baseline);
-    assert!(record["incumbent_score"].as_f64().unwrap() < 17.0, "{record}");
-    assert!(std::fs::read_to_string(run.join("incumbent/coloring.py")).unwrap().contains("DSATUR"));
+    assert!(
+        record["incumbent_score"].as_f64().unwrap() < 17.0,
+        "{record}"
+    );
+    assert!(
+        std::fs::read_to_string(run.join("incumbent/coloring.py"))
+            .unwrap()
+            .contains("DSATUR")
+    );
     assert!(record["spend_usd"].as_f64().unwrap() > 0.0, "{record}");
     assert!(run.join("epoch-1/hive/events.jsonl").exists());
 
@@ -224,5 +243,9 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let mut out = Vec::new();
     let cli = Cli::parse_from(["tinyrsi", "--home", home.to_str().unwrap(), "runs"]);
     execute(cli, &lookup, &mut out).unwrap();
-    assert!(String::from_utf8(out).unwrap().starts_with("graph-coloring/e2e\tfinished"));
+    assert!(
+        String::from_utf8(out)
+            .unwrap()
+            .starts_with("graph-coloring/e2e\tfinished")
+    );
 }

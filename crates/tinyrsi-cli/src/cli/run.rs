@@ -118,7 +118,15 @@ pub(super) fn run(
     let keys = Keys::resolve(parsed, loop_dir, lookup)?;
     let files = manifest::load_dir(loop_dir)?;
     let run = store.create_run(&parsed.manifest.name, run_id, &files)?;
-    say(out, &format!("run: {}/{} in {}", run.loop_name, run.id, run.path.display()))?;
+    say(
+        out,
+        &format!(
+            "run: {}/{} in {}",
+            run.loop_name,
+            run.id,
+            run.path.display()
+        ),
+    )?;
     let gateway = gateway(parsed, &keys, store, &run, lookup)?;
     let meter = GatewayMeter(&gateway);
     let mut hive = Hive::new(parsed, &keys, &gateway.base_url())?;
@@ -147,12 +155,20 @@ pub(super) fn run(
                 .trim_matches('"'),
             summary.promotions,
             summary.incumbent,
-            summary.score.map_or_else(|| "-".to_owned(), |s| format!("{s:.4}")),
+            summary
+                .score
+                .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}")),
             summary.checkout.display()
         ),
     )?;
     let spend = gateway.spend();
-    say(out, &format!("spend: ${:.2} this run, ${:.2} in total", spend.run_usd, spend.total_usd))
+    say(
+        out,
+        &format!(
+            "spend: ${:.2} this run, ${:.2} in total",
+            spend.run_usd, spend.total_usd
+        ),
+    )
 }
 
 /// `tinyrsi score`.
@@ -169,7 +185,10 @@ pub(super) fn score(
     let loop_dir = absolute(loop_dir);
     let run = store.create_run(
         &parsed.manifest.name,
-        Some(&format!("score-{label}-{}", store::timestamp_id(store::now()))),
+        Some(&format!(
+            "score-{label}-{}",
+            store::timestamp_id(store::now())
+        )),
         &BTreeMap::new(),
     )?;
     let gateway = gateway(parsed, &keys, store, &run, lookup)?;
@@ -202,10 +221,10 @@ pub(super) fn score(
     store::write_json(&run.path.join("scorecard.json"), &card)?;
     for (id, runs) in &card.runs {
         for seed in runs {
-            let value = seed
-                .result
-                .as_ref()
-                .map_or_else(|| format!("failed: {}", seed.reason.as_deref().unwrap_or("?")), |r| format!("{:.4}", r.score));
+            let value = seed.result.as_ref().map_or_else(
+                || format!("failed: {}", seed.reason.as_deref().unwrap_or("?")),
+                |r| format!("{:.4}", r.score),
+            );
             say(out, &format!("{id}\tseed {}\t{value}", seed.seed))?;
         }
     }
@@ -214,7 +233,8 @@ pub(super) fn score(
         &format!(
             "{} = {} (spend ${:.2}; details in {})",
             parsed.manifest.score.decide.on,
-            card.headline.map_or_else(|| "-".to_owned(), |s| format!("{s:.4}")),
+            card.headline
+                .map_or_else(|| "-".to_owned(), |s| format!("{s:.4}")),
             gateway.spend().run_usd,
             run.path.display()
         ),

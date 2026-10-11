@@ -24,10 +24,10 @@
 //! language live in their own crates and are reused here unchanged, so the
 //! binary and the library agree on every stored format.
 
-mod error;
 pub mod brief;
 pub mod cli;
 pub mod engine;
+mod error;
 pub mod gate;
 pub mod hive;
 pub mod keys;

@@ -57,7 +57,11 @@ pub fn render(template: &str, input: &BriefInput<'_>) -> String {
     for (key, title, body) in sections {
         let placeholder = format!("{{{{{key}}}}}");
         if out.contains(&placeholder) {
-            let body = if body.is_empty() { "None yet.".to_owned() } else { body };
+            let body = if body.is_empty() {
+                "None yet.".to_owned()
+            } else {
+                body
+            };
             out = out.replace(&placeholder, body.trim_end());
         } else if !body.is_empty() {
             let _ = write!(out, "\n\n## {title}\n\n{}", body.trim_end());
@@ -103,7 +107,12 @@ fn incumbent(input: &BriefInput<'_>) -> String {
 fn history(entries: &[HistoryEntry]) -> String {
     entries
         .iter()
-        .map(|e| format!("- epoch {} `{}`: {} ({})\n", e.epoch, e.candidate, e.outcome, e.reason))
+        .map(|e| {
+            format!(
+                "- epoch {} `{}`: {} ({})\n",
+                e.epoch, e.candidate, e.outcome, e.reason
+            )
+        })
         .collect()
 }
 

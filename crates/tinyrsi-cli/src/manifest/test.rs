@@ -41,7 +41,10 @@ fn parses_the_graph_coloring_example() {
     assert_eq!(parsed.seat_model(), DEFAULT_MODEL);
     assert_eq!(parsed.judge_model(), DEFAULT_MODEL);
     assert_eq!(parsed.retreat_model(), DEFAULT_MODEL);
-    assert_eq!(parsed.required_env(), vec![DEFAULT_OPENROUTER_ENV.to_owned()]);
+    assert_eq!(
+        parsed.required_env(),
+        vec![DEFAULT_OPENROUTER_ENV.to_owned()]
+    );
 }
 
 #[test]
@@ -76,7 +79,9 @@ fn rejects_a_missing_manifest_brief_hive_or_rubric() {
     assert!(matches!(parse(&files), Err(Error::MissingFile { path }) if path == "brief.md"));
 
     let files = with(|m| m["hive"]["package"] = json!("nohive"));
-    assert!(matches!(parse(&files), Err(Error::MissingFile { path }) if path == "nohive/hive.json"));
+    assert!(
+        matches!(parse(&files), Err(Error::MissingFile { path }) if path == "nohive/hive.json")
+    );
 
     let files = with(|m| {
         m["score"]["scorers"]
@@ -84,7 +89,9 @@ fn rejects_a_missing_manifest_brief_hive_or_rubric() {
             .unwrap()
             .push(json!({ "id": "q", "judge": "scorers/quality.md" }));
     });
-    assert!(matches!(parse(&files), Err(Error::MissingFile { path }) if path == "scorers/quality.md"));
+    assert!(
+        matches!(parse(&files), Err(Error::MissingFile { path }) if path == "scorers/quality.md")
+    );
 }
 
 #[test]
@@ -98,7 +105,10 @@ fn rejects_unknown_fields_and_malformed_json() {
 #[test]
 fn rejects_an_unsupported_schema_or_version() {
     let files = with(|m| m["version"] = json!(2));
-    assert!(matches!(parse(&files), Err(Error::Schema { version: 2, .. })));
+    assert!(matches!(
+        parse(&files),
+        Err(Error::Schema { version: 2, .. })
+    ));
     let files = with(|m| m["$schema"] = json!("https://example.com"));
     assert!(matches!(parse(&files), Err(Error::Schema { .. })));
 }
@@ -115,7 +125,8 @@ fn rejects_unsafe_paths() {
         assert!(matches!(parse(&with(edit)), Err(Error::Path { .. })));
     }
     let files = with(|m| {
-        m["subject"] = json!({ "kind": "git", "path": "../up", "branch": "main", "editable": ["src/"] });
+        m["subject"] =
+            json!({ "kind": "git", "path": "../up", "branch": "main", "editable": ["src/"] });
     });
     assert!(matches!(parse(&files), Err(Error::Path { .. })));
 }
@@ -143,9 +154,15 @@ fn rejects_unknown_seats_and_scorers() {
     let files = with(|m| {
         m["keys"] = json!({ "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["ghost"] } });
     });
-    assert!(matches!(parse(&files), Err(Error::Reference { kind: "seat", .. })));
+    assert!(matches!(
+        parse(&files),
+        Err(Error::Reference { kind: "seat", .. })
+    ));
     let files = with(|m| m["score"]["decide"]["on"] = json!("ghost"));
-    assert!(matches!(parse(&files), Err(Error::Reference { kind: "scorer", .. })));
+    assert!(matches!(
+        parse(&files),
+        Err(Error::Reference { kind: "scorer", .. })
+    ));
 }
 
 #[test]
@@ -161,42 +178,76 @@ fn rejects_out_of_range_fields() {
         ("name", |m| m["name"] = json!("Graph Coloring")),
         ("subject.editable", |m| m["subject"]["editable"] = json!([])),
         ("hive", |m| m["hive"]["wall_secs"] = json!(0)),
-        ("creativity.temperature", |m| m["creativity"]["temperature"] = json!(3.0)),
+        ("creativity.temperature", |m| {
+            m["creativity"]["temperature"] = json!(3.0)
+        }),
         ("creativity.retreat.temperature", |m| {
             m["creativity"]["retreat"] = json!({ "temperature": -1.0 });
         }),
-        ("creativity.retreat", |m| m["creativity"]["retreat"] = json!({ "turns": 0 })),
-        ("creativity.retreat.mode", |m| m["creativity"]["retreat"] = json!({ "mode": "chaos" })),
-        ("creativity.retreat.template", |m| m["creativity"]["retreat"] = json!({ "template": "x" })),
+        ("creativity.retreat", |m| {
+            m["creativity"]["retreat"] = json!({ "turns": 0 })
+        }),
+        ("creativity.retreat.mode", |m| {
+            m["creativity"]["retreat"] = json!({ "mode": "chaos" })
+        }),
+        ("creativity.retreat.template", |m| {
+            m["creativity"]["retreat"] = json!({ "template": "x" })
+        }),
         ("budget.prices.a/b", |m| {
             m["budget"]["prices"] = json!({ "a/b": { "prompt_per_mtok": -1, "completion_per_mtok": 1, "provider": "p" } });
         }),
-        ("budget.prices.openai/gpt-x", |m| m["models"] = json!({ "default": "openai/gpt-x" })),
-        ("keys.search", |m| m["keys"] = json!({ "search": "lower_case" })),
+        ("budget.prices.openai/gpt-x", |m| {
+            m["models"] = json!({ "default": "openai/gpt-x" })
+        }),
+        ("keys.search", |m| {
+            m["keys"] = json!({ "search": "lower_case" })
+        }),
         ("keys.openrouter", |m| {
             m["keys"] = json!({ "openrouter": { "provider": "x", "env": "KEY" } });
         }),
-        ("keys.web_search", |m| m["keys"] = json!({ "web_search": { "provider": " ", "env": "KEY" } })),
-        ("keys.search", |m| m["keys"] = json!({ "search": { "provider": "gemini", "env": "KEY" } })),
+        (
+            "keys.web_search",
+            |m| m["keys"] = json!({ "web_search": { "provider": " ", "env": "KEY" } }),
+        ),
+        (
+            "keys.search",
+            |m| m["keys"] = json!({ "search": { "provider": "gemini", "env": "KEY" } }),
+        ),
         ("score.scorers", |m| m["score"]["scorers"] = json!([])),
         ("score.scorers.colors", |m| {
             m["score"]["scorers"][0]["judge"] = json!("brief.md");
         }),
-        ("score.scorers.colors", |m| m["score"]["scorers"][0]["run"] = json!("  ")),
-        ("score.scorers.colors", |m| m["score"]["scorers"][0]["weight"] = json!(0)),
-        ("score.scorers.colors", |m| m["score"]["scorers"][0]["raters"] = json!(0)),
+        ("score.scorers.colors", |m| {
+            m["score"]["scorers"][0]["run"] = json!("  ")
+        }),
+        ("score.scorers.colors", |m| {
+            m["score"]["scorers"][0]["weight"] = json!(0)
+        }),
+        ("score.scorers.colors", |m| {
+            m["score"]["scorers"][0]["raters"] = json!(0)
+        }),
         ("score.scorers.colors", |m| {
             let first = m["score"]["scorers"][0].clone();
             m["score"]["scorers"].as_array_mut().unwrap().push(first);
         }),
-        ("score.decide.seeds", |m| m["score"]["decide"]["seeds"] = json!([1, 1])),
-        ("score.decide.split", |m| m["score"]["decide"]["test"] = json!("sign")),
-        ("score.decide.alpha", |m| m["score"]["decide"]["alpha"] = json!(1.5)),
-        ("score.decide.margin", |m| m["score"]["decide"]["margin"] = json!(-1)),
+        ("score.decide.seeds", |m| {
+            m["score"]["decide"]["seeds"] = json!([1, 1])
+        }),
+        ("score.decide.split", |m| {
+            m["score"]["decide"]["test"] = json!("sign")
+        }),
+        ("score.decide.alpha", |m| {
+            m["score"]["decide"]["alpha"] = json!(1.5)
+        }),
+        ("score.decide.margin", |m| {
+            m["score"]["decide"]["margin"] = json!(-1)
+        }),
         ("gate[0]", |m| m["gate"] = json!([{ "run": "" }])),
         ("budget.run_usd", |m| m["budget"]["run_usd"] = json!(0)),
         ("budget.total_usd", |m| m["budget"]["total_usd"] = json!(-2)),
-        ("budget.score_reserve_usd", |m| m["budget"]["score_reserve_usd"] = json!(-1)),
+        ("budget.score_reserve_usd", |m| {
+            m["budget"]["score_reserve_usd"] = json!(-1)
+        }),
         ("epochs", |m| m["epochs"] = json!(0)),
         ("env.RSI_SEED", |m| m["env"] = json!({ "RSI_SEED": "1" })),
         ("env.lower", |m| m["env"] = json!({ "lower": "1" })),
@@ -242,21 +293,30 @@ fn resolves_models_keys_and_rubrics() {
     assert_eq!(parsed.retreat_model(), "a/override");
     assert_eq!(parsed.openrouter_env(), "MY_OR_KEY");
     assert_eq!(parsed.required_env(), vec!["GEMINI_API_KEY", "MY_OR_KEY"]);
-    let tools: Vec<_> = parsed.tool_keys().map(|(name, t)| (name, t.provider.as_str())).collect();
+    let tools: Vec<_> = parsed
+        .tool_keys()
+        .map(|(name, t)| (name, t.provider.as_str()))
+        .collect();
     assert_eq!(tools, vec![("web_search", "gemini")]);
     assert_eq!(parsed.rubrics["quality"], "Is it clear?");
     let used: Vec<String> = parsed.models_used(&BTreeSet::new()).into_iter().collect();
     assert_eq!(used, vec!["a/judge", "a/override", "a/seat"]);
     let retreat = parsed.manifest.creativity.retreat.unwrap();
     assert!(retreat.enabled && retreat.memory);
-    assert_eq!((retreat.variations, retreat.turns, retreat.ideas), (3, 6, 5));
+    assert_eq!(
+        (retreat.variations, retreat.turns, retreat.ideas),
+        (3, 6, 5)
+    );
 }
 
 #[test]
 fn pins_the_stored_form_with_defaults_filled_in() {
     let parsed = parse(&example()).unwrap();
     let stored = serde_json::to_value(&parsed.manifest).unwrap();
-    assert_eq!(stored["hive"], json!({ "package": "hive", "lead": "lead", "wall_secs": 900, "turn_secs": 1200 }));
+    assert_eq!(
+        stored["hive"],
+        json!({ "package": "hive", "lead": "lead", "wall_secs": 900, "turn_secs": 1200 })
+    );
     assert_eq!(
         stored["score"]["decide"],
         json!({

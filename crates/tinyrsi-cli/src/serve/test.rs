@@ -15,7 +15,9 @@ fn get(server: &Server, path: &str, method: &str) -> String {
 fn served() -> (tempfile::TempDir, Server) {
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path());
-    let run = store.create_run("demo", Some("r1"), &BTreeMap::new()).unwrap();
+    let run = store
+        .create_run("demo", Some("r1"), &BTreeMap::new())
+        .unwrap();
     write_json(
         &run.record_path(),
         &RunRecord {
@@ -44,11 +46,20 @@ fn served() -> (tempfile::TempDir, Server) {
 fn routes_only_safe_paths() {
     assert_eq!(route("/"), Route::Page);
     assert_eq!(route("/api/runs"), Route::Runs);
-    assert_eq!(route("/api/runs/l/r/events"), Route::Events(PathBuf::from("l/r")));
-    assert_eq!(route("/api/runs/l/r/files/ledger.json"), Route::File(PathBuf::from("l/r"), PathBuf::from("ledger.json")));
+    assert_eq!(
+        route("/api/runs/l/r/events"),
+        Route::Events(PathBuf::from("l/r"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/files/ledger.json"),
+        Route::File(PathBuf::from("l/r"), PathBuf::from("ledger.json"))
+    );
     assert_eq!(
         route("/api/runs/l/r/files/epoch-2/steps/e2-a/change.diff"),
-        Route::File(PathBuf::from("l/r"), PathBuf::from("epoch-2/steps/e2-a/change.diff"))
+        Route::File(
+            PathBuf::from("l/r"),
+            PathBuf::from("epoch-2/steps/e2-a/change.diff")
+        )
     );
     for bad in [
         "/api/runs/../r/events",
@@ -84,7 +95,9 @@ fn streams_events_then_marks_ready() {
     let (_home, server) = served();
     let mut stream = TcpStream::connect(server.addr()).unwrap();
     write!(stream, "GET /api/runs/demo/r1/events HTTP/1.1\r\n\r\n").unwrap();
-    stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
     let mut seen = String::new();
     let mut buf = [0_u8; 4096];
     while !seen.contains("event: ready") {
@@ -114,5 +127,8 @@ fn tails_only_complete_new_lines_and_restarts_after_truncation() {
 fn a_taken_port_is_an_io_error() {
     let (_home, server) = served();
     let home = tempfile::tempdir().unwrap();
-    assert!(matches!(start(Store::new(home.path()), server.addr()), Err(Error::Io { .. })));
+    assert!(matches!(
+        start(Store::new(home.path()), server.addr()),
+        Err(Error::Io { .. })
+    ));
 }

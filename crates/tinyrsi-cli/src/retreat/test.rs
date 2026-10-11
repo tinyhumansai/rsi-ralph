@@ -33,14 +33,32 @@ fn backend() -> Arc<dyn Conversant> {
 fn builds_a_request_from_the_settings_and_memory() {
     let dir = tempfile::tempdir().unwrap();
     let memory = dir.path().join("ideas.json");
-    store::write_json(&memory, &vec![IdeaRecord { idea: "old".into(), promoted: Some(false) }]).unwrap();
+    store::write_json(
+        &memory,
+        &vec![IdeaRecord {
+            idea: "old".into(),
+            promoted: Some(false),
+        }],
+    )
+    .unwrap();
     let retreat = Retreat::with_backend(backend(), config(), Some(memory));
     let request = serde_json::to_value(retreat.request(4, "improve recall").unwrap()).unwrap();
     assert_eq!(request["input"]["brief"], "improve recall");
     assert_eq!(request["input"]["seeds"][0]["kind"], "prior_idea");
-    assert!(request["input"]["seeds"][0]["text"].as_str().unwrap().contains("did not improve"));
+    assert!(
+        request["input"]["seeds"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("did not improve")
+    );
     let config = &request["config"];
-    assert_eq!((config["variations"].as_u64(), config["generations"].as_u64()), (Some(2), Some(2)));
+    assert_eq!(
+        (
+            config["variations"].as_u64(),
+            config["generations"].as_u64()
+        ),
+        (Some(2), Some(2))
+    );
     assert_eq!(config["items_per_variation"], 2);
     assert_eq!(config["mode"], "brainstorm");
     assert_eq!(config["template"], "fugue");
@@ -65,7 +83,17 @@ fn returns_the_best_ideas_and_remembers_their_outcome() {
 #[test]
 fn without_memory_nothing_is_written() {
     let dir = tempfile::tempdir().unwrap();
-    let mut retreat = Retreat::with_backend(backend(), manifest::Retreat { memory: false, mode: None, template: None, temperature: None, ..config() }, None);
+    let mut retreat = Retreat::with_backend(
+        backend(),
+        manifest::Retreat {
+            memory: false,
+            mode: None,
+            template: None,
+            temperature: None,
+            ..config()
+        },
+        None,
+    );
     retreat.ideas(1, "x", dir.path()).unwrap();
     retreat.outcome(1, false).unwrap();
     assert!(retreat.pending.is_empty());
@@ -79,5 +107,8 @@ fn a_failing_backend_is_a_proposer_error() {
         |_| Err(tinybackrooms::Error::Conversant("down".into())),
     ));
     let mut retreat = Retreat::with_backend(failing, config(), None);
-    assert!(matches!(retreat.ideas(1, "x", dir.path()), Err(Error::Proposer(_))));
+    assert!(matches!(
+        retreat.ideas(1, "x", dir.path()),
+        Err(Error::Proposer(_))
+    ));
 }

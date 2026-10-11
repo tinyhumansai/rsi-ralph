@@ -36,11 +36,17 @@ fn a_folder_subject_copies_compares_and_promotes() {
     write(&cand.path.join("a.py"), "a = 2\n");
     write(&cand.path.join("new.py"), "n\n");
     fs::remove_file(cand.path.join("pkg/b.py")).unwrap();
-    assert_eq!(subject.changes(&incumbent, &cand).unwrap(), vec!["a.py", "new.py", "pkg/b.py"]);
+    assert_eq!(
+        subject.changes(&incumbent, &cand).unwrap(),
+        vec!["a.py", "new.py", "pkg/b.py"]
+    );
     assert!(subject.diff(&incumbent, &cand).unwrap().contains("+a = 2"));
 
     subject.promote(&incumbent, &cand).unwrap();
-    assert_eq!(fs::read_to_string(incumbent.path.join("a.py")).unwrap(), "a = 2\n");
+    assert_eq!(
+        fs::read_to_string(incumbent.path.join("a.py")).unwrap(),
+        "a = 2\n"
+    );
     assert_ne!(subject.revision(&incumbent).unwrap(), before);
     assert_eq!(fs::read_to_string(source.join("a.py")).unwrap(), "a = 1\n");
 }
@@ -48,8 +54,13 @@ fn a_folder_subject_copies_compares_and_promotes() {
 #[test]
 fn a_missing_folder_subject_is_an_io_error() {
     let root = tempfile::tempdir().unwrap();
-    let subject = Subject::Dir { source: root.path().join("none") };
-    assert!(matches!(subject.incumbent(root.path()), Err(Error::Io { .. })));
+    let subject = Subject::Dir {
+        source: root.path().join("none"),
+    };
+    assert!(matches!(
+        subject.incumbent(root.path()),
+        Err(Error::Io { .. })
+    ));
 }
 
 fn repo(root: &Path) -> PathBuf {
@@ -74,31 +85,57 @@ fn a_git_subject_uses_worktrees_and_fast_forwards_the_branch() {
     let repo = repo(root.path());
     // Leave the branch unchecked-out in the main worktree.
     git(&repo, &["checkout", "-q", "--detach"]).unwrap();
-    let subject = Subject::Git { repo: repo.clone(), branch: "rsi/main".into() };
+    let subject = Subject::Git {
+        repo: repo.clone(),
+        branch: "rsi/main".into(),
+    };
     let run = root.path().join("run");
     let incumbent = subject.incumbent(&run).unwrap();
     let first = subject.revision(&incumbent).unwrap();
 
     let cand = subject
-        .candidate(&incumbent, "c1", "rsi/cand-r-e1-impl", &run.join("epoch-1/impl"))
+        .candidate(
+            &incumbent,
+            "c1",
+            "rsi/cand-r-e1-impl",
+            &run.join("epoch-1/impl"),
+        )
         .unwrap();
     write(&cand.path.join("src/lib.rs"), "fn a() { 1; }\n");
     write(&cand.path.join("tests/t.rs"), "#[test] fn t() {}\n");
-    assert_eq!(subject.changes(&incumbent, &cand).unwrap(), vec!["src/lib.rs", "tests/t.rs"]);
-    assert!(git(&cand.path, &["status", "--porcelain"]).unwrap().is_empty());
-    assert!(subject.diff(&incumbent, &cand).unwrap().contains("+fn a() { 1; }"));
+    assert_eq!(
+        subject.changes(&incumbent, &cand).unwrap(),
+        vec!["src/lib.rs", "tests/t.rs"]
+    );
+    assert!(
+        git(&cand.path, &["status", "--porcelain"])
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        subject
+            .diff(&incumbent, &cand)
+            .unwrap()
+            .contains("+fn a() { 1; }")
+    );
 
     subject.promote(&incumbent, &cand).unwrap();
     let second = subject.revision(&incumbent).unwrap();
     assert_ne!(first, second);
-    assert_eq!(git(&incumbent.path, &["rev-parse", "HEAD"]).unwrap(), second);
+    assert_eq!(
+        git(&incumbent.path, &["rev-parse", "HEAD"]).unwrap(),
+        second
+    );
 }
 
 #[test]
 fn promotion_merges_when_the_branch_is_checked_out_and_refuses_a_diverged_branch() {
     let root = tempfile::tempdir().unwrap();
     let repo = repo(root.path());
-    let subject = Subject::Git { repo: repo.clone(), branch: "rsi/main".into() };
+    let subject = Subject::Git {
+        repo: repo.clone(),
+        branch: "rsi/main".into(),
+    };
     let run = root.path().join("run");
     let incumbent = subject.incumbent(&run).unwrap();
     let cand = subject
@@ -107,7 +144,10 @@ fn promotion_merges_when_the_branch_is_checked_out_and_refuses_a_diverged_branch
     write(&cand.path.join("src/lib.rs"), "fn b() {}\n");
     subject.changes(&incumbent, &cand).unwrap();
     subject.promote(&incumbent, &cand).unwrap();
-    assert_eq!(fs::read_to_string(repo.join("src/lib.rs")).unwrap(), "fn b() {}\n");
+    assert_eq!(
+        fs::read_to_string(repo.join("src/lib.rs")).unwrap(),
+        "fn b() {}\n"
+    );
 
     // A candidate made before the branch moved cannot fast-forward it.
     let stale = subject
@@ -118,7 +158,10 @@ fn promotion_merges_when_the_branch_is_checked_out_and_refuses_a_diverged_branch
     git(&repo, &["commit", "-q", "-m", "moved"]).unwrap();
     write(&stale.path.join("src/lib.rs"), "fn c() {}\n");
     subject.changes(&incumbent, &stale).unwrap();
-    assert!(matches!(subject.promote(&incumbent, &stale), Err(Error::Git { .. })));
+    assert!(matches!(
+        subject.promote(&incumbent, &stale),
+        Err(Error::Git { .. })
+    ));
 }
 
 #[test]

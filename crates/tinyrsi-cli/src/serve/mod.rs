@@ -95,7 +95,12 @@ fn handle(store: &Store, mut stream: TcpStream) -> std::io::Result<()> {
     }
     let path = target.split('?').next().unwrap_or("");
     match route(path) {
-        Route::Page => respond(&mut stream, 200, "text/html; charset=utf-8", PAGE.as_bytes()),
+        Route::Page => respond(
+            &mut stream,
+            200,
+            "text/html; charset=utf-8",
+            PAGE.as_bytes(),
+        ),
         Route::Runs => {
             let runs = store.list_runs(None).unwrap_or_default();
             let body = serde_json::to_vec(&runs).unwrap_or_else(|_| b"[]".to_vec());
@@ -128,9 +133,10 @@ fn route(path: &str) -> Route {
         ["api", "runs", l, r, "events"] if plain(l) && plain(r) => {
             Route::Events(Path::new(l).join(r))
         }
-        ["api", "runs", l, r, "files", rest @ ..] if plain(l) && plain(r) => {
-            allowed(rest).map_or(Route::NotFound, |file| Route::File(Path::new(l).join(r), file))
-        }
+        ["api", "runs", l, r, "files", rest @ ..] if plain(l) && plain(r) => allowed(rest)
+            .map_or(Route::NotFound, |file| {
+                Route::File(Path::new(l).join(r), file)
+            }),
         _ => Route::NotFound,
     }
 }
@@ -147,7 +153,10 @@ fn plain(segment: &str) -> bool {
 
 /// The files a run exposes.
 fn allowed(rest: &[&str]) -> Option<PathBuf> {
-    let epoch = |s: &str| s.strip_prefix("epoch-").is_some_and(|n| n.parse::<u32>().is_ok());
+    let epoch = |s: &str| {
+        s.strip_prefix("epoch-")
+            .is_some_and(|n| n.parse::<u32>().is_ok())
+    };
     match rest {
         [name @ ("run.json" | "ledger.json")] => Some(PathBuf::from(name)),
         [e, "brief.md"] if epoch(e) => Some(Path::new(e).join("brief.md")),

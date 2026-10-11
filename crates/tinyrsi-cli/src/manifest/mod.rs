@@ -17,8 +17,8 @@ use crate::{Error, Result};
 mod types;
 pub use types::{
     Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec, StepCwd,
-    SubjectKind, SubjectSpec, ToolKey, VERSION,
+    HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec,
+    StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
 /// The one tool capability a key can enable today.
@@ -62,7 +62,10 @@ fn walk(root: &Path, dir: &Path, files: &mut BTreeMap<String, String>) -> Result
                 walk(root, &path, files)?;
             }
         } else if kind.is_file() {
-            let size = entry.metadata().map_err(|e| Error::io("stat", &path, e))?.len();
+            let size = entry
+                .metadata()
+                .map_err(|e| Error::io("stat", &path, e))?
+                .len();
             if size > MAX_FILE_BYTES {
                 continue;
             }
@@ -164,13 +167,14 @@ pub fn parse(files: &BTreeMap<String, String>) -> Result<Loop> {
 
 /// Whether the gateway will allow `model`: built in, or priced in `budget`.
 fn priced(budget: &Budget, model: &str) -> bool {
-    budget.prices.contains_key(model)
-        || tinyrsi_gateway::PriceTable::standard().get(model).is_ok()
+    budget.prices.contains_key(model) || tinyrsi_gateway::PriceTable::standard().get(model).is_ok()
 }
 
 fn file<'a>(files: &'a BTreeMap<String, String>, path: &str) -> Result<&'a String> {
     plain(path)?;
-    files.get(path).ok_or_else(|| Error::MissingFile { path: path.into() })
+    files
+        .get(path)
+        .ok_or_else(|| Error::MissingFile { path: path.into() })
 }
 
 /// The hive package's JSON and Markdown files, relative to `package`.
@@ -220,8 +224,7 @@ pub(crate) fn env_name(name: &str) -> bool {
 
 fn validate_fields(m: &Manifest) -> Result<()> {
     let name_ok = !m.name.is_empty()
-        && m
-            .name
+        && m.name
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
     if !name_ok {
@@ -229,7 +232,10 @@ fn validate_fields(m: &Manifest) -> Result<()> {
     }
     validate_subject(&m.subject)?;
     if m.hive.wall_secs == 0 || m.hive.turn_secs == 0 {
-        return Err(Error::field("hive", "wall_secs and turn_secs must be positive"));
+        return Err(Error::field(
+            "hive",
+            "wall_secs and turn_secs must be positive",
+        ));
     }
     validate_creativity(&m.creativity)?;
     validate_keys(&m.keys)?;
@@ -243,13 +249,19 @@ fn validate_fields(m: &Manifest) -> Result<()> {
         }
     }
     let b = &m.budget;
-    for (field, value) in [("budget.run_usd", b.run_usd), ("budget.total_usd", b.total_usd)] {
+    for (field, value) in [
+        ("budget.run_usd", b.run_usd),
+        ("budget.total_usd", b.total_usd),
+    ] {
         if value.is_some_and(|v| !v.is_finite() || v <= 0.0) {
             return Err(Error::field(field, "must be a positive amount"));
         }
     }
     if !b.score_reserve_usd.is_finite() || b.score_reserve_usd < 0.0 {
-        return Err(Error::field("budget.score_reserve_usd", "must be zero or more"));
+        return Err(Error::field(
+            "budget.score_reserve_usd",
+            "must be zero or more",
+        ));
     }
     for (model, price) in &b.prices {
         let ok = [price.prompt_per_mtok, price.completion_per_mtok]
@@ -264,7 +276,10 @@ fn validate_fields(m: &Manifest) -> Result<()> {
         }
     }
     if m.epochs == 0 || m.patience == 0 {
-        return Err(Error::field("epochs", "epochs and patience must be positive"));
+        return Err(Error::field(
+            "epochs",
+            "epochs and patience must be positive",
+        ));
     }
     for key in m.env.keys() {
         if !env_name(key) || key.starts_with("RSI_") {
@@ -321,10 +336,16 @@ fn validate_creativity(c: &Creativity) -> Result<()> {
             value.as_deref().is_none_or(|v| allowed.contains(&v))
         };
         if !known(&r.mode, &["backrooms", "brainstorm", "critic_pair"]) {
-            return Err(Error::field("creativity.retreat.mode", "use backrooms, brainstorm or critic_pair"));
+            return Err(Error::field(
+                "creativity.retreat.mode",
+                "use backrooms, brainstorm or critic_pair",
+            ));
         }
         if !known(&r.template, &["cli", "fugue", "student"]) {
-            return Err(Error::field("creativity.retreat.template", "use cli, fugue or student"));
+            return Err(Error::field(
+                "creativity.retreat.template",
+                "use cli, fugue or student",
+            ));
         }
     }
     Ok(())
@@ -343,10 +364,16 @@ fn validate_keys(keys: &BTreeMap<String, KeySpec>) -> Result<()> {
             ));
         }
         if capability == "openrouter" && provider.is_some() {
-            return Err(Error::field("keys.openrouter", "takes a variable name only"));
+            return Err(Error::field(
+                "keys.openrouter",
+                "takes a variable name only",
+            ));
         }
         if provider.is_some_and(|p| p.trim().is_empty()) {
-            return Err(Error::field(format!("keys.{capability}"), "needs a provider"));
+            return Err(Error::field(
+                format!("keys.{capability}"),
+                "needs a provider",
+            ));
         }
         if provider.is_some() && capability != TOOL_WEB_SEARCH {
             return Err(Error::field(
@@ -382,7 +409,10 @@ fn validate_score(s: &ScoreSpec) -> Result<()> {
             return Err(Error::field(field, "weight must be positive"));
         }
         if scorer.timeout_secs == 0 || scorer.raters == 0 {
-            return Err(Error::field(field, "timeout_secs and raters must be positive"));
+            return Err(Error::field(
+                field,
+                "timeout_secs and raters must be positive",
+            ));
         }
     }
     let d = &s.decide;
@@ -403,17 +433,26 @@ fn validate_score(s: &ScoreSpec) -> Result<()> {
         DecideTest::Seeds => {
             let distinct: BTreeSet<_> = d.seeds.iter().collect();
             if distinct.len() < 2 || distinct.len() != d.seeds.len() {
-                return Err(Error::field("score.decide.seeds", "list at least two distinct seeds"));
+                return Err(Error::field(
+                    "score.decide.seeds",
+                    "list at least two distinct seeds",
+                ));
             }
         }
         DecideTest::Sign => {
             if d.split.as_deref().is_none_or(str::is_empty) {
-                return Err(Error::field("score.decide.split", "required for the sign test"));
+                return Err(Error::field(
+                    "score.decide.split",
+                    "required for the sign test",
+                ));
             }
         }
     }
     if !(d.alpha > 0.0 && d.alpha < 1.0) {
-        return Err(Error::field("score.decide.alpha", "must be between 0 and 1"));
+        return Err(Error::field(
+            "score.decide.alpha",
+            "must be between 0 and 1",
+        ));
     }
     if !d.margin.is_finite() || d.margin < 0.0 {
         return Err(Error::field("score.decide.margin", "must be zero or more"));
@@ -428,7 +467,11 @@ impl Loop {
     /// The model for seats without their own.
     #[must_use]
     pub fn seat_model(&self) -> &str {
-        self.manifest.models.default.as_deref().unwrap_or(DEFAULT_MODEL)
+        self.manifest
+            .models
+            .default
+            .as_deref()
+            .unwrap_or(DEFAULT_MODEL)
     }
 
     /// The model judge scorers use.
@@ -464,10 +507,13 @@ impl Loop {
 
     /// Tool capabilities, by capability name.
     pub fn tool_keys(&self) -> impl Iterator<Item = (&str, &ToolKey)> {
-        self.manifest.keys.iter().filter_map(|(name, spec)| match spec {
-            KeySpec::Tool(tool) => Some((name.as_str(), tool)),
-            KeySpec::Env(_) => None,
-        })
+        self.manifest
+            .keys
+            .iter()
+            .filter_map(|(name, spec)| match spec {
+                KeySpec::Tool(tool) => Some((name.as_str(), tool)),
+                KeySpec::Env(_) => None,
+            })
     }
 
     /// Every chat model the loop will call: seats, judges and the retreat.
@@ -478,7 +524,13 @@ impl Loop {
         if !self.rubrics.is_empty() {
             models.insert(self.judge_model().to_owned());
         }
-        if self.manifest.creativity.retreat.as_ref().is_some_and(|r| r.enabled) {
+        if self
+            .manifest
+            .creativity
+            .retreat
+            .as_ref()
+            .is_some_and(|r| r.enabled)
+        {
             models.insert(self.retreat_model().to_owned());
         }
         models

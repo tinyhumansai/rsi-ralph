@@ -27,13 +27,29 @@ fn exec(args: &[&str], with_key: bool) -> (Result<()>, String) {
 fn check_reports_a_valid_loop_and_missing_keys() {
     let home = tempfile::tempdir().unwrap();
     let dir = example();
-    let (ok, out) = exec(&["--home", home.path().to_str().unwrap(), "check", dir.to_str().unwrap()], true);
+    let (ok, out) = exec(
+        &[
+            "--home",
+            home.path().to_str().unwrap(),
+            "check",
+            dir.to_str().unwrap(),
+        ],
+        true,
+    );
     assert!(ok.is_ok());
     assert_eq!(
         out.trim(),
-        "ok: graph-coloring (dir subject, 1 scorers, decide colors by Seeds, hive lead lead)"
+        "ok: graph-coloring (dir subject, 1 scorers, decide colors by seeds, hive lead lead)"
     );
-    let (missing, _) = exec(&["--home", home.path().to_str().unwrap(), "check", dir.to_str().unwrap()], false);
+    let (missing, _) = exec(
+        &[
+            "--home",
+            home.path().to_str().unwrap(),
+            "check",
+            dir.to_str().unwrap(),
+        ],
+        false,
+    );
     assert_eq!(exit_code(&missing), 2);
     assert!(matches!(missing, Err(Error::MissingKeys { .. })));
     let (bad, _) = exec(&["check", "/nonexistent/loop"], true);
@@ -44,7 +60,17 @@ fn check_reports_a_valid_loop_and_missing_keys() {
 fn score_scores_the_incumbent_with_the_loop_scorers() {
     let home = tempfile::tempdir().unwrap();
     let dir = example();
-    let (ok, out) = exec(&["--home", home.path().to_str().unwrap(), "score", dir.to_str().unwrap(), "--label", "base"], true);
+    let (ok, out) = exec(
+        &[
+            "--home",
+            home.path().to_str().unwrap(),
+            "score",
+            dir.to_str().unwrap(),
+            "--label",
+            "base",
+        ],
+        true,
+    );
     assert!(ok.is_ok(), "{ok:?} {out}");
     assert!(out.contains("colors\tseed 1\t"), "{out}");
     assert!(out.contains("colors = 17.0000"), "{out}");
@@ -54,7 +80,9 @@ fn score_scores_the_incumbent_with_the_loop_scorers() {
 fn runs_and_show_read_the_store() {
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path());
-    let run = store.create_run("demo", Some("r1"), &BTreeMap::new()).unwrap();
+    let run = store
+        .create_run("demo", Some("r1"), &BTreeMap::new())
+        .unwrap();
     write_json(
         &run.record_path(),
         &RunRecord {
@@ -79,7 +107,12 @@ fn runs_and_show_read_the_store() {
     assert_eq!(out.trim(), "demo/r1\tfailed\tepochs 2\tscore 3.0000\t$0.50");
     let (ok, out) = exec(&["--home", h, "show", "demo/r1"], true);
     assert!(ok.is_ok());
-    for line in ["status    failed", "stopped   error", "incumbent abc (3.0000)", "error     boom"] {
+    for line in [
+        "status    failed",
+        "stopped   error",
+        "incumbent abc (3.0000)",
+        "error     boom",
+    ] {
         assert!(out.contains(line), "{line} in {out}");
     }
     let (missing, _) = exec(&["--home", h, "show", "demo/none"], true);

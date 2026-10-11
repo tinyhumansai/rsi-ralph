@@ -25,7 +25,10 @@ impl Proposer for Scripted {
                 fs::write(checkout.path.join(path), body).unwrap();
             }
         }
-        Ok(ProposalReport { summary: Some("done".into()), seats: BTreeMap::new() })
+        Ok(ProposalReport {
+            summary: Some("done".into()),
+            seats: BTreeMap::new(),
+        })
     }
 }
 
@@ -61,7 +64,11 @@ fn fixture(root: &Path, edit: impl FnOnce(&mut serde_json::Value)) -> (PathBuf, 
     let dir = root.join("loop");
     copy_tree(&example, &dir).unwrap();
     fs::write(dir.join("subject/value.txt"), "9").unwrap();
-    fs::write(dir.join("scorers/m.sh"), "echo \"METRIC m=$(cat \"$RSI_CANDIDATE/value.txt\")\"\n").unwrap();
+    fs::write(
+        dir.join("scorers/m.sh"),
+        "echo \"METRIC m=$(cat \"$RSI_CANDIDATE/value.txt\")\"\n",
+    )
+    .unwrap();
     fs::write(dir.join("brief.md"), "Lower the value.\n\n{{incumbent}}\n").unwrap();
     let mut m = serde_json::json!({
         "$schema": manifest::SCHEMA, "version": 1, "name": "value",
@@ -91,7 +98,9 @@ fn engine<'a>(
         parsed,
         loop_dir: dir.to_path_buf(),
         store,
-        run: store.create_run("value", Some(run), &BTreeMap::new()).unwrap(),
+        run: store
+            .create_run("value", Some(run), &BTreeMap::new())
+            .unwrap(),
         proposer,
         ideator: None,
         judges: Judges::new(),
@@ -104,11 +113,22 @@ fn engine<'a>(
 }
 
 fn events(store: &Store, run: &str) -> Vec<String> {
-    fs::read_to_string(store.runs_root().join("value").join(run).join("events.jsonl"))
-        .unwrap()
-        .lines()
-        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()["event"]["kind"].as_str().unwrap().to_owned())
-        .collect()
+    fs::read_to_string(
+        store
+            .runs_root()
+            .join("value")
+            .join(run)
+            .join("events.jsonl"),
+    )
+    .unwrap()
+    .lines()
+    .map(|l| {
+        serde_json::from_str::<serde_json::Value>(l).unwrap()["event"]["kind"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    })
+    .collect()
 }
 
 #[test]
@@ -132,7 +152,10 @@ fn improves_until_the_goal_and_records_everything() {
     assert_eq!(summary.reason, StopReason::GoalReached);
     assert_eq!(summary.score, Some(0.0));
     assert_eq!(summary.promotions, 3);
-    assert_eq!(fs::read_to_string(summary.checkout.join("value.txt")).unwrap(), "0");
+    assert_eq!(
+        fs::read_to_string(summary.checkout.join("value.txt")).unwrap(),
+        "0"
+    );
     assert_eq!(ideas.0, vec![(1, true), (2, true), (3, true)]);
     assert!(hive.briefs[1].contains("`m` (deciding): 6.0000"));
     assert!(hive.briefs[0].contains("- idea for epoch 1"));
@@ -153,17 +176,37 @@ fn improves_until_the_goal_and_records_everything() {
     let kinds = events(&store, "r1");
     assert_eq!(kinds.first().map(String::as_str), Some("run_started"));
     assert_eq!(kinds.last().map(String::as_str), Some("run_finished"));
-    for kind in ["epoch_started", "observed", "ideated", "executed", "measured", "scored", "improved", "epoch_finished"] {
+    for kind in [
+        "epoch_started",
+        "observed",
+        "ideated",
+        "executed",
+        "measured",
+        "scored",
+        "improved",
+        "epoch_finished",
+    ] {
         assert!(kinds.iter().any(|k| k == kind), "missing {kind}");
     }
 
     // A second run of the same revision reuses the cached baseline.
-    let mut idle = Scripted { seats: vec!["a".into()], plan: Box::new(|_, _| None), briefs: Vec::new() };
-    let summary = engine(&parsed, &dir, &store, "r2", &mut idle).run().unwrap();
+    let mut idle = Scripted {
+        seats: vec!["a".into()],
+        plan: Box::new(|_, _| None),
+        briefs: Vec::new(),
+    };
+    let summary = engine(&parsed, &dir, &store, "r2", &mut idle)
+        .run()
+        .unwrap();
     assert_eq!(summary.reason, StopReason::Stalled);
     assert!(!store.runs_root().join("value/r2/epoch-0").exists());
     let ledger: Ledger = store::read_json(&store.runs_root().join("value/r2/ledger.json")).unwrap();
-    assert!(ledger.candidates.iter().all(|c| c.status == CandidateStatus::Empty));
+    assert!(
+        ledger
+            .candidates
+            .iter()
+            .all(|c| c.status == CandidateStatus::Empty)
+    );
 }
 
 #[test]
@@ -176,14 +219,23 @@ fn gates_reject_out_of_surface_and_failing_candidates() {
     let store = Store::new(root.path().join("home"));
     let mut hive = Scripted {
         seats: vec!["a".into(), "b".into()],
-        plan: Box::new(|_, seat| Some(if seat == "a" { "other.txt:x".into() } else { "value.txt:1".into() })),
+        plan: Box::new(|_, seat| {
+            Some(if seat == "a" {
+                "other.txt:x".into()
+            } else {
+                "value.txt:1".into()
+            })
+        }),
         briefs: Vec::new(),
     };
     let summary = engine(&parsed, &dir, &store, "g", &mut hive).run().unwrap();
     assert_eq!(summary.reason, StopReason::MaxEpochs);
     let ledger: Ledger = store::read_json(&store.runs_root().join("value/g/ledger.json")).unwrap();
     assert_eq!(ledger.candidates[0].status, CandidateStatus::Gated);
-    assert_eq!(ledger.candidates[0].error.as_deref(), Some("other.txt is outside the editable surface"));
+    assert_eq!(
+        ledger.candidates[0].error.as_deref(),
+        Some("other.txt is outside the editable surface")
+    );
     assert_eq!(ledger.candidates[1].status, CandidateStatus::Gated);
     assert_eq!(ledger.candidates[1].gates.len(), 2);
 }
@@ -195,7 +247,13 @@ fn a_worse_or_broken_candidate_is_not_promoted() {
     let store = Store::new(root.path().join("home"));
     let mut hive = Scripted {
         seats: vec!["a".into(), "b".into()],
-        plan: Box::new(|_, seat| Some(if seat == "a" { "value.txt:20".into() } else { "value.txt:oops".into() })),
+        plan: Box::new(|_, seat| {
+            Some(if seat == "a" {
+                "value.txt:20".into()
+            } else {
+                "value.txt:oops".into()
+            })
+        }),
         briefs: Vec::new(),
     };
     let summary = engine(&parsed, &dir, &store, "w", &mut hive).run().unwrap();
@@ -203,7 +261,14 @@ fn a_worse_or_broken_candidate_is_not_promoted() {
     let ledger: Ledger = store::read_json(&store.runs_root().join("value/w/ledger.json")).unwrap();
     let verdict = ledger.candidates[0].verdict.as_ref().unwrap();
     assert_eq!(verdict.decision, ScoreDecision::Reject);
-    assert!(ledger.candidates[1].verdict.as_ref().unwrap().reason.starts_with("seed 1 failed"));
+    assert!(
+        ledger.candidates[1]
+            .verdict
+            .as_ref()
+            .unwrap()
+            .reason
+            .starts_with("seed 1 failed")
+    );
     let entries = history(&ledger);
     assert_eq!(entries[0].outcome, "rejected");
 }
@@ -211,9 +276,15 @@ fn a_worse_or_broken_candidate_is_not_promoted() {
 #[test]
 fn stops_on_budget_before_an_epoch() {
     let root = tempfile::tempdir().unwrap();
-    let (dir, parsed) = fixture(root.path(), |m| m["budget"] = serde_json::json!({ "score_reserve_usd": 1.0 }));
+    let (dir, parsed) = fixture(root.path(), |m| {
+        m["budget"] = serde_json::json!({ "score_reserve_usd": 1.0 })
+    });
     let store = Store::new(root.path().join("home"));
-    let mut hive = Scripted { seats: vec!["a".into()], plan: Box::new(|_, _| None), briefs: Vec::new() };
+    let mut hive = Scripted {
+        seats: vec!["a".into()],
+        plan: Box::new(|_, _| None),
+        briefs: Vec::new(),
+    };
     let spend = Spend(0.5);
     let mut e = engine(&parsed, &dir, &store, "b", &mut hive);
     e.meter = Some(&spend);
@@ -227,10 +298,20 @@ fn stops_on_budget_before_an_epoch() {
 fn an_unscorable_incumbent_fails_the_run_with_a_scrubbed_error() {
     let root = tempfile::tempdir().unwrap();
     let (dir, parsed) = fixture(root.path(), |_| {});
-    fs::write(dir.join("scorers/m.sh"), "echo 'bad key sk-secret-value' >&2; exit 1\n").unwrap();
+    fs::write(
+        dir.join("scorers/m.sh"),
+        "echo 'bad key sk-secret-value' >&2; exit 1\n",
+    )
+    .unwrap();
     let store = Store::new(root.path().join("home"));
-    let mut hive = Scripted { seats: vec![], plan: Box::new(|_, _| None), briefs: Vec::new() };
-    let err = engine(&parsed, &dir, &store, "f", &mut hive).run().unwrap_err();
+    let mut hive = Scripted {
+        seats: vec![],
+        plan: Box::new(|_, _| None),
+        briefs: Vec::new(),
+    };
+    let err = engine(&parsed, &dir, &store, "f", &mut hive)
+        .run()
+        .unwrap_err();
     assert!(matches!(err, Error::Step { .. }));
     let (_, record) = store.find_run("value/f").unwrap();
     assert_eq!(record.status, RunStatus::Failed);
@@ -241,9 +322,15 @@ fn an_unscorable_incumbent_fails_the_run_with_a_scrubbed_error() {
 #[test]
 fn an_incumbent_already_at_the_target_stops_at_once() {
     let root = tempfile::tempdir().unwrap();
-    let (dir, parsed) = fixture(root.path(), |m| m["score"]["decide"]["target"] = serde_json::json!(10));
+    let (dir, parsed) = fixture(root.path(), |m| {
+        m["score"]["decide"]["target"] = serde_json::json!(10)
+    });
     let store = Store::new(root.path().join("home"));
-    let mut hive = Scripted { seats: vec![], plan: Box::new(|_, _| None), briefs: Vec::new() };
+    let mut hive = Scripted {
+        seats: vec![],
+        plan: Box::new(|_, _| None),
+        briefs: Vec::new(),
+    };
     let mut e = engine(&parsed, &dir, &store, "t", &mut hive);
     e.epochs = Some(1);
     assert_eq!(e.run().unwrap().reason, StopReason::GoalReached);

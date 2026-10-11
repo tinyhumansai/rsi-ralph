@@ -125,7 +125,11 @@ impl Error {
     }
 
     /// An [`Error::Io`] wrapping `source`.
-    pub(crate) fn io(action: &'static str, path: impl Into<PathBuf>, source: std::io::Error) -> Self {
+    pub(crate) fn io(
+        action: &'static str,
+        path: impl Into<PathBuf>,
+        source: std::io::Error,
+    ) -> Self {
         Self::Io {
             action,
             path: path.into(),

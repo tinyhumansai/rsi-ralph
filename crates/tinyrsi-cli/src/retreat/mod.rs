@@ -62,7 +62,13 @@ impl Retreat {
     /// # Errors
     /// Returns [`Error::Proposer`] when the model backend cannot be built.
     pub fn new(parsed: &Loop, store: &Store, gateway: &Gateway) -> Result<Option<Self>> {
-        let Some(config) = parsed.manifest.creativity.retreat.clone().filter(|r| r.enabled) else {
+        let Some(config) = parsed
+            .manifest
+            .creativity
+            .retreat
+            .clone()
+            .filter(|r| r.enabled)
+        else {
             return Ok(None);
         };
         let port = OpenRouterModel::via(
@@ -70,8 +76,9 @@ impl Retreat {
             &gateway.tagged_url("retreat", "backrooms"),
         )
         .map_err(|e| Error::Proposer(format!("retreat model: {e}")))?;
-        let backend = ModelConversant::new(Arc::new(port), 0, RETREAT_TOKENS, 32_768, 4_096, 180_000)
-            .map_err(|e| Error::Proposer(format!("retreat backend: {e}")))?;
+        let backend =
+            ModelConversant::new(Arc::new(port), 0, RETREAT_TOKENS, 32_768, 4_096, 180_000)
+                .map_err(|e| Error::Proposer(format!("retreat backend: {e}")))?;
         let memory = config
             .memory
             .then(|| store.retreat_dir(&parsed.manifest.name).join("ideas.json"));
@@ -123,7 +130,10 @@ impl Retreat {
             "items_per_variation": per_variation,
             "seed": epoch,
         });
-        for (key, value) in [("mode", &self.config.mode), ("template", &self.config.template)] {
+        for (key, value) in [
+            ("mode", &self.config.mode),
+            ("template", &self.config.template),
+        ] {
             if let Some(value) = value {
                 config[key] = json!(value);
             }
