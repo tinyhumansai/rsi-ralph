@@ -61,7 +61,7 @@ A screen result of inconclusive continues to selection; only reject stops.
   `Topology`/`Policy`/`Goal` → `BetweenSessions`.
 - Host ports: `Evaluator` (`pin_memory`, `evaluate`), `HEvaluator`
   (`evaluate_h`), `ApprovalGate` (`approve`), `HApprovalGate` (`approve_h`).
-  `CoordinatorEvaluator` in `src/suites/` implements both evaluator traits.
+  `CoordinatorEvaluator` in `crates/tinyrsi-host/src/suites/` implements both evaluator traits.
 
 Both outcomes carry the `ReasonCode`, the candidate ID when one was formed,
 the last comparison, and `apply_at` only for approved designs.

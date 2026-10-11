@@ -8,11 +8,11 @@ use super::{apply_at, event, prefilter_for, prepare};
 use crate::archive::{
     NormalizedApprovalEvent, NormalizedDeclarationEvent, NormalizedEvaluationEvent,
 };
-use crate::scoring::{ScoringPolicy, ScoringPolicySpec};
 use crate::{
     Archive, CandidateState, Error, EvalDecision, EvalRun, EvalStage, Proposal,
     ProposalDeclaration, ReasonCode, Result, ScoreComparison, compare_h, ensure_independent,
 };
+use crate::{ScoringPolicy, ScoringPolicySpec};
 use std::collections::{BTreeMap, BTreeSet};
 use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
 

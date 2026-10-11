@@ -1,6 +1,6 @@
 //! Normalized-H epoch, evaluator, and human-approval contracts.
 
-use crate::scoring::ScoringPolicySpec;
+use crate::ScoringPolicySpec;
 use crate::{
     ApplyAt, Budget, CandidateState, Epoch, EvalPair, EvalStage, Evaluator, Proposal, ReasonCode,
     Result, ScoreComparison, ScoreHealth,

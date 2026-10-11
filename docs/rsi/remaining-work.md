@@ -55,11 +55,11 @@ It preserves existing score serialization and promotion decisions.
 
 ## Evidence and next implementation boundary
 
-Source evidence: [host journal](../../crates/tinyrsi/src/host/mod.rs),
-[host rebuild adapter](../../crates/tinyrsi/src/host/runtime.rs),
-[example evidence collection](../../crates/tinyrsi/examples/complete/driver.rs),
-[verification contract](../../crates/tinyrsi/src/verification/README.md), and
-[epoch receipt types](../../crates/tinyrsi/src/epoch_driver/types.rs).
+Source evidence: [host journal](../../crates/tinyrsi-host/src/host/mod.rs),
+[host rebuild adapter](../../crates/tinyrsi-host/src/host/runtime.rs),
+[example evidence collection](../../crates/tinyrsi-host/examples/complete/driver.rs),
+[verification contract](../../crates/tinyrsi-verify/src/verification/README.md), and
+[epoch receipt types](../../crates/tinyrsi-host/src/epoch_driver/types.rs).
 The [phase map](phases.md) and [live receipts](complete-live.md) document bounded
 integration results and scientific limitations.
 

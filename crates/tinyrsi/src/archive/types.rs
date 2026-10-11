@@ -84,7 +84,7 @@ pub struct NormalizedEvaluationEvent {
     /// Shared per-run hard cap.
     pub budget: crate::Budget,
     /// Exact validated host policy including the prediction-adjusted margin.
-    pub policy: crate::scoring::ScoringPolicySpec,
+    pub policy: crate::ScoringPolicySpec,
     /// Recomputed bootstrap evidence; never a converted raw-quality comparison.
     pub comparison: crate::ScoreComparison,
 }
