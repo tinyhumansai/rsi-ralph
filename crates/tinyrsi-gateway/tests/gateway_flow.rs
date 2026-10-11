@@ -185,8 +185,8 @@ impl Harness {
     }
 
     fn meter(&self) -> Vec<Value> {
-        let text = std::fs::read_to_string(self.dir.path().join("run-1/meter.jsonl"))
-            .unwrap_or_default();
+        let text =
+            std::fs::read_to_string(self.dir.path().join("run-1/meter.jsonl")).unwrap_or_default();
         text.lines()
             .map(|l| serde_json::from_str(l).unwrap())
             .collect()
@@ -376,7 +376,10 @@ async fn serves_embeddings_and_lists_models() {
         .await
         .unwrap();
     assert_eq!(response.status().as_u16(), 200);
-    for models_url in [format!("{}/v1/models", h.base()), format!("{tagged}/models")] {
+    for models_url in [
+        format!("{}/v1/models", h.base()),
+        format!("{tagged}/models"),
+    ] {
         let models: Value = h
             .client
             .get(models_url)
@@ -504,7 +507,10 @@ async fn shutdown_waits_for_a_call_still_settling() {
     let run: Value =
         serde_json::from_slice(&std::fs::read(dir.path().join("run-1/budget.json")).unwrap())
             .unwrap();
-    assert!(run["in_flight_usd"].as_f64().unwrap().abs() < 1e-12, "{run}");
+    assert!(
+        run["in_flight_usd"].as_f64().unwrap().abs() < 1e-12,
+        "{run}"
+    );
     assert!((run["settled_usd"].as_f64().unwrap() - 0.003).abs() < 1e-12);
     assert!(
         !dir.path().join("ledger-total.lock").exists(),
@@ -542,7 +548,11 @@ async fn the_key_never_reaches_any_file_or_client() {
     assert!(files.iter().any(|f| f.ends_with("budget.json")));
     assert!(files.iter().any(|f| f.ends_with("meter.jsonl")));
     assert!(files.iter().any(|f| f.ends_with("ledger-total.json")));
-    assert!(files.iter().any(|f| f.to_string_lossy().contains("captures")));
+    assert!(
+        files
+            .iter()
+            .any(|f| f.to_string_lossy().contains("captures"))
+    );
     for file in files {
         let bytes = std::fs::read(&file).unwrap();
         assert!(

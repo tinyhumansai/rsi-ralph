@@ -418,14 +418,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
     };
     let parsed = serde_json::from_slice::<Value>(&body)
         .map_err(|error| Error::BadRequest(format!("invalid JSON: {error}")))
-        .and_then(|value| {
-            prepare(
-                endpoint,
-                value,
-                &proxy.config.prices,
-                proxy.config.limits,
-            )
-        });
+        .and_then(|value| prepare(endpoint, value, &proxy.config.prices, proxy.config.limits));
     let prepared = match parsed {
         Ok(prepared) => prepared,
         Err(error) => return refuse("", &error),
@@ -467,13 +460,9 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
-        return stream_through(
-            in_flight,
-            prepared,
-            reservation,
-            response,
-            move |outcome| row(&outcome.0, outcome.1),
-        );
+        return stream_through(in_flight, prepared, reservation, response, move |outcome| {
+            row(&outcome.0, outcome.1)
+        });
     }
     let model = prepared.model.clone();
     let (response, outcome) = buffered(&proxy, &prepared, reservation, response).await;
