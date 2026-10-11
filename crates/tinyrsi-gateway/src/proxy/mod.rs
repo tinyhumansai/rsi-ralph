@@ -188,6 +188,19 @@ impl Proxy {
     fn redact(&self, text: &str) -> String {
         redact(text, &self.config.api_key)
     }
+
+    /// A buffered upstream body with the provider key removed, should the
+    /// upstream ever echo it (an auth error quoting the credential). Bodies
+    /// that do not contain it pass through untouched.
+    fn redact_body(&self, body: Bytes) -> Bytes {
+        let key = &self.config.api_key;
+        match std::str::from_utf8(&body) {
+            Ok(text) if !key.is_empty() && text.contains(key.as_str()) => {
+                Bytes::from(redact(text, key))
+            }
+            _ => body,
+        }
+    }
 }
 
 /// Counts one call as active until dropped, so shutdown can wait for it.
