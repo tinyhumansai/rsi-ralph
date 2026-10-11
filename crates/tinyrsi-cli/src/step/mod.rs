@@ -87,6 +87,10 @@ fn environment(ctx: &StepContext, step: &StepRun, out: &Path, tmp: &Path) -> Vec
     ]);
     if let Some(base) = &ctx.model_url {
         env.push((
+            "RSI_GATEWAY".to_owned(),
+            base.trim_end_matches('/').to_owned(),
+        ));
+        env.push((
             "RSI_MODEL_URL".to_owned(),
             format!(
                 "{}/__tag/{}/{}/v1",
@@ -133,7 +137,11 @@ pub fn score_result(step: &StepRun, outcome: &StepOutcome) -> Result<ScoreResult
         }
     };
     let finite = result.score.is_finite()
-        && result.metrics.values().all(|v| v.is_finite())
+        && result
+            .metrics
+            .values()
+            .chain(result.private.values())
+            .all(|v| v.is_finite())
         && result
             .splits
             .values()

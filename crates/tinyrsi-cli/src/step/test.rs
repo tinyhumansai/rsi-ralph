@@ -39,7 +39,7 @@ fn passes_the_contract_environment() {
     let dir = tempfile::tempdir().unwrap();
     let cmd = script(
         dir.path(),
-        "echo \"$RSI_CANDIDATE|$RSI_INCUMBENT|$RSI_EPOCH|$RSI_LABEL|$RSI_SEED|$EXTRA|$RSI_MODEL_URL\"\n\
+        "echo \"$RSI_CANDIDATE|$RSI_INCUMBENT|$RSI_EPOCH|$RSI_LABEL|$RSI_SEED|$EXTRA|$RSI_MODEL_URL|$RSI_GATEWAY\"\n\
          test -d \"$RSI_OUT\" && test -d \"$TMPDIR\"\n",
     );
     let run = step(dir.path(), &cmd);
@@ -48,7 +48,9 @@ fn passes_the_contract_environment() {
     let root = dir.path().display();
     assert_eq!(
         outcome.stdout.trim(),
-        format!("{root}/cand|{root}/inc|2|c1|7|yes|http://127.0.0.1:9/__tag/step/score.x/v1")
+        format!(
+            "{root}/cand|{root}/inc|2|c1|7|yes|http://127.0.0.1:9/__tag/step/score.x/v1|http://127.0.0.1:9"
+        )
     );
     assert!(dir.path().join("steps/x/stdout").exists());
 }
@@ -169,12 +171,13 @@ fn pins_the_result_stored_form() {
             text: "t".into(),
         }],
         metrics: BTreeMap::new(),
+        private: BTreeMap::new(),
     };
     assert_eq!(
         serde_json::to_value(&result).unwrap(),
         serde_json::json!({
             "score": 1.0, "splits": {"dev": {"items": {"a": 0.0}}},
-            "failures": [{"id": "a", "type": "k", "text": "t"}], "metrics": {}
+            "failures": [{"id": "a", "type": "k", "text": "t"}], "metrics": {}, "private": {}
         })
     );
 }

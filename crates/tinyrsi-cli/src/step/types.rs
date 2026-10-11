@@ -94,4 +94,8 @@ pub struct ScoreResult {
     /// Extra named numbers.
     #[serde(default)]
     pub metrics: BTreeMap<String, f64>,
+    /// Numbers stored in the ledger but never shown to the hive, such as a
+    /// held-out split's accuracy.
+    #[serde(default)]
+    pub private: BTreeMap<String, f64>,
 }

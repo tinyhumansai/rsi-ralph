@@ -116,6 +116,7 @@ pub(super) fn run(
     out: &mut dyn Write,
 ) -> Result<()> {
     let keys = Keys::resolve(parsed, loop_dir, lookup)?;
+    Subject::from_spec(&parsed.manifest.subject, loop_dir).verify()?;
     let files = manifest::load_dir(loop_dir)?;
     let run = store.create_run(&parsed.manifest.name, run_id, &files)?;
     say(

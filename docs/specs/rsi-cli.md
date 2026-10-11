@@ -82,8 +82,9 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `env` | no | Extra environment for every step. |
 
 **`subject`.** `kind` is `dir` or `git`. `path` is the subject directory,
-relative to the loop folder (or absolute for `git`, which usually points at a
-checkout elsewhere). `editable` lists path prefixes the hive may change;
+relative to the loop folder. A `dir` path must stay inside the loop folder; a
+`git` path may be absolute or leave it with `..`, since the repository usually
+lives elsewhere. `editable` lists path prefixes the hive may change;
 `frozen` lists prefixes it must not, and wins over `editable`. A `git` subject
 also names the `branch` that holds the incumbent; promotion fast-forwards it.
 `require_test_change` (default `false`) rejects candidates that touch no file
@@ -154,6 +155,7 @@ process-group kill. Environment: `PATH`, `HOME`, `TMPDIR`, the `env` map, and
 | `RSI_LABEL` | `incumbent` or the candidate id. |
 | `RSI_SEED` | Seed for this invocation. |
 | `RSI_MODEL_URL` | OpenAI-compatible base URL through the gateway, tagged with the step id. |
+| `RSI_GATEWAY` | The gateway's untagged base; a step tags its own calls as `$RSI_GATEWAY/__tag/<phase>/<seat>/v1`. |
 
 `result.json`:
 
@@ -164,7 +166,11 @@ process-group kill. Environment: `PATH`, `HOME`, `TMPDIR`, the `env` map, and
   "metrics": { "pack_tokens_mean": 812 } }
 ```
 
-Only `score` (finite) is required. `failures` feed the brief. A gate passes on
+Only `score` (finite) is required. `failures` feed the brief (each cut at
+1,500 characters, with a code fence the cut leaves open closed again).
+`metrics` are shown to the hive in the brief; `private` is a second map of
+numbers that is stored in the ledger and shown in the UI but never reaches the
+hive — put held-out results there. A gate passes on
 exit 0; the last non-empty stderr line is recorded as the reason.
 
 ## One run
@@ -232,7 +238,8 @@ Exit status is 0 on success, 1 on a loop error, 2 on invalid input.
 
 ## Acceptance criteria
 
-- `tinyrsi check` rejects every malformed field with a specific error.
+- `tinyrsi check` rejects every malformed field with a specific error, and a
+  subject whose folder, repository or branch does not exist.
 - An offline example loop runs end to end through the binary, reaches its goal,
   appears in `tinyrsi runs`, and is visible through `tinyrsi serve`.
 - oh-bench-rsi's loop is expressed as a loop folder with no Rust of its own.

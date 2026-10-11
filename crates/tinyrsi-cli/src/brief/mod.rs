@@ -136,13 +136,30 @@ fn failures(input: &BriefInput<'_>) -> String {
         }
         *count += 1;
         shown += 1;
-        let text: String = failure.text.chars().take(FAILURE_CHARS).collect();
+        let text = clip(&failure.text, FAILURE_CHARS);
         let label = if kind.is_empty() {
             failure.id.clone()
         } else {
             format!("{} ({kind})", failure.id)
         };
         let _ = write!(out, "### {label}\n\n{}\n\n", text.trim_end());
+    }
+    out
+}
+
+/// The first `limit` characters of `text`, marked when cut, with a code fence
+/// the cut left open closed again so the rest of the brief still renders.
+fn clip(text: &str, limit: usize) -> String {
+    let mut out: String = text.chars().take(limit).collect();
+    if out.len() < text.len() {
+        out.push('…');
+        let fences = out
+            .lines()
+            .filter(|line| line.trim_start().starts_with("```"))
+            .count();
+        if fences % 2 == 1 {
+            out.push_str("\n```");
+        }
     }
     out
 }
