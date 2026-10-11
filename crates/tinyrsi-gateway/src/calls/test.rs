@@ -9,8 +9,16 @@ fn counts_answers_and_keeps_the_latest_refusal() {
     let tally = CallTally::default();
     let calls: Vec<_> = (0..3).map(|_| tally.dispatched()).collect();
     tally.answered(calls[0], 200, b"{}");
-    tally.answered(calls[1], 429, br#"{"error":{"message":"Rate limited","code":429}}"#);
-    tally.answered(calls[2], 403, br#"{"error":{"message":"Key limit exceeded","code":403}}"#);
+    tally.answered(
+        calls[1],
+        429,
+        br#"{"error":{"message":"Rate limited","code":429}}"#,
+    );
+    tally.answered(
+        calls[2],
+        403,
+        br#"{"error":{"message":"Key limit exceeded","code":403}}"#,
+    );
     assert_eq!(
         tally.since(CallMark::default()),
         UpstreamCalls {

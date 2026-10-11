@@ -470,9 +470,14 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
-        return stream_through(in_flight, call, prepared, reservation, response, move |outcome| {
-            row(&outcome.0, outcome.1)
-        });
+        return stream_through(
+            in_flight,
+            call,
+            prepared,
+            reservation,
+            response,
+            move |outcome| row(&outcome.0, outcome.1),
+        );
     }
     let model = prepared.model.clone();
     let (response, outcome) = buffered(&proxy, call, &prepared, reservation, response).await;
@@ -499,7 +504,9 @@ async fn buffered(
             bytes
         }
         Err(error) => {
-            proxy.calls.unreachable(call, &proxy.redact(&error.to_string()));
+            proxy
+                .calls
+                .unreachable(call, &proxy.redact(&error.to_string()));
             Bytes::new()
         }
     };
@@ -542,6 +549,7 @@ async fn buffered(
 
 fn stream_through<F>(
     in_flight: InFlight,
+    call: u64,
     prepared: Prepared,
     reservation: Reservation,
     response: reqwest::Response,

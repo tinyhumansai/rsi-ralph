@@ -437,8 +437,11 @@ async fn a_late_refusal_counts_against_the_calls_sent_before_it() {
     let h = Arc::new(Harness::start(5.0, 50.0));
     let start = h.gateway.call_mark();
     let waiting = Arc::clone(&h);
-    let held =
-        tokio::spawn(async move { waiting.chat("/v1/chat/completions", "hold", json!({})).await });
+    let held = tokio::spawn(async move {
+        waiting
+            .chat("/v1/chat/completions", "hold", json!({}))
+            .await
+    });
     // The held call cannot answer until released, however slow the host.
     while h.upstream.seen.lock().unwrap().is_empty() {
         tokio::time::sleep(Duration::from_millis(5)).await;
@@ -446,7 +449,10 @@ async fn a_late_refusal_counts_against_the_calls_sent_before_it() {
     let calls = h.gateway.upstream_calls();
     assert_eq!((calls.sent, calls.refused), (1, 0), "sent while in flight");
     let mark = h.gateway.call_mark();
-    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({})).await.0, 200);
+    assert_eq!(
+        h.chat("/v1/chat/completions", "hello", json!({})).await.0,
+        200
+    );
     RELEASE.store(true, std::sync::atomic::Ordering::SeqCst);
     assert_eq!(held.await.unwrap().0, 403);
     // The late refusal belongs to the call sent before `mark`.
