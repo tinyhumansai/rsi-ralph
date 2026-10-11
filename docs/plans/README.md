@@ -26,6 +26,8 @@ this repository.
 
 - [`loop-trace.md`](loop-trace.md) — loop trace types, clocks and sinks.
 - [`script-loop.md`](script-loop.md) — script loop, example and hive trace.
+- [`hypothesis-ledger.md`](hypothesis-ledger.md) — approach labels, ledger
+  summary, slot directives and temperature.
 - [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — crate-by-crate extraction order.
 - [`hive-penalties.md`](hive-penalties.md) — four stacked penalty changes.
