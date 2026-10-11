@@ -54,7 +54,8 @@ connected.
 **Deployment.** What a coordinator actually runs.
 `DeploymentCheckpoint::deployed_id` (`host/types.rs`) records it;
 `DeploymentStore::activate` changes it to the archive head, `rollback` to the
-head's accepted parent. A pending `DeploymentIntent` blocks further changes
+head's accepted parent; `enforce_anchor` does the same rollback when an
+`AnchorSignal` reports a regression. A pending `DeploymentIntent` blocks further changes
 until `recover` runs.
 
 ## Generating proposals
@@ -163,7 +164,8 @@ failure kind and counts. It is a terminal rejection and a strike.
 made the hive worse, projected by `Archive::penalties` into a
 `PenaltyReport`. `Harmful` comes from a `HARMFUL` stop, `Regressed` from a
 `NO_GAIN` or `NOT_REPLICATED` stop whose normalized upper bound is below zero,
-and `Revoked` from a rollback recorded by `Archive::revoke`. Host failures,
+and `Revoked` from a rollback recorded by `Archive::revoke`, whether manual
+or on anchor regression. Host failures,
 inconclusive evidence, approval denials and prefilter stops are not strikes.
 
 **Cooldown.** `ReasonCode::Cooldown` (`COOLDOWN`): the proposal's patch shape

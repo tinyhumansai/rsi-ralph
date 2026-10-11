@@ -3,13 +3,14 @@
 //! `DeploymentStore` keeps what is actually deployed separate from what the
 //! archive has selected. It checkpoints redacted coordinator observations per
 //! epoch (`observe`), activates the accepted archive head (`activate`),
-//! restores its parent (`rollback`) and finishes or compensates an
+//! restores its parent (`rollback`), rolls back automatically when a frozen
+//! anchor regresses (`enforce_anchor`) and finishes or compensates an
 //! interrupted transition on restart (`recover`). `CoordinatorHost` is the
 //! `ActivationBackend` that rebuilds a real coordinator. See this directory's
 //! `README.md` for the host lifecycle and the quiescence requirement.
 mod runtime;
 mod types;
-use crate::{Archive, Error, Observation, Observer, Result};
+use crate::{AnchorSignal, Archive, Error, Observation, Observer, Result, RevocationReason};
 pub use runtime::CoordinatorHost;
 use std::{
     collections::BTreeMap,
@@ -224,14 +225,53 @@ impl DeploymentStore {
     }
     /// Restore the deployed design's accepted parent and then revert archive selection.
     ///
-    /// The archive records the rollback as a revocation at the checkpoint's
-    /// epoch: the record stays accepted and its patch shape takes a strike.
+    /// The archive records the rollback as a `Manual` revocation at the
+    /// checkpoint's epoch: the record stays accepted and its patch shape
+    /// takes a strike.
     /// # Errors
     /// Returns an error if selection diverged, no parent exists, or deployment fails.
     pub async fn rollback(
         &mut self,
         archive: &mut Archive,
         backend: &mut impl ActivationBackend,
+    ) -> Result<()> {
+        self.revoke(archive, backend, RevocationReason::Manual)
+            .await
+    }
+    /// Act on one epoch's [`AnchorSignal`], returning whether it rolled back.
+    ///
+    /// A `regression` means consecutive frozen-anchor intervals fell below
+    /// the best previous anchor: the deployed design is measurably worse on
+    /// references nothing can optimize against, so the host restores its
+    /// parent exactly as [`DeploymentStore::rollback`] does and records an
+    /// `AnchorRegression` revocation, which strikes the patch shape.
+    ///
+    /// A `widening_gap` alone stays advice. It says the selection suite is
+    /// drifting away from the anchors, which may be overfitting or may be a
+    /// genuine gain the anchors do not cover; the anchors themselves have not
+    /// fallen, so there is no evidence the deployed design is worse.
+    /// # Errors
+    /// On a regression, returns the rollback's errors: `NoParent` for a
+    /// parentless head, `HostFailed` for pending work or diverged selection,
+    /// and any deployment or archive failure.
+    pub async fn enforce_anchor(
+        &mut self,
+        signal: &AnchorSignal,
+        archive: &mut Archive,
+        backend: &mut impl ActivationBackend,
+    ) -> Result<bool> {
+        if !signal.regression {
+            return Ok(false);
+        }
+        self.revoke(archive, backend, RevocationReason::AnchorRegression)
+            .await?;
+        Ok(true)
+    }
+    async fn revoke(
+        &mut self,
+        archive: &mut Archive,
+        backend: &mut impl ActivationBackend,
+        reason: RevocationReason,
     ) -> Result<()> {
         if self.state.pending.is_some() {
             return Err(Error::HostFailed);
@@ -243,7 +283,7 @@ impl DeploymentStore {
         let parent = head.parent.clone().ok_or(Error::NoParent)?;
         self.transition(archive, backend, parent.clone(), DeploymentKind::Rollback)
             .await?;
-        archive.revoke(self.state.epoch)?;
+        archive.revoke(self.state.epoch, reason)?;
         let mut next = self.state.clone();
         next.deployed_id = Some(parent);
         next.pending = None;

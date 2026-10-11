@@ -14,7 +14,7 @@ editing the same targets with different text share a shape.
 | --- | --- |
 | `Harmful` | A proposal stop with reason `HARMFUL` |
 | `Regressed` | A `NO_GAIN` or `NOT_REPLICATED` stop whose last normalized comparison with the same epoch and patch has an upper bound below zero |
-| `Revoked` | A `revocation` event written by `Archive::revoke` |
+| `Revoked` | A `revocation` event written by `Archive::revoke`, for a manual or anchor-regression rollback |
 
 Host failures, inconclusive evidence, approval denials, duplicates, cooldowns
 and prefilter rejections are not strikes. The legacy raw funnel has no

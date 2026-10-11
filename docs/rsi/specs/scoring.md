@@ -176,8 +176,9 @@ exceeds the margin, then require confirmation and human approval.
 Private confirmation uses fresh task identities and seeds; it is not a
 second pass over the selection winners. Anchor tasks never feed proposal
 generation or selection. Only frozen anchor scores draw the progress curve.
-Sustained anchor decline or widening selection–anchor gaps ask the host to
-roll back and freeze the responsible class. Contamination halts evaluation.
+Sustained anchor decline rolls the deployment back to its parent and strikes
+the patch shape; a widening selection–anchor gap alone is advice. Freezing the
+responsible class remains host work. Contamination halts evaluation.
 
 ## From evidence to action
 
@@ -191,7 +192,8 @@ map distinguishes implemented ports/signals from future automatic controllers.
 | Interval does not clear margin or rule out gain, including equality | Inconclusive: stop, or use a preregistered sequential procedure within remaining caps |
 | H improves but any hard constraint fails | Reject with `CONSTRAINT`; retain the regression label |
 | Winner fails confirmation or reuses tasks/seeds | `NOT_REPLICATED`; do not seek approval |
-| Sustained anchor decline or widening selection–anchor gap | Roll back to an eligible best-anchor ancestor; freeze responsible class |
+| Sustained anchor decline (`AnchorSignal::regression`) | `DeploymentStore::enforce_anchor` rolls back to the parent automatically, records an `anchor_regression` revocation and strikes the patch shape; best-anchor ancestor and class freeze remain future work |
+| Widening selection–anchor gap alone | Advice only: the anchors have not fallen, so there is no evidence the deployed design is worse |
 | Tamper rate exceeds frozen review threshold | Halt generation/deployment and request human review |
 | Held-out canary found in hive memory | Halt, quarantine snapshots, forget offending events, invalidate affected anchor reports, require clean remeasurement |
 | Class eligibility/acceptance near zero over frozen epoch window | Switch authorized class or broaden retreat mode, lens or variations |
@@ -200,7 +202,7 @@ map distinguishes implemented ports/signals from future automatic controllers.
 | Candidate fails runs the incumbent completed on the same draws (crash, timeout, over-budget reply, unsupported hive) | Reject with `HARMFUL`; record the failure counts; strike its patch shape |
 | Upper ΔH bound below zero (`NO_GAIN` or `NOT_REPLICATED`) | Strike its patch shape as a confident regression |
 | Patch shape has a `HARMFUL` or revoked strike, or enough regressions, within the frozen penalty window | Stop with `COOLDOWN` before any evaluation spend; eligible again once its strikes leave the window |
-| Host rolls back a deployed acceptance | Record a revocation; keep the `Accepted` verdict; strike its patch shape |
+| Host rolls back a deployed acceptance, manually or on anchor regression | Record a revocation with its reason; keep the `Accepted` verdict; strike its patch shape |
 
 Hard gates include every family regression allowance, no worse false-claim or
 tamper rates, and token cost within `(1+epsilon)` of the incumbent. A zero cost

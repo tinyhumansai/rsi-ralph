@@ -200,6 +200,10 @@ async fn activation_is_distinct_from_selection_and_rollback_rebuilds_parent() {
     assert_eq!(strikes[0].kind, crate::StrikeKind::Revoked);
     assert_eq!(strikes[0].epoch, store.checkpoint().epoch);
     assert_eq!(strikes[0].shape, crate::PatchShape::of(&record.patch));
+    assert_eq!(
+        archive.revocations()[0].reason,
+        crate::RevocationReason::Manual
+    );
 }
 #[tokio::test]
 async fn failed_activation_preserves_deployed_state_and_pending_recovery_fails_closed() {
@@ -440,6 +444,8 @@ fn stale_temporary_files_do_not_prevent_restart_and_malformed_ids_are_rejected()
     ));
 }
 
+#[path = "test_anchor.rs"]
+mod anchor;
 #[path = "test_runtime.rs"]
 mod runtime;
 #[path = "test_store.rs"]

@@ -62,3 +62,6 @@ deny = []
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# The vendored OpenHuman pins tinytools, the organization's own tool runtime,
+# by git revision; no other git source is allowed.
+allow-git = ["https://github.com/tinyhumansai/tinytools"]

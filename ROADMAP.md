@@ -68,7 +68,7 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
 - **Calibrated proposal ranking.** Calibrated priors, blinded pairwise
   judgments and cost-aware successive halving (P4).
 - **Sequential testing and anchor history.** Preregistered alpha spending,
-  persistent anchor history tied to ancestor rollback, and tamper halting
+  persistent anchor history tied to best-ancestor rollback, and tamper halting
   (scoring #2).
 - **A learned orchestrator**, then an independent preregistered
   original-versus-learned comparison (P6).
