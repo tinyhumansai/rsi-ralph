@@ -222,12 +222,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175812e0be2bccb6abe50bb8d566126198344f707e304f45c648fd8f2cc0365e"
 
 [[package]]
-name = "byteorder"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
-
-[[package]]
 name = "bytes"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -378,16 +372,6 @@ name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
-
-[[package]]
-name = "core-foundation"
-version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91e195e091a93c46f7102ec7818a2aa394e1e1771c3ab4825963fa03e45afb8f"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
 
 [[package]]
 name = "core-foundation"
@@ -1442,21 +1426,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keyring"
-version = "3.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c"
-dependencies = [
- "byteorder",
- "linux-keyutils",
- "log",
- "security-framework 2.11.1",
- "security-framework 3.7.0",
- "windows-sys 0.60.2",
- "zeroize",
-]
-
-[[package]]
 name = "landlock"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1497,16 +1466,6 @@ dependencies = [
  "cc",
  "pkg-config",
  "vcpkg",
-]
-
-[[package]]
-name = "linux-keyutils"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83270a18e9f90d0707c41e9f35efada77b64c0e6f3f1810e71c8368a864d5590"
-dependencies = [
- "bitflags",
- "libc",
 ]
 
 [[package]]
@@ -1618,7 +1577,7 @@ dependencies = [
  "openssl-probe",
  "openssl-sys",
  "schannel",
- "security-framework 3.7.0",
+ "security-framework",
  "security-framework-sys",
  "tempfile",
 ]
@@ -1757,7 +1716,6 @@ dependencies = [
  "hmac 0.13.0",
  "hostname",
  "iana-time-zone",
- "keyring",
  "libc",
  "log",
  "nu-ansi-term",
@@ -1814,7 +1772,7 @@ dependencies = [
  "tinystoragedrivers",
  "tinytools",
  "tinytools-agent",
- "tinytools-std",
+ "tinytools-std 0.5.0",
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
@@ -2459,7 +2417,7 @@ dependencies = [
  "openssl-probe",
  "rustls-pki-types",
  "schannel",
- "security-framework 3.7.0",
+ "security-framework",
 ]
 
 [[package]]
@@ -2546,25 +2504,12 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "security-framework"
-version = "2.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "897b2245f0b511c87893af39b033e5ca9cce68824c4d7e7630b5a1d339658d02"
-dependencies = [
- "bitflags",
- "core-foundation 0.9.4",
- "core-foundation-sys",
- "libc",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7f4bc775c73d9a02cde8bf7b2ec4c9d12743edf609006c7facc23998404cd1d"
 dependencies = [
  "bitflags",
- "core-foundation 0.10.1",
+ "core-foundation",
  "core-foundation-sys",
  "libc",
  "security-framework-sys",
@@ -2988,7 +2933,7 @@ dependencies = [
  "tinystoragedrivers-core",
  "tinytools",
  "tinytools-agent",
- "tinytools-std",
+ "tinytools-std 0.5.0",
  "tokio",
  "tracing",
  "uuid",
@@ -3106,14 +3051,14 @@ dependencies = [
 
 [[package]]
 name = "tinybox-bus"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "async-trait",
  "serde",
@@ -3123,7 +3068,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-docker"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "async-trait",
  "serde_json",
@@ -3134,7 +3079,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-jail"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "landlock",
  "log",
@@ -3169,7 +3114,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.14"
+version = "0.1.18"
 dependencies = [
  "base64 0.23.1",
  "schemars",
@@ -3180,7 +3125,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-runtime"
-version = "0.1.14"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3395,13 +3340,14 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.6.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.23.1",
  "dirs 7.0.0",
  "futures-util",
+ "libc",
  "parking_lot",
  "reqwest",
  "rusqlite",
@@ -3411,6 +3357,7 @@ dependencies = [
  "thiserror",
  "tinymcp-bus",
  "tinytools",
+ "tinytools-std 0.5.0 (git+https://github.com/tinyhumansai/tinytools?rev=360721bc3c7a26221b61f6629f5f0415cfccb568)",
  "tokio",
  "tracing",
  "url",
@@ -3420,7 +3367,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.6.0"
+version = "0.8.1"
 dependencies = [
  "schemars",
  "serde",
@@ -3683,7 +3630,6 @@ dependencies = [
  "chacha20poly1305",
  "fs4",
  "hkdf",
- "keyring",
  "serde_json",
  "sha2 0.10.9",
  "tinystoragedrivers-core",
@@ -3734,6 +3680,31 @@ dependencies = [
 [[package]]
 name = "tinytools-std"
 version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.23.1",
+ "fs2",
+ "futures-util",
+ "glob",
+ "libc",
+ "log",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "rustix",
+ "serde_json",
+ "sha2 0.11.0",
+ "tinytools",
+ "tokio",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
+name = "tinytools-std"
+version = "0.5.0"
+source = "git+https://github.com/tinyhumansai/tinytools?rev=360721bc3c7a26221b61f6629f5f0415cfccb568#360721bc3c7a26221b61f6629f5f0415cfccb568"
 dependencies = [
  "anyhow",
  "async-trait",
