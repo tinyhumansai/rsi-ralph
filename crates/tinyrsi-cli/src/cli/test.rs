@@ -2,7 +2,7 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use crate::store::{RunRecord, write_json};
-use std::{collections::BTreeMap, io::Write as _};
+use std::collections::BTreeMap;
 
 fn example() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring")
@@ -185,8 +185,8 @@ fn run_without_a_key_fails_before_starting_anything() {
         false,
     );
     assert!(matches!(result, Err(Error::MissingKeys { .. })));
-    assert!(out.is_empty());
-    assert!(Store::new(home.path()).list_runs(None).unwrap().is_empty());
+    assert_eq!(out, "");
+    assert_eq!(Store::new(home.path()).list_runs(None).unwrap(), vec![]);
 }
 
 #[test]
