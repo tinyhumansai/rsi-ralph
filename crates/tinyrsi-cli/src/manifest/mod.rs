@@ -510,6 +510,18 @@ impl Loop {
         }
     }
 
+    /// Variables of plain key capabilities other than `openrouter`: their
+    /// values are passed to step commands under the same name.
+    pub fn step_key_envs(&self) -> impl Iterator<Item = &str> {
+        self.manifest
+            .keys
+            .iter()
+            .filter_map(|(name, spec)| match spec {
+                KeySpec::Env(env) if name != "openrouter" => Some(env.as_str()),
+                _ => None,
+            })
+    }
+
     /// Tool capabilities, by capability name.
     pub fn tool_keys(&self) -> impl Iterator<Item = (&str, &ToolKey)> {
         self.manifest

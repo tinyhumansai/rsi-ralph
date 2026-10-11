@@ -300,3 +300,39 @@ fn score_passes_env_overrides_to_the_scorer() {
     assert!(ok.is_ok(), "{ok:?} {out}");
     assert!(out.contains("colors = 4.0000"), "{out}");
 }
+
+#[test]
+fn score_passes_plain_keys_to_steps_under_their_own_name() {
+    let home = tempfile::tempdir().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let dir = root.path().join("loop");
+    crate::subject::copy_tree(&example(), &dir).unwrap();
+    let manifest = dir.join("rsi.json");
+    let mut m: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&manifest).unwrap()).unwrap();
+    m["keys"] = serde_json::json!({ "ladder": "LADDER_TEST_KEY" });
+    std::fs::write(&manifest, m.to_string()).unwrap();
+    std::fs::write(
+        dir.join("scorers/colors.py"),
+        "import os\nprint(f\"METRIC colors={len(os.environ['LADDER_TEST_KEY'])}\")\n",
+    )
+    .unwrap();
+    let lookup = |name: &str| match name {
+        "OPENROUTER_API_KEY" => Some("sk-test".to_owned()),
+        "LADDER_TEST_KEY" => Some("abcd".to_owned()),
+        "PATH" | "HOME" => std::env::var(name).ok(),
+        _ => None,
+    };
+    let cli = Cli::parse_from([
+        "tinyrsi",
+        "--home",
+        home.path().to_str().unwrap(),
+        "score",
+        dir.to_str().unwrap(),
+    ]);
+    let mut out = Vec::new();
+    let result = execute(cli, &lookup, &mut out);
+    let out = String::from_utf8(out).unwrap();
+    assert!(result.is_ok(), "{result:?} {out}");
+    assert!(out.contains("colors = 4.0000"), "{out}");
+}
