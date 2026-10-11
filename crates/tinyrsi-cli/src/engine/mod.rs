@@ -133,7 +133,7 @@ impl Engine<'_> {
                 record.status = RunStatus::Failed;
                 record.stop_reason = Some(StopReason::Error);
                 record.error = Some(store::scrub(
-                    &e.to_string(),
+                    &crate::error::chain(e),
                     self.secrets.iter().map(String::as_str),
                 ));
             }
@@ -465,7 +465,7 @@ impl Engine<'_> {
         if let Err(e) = outcome {
             record.status = CandidateStatus::Error;
             record.error = Some(store::scrub(
-                &e.to_string(),
+                &crate::error::chain(&e),
                 self.secrets.iter().map(String::as_str),
             ));
         }

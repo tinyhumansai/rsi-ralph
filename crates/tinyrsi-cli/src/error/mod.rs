@@ -140,3 +140,27 @@ impl Error {
 
 /// The crate's standard result type.
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// `error`'s message followed by every cause beneath it, joined with `": "`.
+///
+/// Variants that keep their cause in a `#[source]` field (for example the
+/// swarm's "cannot build the agent for seat …") do not repeat it in their own
+/// message, so printing only the top level hides why a run failed. Causes the
+/// message already contains are not repeated.
+#[must_use]
+pub fn chain(error: &(dyn std::error::Error + 'static)) -> String {
+    let mut out = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        let text = cause.to_string();
+        if !out.contains(&text) {
+            out.push_str(": ");
+            out.push_str(&text);
+        }
+        source = cause.source();
+    }
+    out
+}
+
+#[cfg(test)]
+mod test;

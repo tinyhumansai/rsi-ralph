@@ -39,4 +39,4 @@ pub mod step;
 pub mod store;
 pub mod subject;
 
-pub use error::{Error, Result};
+pub use error::{Error, Result, chain as error_chain};
