@@ -18,8 +18,8 @@ mod trace;
 pub use trace::record_epoch;
 mod types;
 use crate::{
-    Archive, DurableRetreatMemory, Error, HApprovalGate, HEpoch, HEvaluator, ReasonCode, Result,
-    RetreatMemoryOutcome, RetreatOutcomeStatus, run_proposal_h,
+    Archive, DurableRetreatMemory, Error, HApprovalGate, HEpoch, HEvaluator, PatchShape, Proposal,
+    ReasonCode, Result, RetreatMemoryOutcome, RetreatOutcomeStatus, run_proposal_h,
 };
 pub use generation::{RetreatEpochInput, normalized_retreat_request, prepare_retreat_epoch};
 pub use journal::EpochJournal;
@@ -50,7 +50,14 @@ pub fn evaluate_retreat_epoch(
         return Err(Error::HostFailed);
     }
     for old in &entry.outcome.candidates {
-        remember(memory, prepared.mode, prepared.epoch, old)?;
+        remember(
+            memory,
+            prepared.mode,
+            prepared.epoch,
+            old,
+            archive,
+            &prepared.proposals,
+        )?;
     }
     if entry.outcome.complete {
         return Ok(entry.outcome);
@@ -81,7 +88,14 @@ pub fn evaluate_retreat_epoch(
         entry.outcome.complete =
             receipt.reason == ReasonCode::Accepted || index + 1 == prepared.proposals.len();
         journal.commit_entry(entry.clone())?;
-        remember(memory, prepared.mode, prepared.epoch, &receipt)?;
+        remember(
+            memory,
+            prepared.mode,
+            prepared.epoch,
+            &receipt,
+            archive,
+            &prepared.proposals,
+        )?;
         if entry.outcome.complete {
             break;
         }
@@ -92,25 +106,64 @@ pub fn evaluate_retreat_epoch(
     }
     Ok(entry.outcome)
 }
+/// Records a retreat-mode candidate's host label in retreat memory.
+///
+/// `HARMFUL` stops are `Harmful`; `NO_GAIN` and `NOT_REPLICATED` stops whose
+/// last normalized comparison ruled out any gain are `Regressed`; both carry
+/// their public patch shape unless it holds a protected string. A pair
+/// already labelled `Rejected` (written before these labels existed) counts
+/// as remembered.
 fn remember(
     memory: &DurableRetreatMemory,
     mode: GenerationMode,
     epoch: u64,
     outcome: &EpochCandidateOutcome,
+    archive: &Archive,
+    proposals: &[Proposal],
 ) -> Result<()> {
-    if mode == GenerationMode::Retreat
-        && let Some(id) = &outcome.candidate_id
+    let (GenerationMode::Retreat, Some(id)) = (mode, &outcome.candidate_id) else {
+        return Ok(());
+    };
+    let regressed = || {
+        archive
+            .normalized_evaluations()
+            .into_iter()
+            .rev()
+            .find(|e| e.epoch == epoch && e.candidate_id == *id)
+            .is_some_and(|e| e.comparison.upper < 0.0)
+    };
+    let status = match outcome.reason {
+        ReasonCode::Accepted => RetreatOutcomeStatus::Approved,
+        ReasonCode::Harmful => RetreatOutcomeStatus::Harmful,
+        ReasonCode::NoGain | ReasonCode::NotReplicated if regressed() => {
+            RetreatOutcomeStatus::Regressed
+        }
+        _ => RetreatOutcomeStatus::Rejected,
+    };
+    let struck = matches!(
+        status,
+        RetreatOutcomeStatus::Harmful | RetreatOutcomeStatus::Regressed
+    );
+    if struck
+        && memory.outcomes()?.iter().any(|old| {
+            old.epoch == epoch
+                && old.candidate_id == *id
+                && old.status == RetreatOutcomeStatus::Rejected
+        })
     {
-        memory.record_outcome(RetreatMemoryOutcome {
-            epoch,
-            candidate_id: id.clone(),
-            status: if outcome.reason == ReasonCode::Accepted {
-                RetreatOutcomeStatus::Approved
-            } else {
-                RetreatOutcomeStatus::Rejected
-            },
-        })?;
+        return Ok(());
     }
+    let shape = proposals
+        .get(outcome.proposal_index)
+        .filter(|_| struck)
+        .map(|p| PatchShape::of(&p.patch).to_string())
+        .filter(|shape| memory.validate_public_text(shape).is_ok());
+    memory.record_outcome(RetreatMemoryOutcome {
+        epoch,
+        candidate_id: id.clone(),
+        status,
+        shape,
+    })?;
     Ok(())
 }
 #[cfg(test)]

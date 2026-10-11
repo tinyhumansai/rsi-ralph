@@ -71,11 +71,12 @@ pub use tinyrsi_types::{
 pub use archive::NormalizedEvaluationEvent;
 // Evolution: the Evolver port, the script supervisor, retreat and its memory.
 pub use tinyrsi_evolve::{
-    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, Proposed,
-    ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver, RetreatMemoryOutcome,
-    RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief, ScriptProposal,
-    ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
-    decode_retreat_response, generate_retreat, generate_retreat_with_engine, typed_retreat_request,
+    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, PriorIdea,
+    PriorOutcome, Proposed, ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver,
+    RetreatMemoryOutcome, RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief,
+    ScriptProposal, ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
+    build_retreat_request_with_priors, decode_retreat_response, generate_retreat,
+    generate_retreat_with_engine, typed_retreat_request, typed_retreat_request_with_priors,
 };
 // Checkers: blueprints, verifier registry, verified completion.
 pub use tinyrsi_verify::{

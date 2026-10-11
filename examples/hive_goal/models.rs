@@ -10,7 +10,9 @@
 //! [`ScriptedProposer`] stands in for the proposal model. It reads the public
 //! failure dossier out of the generation request it receives (exactly what a
 //! real model is shown) to ground its proposals, and replays a fixed script:
-//! two unhelpful ideas on its first call, the real repair afterwards.
+//! four bad ideas on its first call, the real repair afterwards. Two of them
+//! tell the agents to call a calculator tool the hive does not have; the
+//! agents then crash on every run, which the host penalizes.
 use crate::hive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tinyrsi_host::{
@@ -35,8 +37,14 @@ fn metered(request: &ModelRequest, content: String) -> Result<ModelReply, ModelE
 #[derive(Debug)]
 pub(crate) struct ContextFollower;
 
+/// Context that sends the agents after a tool the hive does not have.
+const CRASHING: &str = "calculator tool";
+
 impl ModelPort for ContextFollower {
     fn generate(&self, request: ModelRequest) -> ModelFuture {
+        if request.system().contains(CRASHING) {
+            return Box::pin(async { Err(ModelError::CallFailed) });
+        }
         let answer = if request.system().contains(hive::HELPFUL.trim_end()) {
             solve(task(request.prompt()))
         } else {
@@ -89,6 +97,18 @@ impl ModelPort for ScriptedProposer {
                 let items = if first {
                     vec![
                         prompt_edit(&refs, &nodes),
+                        tool_edit(
+                            "Hand the arithmetic to a calculator tool",
+                            "Always call the calculator tool before answering.\n",
+                            &refs,
+                            &nodes,
+                        ),
+                        tool_edit(
+                            "Insist on the calculator tool",
+                            "Never answer without the calculator tool.\n",
+                            &refs,
+                            &nodes,
+                        ),
                         context_edit(
                             "Ask the agents for shorter answers",
                             "Short, polite replies may read as more confident.",
@@ -174,6 +194,29 @@ fn context_edit(
         }],
     };
     proposal(title, mechanism, patch, refs, nodes)
+}
+
+/// Adds a `tools` item to the shared context. The agents crash on any
+/// context naming the calculator tool, so the host rejects the first such
+/// edit `HARMFUL`; any other text for the same item has the same patch shape
+/// and is cooled without evaluation.
+fn tool_edit(title: &str, after: &str, refs: &[u64], nodes: &[String]) -> Proposal {
+    let patch = Patch {
+        class: PatchClass::Context,
+        operations: vec![Operation::Context {
+            path: hive::CONTEXT.into(),
+            item: "tools".into(),
+            before: None,
+            after: Some(after.into()),
+        }],
+    };
+    proposal(
+        title,
+        "A dedicated tool should compute exactly where the agents now guess.",
+        patch,
+        refs,
+        nodes,
+    )
 }
 
 /// Edits the seat prompt: a different patch class than the epoch allows.

@@ -38,6 +38,11 @@ cargo run -p tinyrsi-examples --example hive_goal
   whose `verified_quality` predictions `run_proposal_h` marks untestable. The
   accepted hive is deployed into a fresh coordinator, as `complete/controlled`
   does, so the run stops at the first acceptance.
+- **Penalties.** In `hive_goal`'s first epoch a context edit sends the agents
+  to a calculator tool the hive lacks. The incumbent completes its private
+  runs and the candidate crashes on all of them, so it is rejected `HARMFUL`
+  (the trace's `measured` row shows the failed seeds) and its reworded copy
+  is stopped `COOLDOWN` without being evaluated.
 
 ## Watching a run
 

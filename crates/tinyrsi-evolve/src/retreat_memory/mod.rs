@@ -3,8 +3,10 @@
 //! `DurableRetreatMemory` implements the tinybackrooms `Memory` trait over one
 //! locked JSON file. It keeps a bounded window of discovery text for the
 //! retreat Engine to recall and a separate window of host outcomes
-//! (approved or rejected candidate IDs). It is a recall cache, not an audit
-//! ledger; the archive remains authoritative. See this directory's
+//! (approved, rejected, harmful or regressed candidate IDs). Recall folds one
+//! line naming the harmful and regressed patch shapes into the discovery text.
+//! It is a recall cache, not an audit ledger; the archive remains
+//! authoritative. See this directory's
 //! `README.md` for the eviction rule and canary checks.
 mod types;
 use crate::{Error, Result};
@@ -116,15 +118,43 @@ impl DurableRetreatMemory {
             || total_bytes(&state.outcomes, outcome_bytes)? > self.limits.max_bytes
             || state.outcomes.len() > self.limits.max_entries
             || state.discovery.iter().any(|s| self.contaminated(s))
-            || state.outcomes.iter().any(|s| {
-                s.candidate_id.is_empty()
-                    || s.candidate_id.len() > 256
-                    || self.contaminated(&s.candidate_id)
-            })
+            || state.outcomes.iter().any(|s| self.invalid_outcome(s))
         {
             return Err(Error::ArchiveCorrupt);
         }
         Ok(())
+    }
+    fn invalid_outcome(&self, outcome: &RetreatMemoryOutcome) -> bool {
+        outcome.candidate_id.is_empty()
+            || outcome.candidate_id.len() > 256
+            || self.contaminated(&outcome.candidate_id)
+            || outcome
+                .shape
+                .as_ref()
+                .is_some_and(|shape| shape.is_empty() || self.contaminated(shape))
+    }
+    /// One line naming the shapes the host saw crash or regress, if any.
+    fn avoid_line(outcomes: &[RetreatMemoryOutcome]) -> Option<String> {
+        let mut named: Vec<String> = Vec::new();
+        for outcome in outcomes {
+            let label = match outcome.status {
+                RetreatOutcomeStatus::Harmful => "crashed",
+                RetreatOutcomeStatus::Regressed => "regressed",
+                _ => continue,
+            };
+            if let Some(shape) = &outcome.shape {
+                let entry = format!("{shape} ({label})");
+                if !named.contains(&entry) {
+                    named.push(entry);
+                }
+            }
+        }
+        (!named.is_empty()).then(|| {
+            format!(
+                "Avoid these patch shapes; the host measured them breaking or regressing the hive: {}.",
+                named.join("; ")
+            )
+        })
     }
     fn trim<T>(&self, entries: &mut Vec<T>, size: impl Fn(&T) -> Result<usize>) -> Result<()> {
         let sizes = entries.iter().map(size).collect::<Result<Vec<_>>>()?;
@@ -195,11 +225,7 @@ impl DurableRetreatMemory {
     /// # Errors
     /// Returns storage, bounds or protected-value errors.
     pub fn record_outcome(&self, outcome: RetreatMemoryOutcome) -> Result<()> {
-        if outcome.candidate_id.is_empty()
-            || outcome.candidate_id.len() > 256
-            || self.contaminated(&outcome.candidate_id)
-            || outcome_bytes(&outcome)? > self.limits.max_bytes
-        {
+        if self.invalid_outcome(&outcome) || outcome_bytes(&outcome)? > self.limits.max_bytes {
             return Err(Error::InvalidProposal);
         }
         let mut state = self.state.lock().map_err(|_| Error::HostFailed)?;
@@ -248,7 +274,12 @@ impl Memory for DurableRetreatMemory {
                 return Err(Error::InvalidProposal);
             }
             let state = self.state.lock().map_err(|_| Error::HostFailed)?;
-            Ok(state.discovery[state.discovery.len().saturating_sub(limit)..].to_vec())
+            let avoid = Self::avoid_line(&state.outcomes).filter(|_| limit > 0);
+            let keep = limit.saturating_sub(usize::from(avoid.is_some()));
+            let mut recalled: Vec<String> = avoid.into_iter().collect();
+            recalled
+                .extend_from_slice(&state.discovery[state.discovery.len().saturating_sub(keep)..]);
+            Ok(recalled)
         })();
         Box::pin(async move {
             result.map_err(|_| tinybackrooms::Error::Memory("durable recall failed".into()))

@@ -16,8 +16,12 @@ read-only memory identities are scrubbed from remaining public text. Canonical
 JSON frontmatter is stripped; protected frontmatter fields are also added to
 the withheld strings so copied values cannot escape through another document.
 Malformed frontmatter rejects the request. Rejected
-seeds contain only epoch, class, operation count and a whitelisted reason:
-rejected patch bodies and untrusted rationale never reach the model.
+seeds (`PriorIdea`) contain only epoch, class, operation count, a whitelisted
+reason and a coarse `outcome`: `crashed`, `regressed`, `flat`, `cooled`,
+`denied` or `null`. Rejected patch bodies, untrusted rationale and measured
+deltas or intervals never reach the model. `build_retreat_request` derives the
+outcome from the reason; a host that knows a stop was a confident regression
+passes its own seeds to `build_retreat_request_with_priors`.
 
 `RetreatTransport` is implemented by the host's HTTP client. It sends the JSON
 unchanged and handles authentication, service errors and timeout. This module
