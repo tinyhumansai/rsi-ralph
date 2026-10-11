@@ -4,14 +4,8 @@ mod types;
 use crate::{Error, Result};
 pub use runner::*;
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeMap,
-    fs::File,
-    io::Read,
-    process::{Command, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+use crate::process::Exit;
+use std::{collections::BTreeMap, time::Duration};
 pub use types::*;
 /// Immutable registry of authorized node checkers.
 pub struct VerifierRegistry {
@@ -176,10 +170,6 @@ fn process(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>, Vec<u8
     let dir = tempfile::tempdir_in(root).map_err(|_| Error::HostFailed)?;
     let artifact = dir.path().join("artifact.lean");
     std::fs::write(&artifact, content).map_err(|_| Error::HostFailed)?;
-    let stdout = dir.path().join("stdout");
-    let stderr = dir.path().join("stderr");
-    let out = File::create(&stdout).map_err(|_| Error::HostFailed)?;
-    let err = File::create(&stderr).map_err(|_| Error::HostFailed)?;
     let args: Vec<_> = c
         .args
         .iter()
@@ -188,67 +178,31 @@ fn process(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>, Vec<u8
                 .replace("{workspace}", &dir.path().to_string_lossy())
         })
         .collect();
-    let mut invocation = Command::new(&c.program);
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        invocation.process_group(0);
-    }
-    let mut child = invocation
-        .args(args)
-        .env_clear()
-        .env("PATH", "/usr/bin:/bin")
-        .env("TMPDIR", dir.path())
-        .current_dir(dir.path())
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(out))
-        .stderr(Stdio::from(err))
-        .spawn()
-        .map_err(|_| Error::HostFailed)?;
-    let start = Instant::now();
-    let cap = u64::try_from(c.max_output_bytes).map_err(|_| Error::InvalidBlueprint)?;
-    loop {
-        let bytes = std::fs::metadata(&stdout)
-            .map_err(|_| Error::HostFailed)?
-            .len()
-            .saturating_add(
-                std::fs::metadata(&stderr)
-                    .map_err(|_| Error::HostFailed)?
-                    .len(),
-            );
-        if bytes > cap || start.elapsed() >= Duration::from_millis(c.timeout_ms) {
-            terminate(&mut child);
-            let _ = child.wait();
-            return Ok((false, None, vec![]));
-        }
-        if let Some(status) = child.try_wait().map_err(|_| Error::HostFailed)? {
-            terminate(&mut child);
-            let mut output = Vec::new();
-            File::open(stdout)
-                .and_then(|f| f.take(cap.saturating_add(1)).read_to_end(&mut output))
-                .map_err(|_| Error::HostFailed)?;
-            File::open(stderr)
-                .and_then(|f| f.take(cap.saturating_add(1)).read_to_end(&mut output))
-                .map_err(|_| Error::HostFailed)?;
-            return Ok((
-                status.success() && output.len() <= c.max_output_bytes,
-                status.code(),
+    let env = [
+        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("TMPDIR".to_owned(), dir.path().to_string_lossy().into_owned()),
+    ];
+    let outcome = crate::process::run(&crate::process::ProcessSpec {
+        program: c.program.as_ref(),
+        args: &args,
+        cwd: dir.path(),
+        scratch: dir.path(),
+        env: &env,
+        timeout: Duration::from_millis(c.timeout_ms),
+        cap: u64::try_from(c.max_output_bytes).map_err(|_| Error::InvalidBlueprint)?,
+    })?;
+    match outcome.exit {
+        Exit::TimedOut | Exit::OutputExceeded => Ok((false, None, vec![])),
+        Exit::Exited { success, code } => {
+            let mut output = outcome.stdout;
+            output.extend(outcome.stderr);
+            Ok((
+                success && output.len() <= c.max_output_bytes,
+                code,
                 output,
-            ));
+            ))
         }
-        thread::sleep(Duration::from_millis(2));
     }
-}
-fn terminate(child: &mut std::process::Child) {
-    #[cfg(unix)]
-    {
-        let _ = Command::new("/bin/kill")
-            .args(["-KILL", "--", &format!("-{}", child.id())])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
-    let _ = child.kill();
 }
 #[cfg(test)]
 mod test;

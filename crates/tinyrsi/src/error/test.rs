@@ -27,3 +27,30 @@ fn is_a_standard_error() {
     assert_error(&Error::EmptyField);
     assert_error(&Error::StepOutOfOrder);
 }
+
+#[test]
+fn renders_lowercase_messages_for_script_loop_failures() {
+    for (error, message) in [
+        (Error::TraceIo, "loop trace write failed"),
+        (Error::InvalidScriptSubject, "invalid script subject or loop policy"),
+        (Error::ScriptBaselineFailed, "baseline script failed"),
+        (Error::ScriptTimeout, "script run timed out"),
+        (Error::ScriptOutputExceeded, "script run exceeded its output cap"),
+        (Error::ScriptFailed, "script run exited unsuccessfully"),
+        (Error::MetricMissing, "script run printed no metric line"),
+        (
+            Error::MetricInvalid,
+            "script run printed a non-finite or unparsable metric",
+        ),
+        (
+            Error::ProposalPathOutsideEditable,
+            "proposal edits a path outside the editable set",
+        ),
+        (
+            Error::SupervisorMalformed,
+            "supervisor reply is not a well-formed proposal",
+        ),
+    ] {
+        assert_eq!(error.to_string(), message);
+    }
+}
