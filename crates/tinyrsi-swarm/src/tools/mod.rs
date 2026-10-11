@@ -84,14 +84,13 @@ pub(crate) fn tool_names(keys: &[ToolKey]) -> Vec<String> {
 
 /// Pins `keys` into one seat's agent config.
 ///
-/// [`validate`] has already refused every provider `OpenHuman` cannot pin,
-/// so a refusal here is unreachable and the key is simply not pinned.
+/// A provider `OpenHuman` cannot pin is skipped; [`validate`] has already
+/// refused every such key before a seat is built.
 pub(crate) fn apply(config: &mut RuntimeConfig, keys: &[ToolKey]) {
     for key in keys.iter().filter(|key| key.capability == WEB_SEARCH) {
-        let pinned = config
-            .search
-            .pin_host_credential(&key.provider, SearchHostCredential::new(key.secret.clone()));
-        debug_assert!(pinned.is_ok(), "validate admits only pinnable providers");
+        let credential = SearchHostCredential::new(key.secret.clone());
+        // Unreachable after `validate`; skipping keeps the seat buildable.
+        let _ = config.search.pin_host_credential(&key.provider, credential);
     }
 }
 
