@@ -471,6 +471,21 @@ fn the_retreat_evolver_refuses_unsafe_input_and_passes_transport_failures() {
 }
 
 #[test]
+fn the_retreat_evolver_rejects_a_response_with_no_items() {
+    use crate::{EvolveContext, Evolver};
+    let context = EvolveContext {
+        epoch: 7,
+        index: 0,
+        seed: 7,
+    };
+    let none = RetreatEvolver::new(Canned(Some(json!({"items": []}))));
+    assert_eq!(
+        none.propose(&brief("hive"), &tinyrsi_types::Goal::new("g"), &context),
+        Err(Error::InvalidProposal)
+    );
+}
+
+#[test]
 fn the_engine_seed_is_the_dossier_epoch() {
     let request = build_retreat_request("hive", &dossier(), &Package::default(), &[]).unwrap();
     assert_eq!(request["config"]["seed"], 7);
