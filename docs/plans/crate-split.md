@@ -30,9 +30,12 @@ separate commits from moves.
    - Move `model/` and the script supervisor's `block_on`.
    - Archive replay tests must pass unchanged.
 3. **`tinyrsi-trace`.** Move `trace/`, then add `TracingTrace` (test: a
-   subscriber captures one event per `LoopEvent`) and the `otlp` feature (test:
-   the builder rejects a missing endpoint). The `example.jsonl` byte pins and
-   `apps/rsi-viz` `npm test` stay green.
+   subscriber captures one event per `LoopEvent`) and `FanoutTrace`. The
+   `example.jsonl` byte pins and `apps/rsi-viz` `npm test` stay green.
+   Then add **`tinyrsi-langfuse`**: the `vendor/openhuman` submodule, the
+   OpenHuman `[patch]` tables at the root, and `LangfuseTrace` over
+   `openhuman_embed::observe::langfuse::LangfuseClient`, tested against a
+   loopback HTTP listener.
 4. **`tinyrsi-score`.**
    - Move `evaluation/`, `scoring/` and `experiment/`.
    - Extract `script_loop/score.rs` as `MetricScorer` plus `decide`.
@@ -72,7 +75,10 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
-cargo test -p <each crate>
+for crate in tinyrsi-types tinyrsi-model tinyrsi-trace tinyrsi-langfuse \
+    tinyrsi-score tinyrsi-verify tinyrsi-evolve tinyrsi tinyrsi-host; do
+  cargo test -p "$crate"
+done
 cargo tree -p tinyrsi-score   # no tinyrsi, no tinyhivemind-hives
 .github/scripts/check-file-coverage.sh
 ```

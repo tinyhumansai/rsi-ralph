@@ -113,6 +113,21 @@ impl LlmJudge {
     }
 }
 
+/// A per-call model seed from the assessment seed and the rater index.
+///
+/// `splitmix64` is a bijection that mixes every input bit, applied to the
+/// seed and again after folding in the rater, so seeds that differ anywhere
+/// (including only in their top bits) get unrelated rater seeds.
+pub(super) fn rater_seed(seed: u64, rater: u32) -> u64 {
+    fn splitmix64(mut z: u64) -> u64 {
+        z = z.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        z ^ (z >> 31)
+    }
+    splitmix64(splitmix64(seed) ^ u64::from(rater))
+}
+
 /// The median of a non-empty slice.
 fn median(values: &mut [f64]) -> f64 {
     values.sort_by(f64::total_cmp);
@@ -141,8 +156,7 @@ impl Scorer<str> for LlmJudge {
         for seed in seeds {
             let mut grades = Vec::with_capacity(self.raters as usize);
             for rater in 0..self.raters {
-                let (grade, why, spent) =
-                    self.rate(&text, seed.wrapping_mul(256).wrapping_add(u64::from(rater)))?;
+                let (grade, why, spent) = self.rate(&text, rater_seed(*seed, rater))?;
                 tokens = tokens.saturating_add(spent);
                 rationale.get_or_insert(why);
                 grades.push(grade);

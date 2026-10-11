@@ -125,3 +125,34 @@ fn a_boxed_scorer_is_a_scorer() {
     let a = boxed.assess("good", &Goal::new("g"), &SEEDS).unwrap();
     assert_eq!(a.qualities, vec![0.9; 3]);
 }
+
+#[test]
+fn refuses_a_metric_interval_that_overflows() {
+    let with = |values: Vec<f64>, a: Assessment| Assessment {
+        metric: Some(MetricEvidence {
+            values,
+            direction: MetricDirection::Maximize,
+        }),
+        ..a
+    };
+    let incumbent = with(vec![-f64::MAX, -f64::MAX, -f64::MAX], at(0.2, true));
+    let candidate = with(vec![f64::MAX, f64::MAX, f64::MAX], at(0.8, true));
+    assert_eq!(
+        decide(&incumbent, &candidate, &SEEDS, &policy()),
+        Err(Error::InvalidEvaluation)
+    );
+}
+
+#[test]
+fn validates_eligible_evidence_whatever_the_primary_verdict() {
+    for eligible in [vec![0.5], vec![0.5, f64::NAN, 0.5], vec![0.5, 2.0, 0.5]] {
+        let mut malformed = at(0.8, true);
+        malformed.eligible = Some(eligible);
+        // A regression: the primary comparison rejects, but the malformed
+        // eligible evidence must still be refused.
+        assert_eq!(
+            decide(&malformed, &at(0.2, true), &SEEDS, &policy()),
+            Err(Error::InvalidEvaluation)
+        );
+    }
+}
