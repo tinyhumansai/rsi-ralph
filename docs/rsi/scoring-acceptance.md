@@ -17,7 +17,7 @@ The identifiers in the tables refer to these actual source files:
 - **F**: [memory/guard funnel tests](../../crates/tinyrsi/src/orchestrator/test_funnel.rs).
 - **Q**: [quality and judge-calibration tests](../../crates/tinyrsi-score/src/evaluation/test.rs).
 - **M**: [snapshot-memory tests](../../crates/tinyrsi/src/memory/test.rs).
-- **E**: [Engine epoch tests](../../crates/tinyrsi/src/epoch_driver/test.rs).
+- **E**: [Engine epoch tests](../../crates/tinyrsi-host/src/epoch_driver/test.rs).
 
 ## Reject-code coverage and compatibility
 

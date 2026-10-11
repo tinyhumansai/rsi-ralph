@@ -29,6 +29,9 @@ crates/
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
+├── tinyrsi-host/       # hive runtime: coordinators, suites, epochs, deployment
+│   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
+│   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -38,29 +41,29 @@ crates/
     │   ├── observation/      # read-only coordinator snapshots and dossiers
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
     │   ├── memory/           # immutable hive-memory snapshot store
-    │   ├── script_loop/      # improvement loop over a plain script
-    │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
-    │   ├── evidence_journal/ # [host] measured turn callbacks and epoch receipts
-    │   ├── host/             # [host] DeploymentStore, CoordinatorHost
-    │   └── suites/           # [host] private suites and CoordinatorEvaluator
+    │   └── script_loop/      # improvement loop over a plain script
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
+examples/               # `tinyrsi-examples`: math_problem, upgrade_file, hive_goal
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 apps/rsi-viz/           # read-only Next.js loop visualizer
 docs/                   # see docs/README.md for what lives where
 ```
 
-Modules marked `[host]` compile only with the `host` Cargo feature, which adds
-SQLite coordinator storage and Tokio. Each module directory follows the
+`crates/tinyrsi-host` holds what needs a live coordinator (host runtime,
+private suites, durable epochs, evidence journal) and adds SQLite coordinator
+storage and Tokio; it replaced the former `host` Cargo feature. Each module
+directory follows the
 `mod.rs` / `types.rs` / `test.rs` layout below, and most carry a `README.md`.
 
 ### Adding a crate
 
-Add a crate by creating `crates/<name>/` — `members = ["crates/*"]` picks it up
-by existing. Inherit `version`, `edition`, `rust-version`, `license`, and
-`repository` from `[workspace.package]`, take shared dependencies from
-`[workspace.dependencies]`, and opt into the shared lint set with:
+Add a crate by creating `crates/<name>/`; `members = ["crates/*",
+"examples"]` picks it up by existing. Inherit `version`, `edition`,
+`rust-version`, `license`, and `repository` from `[workspace.package]`, take
+shared dependencies from `[workspace.dependencies]`, and opt into the shared
+lint set with:
 
 ```toml
 [lints]
@@ -106,9 +109,12 @@ Supporting commands:
 - `cargo test <filter>` — run a focused subset while iterating.
 - `cargo test -p tinyrsi` — run one crate's suite.
 - `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
-- `cargo run -p tinyrsi --features host --example observe_epochs` — offline
+- `cargo run -p tinyrsi-examples --example math_problem` (or `upgrade_file`,
+  `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
+  trace under `target/rsi-examples/` and fails if it misses its goal.
+- `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
-- `cargo run -p tinyrsi --features host --example complete_openrouter` — the
+- `cargo run -p tinyrsi-host --example complete_openrouter` — the
   full live loop; does nothing unless `TINYRSI_LIVE_OPENROUTER=1` and needs
   `OPENROUTER_API_KEY` and `TINYRSI_LEAN` (see `docs/rsi/complete-live.md`).
 - `cargo doc --no-deps --all-features` — build the rustdoc CI also builds with
@@ -116,8 +122,8 @@ Supporting commands:
 - `cargo test --doc` — run doctests alone when editing documentation examples.
 
 Other examples: `live_openrouter` (arithmetic smoke, opt-in like the above),
-`private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all need
-`host`; the last builds private Lean proofs with a pinned Lake), and
+`private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all in
+`tinyrsi-host`; the last builds private Lean proofs with a pinned Lake), and
 `script_loop` (offline curve-fitting run of the plain-script loop).
 
 Never skip, ignore, or delete a failing test to make a command pass. Fix the

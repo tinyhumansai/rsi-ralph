@@ -20,8 +20,9 @@ same epoch traced through the files it writes, read the
 
 An *epoch* is one pass from live work to a possible deployment. Every arrow
 below is a direct function call made by the host; there is no scheduler inside
-the library. Paths are relative to `crates/tinyrsi/src/`. Steps 1, 2 and 6 need
-the `host` Cargo feature.
+the library. Paths are relative to `crates/tinyrsi/src/`, except `host/`,
+`suites/`, `epoch_driver/` and `evidence_journal/`, which live in
+`crates/tinyrsi-host/src/`. Steps 1, 2 and 6 use the `tinyrsi-host` crate.
 
 ```mermaid
 flowchart TD
@@ -134,7 +135,7 @@ exists yet, and nothing in this document depends on them.
 - [Glossary](glossary.md) for every term above.
 - [Loop walkthrough](rsi/loop-walkthrough.md) for the on-disk evidence.
 - Module READMEs under `crates/tinyrsi/src/<module>/README.md` for design and
-  constraints of each piece; [`host/README.md`](../crates/tinyrsi/src/host/README.md)
+  constraints of each piece; [`host/README.md`](../crates/tinyrsi-host/src/host/README.md)
   covers the host lifecycle in order.
 - [Host runtime spec](specs/host-runtime.md) and
   [RSI framework](rsi/specs/rsi-framework.md) for the contracts.
