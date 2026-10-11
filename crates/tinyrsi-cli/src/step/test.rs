@@ -171,6 +171,7 @@ fn pins_the_result_stored_form() {
             text: "t".into(),
         }],
         metrics: BTreeMap::new(),
+        private: BTreeMap::new(),
     };
     assert_eq!(
         serde_json::to_value(&result).unwrap(),
