@@ -5,33 +5,66 @@ of the system, the reasoning behind it, and the constraints a reader needs
 before touching the code. API reference lives in doc comments next to the code,
 where it cannot drift.
 
-## Layout
+## Start here
+
+1. [`architecture.md`](architecture.md) — one epoch of the improvement loop,
+   which function owns each step, and what is still missing.
+2. [`glossary.md`](glossary.md) — epoch, proposal, candidate, incumbent,
+   stage, dossier, H score, anchor, ApplyAt and the rest, each tied to a type.
+3. [`rsi/loop-walkthrough.md`](rsi/loop-walkthrough.md) — the same epoch
+   traced through the live example and every file it writes.
+4. [`rsi/README.md`](rsi/README.md) — research index: phase status, remaining
+   work, scoring, experiments and measured results.
+
+The repository root has [`ROADMAP.md`](../ROADMAP.md) (shipped, next, out of
+scope) and [`MODULE.md`](../MODULE.md) (what the released TinyBus module
+serves).
+
+## Where docs live
+
+Documents are grouped by kind, not by subsystem. Nothing has been moved to
+make the layout tidier, because many files link to each other by path.
 
 ```text
 docs/
-├── README.md      # this index
-├── specs/         # behavior and architecture specifications
-├── plans/         # implementation plans derived from approved specs
-└── adr/           # architecture decision records, numbered and immutable
+├── README.md         # this index
+├── architecture.md   # system overview
+├── glossary.md       # term definitions
+├── specs/            # contracts for code in this repository
+├── plans/            # implementation sequences for those specs
+├── adr/              # architecture decision records, numbered and immutable
+└── rsi/              # the RSI research track
+    ├── specs/        # research-level framework and scoring specs
+    ├── results/      # dated, published run outputs (JSON)
+    └── *.md          # status pages, audits, and dated run reports
 ```
 
-- **[`specs/`](specs/README.md)** — one file per feature, module, or subsystem,
-  describing its behavior, public surface, invariants, and acceptance criteria.
-- **[`plans/`](plans/README.md)** — implementation-ordered, test-first steps for
-  delivering an approved specification. Plans name exact files and verification
-  commands, and are updated as the work progresses.
-- **`adr/`** — a dated record per significant decision. Use
-  [`adr/0001-record-architecture-decisions.md`](adr/0001-record-architecture-decisions.md)
-  as the template. An accepted ADR is not edited; it is superseded by a later
-  one.
+- **[`specs/`](specs/README.md)** — one file per feature or subsystem of this
+  crate (host runtime, epoch evidence, generation receipts, proposal
+  outcomes, ignition experiment, private benchmarks, module release). Each
+  states behavior, invariants and acceptance criteria that the code must meet.
+- **[`plans/`](plans/README.md)** — the test-first steps that delivered a
+  spec, with the same file stem (`specs/host-runtime.md` ↔
+  `plans/host-runtime.md`). Plans are records of how work landed; the spec
+  stays the source of truth.
+- **[`rsi/specs/`](rsi/specs/)** — the research framework the crate
+  implements: [`rsi-framework.md`](rsi/specs/rsi-framework.md),
+  [`orchestrator.md`](rsi/specs/orchestrator.md),
+  [`scoring.md`](rsi/specs/scoring.md) and
+  [`way-of-working.md`](rsi/specs/way-of-working.md). They describe the loop
+  conceptually and are broader than any one module.
+- **Dated run reports** — pages under `rsi/` that describe a specific run,
+  such as [`rsi/complete-live.md`](rsi/complete-live.md),
+  [`rsi/live-smoke.md`](rsi/live-smoke.md) and
+  [`rsi/p1-evidence.md`](rsi/p1-evidence.md). Their raw outputs are in
+  `rsi/results/<date>/`. These pages are historical evidence: correct a
+  factual error, but do not rewrite them to match later code.
+- **[`adr/`](adr/0001-record-architecture-decisions.md)** — one dated record
+  per significant decision. An accepted ADR is not edited; it is superseded
+  by a later one.
 
-Complex modules also carry a module-level `README.md` inside `src/<module>/`
-covering their design, public surface, and important constraints.
-
-The current module-release contract is in
-[`specs/tinybus-module-release.md`](specs/tinybus-module-release.md), with its
-implementation sequence in
-[`plans/tinybus-module-release.md`](plans/tinybus-module-release.md).
+Module-level design notes live next to the code in
+`crates/tinyrsi/src/<module>/README.md`.
 
 ## Conventions
 
