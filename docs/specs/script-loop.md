@@ -62,7 +62,7 @@ language model, if the library could run that cycle end to end.
   or minus the policy's standard-error multiple.
 - **Improve:** among the epoch's accepted candidates the one with the best mean
   metric becomes the incumbent and later proposals build on it.
-- **Ideate:** `Supervisor` wraps a `ModelPort` and makes one forced native
+- **Ideate:** `Supervisor` (now `tinyrsi_evolve::ScriptSupervisor`) wraps a `ModelPort` and makes one forced native
   tool call `propose_script` whose JSON schema is `ScriptProposal { rationale,
   hypothesis, files: [{path, content}] }`. Its prompt holds the goal and target,
   the incumbent's editable sources, the per-epoch metric history and the last

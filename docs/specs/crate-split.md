@@ -69,7 +69,7 @@ listed above it.
 | `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace` | tracing; `otlp` feature: opentelemetry |
 | `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | model, trace, tinybackrooms |
 | `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
-| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver`. `retreat` reads a narrow `RetreatDossier` view instead of `observation::Dossier`, which stays in core. | types, model, tinybackrooms |
+| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
 | `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger) | all of the above |
 | `tinyrsi-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
 | `tinyrsi-examples` | three runnable examples, `publish = false` | tinyrsi-host |
@@ -189,11 +189,13 @@ malformed reply, a path outside the editable set). The loop records it and
 continues past it, which is the script loop's current behavior. A transport
 failure is the outer `Err` and ends the run.
 
-`EvolveContext` carries the epoch, the proposal index and seed, the score
-history, and the last `rejected_context` rejected candidates with their
-decision and notes. Implementations:
+`EvolveContext` carries the epoch, the proposal index and the seed. Score
+history and recent rejections belong to what the evolver reads: the script
+loop renders them into the `ScriptBrief` prompt from its ledger, exactly as
+before, and retreat receives its rejected attempts in its `RetreatBrief`.
+Implementations:
 
-- `ScriptSupervisor`: `Evolver<ScriptSubject, Proposal = ScriptProposal>`,
+- `ScriptSupervisor`: `Evolver<ScriptBrief, Proposal = ScriptProposal>`,
   today's `Supervisor`, unchanged in prompt and tool schema. It yields one
   proposal per call.
 - `RetreatEvolver`: `Evolver<Package, Proposal = Proposal>`, wrapping

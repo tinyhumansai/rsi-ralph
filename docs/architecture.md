@@ -82,7 +82,7 @@ flowchart TD
 | --- | --- | --- |
 | Coordinator, seats, transcripts | tinyhivemind (`tinyhivemind-hives`) | adapted by `host/` and `observation/` |
 | Hive package format, patches, content IDs | tinyhivemind (`tinyhivemind-lang`) | re-exported; never redefined |
-| Retreat generation engine | tinybackrooms | driven by `epoch_driver/`, `retreat/` |
+| Retreat generation engine | tinybackrooms | driven by `epoch_driver/`, `crates/tinyrsi-evolve/src/retreat/` |
 | Private tasks and checkers | the host | frozen and fingerprinted by `suites/` |
 | Model credentials and provider | the host | `tinyrsi-model` reads `OPENROUTER_API_KEY` at call time |
 | Human approval | the host | only a trait (`HApprovalGate`) |

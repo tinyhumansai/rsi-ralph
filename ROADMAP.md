@@ -32,8 +32,8 @@ published 24-attempt experiment is inconclusive.
   ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets
-  (`epoch_driver/`), the tinybackrooms request contract (`retreat/`) and
-  `DurableRetreatMemory` (`retreat_memory/`).
+  (`epoch_driver/`), the tinybackrooms request contract (`crates/tinyrsi-evolve/src/retreat/`) and
+  `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`).
 - P5 structural deployment: `DeploymentStore::activate`, `rollback` and
   `recover` over `CoordinatorHost` with SQLite fencing and compensation
   (`host/`).

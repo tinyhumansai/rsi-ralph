@@ -66,10 +66,10 @@ variation inside the retreat Engine.
 
 **Retreat.** The tinybackrooms creative "critic-pair" Engine used to
 generate proposals (`GenerationMode::Retreat` in `epoch_driver/types.rs`;
-request contract in `retreat/`). `RetreatWithoutMemory` disables recall;
+request contract in `crates/tinyrsi-evolve/src/retreat/`). `RetreatWithoutMemory` disables recall;
 `Direct` skips the Engine and makes one structured model call.
 
-**Retreat memory.** `DurableRetreatMemory` (`retreat_memory/`): a bounded,
+**Retreat memory.** `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`): a bounded,
 locked recall cache of discovery text and approved/rejected outcomes that the
 retreat Engine reads. Not an audit log.
 

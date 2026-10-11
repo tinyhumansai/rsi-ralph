@@ -28,6 +28,7 @@ crates/
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
+├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -36,8 +37,6 @@ crates/
     │   ├── archive/          # durable selection history (records, proposals, evidence)
     │   ├── observation/      # read-only coordinator snapshots and dossiers
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
-    │   ├── retreat/          # tinybackrooms request/response contract
-    │   ├── retreat_memory/   # durable recall cache for the retreat Engine
     │   ├── memory/           # immutable hive-memory snapshot store
     │   ├── script_loop/      # improvement loop over a plain script
     │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
