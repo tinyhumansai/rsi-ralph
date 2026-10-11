@@ -32,10 +32,11 @@ impl Recording {
 }
 impl VerificationObserver for Recording {
     /// Persists actual checker evidence before verified completion is staged.
-    fn observe(&self, evidence: &VerificationEvidence) -> Result<()> {
+    fn observe(&self, evidence: &VerificationEvidence) -> tinyrsi_verify::Result<()> {
         self.journal
             .record_verification(self.id, evidence.clone())
             .map(|_| ())
+            .map_err(|_| crate::VerifyError::HostFailed)
     }
 }
 struct RecordedModel {

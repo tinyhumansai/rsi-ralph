@@ -1,9 +1,6 @@
 //! Candidate materialization, bounded per-seed execution and metric parsing.
 use super::{ScriptProposal, ScriptSubject, SeedRun};
-use crate::{
-    Error, Result,
-    process::{self, Exit, ProcessSpec},
-};
+use crate::{Error, Result};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -11,6 +8,7 @@ use std::{
     path::{Component, Path, PathBuf},
     time::Duration,
 };
+use tinyrsi_verify::process::{self, Exit, ProcessSpec};
 
 /// Editable file contents keyed by workspace-relative path.
 pub(super) type Sources = BTreeMap<PathBuf, String>;

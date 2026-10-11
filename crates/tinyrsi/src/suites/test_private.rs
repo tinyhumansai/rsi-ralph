@@ -483,3 +483,51 @@ async fn controlled_runner_recalls_the_exact_restored_seat_memory_snapshot() {
     assert!(factory.evidence().unwrap()[0].passed);
     assert_eq!(factory.usage().unwrap()[0].input_tokens, 10);
 }
+
+/// A pinned Lake verifier binds into a private task, and its frozen identity
+/// covers the installed compiler bytes. Moved here from the verification
+/// crate's Lake tests, which cannot name `PrivateTask`.
+#[test]
+fn a_lake_verifier_binds_into_a_private_task() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/lake-fixtures");
+    std::fs::create_dir_all(&root).unwrap();
+    let dir = tempfile::tempdir_in(&root).unwrap();
+    let root = std::fs::canonicalize(dir.path()).unwrap();
+    for (name, source) in [
+        (
+            "lean",
+            "#!/usr/bin/python3\nprint('Lean (version 4.34.1, fixture)')\n",
+        ),
+        ("lake", "#!/usr/bin/python3\nprint('')\n"),
+    ] {
+        let path = root.join(name);
+        std::fs::write(&path, source).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        }
+    }
+    let verifier = crate::HostVerifier::Lake {
+        command: crate::CommandSpec {
+            program: root.join("lake").to_string_lossy().into_owned(),
+            args: vec!["build".into()],
+            workspace_root: root.join("workspaces"),
+            timeout_ms: 5000,
+            max_output_bytes: 4096,
+        },
+        theorem: "theorem rsi_goal : True :=".into(),
+        toolchain: "leanprover/lean4:v4.34.1".into(),
+    };
+    assert!(
+        crate::PrivateTask::new(
+            "lake-task".into(),
+            "formal-maths".into(),
+            "seat".into(),
+            "private mathematical goal".into(),
+            verifier,
+            vec![1]
+        )
+        .is_ok()
+    );
+}

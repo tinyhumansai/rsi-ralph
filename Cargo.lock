@@ -1036,6 +1036,7 @@ dependencies = [
  "tinyrsi-score",
  "tinyrsi-trace",
  "tinyrsi-types",
+ "tinyrsi-verify",
  "tokio",
 ]
 
@@ -1083,6 +1084,22 @@ dependencies = [
  "serde",
  "serde_json",
  "tinyhivemind-lang",
+]
+
+[[package]]
+name = "tinyrsi-verify"
+version = "0.2.1"
+dependencies = [
+ "jsonschema",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tinyhivemind-hives",
+ "tinyrsi-score",
+ "tinyrsi-types",
+ "tokio",
 ]
 
 [[package]]

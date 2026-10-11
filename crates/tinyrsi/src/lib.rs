@@ -39,7 +39,6 @@
 //! ```
 
 mod archive;
-mod blueprint;
 #[cfg(feature = "host")]
 mod epoch_driver;
 mod error;
@@ -51,13 +50,11 @@ mod lineage;
 mod memory;
 mod observation;
 mod orchestrator;
-mod process;
 mod retreat;
 mod retreat_memory;
 mod script_loop;
 #[cfg(feature = "host")]
 mod suites;
-mod verification;
 
 pub use error::{Error, Result};
 #[cfg(feature = "host")]
@@ -68,7 +65,6 @@ pub use archive::{
     Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
     ProposalDispositionRow,
 };
-pub use blueprint::*;
 pub use observation::*;
 pub use orchestrator::*;
 pub use tinyhivemind_lang;
@@ -90,7 +86,13 @@ pub use archive::NormalizedEvaluationEvent;
 #[cfg(feature = "host")]
 pub use host::*;
 pub use retreat_memory::*;
-pub use verification::*;
+// Checkers: blueprints, verifier registry, verified completion.
+pub use tinyrsi_verify::{
+    ArtifactFuture, ArtifactProducer, ArtifactSubmission, Blueprint, BlueprintNode, CommandSpec,
+    Error as VerifyError, HostVerifier, NodeStatus, VerificationBinding, VerificationEvidence,
+    VerificationObserver, VerifiedRunner, Verifier, VerifierDeclaration, VerifierKind,
+    VerifierRegistry, VerifierScorer,
+};
 
 #[cfg(feature = "host")]
 pub use epoch_driver::*;

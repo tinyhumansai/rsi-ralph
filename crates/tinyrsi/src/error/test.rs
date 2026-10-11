@@ -91,3 +91,15 @@ fn scoring_errors_map_onto_the_variants_callers_already_match() {
         "judge reply is not a well-formed grade"
     );
 }
+
+#[test]
+fn checker_errors_map_onto_the_variants_callers_already_match() {
+    assert_eq!(
+        Error::from(tinyrsi_verify::Error::InvalidBlueprint),
+        Error::InvalidBlueprint
+    );
+    assert_eq!(
+        Error::from(tinyrsi_verify::Error::HostFailed),
+        Error::HostFailed
+    );
+}

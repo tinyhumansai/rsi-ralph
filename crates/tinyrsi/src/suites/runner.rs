@@ -6,7 +6,7 @@ use crate::{
     VerificationBinding, VerifiedRunner, Verifier, VerifierDeclaration, VerifierKind,
     VerifierRegistry,
 };
-use crate::{Budget, QualityRubric, VerifierTier};
+use crate::{Budget, QualityRubric, VerifierTier, VerifyError};
 use std::fmt::Write;
 use std::{
     collections::BTreeMap,
@@ -166,9 +166,10 @@ impl ArtifactProducer for Producer {
                 model.generate(request.clone()),
             )
             .await
-            .map_err(|_| Error::HostFailed)??;
-            request.check(&reply)?;
-            *meter.lock().map_err(|_| Error::HostFailed)? =
+            .map_err(|_| VerifyError::HostFailed)?
+            .map_err(|_| VerifyError::HostFailed)?;
+            request.check(&reply).map_err(|_| VerifyError::HostFailed)?;
+            *meter.lock().map_err(|_| VerifyError::HostFailed)? =
                 Some((reply.input_tokens, reply.output_tokens));
             Ok(ArtifactSubmission {
                 binding,
@@ -184,7 +185,7 @@ pub(super) fn blueprint(task: &PrivateTask) -> Result<Blueprint> {
         HostVerifier::Process(_) => VerifierKind::Execution,
         HostVerifier::Lean { .. } | HostVerifier::Lake { .. } => VerifierKind::Proof,
     };
-    Blueprint::new(vec![BlueprintNode {
+    Ok(Blueprint::new(vec![BlueprintNode {
         id: "artifact".into(),
         statement: "Produce the host-requested artifact".into(),
         owner_role: task.seat.clone(),
@@ -194,7 +195,7 @@ pub(super) fn blueprint(task: &PrivateTask) -> Result<Blueprint> {
             spec: task.checker_stamp.clone(),
         },
         status: NodeStatus::Open,
-    }])
+    }])?)
 }
 pub(super) async fn run(
     task: &PrivateTask,

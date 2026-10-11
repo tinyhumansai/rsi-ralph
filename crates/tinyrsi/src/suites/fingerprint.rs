@@ -24,7 +24,7 @@ pub(super) fn checker(verifier: &HostVerifier) -> Result<String> {
             toolchain,
         } => json!({
             "lake": command(c)?, "theorem": theorem, "toolchain": toolchain,
-            "project": crate::verification::lake::identity(c)?
+            "project": tinyrsi_verify::lake_identity(c)?
         }),
     };
     Ok(digest(

@@ -122,6 +122,16 @@ impl From<tinyrsi_score::Error> for Error {
     }
 }
 
+/// Checker failures keep the variants this crate has always reported.
+impl From<tinyrsi_verify::Error> for Error {
+    fn from(error: tinyrsi_verify::Error) -> Self {
+        match error {
+            tinyrsi_verify::Error::InvalidBlueprint => Self::InvalidBlueprint,
+            _ => Self::HostFailed,
+        }
+    }
+}
+
 /// The crate's standard result type.
 ///
 /// Use this alias in public signatures instead of spelling out

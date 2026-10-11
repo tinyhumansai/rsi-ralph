@@ -7,7 +7,7 @@
 //! writes anything. See this directory's `README.md` for what is redacted and
 //! why the two coordinator reads are separate snapshots.
 mod types;
-use crate::blueprint::NodeStatus;
+use crate::NodeStatus;
 use crate::{Error, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use tinyhivemind_hives::{Coordinator, EpisodePhase};
