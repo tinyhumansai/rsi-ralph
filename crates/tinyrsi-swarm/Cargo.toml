@@ -1,0 +1,38 @@
+[package]
+name = "tinyrsi-swarm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Runs a tinyhivemind hive package as a team of OpenHuman agents editing candidate checkouts."
+readme = "README.md"
+keywords = ["rsi", "hive", "agents", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+# The agent harness every seat runs on: runtime, agent specs, providers and
+# turn progress.
+openhuman-embed = { workspace = true }
+# The swarm's `events.jsonl` and outcome derive their stored JSON form.
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+# Durable coordinator; `sqlite` stores the run's `hive.db`.
+tinyhivemind-hives = { workspace = true, features = ["sqlite"] }
+# Parse, validate and lower the hive package.
+tinyhivemind-lang = { workspace = true }
+# Attaches the permanent `hivemind_*` tools to each seat and runs its turns.
+tinyhivemind-openhuman = { workspace = true }
+# The swarm's own runtime; `sync` carries tool-call progress out of turns.
+tokio = { workspace = true, features = ["sync"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+# A loopback OpenAI-compatible model that scripts each seat's replies, so the
+# integration test runs offline and deterministically.
+wiremock = "0.6"
+
+[lints]
+workspace = true
