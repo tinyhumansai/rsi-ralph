@@ -15,6 +15,11 @@
 //! failed export never fails the loop. It is counted in
 //! [`LangfuseTrace::failures`], the requests stay pending, and an explicit
 //! [`LangfuseTrace::flush`] retries them and reports the error.
+//!
+//! Langfuse can also accept a request in part: it answers 200 with OTLP's
+//! `partialSuccess.rejectedSpans`. That request is acknowledged, since
+//! resending it would duplicate the accepted spans, but it counts as a
+//! failure too.
 mod spans;
 
 use crate::{Error, Result};
@@ -24,8 +29,9 @@ use spans::SpanBuilder;
 use std::sync::mpsc;
 use tinyrsi_trace::{LoopEvent, TraceSink};
 
-/// One OTLP request for the worker, and where to report how it went.
-type Job = (Value, mpsc::Sender<Result<()>>);
+/// One OTLP request for the worker, and where to report how many of its
+/// spans Langfuse rejected.
+type Job = (Value, mpsc::Sender<Result<u64>>);
 
 /// Exports loop events to Langfuse as one trace per run.
 pub struct LangfuseTrace {
@@ -66,7 +72,7 @@ impl LangfuseTrace {
                 for (request, reply) in inbox {
                     let sent = runtime
                         .block_on(client.send_otlp(request))
-                        .map(|_| ())
+                        .map(|response| rejected_spans(&response))
                         .map_err(|_| Error::ExportFailed);
                     let _ = reply.send(sent);
                 }
@@ -110,7 +116,8 @@ impl LangfuseTrace {
         &self.pending
     }
 
-    /// How many automatic exports failed.
+    /// How many exports failed: automatic flushes that could not deliver a
+    /// request, plus every request Langfuse accepted only in part.
     #[must_use]
     pub fn failures(&self) -> u64 {
         self.failures
@@ -123,16 +130,38 @@ impl LangfuseTrace {
     /// Returns [`Error::ExportFailed`] when Langfuse cannot be reached or
     /// refuses a request. That request and the ones after it stay pending,
     /// so a later flush retries them.
+    ///
+    /// A request Langfuse accepts only in part is not an error here: it is
+    /// counted in [`Self::failures`] and dropped, because resending it would
+    /// duplicate the spans that were accepted.
     pub fn flush(&mut self) -> Result<()> {
         while let Some(request) = self.pending.first() {
             let (reply, outcome) = mpsc::channel();
             self.jobs
                 .send((request.clone(), reply))
                 .map_err(|_| Error::ExportFailed)?;
-            outcome.recv().map_err(|_| Error::ExportFailed)??;
+            let rejected = outcome.recv().map_err(|_| Error::ExportFailed)??;
+            if rejected > 0 {
+                self.failures += 1;
+            }
             self.pending.remove(0);
         }
         Ok(())
+    }
+}
+
+/// How many spans an OTLP response says were rejected, under OTLP/JSON's
+/// camelCase keys or protobuf's `snake_case` ones. The count is an int64, which
+/// OTLP/JSON may encode as a string. A response without one rejected nothing.
+fn rejected_spans(response: &Value) -> u64 {
+    let partial = response
+        .get("partialSuccess")
+        .or_else(|| response.get("partial_success"));
+    let rejected = partial.and_then(|p| p.get("rejectedSpans").or_else(|| p.get("rejected_spans")));
+    match rejected {
+        Some(Value::Number(n)) => n.as_u64().unwrap_or(0),
+        Some(Value::String(s)) => s.parse().unwrap_or(0),
+        _ => 0,
     }
 }
 

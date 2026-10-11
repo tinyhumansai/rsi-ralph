@@ -51,13 +51,19 @@ struct Request {
     body: Value,
 }
 
-/// Serves one request per entry of `statuses` on a loopback port.
+/// Serves one request per entry of `statuses` on a loopback port, each
+/// answered with an empty JSON object.
 fn listener(statuses: Vec<u16>) -> (String, mpsc::Receiver<Request>) {
+    responding(statuses.into_iter().map(|status| (status, "{}")).collect())
+}
+
+/// Serves one request per `(status, body)` entry on a loopback port.
+fn responding(responses: Vec<(u16, &'static str)>) -> (String, mpsc::Receiver<Request>) {
     let socket = TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://{}", socket.local_addr().unwrap());
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
-        for status in statuses {
+        for (status, reply) in responses {
             let (stream, _) = socket.accept().unwrap();
             let mut reader = BufReader::new(stream);
             let mut line = String::new();
@@ -81,7 +87,8 @@ fn listener(statuses: Vec<u16>) -> (String, mpsc::Receiver<Request>) {
             let mut stream = reader.into_inner();
             write!(
                 stream,
-                "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{{}}"
+                "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{reply}",
+                reply.len()
             )
             .unwrap();
             tx.send(Request {
@@ -202,6 +209,47 @@ fn an_explicit_flush_reports_the_failure() {
     other.pending.clone_from(&trace.pending);
     assert_eq!(other.flush(), Err(Error::ExportFailed));
     assert_eq!(other.pending().len(), 1);
+}
+
+#[test]
+fn a_partially_rejected_batch_counts_as_a_failure() {
+    let (base, rx) = responding(vec![(
+        200,
+        r#"{"partialSuccess":{"rejectedSpans":"2","errorMessage":"x"}}"#,
+    )]);
+    let mut trace = sink(&base);
+    for event in run(StopReason::MaxEpochs) {
+        trace.record(event).unwrap();
+    }
+    rx.recv().unwrap();
+    assert_eq!(trace.failures(), 1);
+    // The accepted spans are not sent again.
+    assert_eq!(trace.pending(), [] as [Value; 0]);
+}
+
+#[test]
+fn a_snake_case_partial_rejection_also_counts_as_a_failure() {
+    let (base, _rx) = responding(vec![(200, r#"{"partial_success":{"rejected_spans":3}}"#)]);
+    let mut trace = sink(&base);
+    for event in run(StopReason::MaxEpochs) {
+        trace.record(event).unwrap();
+    }
+    assert_eq!(trace.failures(), 1);
+    assert_eq!(trace.pending(), [] as [Value; 0]);
+}
+
+#[test]
+fn a_partial_success_with_nothing_rejected_counts_as_success() {
+    let (base, _rx) = responding(vec![(
+        200,
+        r#"{"partialSuccess":{"rejectedSpans":"0","errorMessage":""}}"#,
+    )]);
+    let mut trace = sink(&base);
+    for event in run(StopReason::MaxEpochs) {
+        trace.record(event).unwrap();
+    }
+    assert_eq!(trace.failures(), 0);
+    assert_eq!(trace.pending(), [] as [Value; 0]);
 }
 
 #[test]
