@@ -21,8 +21,7 @@
       "template": "openhuman",
       "config": {
         "action_dir": "{incumbent}",
-        "max_iterations": 20,
-        "temperature": 0.0
+        "max_iterations": 20
       },
       "tools": {
         "allow": [
@@ -50,8 +49,7 @@
       "template": "openhuman",
       "config": {
         "action_dir": "{candidate}",
-        "max_iterations": 20,
-        "temperature": 0.0
+        "max_iterations": 20
       },
       "tools": {
         "allow": [
