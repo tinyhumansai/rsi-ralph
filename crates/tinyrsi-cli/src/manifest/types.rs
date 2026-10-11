@@ -230,8 +230,20 @@ pub struct ToolKey {
 pub struct ScoreSpec {
     /// Score functions; at least one.
     pub scorers: Vec<ScorerSpec>,
+    /// Most seeds of one `run` scorer that run at the same time; at least 1.
+    ///
+    /// The default of 1 runs seeds one after another. Raise it when each seed
+    /// is long and independent, such as a whole game episode; every seed
+    /// still gets its own folder, timeout and output cap, and results stay in
+    /// seed order.
+    #[serde(default = "one_step")]
+    pub parallel: u32,
     /// Which scorer decides, and how.
     pub decide: DecideSpec,
+}
+
+fn one_step() -> u32 {
+    1
 }
 
 /// One score function: exactly one of `run` and `judge`.
