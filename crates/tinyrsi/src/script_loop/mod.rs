@@ -202,7 +202,7 @@ type Judged = (
 );
 
 /// The ledger note on a candidate accepted by per-seed dominance.
-pub(super) const DOMINANCE_NOTE: &str =
+const DOMINANCE_NOTE: &str =
     "accepted by per-seed dominance: no worse on any seed, better on at least one";
 
 /// What one evaluated candidate produced.
