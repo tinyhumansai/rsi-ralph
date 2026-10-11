@@ -82,37 +82,7 @@ pub(super) fn prompt(
         policy.approach_context,
     ));
     text.push_str(&approaches::render_this_epoch(ledger, slot.epoch));
-    let _ = writeln!(text, "# Recently rejected proposals");
-    let rejected: Vec<&LedgerCandidate> = ledger
-        .candidates
-        .iter()
-        .rev()
-        .filter(|c| !c.promoted && c.proposal_id.is_some())
-        .filter(|c| c.decision != super::CandidateDecision::Accept)
-        .take(policy.rejected_context)
-        .collect();
-    if rejected.is_empty() {
-        let _ = writeln!(text, "None yet.");
-    }
-    for c in rejected {
-        let shown = c.runs.iter().find(|r| r.error.is_some()).or(c.runs.first());
-        let stderr = shown.map_or("", |r| r.stderr_tail.as_str());
-        let errors: Vec<&str> = c.runs.iter().filter_map(|r| r.error.as_deref()).collect();
-        let _ = writeln!(
-            text,
-            "- {:?} ({}): decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}\n  diagnostics: {}",
-            c.proposal_id.as_deref().unwrap_or_default(),
-            c.approach.as_deref().unwrap_or("unlabelled"),
-            c.decision,
-            c.mean,
-            errors,
-            c.note.as_deref().unwrap_or_default(),
-            c.rationale,
-            c.hypothesis,
-            stderr.trim(),
-            shown.map_or_else(|| "(none)".to_owned(), diagnostics)
-        );
-    }
+    text.push_str(&rejected(ledger, policy.rejected_context));
     let _ = writeln!(text, "\n# Incumbent editable sources");
     for (path, source) in sources {
         let _ = writeln!(
@@ -141,4 +111,42 @@ fn diagnostics(run: &SeedRun) -> String {
     } else {
         run.diagnostics.join(" | ")
     }
+}
+
+/// The "Recently rejected proposals" section: the last `limit` proposals
+/// that were not accepted, newest first.
+fn rejected(ledger: &ScriptLedger, limit: usize) -> String {
+    let mut text = String::new();
+    let _ = writeln!(text, "# Recently rejected proposals");
+    let rejected: Vec<&LedgerCandidate> = ledger
+        .candidates
+        .iter()
+        .rev()
+        .filter(|c| !c.promoted && c.proposal_id.is_some())
+        .filter(|c| c.decision != super::CandidateDecision::Accept)
+        .take(limit)
+        .collect();
+    if rejected.is_empty() {
+        let _ = writeln!(text, "None yet.");
+    }
+    for c in rejected {
+        let shown = c.runs.iter().find(|r| r.error.is_some()).or(c.runs.first());
+        let stderr = shown.map_or("", |r| r.stderr_tail.as_str());
+        let errors: Vec<&str> = c.runs.iter().filter_map(|r| r.error.as_deref()).collect();
+        let _ = writeln!(
+            text,
+            "- {:?} ({}): decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}\n  diagnostics: {}",
+            c.proposal_id.as_deref().unwrap_or_default(),
+            c.approach.as_deref().unwrap_or("unlabelled"),
+            c.decision,
+            c.mean,
+            errors,
+            c.note.as_deref().unwrap_or_default(),
+            c.rationale,
+            c.hypothesis,
+            stderr.trim(),
+            shown.map_or_else(|| "(none)".to_owned(), diagnostics)
+        );
+    }
+    text
 }

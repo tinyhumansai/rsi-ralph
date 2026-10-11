@@ -393,16 +393,7 @@ impl LoopState<'_> {
                 return Ok(None);
             }
         };
-        row.rationale.clone_from(&proposal.rationale);
-        row.hypothesis.clone_from(&proposal.hypothesis);
-        row.paths = proposal.files.iter().map(|f| f.path.clone()).collect();
-        row.approach = proposal.approach_label();
-        row.differs_from_previous = proposal
-            .differs_from_previous
-            .as_deref()
-            .map(str::trim)
-            .filter(|d| !d.is_empty())
-            .map(str::to_owned);
+        describe(&mut row, &proposal);
         let sources = apply(&proposal, &self.incumbent.sources);
         let id = content_id(&sources);
         self.emit(LoopEvent::Ideated {
@@ -716,6 +707,20 @@ impl LoopState<'_> {
     fn save(&self) -> Result<()> {
         write_atomic(&self.ledger_path(), &self.ledger)
     }
+}
+
+/// Copies what a valid proposal says about itself into its ledger row.
+fn describe(row: &mut LedgerCandidate, proposal: &ScriptProposal) {
+    row.rationale.clone_from(&proposal.rationale);
+    row.hypothesis.clone_from(&proposal.hypothesis);
+    row.paths = proposal.files.iter().map(|f| f.path.clone()).collect();
+    row.approach = proposal.approach_label();
+    row.differs_from_previous = proposal
+        .differs_from_previous
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(str::to_owned);
 }
 
 /// Saturating `usize` to `u32` for trace counters.
