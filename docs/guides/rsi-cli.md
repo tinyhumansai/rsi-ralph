@@ -72,7 +72,13 @@ The hive is a [tinyhivemind hive package](../../vendor/tinyhivemind/docs/specs/h
 `hive.json`, `constitution.json`, `memory.json` and Markdown prompts under
 `seats/`, `roles/` and `context/`. `rsi.json` names the `lead` seat, which
 receives the brief. A seat whose `config.action_dir` is `"{candidate}"` gets its
-own candidate checkout to edit; the others see the incumbent read-only. tinyrsi
+own candidate checkout to edit; the others see the incumbent read-only.
+Every section with a safe default may be left out (see the hive language's
+"Optional fields and defaults"), so a hive is mostly its seats and prompts:
+[`loops/graph-coloring/hive`](../../loops/graph-coloring/hive) is a complete
+two-seat example. Multi-seat hives should widen `coordinator.round_width`
+(and `policies.routing`/`division`), whose defaults of 1 run one turn at a
+time. tinyrsi
 adds the hive tools and the turn-taking rules itself.
 
 ## 4. Tune creativity, models, keys and money
@@ -83,14 +89,17 @@ adds the hive tools and the turn-taking rules itself.
   "temperature": 0.4,
   "retreat": { "variations": 3, "turns": 6, "ideas": 5, "mode": "critic_pair", "temperature": 1.1 }
 },
-"keys": { "search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["lead"] } },
+"keys": { "web_search": { "provider": "gemini", "env": "GEMINI_API_KEY", "seats": ["lead"] } },
 "budget": { "run_usd": 5, "total_usd": 50, "score_reserve_usd": 0.6 }
 ```
 
 - The **retreat** runs tinybackrooms conversations over the brief before each
   epoch and puts the best ideas into `{{ideas}}`; with `memory` it remembers
   which ideas led to improvements across runs.
-- **Keys** name environment variables, never values. They are read from the
+- **Keys** name environment variables, never values. `web_search` gives the
+  listed seats (all, when `seats` is omitted) OpenHuman's web search tools
+  with that provider (`brave`, `exa`, `gemini`, `parallel`, `querit`,
+  `tavily` or `tinyfish`); the key is pinned in each seat's memory only. They are read from the
   environment or `<loop>/.env`, and never written to the run store.
 - Every model call goes through a **spend gateway** that stops the run at
   `run_usd` or `total_usd`. Models other than the built-in GLM 5.3 Flash need a
