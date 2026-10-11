@@ -20,3 +20,8 @@ code snippets when they remove ambiguity, but do not paste entire future files
 into the plan.
 
 See [`example-retry-policy.md`](example-retry-policy.md) for a test-first sample.
+
+## Index
+
+- [`loop-trace.md`](loop-trace.md) — loop trace types, clocks and sinks.
+- [`script-loop.md`](script-loop.md) — script loop, example and hive trace.

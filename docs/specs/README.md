@@ -21,3 +21,8 @@ After the specification is accepted, create a linked implementation plan in
 the contract; production code still belongs under `src/`.
 
 See [`example-retry-policy.md`](example-retry-policy.md) for a complete sample.
+
+## Index
+
+- [`loop-trace.md`](loop-trace.md) — the append-only `events.jsonl` loop trace.
+- [`script-loop.md`](script-loop.md) — the plain-script improvement loop.
