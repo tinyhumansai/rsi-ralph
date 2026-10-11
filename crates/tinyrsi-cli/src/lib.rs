@@ -25,6 +25,8 @@
 //! binary and the library agree on every stored format.
 
 mod error;
+pub mod keys;
 pub mod manifest;
+pub mod store;
 
 pub use error::{Error, Result};
