@@ -15,7 +15,7 @@ mod receipt_types;
 mod receipts;
 pub use receipt_types::*;
 mod trace;
-pub use trace::{record_ideated, record_outcome};
+pub use trace::record_epoch;
 mod types;
 use crate::{
     Archive, DurableRetreatMemory, Error, HApprovalGate, HEpoch, HEvaluator, ReasonCode, Result,

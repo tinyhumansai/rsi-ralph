@@ -349,6 +349,36 @@ fn every_valid_formatter_occurrence_reaches_duplicate_funnel() {
             .all(|r| r.reason == ReasonCode::Duplicate)
     );
     assert_eq!(host.calls, 3);
+    assert_duplicates_are_not_rescored(&archive, &prepared, &outcome);
+}
+
+/// One evaluation, so one measurement and one score; the duplicates repeat a
+/// patch nothing re-ran, and each idea links exactly what it became.
+fn assert_duplicates_are_not_rescored(
+    archive: &Archive,
+    prepared: &PreparedRetreatEpoch,
+    outcome: &RetreatEpochOutcome,
+) {
+    let mut trace = crate::VecTrace::new(crate::ManualClock::new());
+    record_epoch(&mut trace, 1, archive, prepared, outcome).unwrap();
+    let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    assert_eq!(kinds.iter().filter(|k| **k == "measured").count(), 1);
+    assert_eq!(kinds.iter().filter(|k| **k == "scored").count(), 1);
+    assert!(outcome.candidates[0].candidate_id.is_some());
+    let linked: Vec<_> = events
+        .iter()
+        .filter_map(|e| match e {
+            LoopEvent::Ideated { candidate, .. } => Some(candidate.clone()),
+            _ => None,
+        })
+        .collect();
+    let expected: Vec<_> = outcome
+        .candidates
+        .iter()
+        .map(|c| c.candidate_id.clone())
+        .collect();
+    assert_eq!(linked, expected);
 }
 
 /// The epoch's proposals and outcome, recorded on the loop trace, read as the
@@ -363,16 +393,20 @@ fn assert_epoch_trace(
     use crate::{ManualClock, ScoreDecision, VecTrace};
     let prepared = journal.prepared(1).unwrap();
     let mut trace = VecTrace::new(ManualClock::new());
-    record_ideated(&mut trace, 7, prepared).unwrap();
-    record_outcome(&mut trace, 7, archive, &prepared.incumbent_id, outcome).unwrap();
+    record_epoch(&mut trace, 7, archive, prepared, outcome).unwrap();
     let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
     let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
     let ideas = prepared.proposals.len();
     assert_eq!(kinds[..ideas], vec!["ideated"; ideas][..]);
     let count = |kind: &str| kinds.iter().filter(|k| **k == kind).count();
-    // Every candidate is scored; only the evaluated one is measured, and only
-    // an approved one improves the incumbent.
-    assert_eq!(count("scored"), outcome.candidates.len());
+    // Every candidate that ran is scored; only the evaluated one is measured,
+    // and only an approved one improves the incumbent.
+    let ran = outcome
+        .candidates
+        .iter()
+        .filter(|c| c.candidate_id.is_some() && c.reason != ReasonCode::Duplicate)
+        .count();
+    assert_eq!(count("scored"), ran);
     assert_eq!(count("measured"), 1);
     assert_eq!(count("improved"), usize::from(approved));
     assert_eq!(kinds[ideas], "measured");
@@ -402,11 +436,52 @@ fn assert_epoch_trace(
             ScoreDecision::Reject
         }
     );
+    // Every formalized proposal's idea names the candidate it became.
+    for c in &outcome.candidates {
+        let linked = events.iter().find_map(|e| match e {
+            LoopEvent::Ideated {
+                proposal_id,
+                candidate,
+                ..
+            } if *proposal_id == format!("p7-{}", c.proposal_index) => Some(candidate.clone()),
+            _ => None,
+        });
+        assert_eq!(linked, Some(c.candidate_id.clone()));
+    }
+    // The epoch ends on a metric: the accepted candidate's H, or the
+    // incumbent's on the same private draw.
+    let measured = events.iter().find_map(|e| match e {
+        LoopEvent::Measured { mean, .. } => *mean,
+        _ => None,
+    });
+    let finished = events.iter().find_map(|e| match e {
+        LoopEvent::EpochFinished {
+            incumbent_metric, ..
+        } => Some(*incumbent_metric),
+        _ => None,
+    });
+    let finished = finished.unwrap().unwrap();
+    assert_eq!(approved, Some(finished) == measured);
+}
+
+/// A prepared epoch of `n` copies of the fixture proposal.
+fn prepared(epoch: u64, n: usize) -> PreparedRetreatEpoch {
+    PreparedRetreatEpoch {
+        epoch,
+        incumbent_id: "base".into(),
+        mode: GenerationMode::Direct,
+        fingerprint: "f".into(),
+        policy_fingerprint: "p".into(),
+        proposals: vec![proposal(); n],
+        ranked_items: n,
+        invalid_items: 0,
+        meter: crate::GenerationMeter::default(),
+    }
 }
 
 #[test]
-fn an_unevaluated_proposal_is_traced_as_a_rejection_with_a_zero_interval() {
-    use crate::{EpochCandidateOutcome, ManualClock, ScoreDecision, VecTrace};
+fn an_unmaterialized_proposal_stays_candidate_less_on_the_trace() {
+    use crate::{EpochCandidateOutcome, ManualClock, VecTrace};
     let dir = tempfile::tempdir().unwrap();
     let archive = Archive::open(dir.path().join("archive.json")).unwrap();
     let outcome = RetreatEpochOutcome {
@@ -419,26 +494,19 @@ fn an_unevaluated_proposal_is_traced_as_a_rejection_with_a_zero_interval() {
         complete: true,
     };
     let mut trace = VecTrace::new(ManualClock::new());
-    record_outcome(&mut trace, 3, &archive, "base", &outcome).unwrap();
+    record_epoch(&mut trace, 3, &archive, &prepared(3, 3), &outcome).unwrap();
     let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
-    assert_eq!(
-        events,
-        vec![
-            LoopEvent::Scored {
-                epoch: 3,
-                candidate: "p3-2".into(),
-                decision: ScoreDecision::Reject,
-                estimate: 0.0,
-                lower: 0.0,
-                upper: 0.0,
-            },
-            LoopEvent::EpochFinished {
-                epoch: 3,
-                incumbent: "base".into(),
-                incumbent_metric: None,
-            },
-        ]
-    );
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    assert_eq!(kinds, ["ideated", "ideated", "ideated", "epoch_finished"]);
+    assert!(events.iter().all(|e| match e {
+        LoopEvent::Ideated { candidate, .. } => candidate.is_none(),
+        LoopEvent::EpochFinished {
+            incumbent,
+            incumbent_metric,
+            ..
+        } => incumbent == "base" && incumbent_metric.is_none(),
+        _ => false,
+    }));
 }
 
 #[test]
@@ -462,7 +530,7 @@ fn a_failing_trace_sink_surfaces_as_a_trace_error() {
         complete: true,
     };
     assert_eq!(
-        record_outcome(&mut Broken, 1, &archive, "base", &outcome),
+        record_epoch(&mut Broken, 1, &archive, &prepared(1, 1), &outcome),
         Err(Error::TraceIo)
     );
 }

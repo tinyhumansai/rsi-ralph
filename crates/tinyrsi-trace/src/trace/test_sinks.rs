@@ -256,3 +256,23 @@ fn a_failing_sink_stops_the_fan_out() {
     assert_eq!(fanout.record(run()[0].clone()), Err(Error::Io));
     assert!(FanoutTrace::new().record(run()[0].clone()).is_ok());
 }
+
+#[test]
+fn a_run_is_a_root_span_even_inside_a_host_span() {
+    let capture = Capture::default();
+    let subscriber = tracing_subscriber::registry().with(capture.clone());
+    tracing::subscriber::with_default(subscriber, || {
+        let host = tracing::info_span!(target: TARGET, "host.request");
+        let _entered = host.enter();
+        let mut trace = TracingTrace::new(ManualClock::new());
+        for event in run() {
+            trace.record(event).unwrap();
+        }
+    });
+    let opened = capture.0.lock().unwrap().clone();
+    let run_parent = opened.iter().find_map(|s| match s {
+        Seen::Open { name, parent } if name == "rsi.run" => Some(parent.clone()),
+        _ => None,
+    });
+    assert_eq!(run_parent, Some(None), "the run span starts its own trace");
+}

@@ -60,9 +60,10 @@ epochs without a promotion, and accepts a candidate when the paired lower bound
 of its improvement is above zero (`eval.margin = 0`). Raise `eval.margin` (in
 quality units, see the module README) to demand larger gains.
 
-`Supervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
+`ScriptSupervisor::new(Arc::new(OpenRouterModel::new(model)?), SupervisorLimits::default())`
 uses `OpenRouter`; any `ModelPort` works if its futures do not need a specific
-async runtime. `token_budget` caps measured supervisor tokens across the run.
+async runtime. `token_budget` caps measured supervisor tokens across the run, plus the
+scorer's tokens when you pass a model-backed scorer to `run_script_loop_with`.
 
 ## 5. Run and read the results
 

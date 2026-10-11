@@ -273,3 +273,27 @@ fn rater_seeds_stay_distinct_for_seeds_that_differ_only_in_high_bits() {
         "every (seed, rater) pair gets its own model seed"
     );
 }
+
+#[test]
+fn every_backrooms_rating_sends_a_distinct_model_request() {
+    // ModelConversant ignores the seat and always sends its own seed, so the
+    // only thing that can tell ratings apart is the message itself.
+    let rating = || Ok(json!({"goal_fit": 4}).to_string());
+    let port = Scripted::with((0..4).map(|_| rating()).collect());
+    let conversant =
+        tinyrsi_model::ModelConversant::new(port.clone(), 7, 1 << 20, 1 << 16, 256, 1000).unwrap();
+    let judge = BackroomsJudge::new(Arc::new(conversant), 2).unwrap();
+    judge.assess("s", &goal(), &SEEDS).unwrap();
+    let requests: std::collections::BTreeSet<(String, u64)> = port
+        .seen
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|(prompt, seed, _)| (prompt.clone(), *seed))
+        .collect();
+    assert_eq!(
+        requests.len(),
+        4,
+        "every (seed, rater) pair is its own request"
+    );
+}

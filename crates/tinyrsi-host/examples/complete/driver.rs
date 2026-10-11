@@ -16,7 +16,7 @@ use tinyrsi_host::{
     ModelPort, NodeStatus, PatchClass, PreparedRetreatEpoch, PrivateSuites, PrivateTask,
     ReasonCode, Result, RetreatEpochInput, RetreatEpochOutcome, SnapshotMemoryStore, StopReason,
     TraceSink, TrialEvidence, TrialRequest, VerifierOutcome, evaluate_retreat_epoch,
-    prepare_retreat_epoch, record_ideated, record_outcome, run_experiment,
+    prepare_retreat_epoch, record_epoch, run_experiment,
 };
 pub(super) const ORIGINAL: &str = "Repair the shared context so the solver can solve assigned tasks. Propose a typed context patch with normalized_h prediction and public dossier references.";
 pub(super) const EVOLVED: &str = "Repair only context/method.md stable item method. Replace the instruction to return UNKNOWN with a short general instruction to solve each task and emit exactly its requested artifact, no markdown. Use operation=context,path=context/method.md,item=method,before exactly the public item body including trailing newline,after ending newline. Class=context. Never change manifests, evaluators or private tasks. Ground transcript_refs and prediction.nodes in the public dossier. Predict metric=normalized_h and minimum_gain=0.1. Prefer one atomic operation.";
@@ -197,7 +197,7 @@ impl Trials {
         )?;
         let (prepared, outcome) =
             self.propose(&dir, &mut archive, memory, &mut evaluator, request, &cap)?;
-        record_outcome(&mut self.trace, self.index, &archive, &baseline, &outcome)?;
+        record_epoch(&mut self.trace, self.index, &archive, &prepared, &outcome)?;
         let selected = archive.head().ok_or(Error::InvalidRecord)?;
         let state = CandidateState {
             package: archive
@@ -349,7 +349,6 @@ impl Trials {
         {
             return Err(Error::InvalidEvaluation);
         }
-        record_ideated(&mut self.trace, self.index, &prepared)?;
         let outcome = evaluate_retreat_epoch(
             &mut journal,
             archive,

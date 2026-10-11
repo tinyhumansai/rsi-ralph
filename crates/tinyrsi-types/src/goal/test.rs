@@ -1,6 +1,6 @@
 //! Serde pin and validation for goals.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 
 use super::*;
 use serde_json::json;
