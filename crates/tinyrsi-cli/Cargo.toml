@@ -1,0 +1,48 @@
+[package]
+name = "tinyrsi-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The `tinyrsi` binary: run improvement loops defined as folders of JSON, Markdown and step scripts."
+readme = "README.md"
+keywords = ["rsi", "cli", "tinyrsi"]
+categories = ["command-line-utilities", "development-tools"]
+publish = false
+
+[[bin]]
+name = "tinyrsi"
+path = "src/main.rs"
+# The binary shares its name with the `tinyrsi` library crate; documenting
+# both would write the same `target/doc/tinyrsi/` page. The binary's
+# behaviour is documented in `tinyrsi_cli::cli`.
+doc = false
+
+[features]
+# Web search for seats given a `web_search` key; needs OpenHuman's module
+# loader, so it is off by default to keep the build lean.
+web-search = ["tinyrsi-swarm/web-search"]
+
+[dependencies]
+tinyrsi-gateway = { workspace = true }
+tinyrsi-model = { workspace = true }
+tinyrsi-score = { workspace = true }
+tinyrsi-swarm = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tinyrsi-verify = { workspace = true }
+tinybackrooms = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true
