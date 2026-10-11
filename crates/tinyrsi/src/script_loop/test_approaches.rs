@@ -3,9 +3,9 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic test fixtures")]
 use super::approaches::*;
 use super::prompt::{Slot, prompt};
-use super::test::{loss, subject};
+use super::test::{Scripted, loss, subject, supervisor};
 use super::*;
-use crate::MetricDirection;
+use crate::{LoopEvent, ManualClock, MetricDirection, VecTrace};
 use execute::read_sources;
 
 /// A proposal row of `epoch` with `approach`, `mean` and `decision`.
@@ -49,7 +49,7 @@ fn seed(error: Option<&str>, diagnostics: &[&str]) -> SeedRun {
     }
 }
 
-fn ledger(candidates: Vec<LedgerCandidate>) -> ScriptLedger {
+fn ledger_of(candidates: Vec<LedgerCandidate>) -> ScriptLedger {
     ScriptLedger {
         run_id: "r".into(),
         subject: "fixture".into(),
@@ -86,7 +86,7 @@ fn groups_attempts_by_normalized_label_newest_first() {
     baseline.proposal_id = None;
     let mut punctuation = row(3, Some("!!"), Some(0.1), CandidateDecision::Reject);
     punctuation.proposal_id = Some("p3-1".into());
-    let ledger = ledger(vec![
+    let ledger = ledger_of(vec![
         baseline,
         row(1, Some("Tabu search"), Some(0.4), CandidateDecision::Reject),
         row(1, Some("DSATUR"), Some(0.45), CandidateDecision::Accept),
@@ -118,7 +118,7 @@ fn groups_attempts_by_normalized_label_newest_first() {
 
 #[test]
 fn a_group_keeps_its_best_mean_when_a_later_attempt_failed() {
-    let ledger = ledger(vec![
+    let ledger = ledger_of(vec![
         row(1, Some("cubic"), None, CandidateDecision::Reject),
         row(2, Some("cubic"), Some(0.2), CandidateDecision::Reject),
         row(3, Some("cubic"), None, CandidateDecision::Reject),
@@ -147,7 +147,7 @@ fn the_verdict_prefers_an_error_then_a_note_then_the_last_diagnostic() {
     let mut long = row(1, Some("e"), Some(0.4), CandidateDecision::Reject);
     long.runs = vec![seed(None, &[&"x ".repeat(VERDICT_CHARS)])];
     let tried = summarize(
-        &ledger(vec![failed, noted, diagnosed, silent, long]),
+        &ledger_of(vec![failed, noted, diagnosed, silent, long]),
         MetricDirection::Minimize,
         12,
     );
@@ -195,7 +195,7 @@ fn renders_the_tried_section_with_its_resubmission_rule() {
     let mut retried = row(2, Some("Kempe chains"), Some(0.4), CandidateDecision::Reject);
     retried.differs_from_previous = Some("swap  two\ncolours, not one".into());
     retried.runs = vec![seed(None, &["After Kempe: 0 moves"])];
-    let ledger = ledger(vec![
+    let ledger = ledger_of(vec![
         row(1, Some("Kempe chains"), Some(0.45), CandidateDecision::Reject),
         retried,
         row(2, Some("DSATUR"), None, CandidateDecision::Reject),
@@ -212,7 +212,7 @@ fn renders_the_tried_section_with_its_resubmission_rule() {
     );
     assert_eq!(render_tried(&ledger, MetricDirection::Minimize, 0), "");
     let unlabelled = render_tried(
-        &ledger(vec![]),
+        &ledger_of(vec![]),
         MetricDirection::Minimize,
         12,
     );
@@ -223,7 +223,7 @@ fn renders_the_tried_section_with_its_resubmission_rule() {
 fn renders_earlier_proposals_of_the_current_epoch_only() {
     let mut second = row(2, None, None, CandidateDecision::Invalid);
     second.proposal_id = Some("p2-1".into());
-    let ledger = ledger(vec![
+    let ledger = ledger_of(vec![
         row(1, Some("old"), Some(0.4), CandidateDecision::Reject),
         row(2, Some("tabu search"), Some(0.3), CandidateDecision::Accept),
         second,
@@ -242,7 +242,7 @@ fn the_prompt_orders_tried_approaches_before_rejections_and_ends_with_the_direct
     let dir = tempfile::tempdir().unwrap();
     let s = subject(dir.path(), &loss("0.5"));
     let sources = read_sources(&s).unwrap();
-    let ledger = ledger(vec![
+    let ledger = ledger_of(vec![
         row(1, Some("sleep sort"), Some(0.6), CandidateDecision::Reject),
         row(2, Some("cache"), Some(0.4), CandidateDecision::Reject),
     ]);
@@ -322,4 +322,140 @@ fn pins_ledger_rows_with_and_without_approach_fields() {
         serde_json::from_value::<LedgerCandidate>(value).unwrap(),
         full
     );
+}
+
+/// Tool arguments rewriting `run.sh` with `script`, labelled `approach`.
+fn labelled(approach: &str, differs: Option<&str>, script: &str) -> String {
+    serde_json::json!({
+        "approach": approach,
+        "differs_from_previous": differs,
+        "rationale": "lower the loss",
+        "hypothesis": "loss drops",
+        "files": [{"path": "run.sh", "content": script}]
+    })
+    .to_string()
+}
+
+#[test]
+fn later_slots_see_earlier_slots_and_sample_at_their_own_temperature() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = RunLocation {
+        id: "run-1".into(),
+        dir: dir.path().join("run"),
+    };
+    let port = Scripted::new(vec![
+        labelled("Cheaper loss", None, &loss("0.3")),
+        labelled("cheaper-loss!", Some("  a smaller prefix "), &loss("0.4")),
+        "{not json".into(),
+    ]);
+    let policy = LoopPolicy {
+        max_epochs: 1,
+        proposals_per_epoch: 3,
+        slots: vec![
+            SlotDirective::new("first"),
+            SlotDirective::new("second").with_temperature(0.8),
+        ],
+        ..LoopPolicy::default()
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &supervisor(port.clone()), &policy, &run, &mut trace).unwrap();
+
+    let seen = port.seen.lock().unwrap();
+    assert!(!seen[0].0.contains("# Earlier proposals this epoch"));
+    assert!(seen[0].0.contains("None labelled yet."));
+    assert!(seen[0].0.trim_end().ends_with("first"));
+    assert!(
+        seen[1]
+            .0
+            .contains("- p1-0: approach \"Cheaper loss\", decision accept, mean 0.315")
+    );
+    assert!(seen[1].0.contains("\"Cheaper loss\": 1 attempt"));
+    assert!(seen[1].0.trim_end().ends_with("second"));
+    assert!(seen[2].0.contains("\"cheaper-loss!\": 2 attempts, best mean 0.315"));
+    assert!(seen[2].0.trim_end().ends_with("first"));
+    assert_eq!(*port.temperatures.lock().unwrap(), [0.0, 0.8, 0.0]);
+
+    let ledger: ScriptLedger =
+        serde_json::from_slice(&std::fs::read(run.dir.join("ledger.json")).unwrap()).unwrap();
+    let rows = &ledger.candidates[1..];
+    let approaches: Vec<Option<&str>> = rows.iter().map(|c| c.approach.as_deref()).collect();
+    assert_eq!(
+        approaches,
+        [Some("Cheaper loss"), Some("cheaper-loss!"), None]
+    );
+    assert_eq!(rows[0].differs_from_previous, None);
+    assert_eq!(
+        rows[1].differs_from_previous.as_deref(),
+        Some("a smaller prefix")
+    );
+    let temperatures: Vec<Option<f64>> = rows.iter().map(|c| c.temperature).collect();
+    assert_eq!(temperatures, [None, Some(0.8), None]);
+
+    let ideated: Vec<Option<String>> = trace
+        .records()
+        .iter()
+        .filter_map(|r| match &r.event {
+            LoopEvent::Ideated { approach, .. } => Some(approach.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        ideated,
+        [
+            Some("Cheaper loss".to_owned()),
+            Some("cheaper-loss!".to_owned()),
+            None
+        ]
+    );
+}
+
+#[test]
+fn a_blank_differs_statement_is_not_recorded() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = RunLocation {
+        id: "run-1".into(),
+        dir: dir.path().join("run"),
+    };
+    let port = Scripted::new(vec![labelled("a", Some(" "), &loss("0.3"))]);
+    let policy = LoopPolicy {
+        max_epochs: 1,
+        proposals_per_epoch: 1,
+        ..LoopPolicy::default()
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    run_script_loop(&s, &supervisor(port), &policy, &run, &mut trace).unwrap();
+    let ledger: ScriptLedger =
+        serde_json::from_slice(&std::fs::read(run.dir.join("ledger.json")).unwrap()).unwrap();
+    assert_eq!(ledger.candidates[1].differs_from_previous, None);
+}
+
+#[test]
+fn refuses_blank_directives_and_unusable_temperatures_before_writing() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = subject(dir.path(), &loss("0.5"));
+    let run = RunLocation {
+        id: "run-1".into(),
+        dir: dir.path().join("run"),
+    };
+    let sup = supervisor(Scripted::new(vec![]));
+    for slot in [
+        SlotDirective::new(" \n"),
+        SlotDirective::new("hot").with_temperature(2.5),
+        SlotDirective::new("cold").with_temperature(-0.5),
+        SlotDirective::new("nan").with_temperature(f64::NAN),
+    ] {
+        let policy = LoopPolicy {
+            slots: vec![SlotDirective::new("fine"), slot],
+            ..LoopPolicy::default()
+        };
+        let mut trace = VecTrace::new(ManualClock::new());
+        assert_eq!(
+            run_script_loop(&s, &sup, &policy, &run, &mut trace).unwrap_err(),
+            Error::InvalidScriptSubject
+        );
+        assert!(trace.records().is_empty());
+    }
+    assert!(!run.dir.exists());
 }
