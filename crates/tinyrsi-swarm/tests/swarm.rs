@@ -233,19 +233,30 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
         })
         .collect();
     assert!(messages.iter().any(|(_, to)| *to == "lead"), "{messages:?}");
-    assert!(messages.contains(&("lead", "implementer-a")), "{messages:?}");
+    assert!(
+        messages.contains(&("lead", "implementer-a")),
+        "{messages:?}"
+    );
     assert!(events.iter().any(|event| matches!(event,
         SwarmEvent::ToolCall { seat, tool, phase: ToolPhase::Completed, success: Some(true), .. }
             if seat == "implementer-a" && tool == "file_write")));
-    assert!(matches!(events.first(), Some(SwarmEvent::SwarmStarted { lead, .. }) if lead == "lead"));
+    assert!(
+        matches!(events.first(), Some(SwarmEvent::SwarmStarted { lead, .. }) if lead == "lead")
+    );
     assert!(matches!(
         events.last(),
-        Some(SwarmEvent::SwarmFinished { stop: StopReason::Idle, .. })
+        Some(SwarmEvent::SwarmFinished {
+            stop: StopReason::Idle,
+            ..
+        })
     ));
 
     // `events.jsonl` holds the same events, in the documented envelope.
     let log = std::fs::read_to_string(dirs.run.join(EVENTS_FILE)).unwrap();
-    let lines: Vec<Value> = log.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+    let lines: Vec<Value> = log
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
     assert_eq!(lines.len(), events.len());
     assert_eq!(lines[0]["seq"], 0);
     assert_eq!(lines[0]["event"]["kind"], "swarm_started");
@@ -263,11 +274,27 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     assert!(lead.to_string().contains("END YOUR TURN"));
     for seat in ["lead", "implementer-a"] {
         let offered = offered(&requests, seat);
-        assert!(offered.iter().any(|tool| tool == "hivemind_send_agent"), "{offered:?}");
-        assert!(!offered.iter().any(|tool| tool == "wait" || tool == "wait_loop"), "{offered:?}");
+        assert!(
+            offered.iter().any(|tool| tool == "hivemind_send_agent"),
+            "{offered:?}"
+        );
+        assert!(
+            !offered
+                .iter()
+                .any(|tool| tool == "wait" || tool == "wait_loop"),
+            "{offered:?}"
+        );
     }
-    assert!(offered(&requests, "implementer-a").iter().any(|tool| tool == "file_write"));
-    assert!(!offered(&requests, "lead").iter().any(|tool| tool == "file_write"));
+    assert!(
+        offered(&requests, "implementer-a")
+            .iter()
+            .any(|tool| tool == "file_write")
+    );
+    assert!(
+        !offered(&requests, "lead")
+            .iter()
+            .any(|tool| tool == "file_write")
+    );
 }
 
 #[cfg(feature = "web-search")]
@@ -290,9 +317,15 @@ fn a_search_key_reaches_only_its_seat_and_no_run_file() {
 
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
     let implementer = offered(&requests, "implementer-a");
-    assert!(implementer.iter().any(|tool| tool == "web_answer_tool"), "{implementer:?}");
+    assert!(
+        implementer.iter().any(|tool| tool == "web_answer_tool"),
+        "{implementer:?}"
+    );
     let lead = offered(&requests, "lead");
-    assert!(!lead.iter().any(|tool| tool.starts_with("web_")), "{lead:?}");
+    assert!(
+        !lead.iter().any(|tool| tool.starts_with("web_")),
+        "{lead:?}"
+    );
     assert_no_file_contains(&dirs.run, SEARCH_KEY);
     assert!(!format!("{events:?}").contains(SEARCH_KEY));
 }
@@ -313,7 +346,10 @@ fn the_wall_clock_stops_a_swarm_whose_seat_is_still_working() {
     assert!(!dirs.candidate.join("NOTES.md").exists());
     assert!(matches!(
         events.last(),
-        Some(SwarmEvent::SwarmFinished { stop: StopReason::WallClock, .. })
+        Some(SwarmEvent::SwarmFinished {
+            stop: StopReason::WallClock,
+            ..
+        })
     ));
 }
 
@@ -334,7 +370,10 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
     let mut zero_turn = request(&zero_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
     zero_turn.turn = Duration::ZERO;
     let error = run_swarm(zero_turn, &mut |_| {}).unwrap_err();
-    assert!(matches!(error, tinyrsi_swarm::Error::Adapter(_)), "{error:?}");
+    assert!(
+        matches!(error, tinyrsi_swarm::Error::Adapter(_)),
+        "{error:?}"
+    );
 
     // A coordinator database that cannot be opened.
     let db_dirs = dirs();
@@ -344,7 +383,10 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
         &mut |_| {},
     )
     .unwrap_err();
-    assert!(matches!(error, tinyrsi_swarm::Error::Coordinator(_)), "{error:?}");
+    assert!(
+        matches!(error, tinyrsi_swarm::Error::Coordinator(_)),
+        "{error:?}"
+    );
 
     // A seat id OpenHuman reserves for its own agents.
     let reserved_dirs = dirs();
@@ -368,5 +410,8 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
         &mut |_| {},
     )
     .unwrap_err();
-    assert!(matches!(error, tinyrsi_swarm::Error::RunDir { .. }), "{error:?}");
+    assert!(
+        matches!(error, tinyrsi_swarm::Error::RunDir { .. }),
+        "{error:?}"
+    );
 }

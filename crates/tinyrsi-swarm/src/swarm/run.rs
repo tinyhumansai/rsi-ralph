@@ -5,9 +5,7 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 
-use openhuman_embed::{
-    Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolGroups, Workspace,
-};
+use openhuman_embed::{Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolGroups, Workspace};
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };

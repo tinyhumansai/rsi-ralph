@@ -35,7 +35,11 @@ struct State {
 
 impl Trace {
     /// Opens (appending to) `path`; events are also sent to `events`.
-    pub(crate) fn create(path: &Path, redactor: Redactor, events: Sender<SwarmEvent>) -> Result<Self> {
+    pub(crate) fn create(
+        path: &Path,
+        redactor: Redactor,
+        events: Sender<SwarmEvent>,
+    ) -> Result<Self> {
         let file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)

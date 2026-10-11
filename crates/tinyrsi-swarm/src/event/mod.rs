@@ -42,9 +42,9 @@ impl Redactor {
 
     /// `text` with every secret replaced by [`REDACTED`].
     pub(crate) fn scrub(&self, text: &str) -> String {
-        self.secrets
-            .iter()
-            .fold(text.to_owned(), |text, secret| text.replace(secret, REDACTED))
+        self.secrets.iter().fold(text.to_owned(), |text, secret| {
+            text.replace(secret, REDACTED)
+        })
     }
 }
 

@@ -38,7 +38,10 @@ fn appends_numbered_scrubbed_lines_and_forwards_them() {
     assert!(lines[0]["elapsed_ms"].is_u64());
     assert_eq!(lines[0]["event"]["body"], "the key is [redacted]");
     let forwarded: Vec<SwarmEvent> = receiver.try_iter().collect();
-    assert_eq!(forwarded, [message("the key is [redacted]"), message("second")]);
+    assert_eq!(
+        forwarded,
+        [message("the key is [redacted]"), message("second")]
+    );
 }
 
 #[test]
@@ -50,7 +53,11 @@ fn keeps_recording_after_the_caller_stops_listening() {
     let trace = Trace::create(&path, Redactor::default(), sender).unwrap();
     trace.emit(message("still written"));
     trace.finish().unwrap();
-    assert!(std::fs::read_to_string(&path).unwrap().contains("still written"));
+    assert!(
+        std::fs::read_to_string(&path)
+            .unwrap()
+            .contains("still written")
+    );
 }
 
 #[test]

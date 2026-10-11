@@ -17,7 +17,10 @@ fn seats() -> BTreeSet<&'static str> {
 
 #[test]
 fn an_unknown_capability_or_provider_is_unsupported() {
-    for bad in [key("telepathy", "gemini", None), key(WEB_SEARCH, "perplexity", None)] {
+    for bad in [
+        key("telepathy", "gemini", None),
+        key(WEB_SEARCH, "perplexity", None),
+    ] {
         assert!(matches!(
             validate(&[bad.clone()], &seats()),
             Err(Error::UnsupportedTool { capability, provider })
@@ -77,8 +80,14 @@ fn a_search_key_enables_its_provider_on_the_direct_route() {
         ],
     );
     assert_eq!(config.search.enabled, Some(true));
-    assert_eq!(config.search.gemini.api_key.as_deref(), Some("AIza-test-secret"));
-    assert_eq!(config.search.brave.api_key.as_deref(), Some("AIza-test-secret"));
+    assert_eq!(
+        config.search.gemini.api_key.as_deref(),
+        Some("AIza-test-secret")
+    );
+    assert_eq!(
+        config.search.brave.api_key.as_deref(),
+        Some("AIza-test-secret")
+    );
     assert_eq!(config.search.exa.api_key, None);
     assert_eq!(config.search.providers["gemini"], Default::default());
     assert!(!config.search.providers.contains_key("unknown"));

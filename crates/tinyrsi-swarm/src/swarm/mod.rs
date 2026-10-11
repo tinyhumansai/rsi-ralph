@@ -79,7 +79,11 @@ pub fn run_swarm(
 /// absolute paths.
 fn check(request: &mut SwarmRequest) -> Result<Hive> {
     let hive = Hive::open(&request.package)?;
-    let seats: BTreeSet<&str> = hive.seats.iter().map(|plan| plan.seat.id.as_str()).collect();
+    let seats: BTreeSet<&str> = hive
+        .seats
+        .iter()
+        .map(|plan| plan.seat.id.as_str())
+        .collect();
     if seats.contains(RUNTIME_SEAT) {
         return Err(Error::ReservedSeat(RUNTIME_SEAT.into()));
     }
@@ -127,7 +131,11 @@ fn directory(path: &Path) -> Result<PathBuf> {
 
 /// The swarm thread: its own runtime, with the run as a spawned task so its
 /// futures get the workers' large stacks.
-fn drive(hive: Hive, request: SwarmRequest, events: mpsc::Sender<SwarmEvent>) -> Result<SwarmOutcome> {
+fn drive(
+    hive: Hive,
+    request: SwarmRequest,
+    events: mpsc::Sender<SwarmEvent>,
+) -> Result<SwarmOutcome> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(STACK_BYTES)

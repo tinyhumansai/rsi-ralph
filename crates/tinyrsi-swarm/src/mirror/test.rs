@@ -68,19 +68,32 @@ async fn each_message_is_mirrored_exactly_once() {
     let coordinator = coordinator().await;
     let dir = tempfile::tempdir().unwrap();
     let (sender, receiver) = mpsc::channel();
-    let trace = Trace::create(&dir.path().join("events.jsonl"), Redactor::default(), sender).unwrap();
+    let trace = Trace::create(
+        &dir.path().join("events.jsonl"),
+        Redactor::default(),
+        sender,
+    )
+    .unwrap();
     let mirror = Mirror::default();
 
     mirror.flush(&coordinator, &trace).unwrap();
     assert_eq!(receiver.try_iter().count(), 0);
 
     coordinator
-        .send_as_host(send("brief", Destination::Agent("lead".into()), "the brief"))
+        .send_as_host(send(
+            "brief",
+            Destination::Agent("lead".into()),
+            "the brief",
+        ))
         .await
         .unwrap();
     mirror.flush(&coordinator, &trace).unwrap();
     coordinator
-        .send_as_host(send("post", Destination::Hive("lab".into()), &"x".repeat(5000)))
+        .send_as_host(send(
+            "post",
+            Destination::Hive("lab".into()),
+            &"x".repeat(5000),
+        ))
         .await
         .unwrap();
     mirror.flush(&coordinator, &trace).unwrap();
@@ -88,9 +101,13 @@ async fn each_message_is_mirrored_exactly_once() {
 
     let events: Vec<SwarmEvent> = receiver.try_iter().collect();
     assert_eq!(events.len(), 2, "{events:?}");
-    assert!(matches!(&events[0], SwarmEvent::AgentMessage { to, body, .. } if to == "lead" && body == "the brief"));
-    assert!(matches!(&events[1], SwarmEvent::AgentMessage { to, body, .. }
-        if to == "hive:lab" && body.chars().count() == BODY_CHARS + 1));
+    assert!(
+        matches!(&events[0], SwarmEvent::AgentMessage { to, body, .. } if to == "lead" && body == "the brief")
+    );
+    assert!(
+        matches!(&events[1], SwarmEvent::AgentMessage { to, body, .. }
+        if to == "hive:lab" && body.chars().count() == BODY_CHARS + 1)
+    );
     let sequences: Vec<u64> = events
         .iter()
         .filter_map(|event| match event {

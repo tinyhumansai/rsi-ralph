@@ -20,12 +20,18 @@ fn composes_seat_role_directory_context_and_rules_in_order() {
         ("context/a.md".to_owned(), "- first\n".to_owned()),
     ]);
     let text = system_prompt(&parts(&context, true));
-    assert!(text.starts_with("You implement the assignment.\n\n## Your role: implementer\n\nMakes the change.\n"));
+    assert!(text.starts_with(
+        "You implement the assignment.\n\n## Your role: implementer\n\nMakes the change.\n"
+    ));
     assert!(text.contains(
         "## Your working directory\n\n/runs/epoch-1/candidates/implementer-a (your own candidate checkout; edit it freely)\n"
     ));
-    let first = text.find("## Shared context: context/a.md\n\n- first").unwrap_or(usize::MAX);
-    let second = text.find("## Shared context: context/b.md\n\n- second").unwrap_or(0);
+    let first = text
+        .find("## Shared context: context/a.md\n\n- first")
+        .unwrap_or(usize::MAX);
+    let second = text
+        .find("## Shared context: context/b.md\n\n- second")
+        .unwrap_or(0);
     assert!(first < second);
     assert!(text.ends_with(HIVE_RULES));
 }

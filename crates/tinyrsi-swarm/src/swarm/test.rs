@@ -75,7 +75,9 @@ fn an_editing_seat_without_a_candidate_is_refused() {
     let dirs = Dirs::new();
     let mut request = dirs.request();
     request.candidates.clear();
-    assert!(matches!(check(&mut request), Err(Error::MissingCandidate(seat)) if seat == "implementer-a"));
+    assert!(
+        matches!(check(&mut request), Err(Error::MissingCandidate(seat)) if seat == "implementer-a")
+    );
 }
 
 #[test]
@@ -93,11 +95,15 @@ fn a_checkout_that_is_missing_or_a_file_is_refused() {
     let dirs = Dirs::new();
     let mut missing = dirs.request();
     missing.incumbent = dirs.root.path().join("absent");
-    assert!(matches!(check(&mut missing), Err(Error::Checkout { path, .. }) if path.ends_with("absent")));
+    assert!(
+        matches!(check(&mut missing), Err(Error::Checkout { path, .. }) if path.ends_with("absent"))
+    );
     let file = dirs.root.path().join("file");
     std::fs::write(&file, "x").unwrap();
     let mut not_dir = dirs.request();
-    not_dir.candidates.insert("implementer-a".into(), file.clone());
+    not_dir
+        .candidates
+        .insert("implementer-a".into(), file.clone());
     assert!(matches!(check(&mut not_dir), Err(Error::Checkout { path, .. }) if path == file));
 }
 
@@ -111,7 +117,10 @@ fn an_unsupported_tool_key_is_refused_before_the_run() {
         secret: "s".into(),
         seats: None,
     });
-    assert!(matches!(check(&mut request), Err(Error::UnsupportedTool { .. })));
+    assert!(matches!(
+        check(&mut request),
+        Err(Error::UnsupportedTool { .. })
+    ));
 }
 
 #[test]

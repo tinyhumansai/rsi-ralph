@@ -12,7 +12,12 @@ use crate::event::Redactor;
 fn hooks() -> (tempfile::TempDir, SwarmHooks, mpsc::Receiver<SwarmEvent>) {
     let dir = tempfile::tempdir().unwrap();
     let (sender, receiver) = mpsc::channel();
-    let trace = Trace::create(&dir.path().join("events.jsonl"), Redactor::default(), sender).unwrap();
+    let trace = Trace::create(
+        &dir.path().join("events.jsonl"),
+        Redactor::default(),
+        sender,
+    )
+    .unwrap();
     (dir, SwarmHooks::new(Arc::new(trace)), receiver)
 }
 
@@ -44,13 +49,22 @@ fn started(arguments: serde_json::Value, display_detail: Option<&str>) -> AgentP
 #[test]
 fn a_started_call_prefers_the_display_detail_then_the_arguments() {
     let labelled = tool_event("a", started(serde_json::json!({"path": "x"}), Some("x")));
-    assert!(matches!(labelled, Some(SwarmEvent::ToolCall { detail: Some(ref d), phase: ToolPhase::Started, .. }) if d == "x"));
+    assert!(
+        matches!(labelled, Some(SwarmEvent::ToolCall { detail: Some(ref d), phase: ToolPhase::Started, .. }) if d == "x")
+    );
     let raw = tool_event("a", started(serde_json::json!({"path": "y"}), None));
-    assert!(matches!(raw, Some(SwarmEvent::ToolCall { detail: Some(ref d), .. }) if d == r#"{"path":"y"}"#));
+    assert!(
+        matches!(raw, Some(SwarmEvent::ToolCall { detail: Some(ref d), .. }) if d == r#"{"path":"y"}"#)
+    );
     let bare = tool_event("a", started(serde_json::Value::Null, None));
-    assert!(matches!(bare, Some(SwarmEvent::ToolCall { detail: None, .. })));
+    assert!(matches!(
+        bare,
+        Some(SwarmEvent::ToolCall { detail: None, .. })
+    ));
     let long = tool_event("a", started(serde_json::json!("z".repeat(500)), None));
-    assert!(matches!(long, Some(SwarmEvent::ToolCall { detail: Some(ref d), .. }) if d.chars().count() == DETAIL_CHARS + 1));
+    assert!(
+        matches!(long, Some(SwarmEvent::ToolCall { detail: Some(ref d), .. }) if d.chars().count() == DETAIL_CHARS + 1)
+    );
 }
 
 #[test]
@@ -119,14 +133,18 @@ fn turns_are_tallied_per_seat_and_reported() {
     assert!(!tally["impl"].cost_complete);
     let events: Vec<SwarmEvent> = receiver.try_iter().collect();
     assert_eq!(events.len(), 4);
-    assert!(matches!(&events[3], SwarmEvent::AgentTurn { seat, input_tokens: 0, cost_usd: None, .. } if seat == "impl"));
+    assert!(
+        matches!(&events[3], SwarmEvent::AgentTurn { seat, input_tokens: 0, cost_usd: None, .. } if seat == "impl")
+    );
 }
 
 #[tokio::test]
 async fn progress_streams_tool_calls_into_the_trace() {
     let (_dir, hooks, receiver) = hooks();
     let sink = hooks.progress(&scope("lead")).unwrap();
-    sink.send(started(serde_json::Value::Null, Some("NOTES.md"))).await.unwrap();
+    sink.send(started(serde_json::Value::Null, Some("NOTES.md")))
+        .await
+        .unwrap();
     sink.send(AgentProgress::IterationStarted {
         iteration: 1,
         max_iterations: 4,
@@ -137,5 +155,7 @@ async fn progress_streams_tool_calls_into_the_trace() {
     let event = tokio::task::spawn_blocking(move || receiver.recv().unwrap())
         .await
         .unwrap();
-    assert!(matches!(event, SwarmEvent::ToolCall { seat, detail: Some(d), .. } if seat == "lead" && d == "NOTES.md"));
+    assert!(
+        matches!(event, SwarmEvent::ToolCall { seat, detail: Some(d), .. } if seat == "lead" && d == "NOTES.md")
+    );
 }

@@ -10,7 +10,10 @@ use super::*;
 #[test]
 fn scrubs_every_secret_longest_first() {
     let redactor = Redactor::new(["abc".to_owned(), "abcdef".to_owned(), String::new()]);
-    assert_eq!(redactor.scrub("key=abcdef, short=abc"), "key=[redacted], short=[redacted]");
+    assert_eq!(
+        redactor.scrub("key=abcdef, short=abc"),
+        "key=[redacted], short=[redacted]"
+    );
     assert_eq!(Redactor::default().scrub("abc"), "abc");
 }
 
@@ -32,7 +35,9 @@ fn scrubbing_an_event_touches_only_its_free_text() {
         episode: None,
     }
     .scrubbed(&redactor);
-    assert!(matches!(message, SwarmEvent::AgentMessage { ref body, .. } if body == "use [redacted]"));
+    assert!(
+        matches!(message, SwarmEvent::AgentMessage { ref body, .. } if body == "use [redacted]")
+    );
     let call = SwarmEvent::ToolCall {
         seat: "lead".into(),
         tool: "shell".into(),
@@ -42,7 +47,9 @@ fn scrubbing_an_event_touches_only_its_free_text() {
         output_chars: None,
     }
     .scrubbed(&redactor);
-    assert!(matches!(call, SwarmEvent::ToolCall { detail: Some(ref d), .. } if d == "echo [redacted]"));
+    assert!(
+        matches!(call, SwarmEvent::ToolCall { detail: Some(ref d), .. } if d == "echo [redacted]")
+    );
     let turn = SwarmEvent::AgentTurn {
         seat: "lead".into(),
         input_tokens: 1,
