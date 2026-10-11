@@ -249,3 +249,24 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
             .starts_with("graph-coloring/e2e\tfinished")
     );
 }
+
+#[test]
+fn the_binary_reports_success_and_input_errors_by_exit_code() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let home = tempfile::tempdir().unwrap();
+    let tinyrsi = |args: &[&str], key: bool| {
+        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_tinyrsi"));
+        command.arg("--home").arg(home.path()).args(args).env_remove("OPENROUTER_API_KEY");
+        if key {
+            command.env("OPENROUTER_API_KEY", KEY);
+        }
+        command.output().unwrap()
+    };
+    let loop_dir = root.join("loops/graph-coloring");
+    let ok = tinyrsi(&["check", loop_dir.to_str().unwrap()], true);
+    assert_eq!(ok.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&ok.stdout).starts_with("ok: graph-coloring"));
+    let missing = tinyrsi(&["check", loop_dir.to_str().unwrap()], false);
+    assert_eq!(missing.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("missing keys: OPENROUTER_API_KEY"));
+}
