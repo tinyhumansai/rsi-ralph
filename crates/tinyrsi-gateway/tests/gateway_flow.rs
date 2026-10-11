@@ -56,6 +56,18 @@ async fn mock_chat(
             json!({"choices": [], "usage": {"prompt_tokens": 1000, "completion_tokens": 1000}}),
         )
         .into_response(),
+        // Success headers, one event, then the connection drops mid-body.
+        "cut" => {
+            let chunks: Vec<Result<&'static str, std::io::Error>> = vec![
+                Ok("data: {\"choices\":[]}\n\n"),
+                Err(std::io::Error::other("upstream dropped")),
+            ];
+            Response::builder()
+                .status(StatusCode::OK)
+                .header("content-type", "text/event-stream")
+                .body(axum::body::Body::from_stream(futures_util::stream::iter(chunks)))
+                .unwrap()
+        }
         _ if body["stream"] == json!(true) => {
             let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\ndata: {\"choices\":[],\"usage\":{\"cost\":0.001,\"prompt_tokens\":5,\"completion_tokens\":1}}\n\ndata: [DONE]\n\n";
             ([("content-type", "text/event-stream")], sse).into_response()
@@ -376,6 +388,28 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
             message: "Key limit exceeded (daily limit).".into()
         })
     );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_call_whose_body_breaks_off_counts_as_refused() {
+    let h = Harness::start(5.0, 50.0);
+    for stream in [true, false] {
+        let body = json!({"model": GLM_FLASH, "stream": stream, "max_tokens": 100,
+            "messages": [{"role": "user", "content": "cut"}]});
+        let response = h
+            .client
+            .post(format!("{}/v1/chat/completions", h.base()))
+            .json(&body)
+            .send()
+            .await
+            .unwrap();
+        // Whatever reaches the client, the body never completes cleanly.
+        let _ = response.bytes().await;
+    }
+    h.wait_for_meter_rows(2).await;
+    let calls = h.gateway.upstream_calls();
+    assert_eq!((calls.sent, calls.refused), (2, 2), "{calls:?}");
+    assert_eq!(calls.last_refusal.unwrap().status, 502);
 }
 
 #[tokio::test(flavor = "multi_thread")]
