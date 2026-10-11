@@ -384,6 +384,12 @@ fn prefilter_for(
     {
         return Some(ReasonCode::Duplicate);
     }
+    if archive
+        .penalties()
+        .cooled(&crate::PatchShape::of(&p.patch), epoch.id, &epoch.penalty)
+    {
+        return Some(ReasonCode::Cooldown);
+    }
     None
 }
 fn patch_reason(error: &patch::Error) -> ReasonCode {

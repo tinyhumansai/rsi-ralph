@@ -223,6 +223,9 @@ impl DeploymentStore {
         Ok(())
     }
     /// Restore the deployed design's accepted parent and then revert archive selection.
+    ///
+    /// The archive records the rollback as a revocation at the checkpoint's
+    /// epoch: the record stays accepted and its patch shape takes a strike.
     /// # Errors
     /// Returns an error if selection diverged, no parent exists, or deployment fails.
     pub async fn rollback(
@@ -240,7 +243,7 @@ impl DeploymentStore {
         let parent = head.parent.clone().ok_or(Error::NoParent)?;
         self.transition(archive, backend, parent.clone(), DeploymentKind::Rollback)
             .await?;
-        archive.revert()?;
+        archive.revoke(self.state.epoch)?;
         let mut next = self.state.clone();
         next.deployed_id = Some(parent);
         next.pending = None;

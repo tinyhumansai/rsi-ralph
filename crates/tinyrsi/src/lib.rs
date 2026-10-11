@@ -54,8 +54,9 @@ pub use error::{Error, Result};
 pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
-    Archive, CandidateFailureEvent, DuplicateDisposition, EvaluationEvent, ProposalDeclaration,
-    ProposalDispositionReport, ProposalDispositionRow,
+    Archive, CandidateFailureEvent, DuplicateDisposition, EvaluationEvent, PatchShape,
+    PenaltyPolicy, PenaltyReport, ProposalDeclaration, ProposalDispositionReport,
+    ProposalDispositionRow, Strike, StrikeKind,
 };
 pub use observation::*;
 pub use orchestrator::*;

@@ -12,6 +12,7 @@
 //! rules and the lock-file caveat are in this directory's `README.md`.
 mod dispositions;
 mod normalized;
+mod penalty;
 mod replay;
 mod types;
 #[cfg(test)]
@@ -19,6 +20,7 @@ use replay::validate_watermarks;
 
 use crate::{Error, ProposalEvent, Result};
 pub use dispositions::{DuplicateDisposition, ProposalDispositionReport, ProposalDispositionRow};
+pub use penalty::{PatchShape, PenaltyPolicy, PenaltyReport, Strike, StrikeKind};
 use std::collections::BTreeMap;
 #[cfg(unix)]
 use std::fs::File;
@@ -318,6 +320,39 @@ impl Archive {
     #[must_use]
     pub fn proposal_dispositions(&self) -> ProposalDispositionReport {
         dispositions::project(&self.state.events)
+    }
+
+    /// Project harmful stops, confident regressions and revocations into
+    /// strikes against patch shapes, in archive order.
+    ///
+    /// Host failures, inconclusive evidence, approval denials and prefilter
+    /// stops are not strikes. See `penalty/README.md`.
+    #[must_use]
+    pub fn penalties(&self) -> PenaltyReport {
+        penalty::project(&self.state.events)
+    }
+
+    /// Roll the head back to its accepted parent, recording the revocation.
+    ///
+    /// Appends a revocation of the head, labelled with the host `epoch`, and
+    /// the parent's activation in one transaction. The revoked record keeps
+    /// its `Accepted` verdict; [`Archive::penalties`] counts it as a
+    /// `Revoked` strike against its patch shape.
+    ///
+    /// # Errors
+    /// Returns `NoParent` if the head has no accepted parent, and `ArchiveIo`
+    /// when the transaction cannot be persisted.
+    pub fn revoke(&mut self, epoch: u64) -> Result<String> {
+        let parent = self.state.revert_target()?.to_owned();
+        let head = self.state.active.clone().ok_or(Error::NoParent)?;
+        self.transact_many(vec![
+            Event::Revocation {
+                candidate_id: head,
+                epoch,
+            },
+            Event::Activation { id: parent.clone() },
+        ])?;
+        Ok(parent)
     }
 
     /// Activate the current accepted design's immediate accepted parent.

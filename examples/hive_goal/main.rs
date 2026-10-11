@@ -384,6 +384,7 @@ fn h_epoch(dossier: &Dossier, evaluator: &CoordinatorEvaluator) -> HEpoch {
             transcript_refs: dossier.transcript_sequences.clone(),
             failure_nodes: nodes,
             budget: Budget { max_tokens: 16_384 },
+            penalty: tinyrsi_host::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: hive::policy(),

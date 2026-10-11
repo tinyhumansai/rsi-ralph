@@ -6,7 +6,7 @@ use tinyhivemind_lang::lineage::{Record, Verdict};
 pub use types::*;
 
 /// Recognize both existing Rust archive spellings and the public serde wire form.
-fn reason(text: &str) -> Option<ReasonCode> {
+pub(super) fn reason(text: &str) -> Option<ReasonCode> {
     serde_json::from_value(serde_json::Value::String(text.into()))
         .ok()
         .or_else(|| {
@@ -24,6 +24,7 @@ fn reason(text: &str) -> Option<ReasonCode> {
                 ReasonCode::HostFailure,
                 ReasonCode::Accepted,
                 ReasonCode::Harmful,
+                ReasonCode::Cooldown,
             ]
             .into_iter()
             .find(|r| format!("{r:?}") == text)
@@ -32,11 +33,15 @@ fn reason(text: &str) -> Option<ReasonCode> {
 
 /// Failed infrastructure, duplicates and unvalidated accepted claims do not prove rejection.
 /// A harmful stop does: the candidate failed runs its incumbent completed.
+/// A cooldown does not: it only defers a shape with recent strikes.
 fn terminal_rejection(text: &str) -> bool {
     reason(text).is_some_and(|r| {
         !matches!(
             r,
-            ReasonCode::HostFailure | ReasonCode::Duplicate | ReasonCode::Accepted
+            ReasonCode::HostFailure
+                | ReasonCode::Duplicate
+                | ReasonCode::Cooldown
+                | ReasonCode::Accepted
         )
     })
 }

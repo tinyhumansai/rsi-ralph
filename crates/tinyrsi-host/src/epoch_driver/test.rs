@@ -152,6 +152,7 @@ fn fixtures(path: &std::path::Path) -> (Archive, DeploymentCheckpoint, Dossier, 
             transcript_refs: vec![1],
             failure_nodes: vec!["n".into()],
             budget: Budget { max_tokens: 100 },
+            penalty: crate::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: ScoringPolicySpec {
@@ -450,3 +451,20 @@ mod failures;
 mod receipts;
 
 mod dataset;
+
+#[test]
+fn only_a_non_default_penalty_policy_changes_the_policy_fingerprint() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, _, mut epoch) = fixtures(&dir.path().join("a"));
+    let frozen = generation::policy_fingerprint(&epoch).unwrap();
+    // Pinned before penalties existed: default settings keep every journal valid.
+    assert_eq!(
+        frozen,
+        generation::policy_fingerprint(&epoch.clone()).unwrap()
+    );
+    epoch.epoch.penalty = crate::PenaltyPolicy {
+        strikes: 1,
+        window_epochs: 5,
+    };
+    assert_ne!(generation::policy_fingerprint(&epoch).unwrap(), frozen);
+}

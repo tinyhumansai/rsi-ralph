@@ -69,6 +69,7 @@ pub(super) fn epoch() -> Epoch {
         transcript_refs: vec![1],
         failure_nodes: vec!["n1".into()],
         budget: Budget { max_tokens: 100 },
+        penalty: crate::PenaltyPolicy::default(),
         policy: EvalPolicy::default(),
     }
 }
