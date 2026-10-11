@@ -388,6 +388,9 @@ async fn controlled_factory_requires_binding_and_retains_session_when_writer_is_
                 memberships: vec![],
                 episode: None,
                 resumption: None,
+                turn_id: "turn".into(),
+                scheduled_job_id: None,
+                teammates: vec![],
             })
             .await
             .unwrap();
