@@ -46,6 +46,8 @@ tinyrsi-trace = { path = "crates/tinyrsi-trace" }
 tinyrsi-langfuse = { path = "crates/tinyrsi-langfuse" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
 tinyrsi-model = { path = "crates/tinyrsi-model" }
+# The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
+tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
@@ -86,8 +88,6 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # `tinyrsi-gateway` drains the upstream event stream and re-wraps it as the
 # response body (`StreamExt`, `stream::unfold`).
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
-# The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
-tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
 
 # OpenHuman's embedding facade, used only for its `observe::langfuse` client so
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
