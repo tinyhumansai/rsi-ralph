@@ -11,6 +11,12 @@ keywords = ["rsi", "hive", "agents", "tinyrsi"]
 categories = ["development-tools"]
 publish = false
 
+[features]
+# Web search for seats holding a `web_search` tool key. OpenHuman serves
+# search from its TinySearch module, which needs the harness's module loader;
+# without this feature such a key is refused as unsupported.
+web-search = ["openhuman-embed/modules"]
+
 [dependencies]
 # The agent harness every seat runs on: runtime, agent specs, providers and
 # turn progress.
