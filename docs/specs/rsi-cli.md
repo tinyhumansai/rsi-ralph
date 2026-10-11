@@ -110,8 +110,11 @@ promoted a candidate are fed back as prior ideas to move away from).
 **`keys`.** A map from capability to the *name* of an environment variable.
 Values never appear in files, the run store, traces or prompts.
 `openrouter` (default `OPENROUTER_API_KEY`) is read by the gateway only.
-Tool capabilities such as `search` take `{ "provider", "env", "seats"? }` and
-enable that tool for the listed seats (all seats when omitted). Values are read
+The one tool capability, `web_search`, takes `{ "provider", "env", "seats"? }`
+(provider `brave`, `exa`, `gemini`, `parallel`, `querit`, `tavily` or
+`tinyfish`) and gives the listed seats (all when omitted) OpenHuman's web
+search tools, with the key pinned in each seat's in-memory config only. It
+needs the `web-search` Cargo feature, on by default. Values are read
 from the process environment, then from a `.env` file in the loop folder.
 
 **`score.scorers`.** Each has a unique `id`, a `weight` (default 1) and exactly
