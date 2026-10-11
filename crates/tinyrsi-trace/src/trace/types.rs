@@ -69,6 +69,9 @@ pub enum StopReason {
     Budget,
     /// The run failed.
     Error,
+    /// The model provider refused every call of an epoch, so the hive could
+    /// not work; rerunning will not help until the provider accepts calls.
+    ProviderRefused,
 }
 
 /// One loop event; serialized internally tagged by `kind`.
@@ -193,6 +196,23 @@ pub enum LoopEvent {
         /// Incumbent mean metric after the epoch.
         incumbent_metric: Option<f64>,
     },
+    /// The model provider refused calls during an epoch whose hive changed
+    /// nothing, such as a key over its spending limit answering `403`.
+    ProviderRefused {
+        /// Epoch number.
+        epoch: u64,
+        /// Model calls the hive sent to the provider this epoch.
+        calls: u32,
+        /// Of those, calls refused with a non-success status or never
+        /// answered.
+        refused: u32,
+        /// HTTP status of the latest refusal; `502` when the provider was
+        /// unreachable.
+        status: u16,
+        /// The provider's message for the latest refusal, scrubbed of key
+        /// values.
+        message: String,
+    },
     /// The run ended.
     RunFinished {
         /// Why the run ended.
@@ -230,6 +250,7 @@ impl LoopEvent {
             Self::Scored { .. } => "scored",
             Self::Improved { .. } => "improved",
             Self::EpochFinished { .. } => "epoch_finished",
+            Self::ProviderRefused { .. } => "provider_refused",
             Self::RunFinished { .. } => "run_finished",
         }
     }
