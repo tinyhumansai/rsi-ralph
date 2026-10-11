@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use tinyrsi_gateway::{Gateway, GatewayConfig};
+use tinyrsi_gateway::{Gateway, GatewayConfig, Price};
 use tinyrsi_model::OpenRouterModel;
 use tinyrsi_score::{JudgeLimits, LlmJudge};
 
@@ -55,15 +55,24 @@ fn gateway(parsed: &Loop, keys: &Keys, store: &Store, run: &RunDir) -> Result<Ga
             names: vec![parsed.openrouter_env().to_owned()],
         })?;
     let budget = &parsed.manifest.budget;
-    Gateway::start(GatewayConfig {
-        api_key: key.expose().to_owned(),
-        run_dir: run.path.clone(),
-        total_ledger: store.spend_ledger(),
-        run_limit_usd: budget.run_usd.unwrap_or(f64::INFINITY),
-        total_limit_usd: budget.total_usd.unwrap_or(f64::INFINITY),
-        ..GatewayConfig::default()
-    })
-    .map_err(|e| Error::Proposer(format!("gateway: {e}")))
+    let mut config = GatewayConfig::new(
+        key.expose().to_owned(),
+        run.path.clone(),
+        store.spend_ledger(),
+        budget.run_usd.unwrap_or(f64::MAX),
+        budget.total_usd.unwrap_or(f64::MAX),
+    );
+    for (model, price) in &budget.prices {
+        config.prices.insert(
+            model.clone(),
+            Price {
+                prompt: price.prompt_per_mtok / 1e6,
+                completion: price.completion_per_mtok / 1e6,
+                provider: price.provider.clone(),
+            },
+        );
+    }
+    Gateway::start(config).map_err(|e| Error::Proposer(format!("gateway: {e}")))
 }
 
 /// One `LlmJudge` per judge scorer, calling through the gateway.
@@ -100,7 +109,7 @@ pub(super) fn run(
     say(out, &format!("run: {}/{} in {}", run.loop_name, run.id, run.path.display()))?;
     let gateway = gateway(parsed, &keys, store, &run)?;
     let meter = GatewayMeter(&gateway);
-    let mut hive = Hive::new(parsed, &keys, &gateway)?;
+    let mut hive = Hive::new(parsed, &keys, &gateway.base_url())?;
     let mut retreat = Retreat::new(parsed, store, &gateway)?;
     let engine = Engine {
         parsed,
