@@ -1,4 +1,11 @@
 //! Bounded model calls and a metered tinybackrooms backend.
+//!
+//! `ModelPort` is the only way this crate reaches a model. `ModelRequest`
+//! freezes seed, token caps and timeout, and reserves a conservative token
+//! budget before dispatch. `OpenRouterModel` is the bundled provider,
+//! `BudgetedModel` enforces a total cap, and `ModelConversant` adapts a port
+//! to the tinybackrooms Engine while metering every call. See this
+//! directory's `README.md` for the reservation rule and credential handling.
 #[cfg(test)]
 mod test;
 mod types;

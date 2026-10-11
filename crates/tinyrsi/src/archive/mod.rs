@@ -1,4 +1,14 @@
 //! Exclusive durable candidate history, proposal evidence and active ancestry.
+//!
+//! `Archive` is the selection ledger of the improvement loop. It stores the
+//! language's own `Record` and `Package` values, prepared but unscored
+//! candidates, proposal declarations, paired evaluation evidence and approval
+//! decisions as an ordered list of tagged events in one JSON file. Every write
+//! replaces that file atomically, and reopening replays and revalidates the
+//! full history. The archive head is the selected incumbent; it says nothing
+//! about what a live coordinator runs (see `DeploymentStore` in the `host`
+//! module). Design, replay rules and the lock-file caveat are in this
+//! directory's `README.md`.
 mod normalized;
 mod replay;
 mod types;

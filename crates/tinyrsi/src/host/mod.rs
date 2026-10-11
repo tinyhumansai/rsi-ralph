@@ -1,4 +1,12 @@
 //! Durable host activation and observation using the real hive coordinator.
+//!
+//! `DeploymentStore` keeps what is actually deployed separate from what the
+//! archive has selected. It checkpoints redacted coordinator observations per
+//! epoch (`observe`), activates the accepted archive head (`activate`),
+//! restores its parent (`rollback`) and finishes or compensates an
+//! interrupted transition on restart (`recover`). `CoordinatorHost` is the
+//! `ActivationBackend` that rebuilds a real coordinator. See this directory's
+//! `README.md` for the host lifecycle and the quiescence requirement.
 mod runtime;
 mod types;
 use crate::{Archive, Error, Observation, Observer, Result};

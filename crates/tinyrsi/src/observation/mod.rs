@@ -1,4 +1,11 @@
 //! Read-only coordinator adapter and deterministic redacted failure dossiers.
+//!
+//! `Observer::snapshot` reads transcript references and episode phases from a
+//! coordinator without message bodies. `Dossier::build` combines one
+//! observation with host-measured turn usage, verifier outcomes and memory
+//! health into the public evidence a proposal model may see. Neither type
+//! writes anything. See this directory's `README.md` for what is redacted and
+//! why the two coordinator reads are separate snapshots.
 mod types;
 use crate::blueprint::NodeStatus;
 use crate::{Error, Result};

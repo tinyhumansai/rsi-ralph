@@ -1,4 +1,11 @@
 //! Host-owned strong verification with identity-bound artifact evidence.
+//!
+//! `VerifierRegistry` freezes which checks apply to which node and seat.
+//! `VerifiedRunner` binds an artifact to its episode, seat, node and
+//! transcript references and submits coordinator completion only after the
+//! required checks pass. Process, schema, golden and Lean checkers run under
+//! host control with private inputs. See this directory's `README.md` for the
+//! process sandbox boundary.
 mod runner;
 mod types;
 use crate::{Error, Result};
