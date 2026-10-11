@@ -12,6 +12,7 @@ fn message() -> Message {
         thread: None,
         episode_id: None,
         only_for: vec!["private reader".into()],
+        scheduled_job_id: None,
     }
 }
 #[test]

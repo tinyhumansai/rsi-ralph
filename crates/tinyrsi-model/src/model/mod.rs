@@ -38,11 +38,26 @@ impl ModelRequest {
             max_output_tokens,
             timeout_ms,
             tool: None,
-            temperature: 0.0,
             input_bound: 0,
+            temperature: None,
         };
         request.validate()?;
         Ok(request)
+    }
+    /// Sets the sampling temperature; providers default to 0 without one.
+    /// # Errors
+    /// Rejects a temperature outside `0..=2`.
+    pub fn with_temperature(mut self, temperature: f64) -> Result<Self> {
+        if !(0.0..=2.0).contains(&temperature) {
+            return Err(Error::InvalidRequest);
+        }
+        self.temperature = Some(temperature);
+        Ok(self)
+    }
+    /// The requested sampling temperature, if any.
+    #[must_use]
+    pub fn temperature(&self) -> Option<f64> {
+        self.temperature
     }
     /// Adds a provider-native structured tool and reserves its schema tokens.
     /// # Errors
@@ -56,17 +71,6 @@ impl ModelRequest {
         }
         self.tool = Some((name, schema));
         self.validate()?;
-        Ok(self)
-    }
-    /// Sets the sampling temperature; requests default to `0.0`, the most
-    /// deterministic sampling a provider offers.
-    /// # Errors
-    /// Rejects a temperature that is not finite or lies outside `[0, 2]`.
-    pub fn with_temperature(mut self, temperature: f64) -> Result<Self> {
-        if !(0.0..=2.0).contains(&temperature) {
-            return Err(Error::InvalidRequest);
-        }
-        self.temperature = temperature;
         Ok(self)
     }
     fn validate(&mut self) -> Result<()> {
@@ -116,11 +120,6 @@ impl ModelRequest {
         self.tool
             .as_ref()
             .map(|(name, schema)| (name.as_str(), schema))
-    }
-    /// Sampling temperature, `0.0` unless [`Self::with_temperature`] set one.
-    #[must_use]
-    pub fn temperature(&self) -> f64 {
-        self.temperature
     }
     /// Reproducible request seed.
     #[must_use]
@@ -172,9 +171,34 @@ impl OpenRouterModel {
         if model.trim().is_empty() || model.chars().any(char::is_control) {
             return Err(Error::InvalidRequest);
         }
-        Ok(Self { model })
+        Ok(Self {
+            model,
+            base_url: None,
+        })
     }
+
+    /// Constructs an adapter that calls an OpenAI-compatible `base_url`
+    /// which supplies credentials itself, such as a local spend gateway.
+    /// No key is read; the request carries a fixed placeholder token.
+    ///
+    /// # Errors
+    /// Rejects an invalid model identifier, or a base URL that is not
+    /// `http(s)://` or contains quotes, backslashes or control characters.
+    pub fn via(model: String, base_url: &str) -> Result<Self> {
+        let base = base_url.trim_end_matches('/');
+        let scheme = base.starts_with("http://") || base.starts_with("https://");
+        if !scheme || base.contains(['"', '\\']) || base.chars().any(char::is_control) {
+            return Err(Error::InvalidRequest);
+        }
+        let mut adapter = Self::new(model)?;
+        adapter.base_url = Some(base.to_owned());
+        Ok(adapter)
+    }
+
     fn call(&self, request: &ModelRequest) -> Result<ModelReply> {
+        if let Some(base) = &self.base_url {
+            return self.call_with_key(request, "gateway", &format!("{base}/chat/completions"));
+        }
         let key = std::env::var("OPENROUTER_API_KEY").map_err(|_| Error::CallFailed)?;
         self.call_with_key(
             request,
@@ -224,7 +248,7 @@ impl OpenRouterModel {
         Self::decode(request, &value)
     }
     fn body(&self, request: &ModelRequest) -> Value {
-        let mut body = json!({"model":self.model,"temperature":request.temperature,"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
+        let mut body = json!({"model":self.model,"temperature":request.temperature.unwrap_or(0.0),"seed":request.seed,"max_tokens":request.max_output_tokens,"messages":[{"role":"system","content":request.system},{"role":"user","content":request.prompt}]});
         if let Some((name, schema)) = &request.tool {
             body["tools"] =
                 json!([{"type":"function","function":{"name":name,"parameters":schema}}]);
@@ -356,6 +380,7 @@ impl ModelConversant {
         system: String,
         messages: &[tinybackrooms::Message],
         tool: Option<(String, Value)>,
+        temperature: Option<f32>,
     ) -> Result<ModelRequest> {
         let prompt = serde_json::to_string(&messages).map_err(|_| Error::InvalidRequest)?;
         let mut req = ModelRequest::new(
@@ -368,6 +393,9 @@ impl ModelConversant {
         )?;
         if let Some((name, schema)) = tool {
             req = req.with_tool(name, schema)?;
+        }
+        if let Some(t) = temperature {
+            req = req.with_temperature(f64::from(t).clamp(0.0, 2.0))?;
         }
         let mut meter = self.meter.lock().map_err(|_| Error::CallFailed)?;
         let reserved = meter
@@ -418,7 +446,7 @@ impl tinybackrooms::Conversant for ModelConversant {
                 return Err(backend_error(Error::InvalidRequest));
             }
             let req = self
-                .request(r.system, &r.messages, None)
+                .request(r.system, &r.messages, None, Some(r.temperature))
                 .map_err(backend_error)?;
             let reply = self.execute(req).await.map_err(backend_error)?;
             Ok(tinybackrooms::TurnReply {
@@ -437,7 +465,7 @@ impl tinybackrooms::Conversant for ModelConversant {
                 return Err(backend_error(Error::InvalidRequest));
             }
             let req = self
-                .request(r.system, &r.messages, Some((r.tool, r.schema)))
+                .request(r.system, &r.messages, Some((r.tool, r.schema)), None)
                 .map_err(backend_error)?;
             let reply = self.execute(req).await.map_err(backend_error)?;
             Ok(tinybackrooms::StructuredReply {

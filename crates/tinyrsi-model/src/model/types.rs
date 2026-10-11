@@ -37,8 +37,8 @@ pub struct ModelRequest {
     pub(super) max_output_tokens: u64,
     pub(super) timeout_ms: u64,
     pub(super) tool: Option<(String, serde_json::Value)>,
-    pub(super) temperature: f64,
     pub(super) input_bound: u64,
+    pub(super) temperature: Option<f64>,
 }
 impl std::fmt::Debug for ModelRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,6 +63,9 @@ pub struct ModelReply {
 #[derive(Clone, Debug)]
 pub struct OpenRouterModel {
     pub(super) model: String,
+    /// An OpenAI-compatible base URL that injects credentials itself, such
+    /// as a spend gateway; `None` calls `OpenRouter` directly.
+    pub(super) base_url: Option<String>,
 }
 /// Whole-generation accounting, including failed and refused calls.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

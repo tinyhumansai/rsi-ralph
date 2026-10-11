@@ -1,0 +1,15 @@
+{
+  "$schema": "https://tinyhumans.ai/schemas/rsi/v1",
+  "version": 1,
+  "name": "graph-coloring",
+  "subject": { "kind": "dir", "path": "subject", "editable": ["coloring.py"] },
+  "brief": "brief.md",
+  "hive": { "package": "hive", "lead": "lead", "wall_secs": 900 },
+  "creativity": { "temperature": 0.4 },
+  "score": {
+    "scorers": [ { "id": "colors", "run": "python3 scorers/colors.py", "timeout_secs": 60 } ],
+    "decide": { "on": "colors", "test": "seeds", "seeds": [1, 2, 3], "direction": "minimize", "target": 6 }
+  },
+  "budget": { "run_usd": 1 },
+  "epochs": 3
+}

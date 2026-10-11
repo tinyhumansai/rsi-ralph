@@ -27,12 +27,15 @@ crates/
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
 ├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── tinyrsi-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
+├── tinyrsi-cli/        # the `tinyrsi` binary: file-defined loops, run store, UI
 ├── tinyrsi-host/       # hive runtime: coordinators, suites, epochs, deployment
 │   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
 │   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
+├── tinyrsi-swarm/      # a hive package run as OpenHuman agents editing candidates
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -47,6 +50,7 @@ crates/
     └── examples/       # runnable, compiled-in-CI usage examples
 examples/               # `tinyrsi-examples`: math_problem, upgrade_file, graph_coloring,
                         # hive_goal
+loops/                  # example loop folders for the `tinyrsi` binary
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
@@ -116,6 +120,9 @@ Supporting commands:
 - `cargo run -p tinyrsi-examples --example math_problem` (or `upgrade_file`,
   `graph_coloring`, `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
   trace under `target/rsi-examples/` and fails if it misses its goal.
+- `cargo run -p tinyrsi-cli -- check loops/graph-coloring` (or `run`, `runs`,
+  `show`, `serve`) — the `tinyrsi` binary over a loop folder; see
+  `docs/guides/rsi-cli.md`.
 - `cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
 - `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.

@@ -31,11 +31,11 @@ fn rejects_insufficient_reservations_before_provider_execution() {
 #[test]
 fn samples_at_temperature_zero_unless_a_request_sets_one() {
     let model = OpenRouterModel::new("model".into()).unwrap();
-    assert!(request().temperature().abs() < f64::EPSILON);
+    assert_eq!(request().temperature(), None);
     assert_eq!(model.body(&request())["temperature"], 0.0);
     for t in [0.0, 0.7, 2.0] {
         let req = request().with_temperature(t).unwrap();
-        assert!((req.temperature() - t).abs() < f64::EPSILON);
+        assert_eq!(req.temperature(), Some(t));
         assert_eq!(model.body(&req)["temperature"], t);
     }
     for bad in [-0.1, 2.1, f64::NAN, f64::INFINITY] {
@@ -46,7 +46,7 @@ fn samples_at_temperature_zero_unless_a_request_sets_one() {
         );
     }
     let debug = format!("{:?}", request().with_temperature(0.5).unwrap());
-    assert!(debug.contains("temperature: 0.5") && !debug.contains("private"));
+    assert!(debug.contains("temperature: Some(0.5)") && !debug.contains("private"));
 }
 #[test]
 fn exposes_the_structured_tool_to_external_ports() {
@@ -191,6 +191,52 @@ fn https_adapter_decodes_usage_without_exposing_prompts_or_credentials_in_argv()
             .is_err()
     );
 }
+#[test]
+fn a_gateway_adapter_posts_to_the_base_url_with_a_placeholder_token() {
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
+        sync::mpsc,
+    };
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let (sender, receiver) = mpsc::channel();
+    std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_millis(300)))
+            .unwrap();
+        let mut data = Vec::new();
+        let mut buf = [0; 8192];
+        while let Ok(n) = stream.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+            data.extend_from_slice(&buf[..n]);
+            if data.windows(4).any(|w| w == b"\r\n\r\n") && data.ends_with(b"}") {
+                break;
+            }
+        }
+        sender
+            .send(String::from_utf8_lossy(&data).into_owned())
+            .unwrap();
+        let body = r#"{"choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":3,"completion_tokens":1}}"#;
+        let reply = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        stream.write_all(reply.as_bytes()).unwrap();
+    });
+    let model =
+        OpenRouterModel::via("m".into(), &format!("http://{addr}/__tag/judge/q/v1/")).unwrap();
+    assert_eq!(model.call(&request()).unwrap().content, b"ok");
+    let head = receiver.recv().unwrap();
+    assert!(head.starts_with("POST /__tag/judge/q/v1/chat/completions "));
+    assert!(head.contains("Authorization: Bearer gateway"));
+    for bad in ["ftp://x", "http://a\"b", "http://a\nb"] {
+        assert!(OpenRouterModel::via("m".into(), bad).is_err());
+    }
+}
 struct Fails;
 impl ModelPort for Fails {
     fn generate(&self, _: ModelRequest) -> ModelFuture {
@@ -279,4 +325,17 @@ fn public_provider_identity_survives_budget_wrapping_without_provider_calls() {
     let wrapped = BudgetedModel::new(Arc::new(provider), 1000).unwrap();
     assert_eq!(wrapped.identity(), expected);
     assert_eq!(wrapped.meter().unwrap().attempted_calls, 0);
+}
+#[test]
+fn a_request_temperature_reaches_the_provider_body() {
+    let model = OpenRouterModel::new("m".into()).unwrap();
+    assert_eq!(
+        model.body(&request())["temperature"],
+        serde_json::json!(0.0)
+    );
+    let warm = request().with_temperature(1.2).unwrap();
+    assert_eq!(warm.temperature(), Some(1.2));
+    assert_eq!(model.body(&warm)["temperature"], serde_json::json!(1.2));
+    assert!(request().with_temperature(2.5).is_err());
+    assert!(request().with_temperature(-0.1).is_err());
 }

@@ -45,6 +45,11 @@ published 24-attempt experiment is inconclusive.
   `ModelConversant` with pre-dispatch token reservation (`crates/tinyrsi-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls
   ([`docs/rsi/private-benchmarks.md`](docs/rsi/private-benchmarks.md)).
+- The `tinyrsi` binary (`crates/tinyrsi-cli`): loops defined as folders of
+  JSON, Markdown and step scripts, a hive of agents writing candidates, a
+  spend-capped gateway (`crates/tinyrsi-gateway`), a durable run store and a
+  built-in UI ([`docs/specs/rsi-cli.md`](docs/specs/rsi-cli.md),
+  [`docs/guides/rsi-cli.md`](docs/guides/rsi-cli.md)).
 
 ## Next
 

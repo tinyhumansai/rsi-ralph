@@ -29,6 +29,7 @@ See [`host-runtime.md`](host-runtime.md) or
 - [`script-loop.md`](script-loop.md) — the plain-script improvement loop.
 - [`hypothesis-ledger.md`](hypothesis-ledger.md) — approach labels, the
   approaches-tried summary and per-slot directives for the script loop.
+- [`rsi-cli.md`](rsi-cli.md) — the `tinyrsi` binary and file-defined loops.
 - [`rsi-viz.md`](rsi-viz.md) — read-only live visualizer for loop traces
   and run snapshots (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — score, evolve, core and observe

@@ -37,7 +37,7 @@ impl ModelPort for Scripted {
         self.temperatures
             .lock()
             .unwrap()
-            .push(request.temperature());
+            .push(request.temperature().unwrap_or(0.0));
         let next = self.replies.lock().unwrap().pop_front();
         Box::pin(async move {
             let content = next.ok_or(crate::ModelError::CallFailed)?.into_bytes();
