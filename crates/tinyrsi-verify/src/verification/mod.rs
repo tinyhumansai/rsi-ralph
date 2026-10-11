@@ -75,20 +75,7 @@ impl VerifierRegistry {
         expected: &VerificationBinding,
         artifact: &ArtifactSubmission,
     ) -> Result<VerificationEvidence> {
-        let d = self
-            .declarations
-            .get(&expected.node_id)
-            .ok_or(Error::InvalidBlueprint)?;
-        if artifact.binding != *expected
-            || expected.seat_id != d.owner_seat
-            || expected.episode_id.is_empty()
-            || expected.artifact_id.is_empty()
-            || expected.transcript_refs.is_empty()
-            || expected.transcript_refs.windows(2).any(|w| w[0] >= w[1])
-        {
-            return Err(Error::InvalidBlueprint);
-        }
-        let (passed, exit_code) = match &d.verifier {
+        let (passed, exit_code) = match self.authorize(expected, artifact)? {
             HostVerifier::Golden { expected } => (artifact.content == *expected, None),
             HostVerifier::Schema { schema } => {
                 let validator =
@@ -133,6 +120,29 @@ impl VerifierRegistry {
             quality: if passed { 1.0 } else { 0.0 },
             exit_code,
         })
+    }
+    /// The checker `expected` authorizes for `artifact`, without running it.
+    /// # Errors
+    /// Returns invalid blueprint for an undeclared node or a forged binding.
+    pub(crate) fn authorize(
+        &self,
+        expected: &VerificationBinding,
+        artifact: &ArtifactSubmission,
+    ) -> Result<&HostVerifier> {
+        let d = self
+            .declarations
+            .get(&expected.node_id)
+            .ok_or(Error::InvalidBlueprint)?;
+        if artifact.binding != *expected
+            || expected.seat_id != d.owner_seat
+            || expected.episode_id.is_empty()
+            || expected.artifact_id.is_empty()
+            || expected.transcript_refs.is_empty()
+            || expected.transcript_refs.windows(2).any(|w| w[0] >= w[1])
+        {
+            return Err(Error::InvalidBlueprint);
+        }
+        Ok(&d.verifier)
     }
 }
 fn validate_command(c: &CommandSpec) -> Result<()> {

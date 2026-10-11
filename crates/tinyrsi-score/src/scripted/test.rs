@@ -24,3 +24,16 @@ fn a_closure_scorer_passes_its_error_through() {
         Err(Error::JudgeMalformed)
     );
 }
+
+#[test]
+fn a_uniform_scorer_rejects_a_non_finite_quality() {
+    let goal = Goal::new("g");
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let scorer = ScriptedScorer::uniform(move |_: &str| bad);
+        assert_eq!(
+            scorer.assess("s", &goal, &[1, 2]),
+            Err(Error::InvalidEvaluation),
+            "{bad} is not a quality"
+        );
+    }
+}
