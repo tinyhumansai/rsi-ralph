@@ -32,6 +32,12 @@ cargo run -p tinyrsi-examples --example hive_goal
 - **Hives.** `hive_goal` runs the hive path in `tinyrsi-host`: an observed
   dossier, a typed context patch, paired evaluation on frozen private suites,
   and human-style approval.
+  Its limits are deliberate. The hive has one seat on one desk, because the
+  controlled runner supports single-seat hives. Proposals come from direct
+  generation, which predicts `normalized_h`, rather than `RetreatEvolver`,
+  whose `verified_quality` predictions `run_proposal_h` marks untestable. The
+  accepted hive is deployed into a fresh coordinator, as `complete/controlled`
+  does, so the run stops at the first acceptance.
 
 ## Watching a run
 
