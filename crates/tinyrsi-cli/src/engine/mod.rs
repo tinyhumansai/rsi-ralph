@@ -6,8 +6,11 @@
 //! the hive, and for every changed candidate run the surface check, the
 //! gates, the scorers and the decision. The best accepted candidate is
 //! promoted. The run stops on `goal_reached`, `stalled`, `budget`,
-//! `max_epochs` or `error`, and every step is mirrored to `events.jsonl`,
-//! `ledger.json` and `run.json` as it happens.
+//! `max_epochs`, `provider_refused` or `error`, and every step is mirrored
+//! to `events.jsonl`, `ledger.json` and `run.json` as it happens.
+//!
+//! An epoch whose hive changed nothing while the model provider refused its
+//! calls is not an ordinary empty epoch: see [`refusal`].
 
 use std::{
     collections::BTreeMap,
@@ -15,6 +18,7 @@ use std::{
 };
 
 use sha2::{Digest, Sha256};
+use tinyrsi_gateway::UpstreamCalls;
 use tinyrsi_score::ScoreDecision;
 use tinyrsi_trace::{JsonlTrace, LoopEvent, MonotonicClock, RunGoal, StopReason, TraceSink};
 
@@ -29,6 +33,7 @@ use crate::{
     subject::{Checkout, Subject},
 };
 
+mod refusal;
 mod types;
 pub use types::{
     CandidateRecord, CandidateStatus, EpochRecord, Ideator, Ledger, Meter, ProposalReport,
@@ -85,6 +90,18 @@ pub struct RunSummary {
     pub checkout: PathBuf,
     /// Candidates promoted during the run.
     pub promotions: usize,
+    /// What stopped a run that ended on `provider_refused`.
+    pub error: Option<String>,
+    /// Problems that did not stop the run, as in `run.json`.
+    pub warnings: Vec<String>,
+}
+
+/// What one epoch did.
+struct EpochOutcome {
+    /// A candidate was promoted.
+    promoted: bool,
+    /// The provider's refusals explain the epoch.
+    refused: Option<refusal::Refused>,
 }
 
 /// Mutable state of one run.
@@ -119,6 +136,7 @@ impl Engine<'_> {
             epochs: 0,
             spend_usd: 0.0,
             error: None,
+            warnings: Vec::new(),
         };
         store::write_json(&self.run.record_path(), &record)?;
         let result = self.execute(&mut record);
@@ -126,7 +144,13 @@ impl Engine<'_> {
         record.spend_usd = self.meter.map_or(0.0, Meter::spent_usd);
         match &result {
             Ok(summary) => {
-                record.status = RunStatus::Finished;
+                // A provider that refuses every call is a failure the
+                // operator must fix, not a finished search.
+                record.status = if summary.reason == StopReason::ProviderRefused {
+                    RunStatus::Failed
+                } else {
+                    RunStatus::Finished
+                };
                 record.stop_reason = Some(summary.reason);
             }
             Err(e) => {
@@ -190,6 +214,8 @@ impl Engine<'_> {
             score: state.card.headline,
             checkout: state.incumbent.path,
             promotions: state.ledger.incumbents.len() - 1,
+            error: record.error.clone(),
+            warnings: record.warnings.clone(),
         })
     }
 
@@ -274,16 +300,27 @@ impl Engine<'_> {
             }
             state.record.epochs = epoch;
             self.save(state)?;
-            let promoted = self.epoch(epoch, subject, state)?;
+            let outcome = self.epoch(epoch, subject, state)?;
             if let Some(ideator) = self.ideator.as_deref_mut() {
-                ideator.outcome(epoch, promoted)?;
+                ideator.outcome(epoch, outcome.promoted)?;
             }
-            stalled = if promoted { 0 } else { stalled + 1 };
+            stalled = if outcome.promoted { 0 } else { stalled + 1 };
             state.trace.record(LoopEvent::EpochFinished {
                 epoch: epoch.into(),
                 incumbent: state.revision.clone(),
                 incumbent_metric: state.card.headline,
             })?;
+            if let Some(refused) = outcome.refused {
+                if refused.all {
+                    state.record.error = Some(refused.line);
+                    self.save(state)?;
+                    return Ok(StopReason::ProviderRefused);
+                }
+                state
+                    .record
+                    .warnings
+                    .push(format!("epoch {epoch}: {}", refused.line));
+            }
             self.save(state)?;
             if state.card.headline.is_some_and(|h| score::reaches(spec, h)) {
                 return Ok(StopReason::GoalReached);
@@ -311,8 +348,9 @@ impl Engine<'_> {
         store::write_json(&self.run.ledger_path(), &state.ledger)
     }
 
-    /// One epoch; returns whether a candidate was promoted.
-    fn epoch(&mut self, epoch: u32, subject: &Subject, state: &mut State) -> Result<bool> {
+    /// One epoch: whether a candidate was promoted, and whether provider
+    /// refusals explain it.
+    fn epoch(&mut self, epoch: u32, subject: &Subject, state: &mut State) -> Result<EpochOutcome> {
         let manifest = &self.parsed.manifest;
         let dir = self.run.epoch_dir(epoch)?;
         state.trace.record(LoopEvent::EpochStarted {
@@ -363,6 +401,7 @@ impl Engine<'_> {
             )?;
             candidates.insert(seat, checkout);
         }
+        let before = self.upstream_calls();
         let report = self.proposer.propose(&ProposalRequest {
             epoch,
             brief: &text,
@@ -370,6 +409,7 @@ impl Engine<'_> {
             candidates: &candidates,
             dir: &dir.join("hive"),
         })?;
+        let calls = self.upstream_calls().since(&before);
         state.ledger.epochs.push(EpochRecord {
             epoch,
             incumbent: state.revision.clone(),
@@ -378,6 +418,7 @@ impl Engine<'_> {
             promoted: None,
         });
 
+        let first = state.ledger.candidates.len();
         let mut accepted: Vec<usize> = Vec::new();
         for (seat, checkout) in &candidates {
             if let Some(i) = self.consider(epoch, seat, checkout, subject, state, &dir) {
@@ -385,7 +426,25 @@ impl Engine<'_> {
             }
             self.save(state)?;
         }
-        self.promote_best(epoch, subject, state, &candidates, accepted)
+        let changed = state.ledger.candidates[first..]
+            .iter()
+            .any(|c| !c.changed.is_empty());
+        let refused = refusal::explain(
+            epoch,
+            &calls,
+            changed,
+            self.secrets.iter().map(String::as_str),
+        );
+        if let Some(refused) = &refused {
+            state.trace.record(refused.event.clone())?;
+        }
+        let promoted = self.promote_best(epoch, subject, state, &candidates, accepted)?;
+        Ok(EpochOutcome { promoted, refused })
+    }
+
+    /// The meter's reading of upstream calls; none without a meter.
+    fn upstream_calls(&self) -> UpstreamCalls {
+        self.meter.map(Meter::upstream_calls).unwrap_or_default()
     }
 
     /// Promote the best accepted candidate, if any; returns whether one was.

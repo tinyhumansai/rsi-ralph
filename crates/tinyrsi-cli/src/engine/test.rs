@@ -1,6 +1,7 @@
 //! The epoch loop end to end with a scripted hive and shell scorers.
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
+use tinyrsi_gateway::Refusal;
 use crate::{manifest, subject::copy_tree};
 use std::fs;
 
