@@ -69,7 +69,12 @@ impl Subject {
             }
             Self::Git { repo, branch } => git(
                 repo,
-                &["rev-parse", "--verify", "--quiet", &format!("refs/heads/{branch}")],
+                &[
+                    "rev-parse",
+                    "--verify",
+                    "--quiet",
+                    &format!("refs/heads/{branch}"),
+                ],
             )
             .map(|_| ()),
         }

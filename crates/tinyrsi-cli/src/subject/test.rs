@@ -192,18 +192,43 @@ fn a_git_spec_resolves_its_repository_and_branch() {
 #[test]
 fn verify_finds_missing_folders_repositories_and_branches() {
     let root = tempfile::tempdir().unwrap();
-    assert!(Subject::Dir { source: root.path().to_path_buf() }.verify().is_ok());
+    assert!(
+        Subject::Dir {
+            source: root.path().to_path_buf()
+        }
+        .verify()
+        .is_ok()
+    );
     assert!(matches!(
-        Subject::Dir { source: root.path().join("none") }.verify(),
+        Subject::Dir {
+            source: root.path().join("none")
+        }
+        .verify(),
         Err(Error::Path { .. })
     ));
     let repo = repo(root.path());
-    assert!(Subject::Git { repo: repo.clone(), branch: "rsi/main".into() }.verify().is_ok());
+    assert!(
+        Subject::Git {
+            repo: repo.clone(),
+            branch: "rsi/main".into()
+        }
+        .verify()
+        .is_ok()
+    );
     assert!(matches!(
-        Subject::Git { repo: repo.clone(), branch: "rsi/nope".into() }.verify(),
+        Subject::Git {
+            repo: repo.clone(),
+            branch: "rsi/nope".into()
+        }
+        .verify(),
         Err(Error::Git { .. })
     ));
-    assert!(Subject::Git { repo: root.path().join("none"), branch: "main".into() }
+    assert!(
+        Subject::Git {
+            repo: root.path().join("none"),
+            branch: "main".into()
+        }
         .verify()
-        .is_err());
+        .is_err()
+    );
 }
