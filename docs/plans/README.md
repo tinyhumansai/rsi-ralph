@@ -24,3 +24,5 @@ See [`example-retry-policy.md`](example-retry-policy.md) for a test-first sample
 ## Index
 
 - [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).
+See [`epoch-evidence.md`](epoch-evidence.md) for a test-first plan delivered in
+this repository.

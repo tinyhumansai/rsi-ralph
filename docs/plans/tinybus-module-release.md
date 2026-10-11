@@ -1,5 +1,12 @@
 # Plan: Ship the first TinyBus module release
 
+> **Historical.** This plan is complete and kept as a record of how the first
+> module release landed. The current packaging contract is
+> [`../specs/tinybus-module-release.md`](../specs/tinybus-module-release.md),
+> and the release procedure is described in the "Releases" section of
+> [`AGENTS.md`](../../AGENTS.md). Do not update this file to track later
+> releases.
+
 1. Land the `lineage` feature area: the `Append` and `Head` members over
    TinyBus module ABI v1.
 2. Export the lineage behavior through the module ABI and wire the ledger
