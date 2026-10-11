@@ -290,6 +290,8 @@ fn stops_on_budget_before_an_epoch() {
         briefs: Vec::new(),
     };
     let spend = Spend(0.5);
+    // A meter that cannot see upstream calls reports none.
+    assert_eq!(spend.upstream_calls(), UpstreamCalls::default());
     let mut e = engine(&parsed, &dir, &store, "b", &mut hive);
     e.meter = Some(&spend);
     let summary = e.run().unwrap();

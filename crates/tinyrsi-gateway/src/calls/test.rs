@@ -7,6 +7,9 @@ use super::{CallTally, MESSAGE_CHARS, Refusal, UpstreamCalls, refusal_message};
 #[test]
 fn counts_answers_and_keeps_the_latest_refusal() {
     let tally = CallTally::default();
+    for _ in 0..3 {
+        tally.dispatched();
+    }
     tally.answered(200, b"{}");
     tally.answered(429, br#"{"error":{"message":"Rate limited","code":429}}"#);
     tally.answered(
@@ -29,6 +32,7 @@ fn counts_answers_and_keeps_the_latest_refusal() {
 #[test]
 fn an_unreachable_provider_is_a_502_refusal() {
     let tally = CallTally::default();
+    tally.dispatched();
     tally.unreachable("error sending request\n  connection refused");
     let calls = tally.snapshot();
     assert!(calls.all_refused());
@@ -39,6 +43,15 @@ fn an_unreachable_provider_is_a_502_refusal() {
             message: "error sending request connection refused".into()
         })
     );
+}
+
+#[test]
+fn a_call_still_in_flight_is_already_sent() {
+    let tally = CallTally::default();
+    tally.dispatched();
+    let calls = tally.snapshot();
+    assert_eq!((calls.sent, calls.refused), (1, 0));
+    assert!(!calls.all_refused());
 }
 
 #[test]
