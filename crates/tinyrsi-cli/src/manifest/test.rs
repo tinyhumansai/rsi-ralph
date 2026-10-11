@@ -383,7 +383,7 @@ fn accepts_a_parallel_seed_limit_and_stores_it() {
 #[test]
 fn rejects_a_parallel_limit_that_is_not_a_whole_number() {
     for bad in [json!(-1), json!(1.5), json!("3")] {
-        let files = with(|m| m["score"]["parallel"] = bad);
+        let files = with(|m| m["score"]["parallel"] = bad.clone());
         assert!(
             matches!(parse(&files), Err(Error::Json { .. })),
             "parallel = {bad}"
