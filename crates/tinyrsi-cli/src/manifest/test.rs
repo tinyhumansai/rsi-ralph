@@ -165,7 +165,13 @@ fn rejects_out_of_range_fields() {
         ("creativity.retreat.temperature", |m| {
             m["creativity"]["retreat"] = json!({ "temperature": -1.0 });
         }),
-        ("creativity.retreat", |m| m["creativity"]["retreat"] = json!({ "participants": 1 })),
+        ("creativity.retreat", |m| m["creativity"]["retreat"] = json!({ "turns": 0 })),
+        ("creativity.retreat.mode", |m| m["creativity"]["retreat"] = json!({ "mode": "chaos" })),
+        ("creativity.retreat.template", |m| m["creativity"]["retreat"] = json!({ "template": "x" })),
+        ("budget.prices.a/b", |m| {
+            m["budget"]["prices"] = json!({ "a/b": { "prompt_per_mtok": -1, "completion_per_mtok": 1, "provider": "p" } });
+        }),
+        ("budget.prices.openai/gpt-x", |m| m["models"] = json!({ "default": "openai/gpt-x" })),
         ("keys.search", |m| m["keys"] = json!({ "search": "lower_case" })),
         ("keys.openrouter", |m| {
             m["keys"] = json!({ "openrouter": { "provider": "x", "env": "KEY" } });
@@ -216,6 +222,8 @@ fn a_judge_cannot_decide() {
 fn resolves_models_keys_and_rubrics() {
     let mut files = with(|m| {
         m["models"] = json!({ "default": "a/seat", "judge": "a/judge", "retreat": "a/retreat" });
+        let price = json!({ "prompt_per_mtok": 0.1, "completion_per_mtok": 0.2, "provider": "a" });
+        m["budget"]["prices"] = json!({ "a/seat": price, "a/judge": price, "a/override": price });
         m["creativity"]["retreat"] = json!({ "model": "a/override" });
         m["keys"] = json!({
             "openrouter": "MY_OR_KEY",
@@ -236,9 +244,11 @@ fn resolves_models_keys_and_rubrics() {
     let tools: Vec<_> = parsed.tool_keys().map(|(name, t)| (name, t.provider.as_str())).collect();
     assert_eq!(tools, vec![("search", "gemini")]);
     assert_eq!(parsed.rubrics["quality"], "Is it clear?");
+    let used: Vec<String> = parsed.models_used(&BTreeSet::new()).into_iter().collect();
+    assert_eq!(used, vec!["a/judge", "a/override", "a/seat"]);
     let retreat = parsed.manifest.creativity.retreat.unwrap();
     assert!(retreat.enabled && retreat.memory);
-    assert_eq!((retreat.rounds, retreat.participants, retreat.ideas), (3, 3, 5));
+    assert_eq!((retreat.variations, retreat.turns, retreat.ideas), (3, 6, 5));
 }
 
 #[test]
