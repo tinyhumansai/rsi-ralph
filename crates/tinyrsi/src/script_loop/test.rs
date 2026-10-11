@@ -5,6 +5,7 @@ use super::{prompt::*, score::*, *};
 use crate::{MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest};
 use std::{
     collections::VecDeque,
+    fmt::Write as _,
     path::Path,
     sync::{Arc, Mutex},
 };
@@ -121,14 +122,15 @@ fn collects_diagnostic_lines_in_order() {
         parse_diagnostics(stdout),
         vec!["conflicts=3".to_owned(), "moves=40".to_owned()]
     );
-    assert!(parse_diagnostics("METRIC loss=1\n").is_empty());
+    assert_eq!(parse_diagnostics("METRIC loss=1\n"), Vec::<String>::new());
 }
 
 #[test]
 fn bounds_diagnostics_by_line_count_and_length() {
-    let many: String = (0..DIAG_LINES + 5)
-        .map(|i| format!("DIAG line {i}\n"))
-        .collect();
+    let mut many = String::new();
+    for i in 0..DIAG_LINES + 5 {
+        writeln!(many, "DIAG line {i}").unwrap();
+    }
     let kept = parse_diagnostics(&many);
     assert_eq!(kept.len(), DIAG_LINES);
     // The last lines are kept: scripts usually end with their summary.
@@ -253,7 +255,7 @@ fn keeps_diagnostics_from_passing_and_failing_seeds() {
     assert_eq!(failed.error, Some(Error::ScriptFailed.to_string()));
     assert_eq!(failed.diagnostics, vec!["invalid: edge (1, 2)".to_owned()]);
     let silent = seed_with("echo 'METRIC loss=0.5'\n", |_| {});
-    assert!(silent.diagnostics.is_empty());
+    assert_eq!(silent.diagnostics, Vec::<String>::new());
 }
 
 #[test]
@@ -308,38 +310,9 @@ fn reports_a_failed_candidates_interval_in_metric_units() {
     assert!((lower - 0.2).abs() < 1e-12 && (upper - 0.6).abs() < 1e-12);
 }
 
-#[test]
-fn prompt_shows_goal_history_rejections_and_sources() {
-    let dir = tempfile::tempdir().unwrap();
-    let mut s = subject(dir.path(), &loss("0.5"));
-    s.metric.target = Some(0.1);
-    let failed = SeedRun {
-        seed: 1,
-        metric: None,
-        error: Some("script run timed out".into()),
-        duration_ms: 1,
-        stderr_tail: "Traceback: boom".into(),
-        diagnostics: vec!["conflicts left: 12".into()],
-    };
-    let rejected = LedgerCandidate {
-        epoch: 1,
-        proposal_id: Some("p1-0".into()),
-        id: Some("abc".into()),
-        parent: Some("base".into()),
-        rationale: "try sleeping".into(),
-        hypothesis: "slower is better".into(),
-        paths: vec!["run.sh".into()],
-        runs: vec![failed],
-        mean: None,
-        decision: CandidateDecision::Reject,
-        estimate: None,
-        lower: None,
-        upper: None,
-        units: IntervalUnits::Metric,
-        promoted: false,
-        note: None,
-    };
-    let baseline = LedgerCandidate {
+/// The baseline row of the prompt test: diagnostics on seed 1, none on seed 2.
+fn diagnosed_baseline() -> LedgerCandidate {
+    LedgerCandidate {
         epoch: 0,
         proposal_id: None,
         id: Some("base".into()),
@@ -373,7 +346,41 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         units: IntervalUnits::Metric,
         promoted: true,
         note: None,
+    }
+}
+
+#[test]
+fn prompt_shows_goal_history_rejections_and_sources() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = subject(dir.path(), &loss("0.5"));
+    s.metric.target = Some(0.1);
+    let failed = SeedRun {
+        seed: 1,
+        metric: None,
+        error: Some("script run timed out".into()),
+        duration_ms: 1,
+        stderr_tail: "Traceback: boom".into(),
+        diagnostics: vec!["conflicts left: 12".into()],
     };
+    let rejected = LedgerCandidate {
+        epoch: 1,
+        proposal_id: Some("p1-0".into()),
+        id: Some("abc".into()),
+        parent: Some("base".into()),
+        rationale: "try sleeping".into(),
+        hypothesis: "slower is better".into(),
+        paths: vec!["run.sh".into()],
+        runs: vec![failed],
+        mean: None,
+        decision: CandidateDecision::Reject,
+        estimate: None,
+        lower: None,
+        upper: None,
+        units: IntervalUnits::Metric,
+        promoted: false,
+        note: None,
+    };
+    let baseline = diagnosed_baseline();
     let ledger = ScriptLedger {
         run_id: "r".into(),
         subject: "fixture".into(),
