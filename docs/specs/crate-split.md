@@ -209,18 +209,28 @@ decision and notes. Implementations:
 event inside per-run and per-epoch spans, and `FanoutTrace`, which writes one
 stream to several sinks.
 
-Langfuse export reuses OpenHuman's existing client rather than a second
-exporter stack. `tinyrsi-langfuse` depends on `openhuman-embed` with only its
-`langfuse` feature (`openhuman_embed::observe::langfuse::LangfuseClient`) and
-provides `LangfuseTrace`. That sink maps each run to one Langfuse trace (id =
-run id), each epoch to a span, and each stage to an event in that span; the
-final incumbent metric becomes a numeric score. It buffers events and sends
-them on `run_finished` in batches of at most 500. Configuration is OpenHuman's:
-`LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`, or the
-TinyHumans proxy. Export is best-effort, because the trace is observability:
-a failed export is counted and retried on the next flush, never returned to the
-loop. It is its own crate so that hosts which need only `events.jsonl` do not
-compile OpenHuman. The hive `epoch_driver` emits the existing event
+Langfuse export reuses OpenHuman's existing client and span builder rather
+than a second exporter stack. `tinyrsi-langfuse` depends on `openhuman-embed`
+with only its `langfuse` feature and provides `LangfuseTrace`.
+
+- **Mapping.** Each run is one trace with a root `tinyrsi.run` span. Each
+  epoch is a child span, and each stage is a zero-length child span carrying
+  the event's wire JSON. The run's output includes the final incumbent metric.
+- **Transport.** It uses OTLP, Langfuse's supported trace path (the legacy
+  batch ingestion API is sunset on Langfuse Cloud on 2026-11-16). When a run
+  finishes, OpenHuman's `otlp_requests` builds the requests under its span and
+  byte caps, and `LangfuseClient::send_otlp` posts them to
+  `/api/public/otel/v1/traces`.
+- **Runtime.** A worker thread owns the transport's Tokio runtime, so the sink
+  is safe to use and to drop inside another runtime.
+- **Configuration** is OpenHuman's: `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`
+  and `LANGFUSE_SECRET_KEY`, or the TinyHumans proxy.
+- **Failures.** Export is best-effort, because the trace is observability: a
+  failed export is counted and retried on the next flush, and never returned
+  to the loop.
+
+It is its own crate so hosts that need only `events.jsonl` do not compile
+OpenHuman. The hive `epoch_driver` emits the existing event
 kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 
 ### Removed

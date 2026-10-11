@@ -129,9 +129,9 @@ metric by epoch, proposals with their decisions, and the incumbent lineage.
 `cd apps/rsi-viz && npm ci && npm run dev`.
 
 To see the same runs in Langfuse, add a `tinyrsi_langfuse::LangfuseTrace` to the
-loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It exports
-through OpenHuman's own Langfuse client and reads the same `LANGFUSE_*`
-variables; see `.env.example`.
+loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It sends
+OTLP spans through OpenHuman's own Langfuse client and reads the same
+`LANGFUSE_*` variables; see `.env.example`.
 
 ## Live OpenRouter smoke test
 
