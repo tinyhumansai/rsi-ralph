@@ -43,3 +43,10 @@ fn proposals_and_run_locations_have_the_documented_shape() {
     assert!(run.id.starts_with("demo-"));
     assert!(run.dir.ends_with(&run.id));
 }
+
+#[test]
+fn live_models_are_built_from_an_explicit_id() {
+    assert!(live_model("anthropic/claude-sonnet-4.5").is_ok());
+    assert!(live_model(" ").is_err());
+    assert!(!default_live_model().is_empty());
+}
