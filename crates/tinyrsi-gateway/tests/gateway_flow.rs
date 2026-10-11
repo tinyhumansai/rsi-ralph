@@ -14,7 +14,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use serde_json::{Value, json};
-use tinyrsi_gateway::{Error, GLM_FLASH, Gateway, GatewayConfig};
+use tinyrsi_gateway::{Error, GLM_FLASH, Gateway, GatewayConfig, Refusal, UpstreamCalls};
 
 const KEY: &str = "sk-or-test-SECRET-7f3a9c";
 
@@ -35,6 +35,12 @@ async fn mock_chat(
     match text {
         "reject" => (StatusCode::BAD_REQUEST, Json(json!({"error": "bad"}))).into_response(),
         "crash" => (StatusCode::INTERNAL_SERVER_ERROR, "oops").into_response(),
+        // OpenRouter's shape for a key over its spending limit.
+        "limit" => (
+            StatusCode::FORBIDDEN,
+            Json(json!({"error": {"message": "Key limit exceeded (daily limit).", "code": 403}})),
+        )
+            .into_response(),
         // A misbehaving upstream that echoes the credential it was sent.
         "echo" => (
             StatusCode::UNAUTHORIZED,
@@ -321,6 +327,46 @@ async fn upstream_rejections_cost_nothing_and_crashes_keep_the_reservation() {
     assert!(h.status().await["run"]["uncertain_usd"].as_f64().unwrap() > 0.0);
     let rows = h.meter();
     assert!(rows[1]["error"].as_str().unwrap().contains("oops"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn counts_upstream_refusals_with_their_status_and_message() {
+    let h = Harness::start(0.01, 50.0);
+    assert_eq!(h.gateway.upstream_calls(), UpstreamCalls::default());
+    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({})).await.0, 200);
+    assert_eq!(h.chat("/v1/chat/completions", "crash", json!({})).await.0, 500);
+    let before = h.gateway.upstream_calls();
+    assert_eq!((before.sent, before.refused), (2, 1));
+    assert_eq!(
+        before.last_refusal,
+        Some(Refusal {
+            status: 500,
+            message: "oops".into()
+        })
+    );
+    assert_eq!(h.chat("/v1/chat/completions", "limit", json!({})).await.0, 403);
+    assert_eq!(h.chat("/v1/chat/completions", "echo", json!({})).await.0, 401);
+    let after = h.gateway.upstream_calls();
+    assert_eq!((after.sent, after.refused), (4, 3));
+    let echoed = after.last_refusal.clone().unwrap();
+    assert_eq!(echoed.status, 401);
+    assert!(!echoed.message.contains(KEY), "{}", echoed.message);
+    let delta = after.since(&before);
+    assert_eq!((delta.sent, delta.refused), (2, 2));
+    // A call the gateway refuses itself never reaches the provider.
+    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({"max_tokens": 100_000})).await.0, 402);
+    assert_eq!(h.gateway.upstream_calls(), after);
+    assert_eq!(
+        h.chat("/v1/chat/completions", "limit", json!({})).await.0,
+        403
+    );
+    assert_eq!(
+        h.gateway.upstream_calls().last_refusal,
+        Some(Refusal {
+            status: 403,
+            message: "Key limit exceeded (daily limit).".into()
+        })
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
