@@ -222,10 +222,12 @@ impl Benchmark {
             |c: &ScriptCandidate| c.metrics.as_slice(),
             MetricScorer::new(direction),
         );
-        let weight = match self {
+        // The weights each example has always used, written out so they sum
+        // exactly as before rather than through `1.0 - w`.
+        let (metric_weight, judge_weight) = match self {
             Self::CurveFit | Self::GraphColoring => return Ok(Box::new(metric)),
-            Self::MathProblem => 0.7,
-            Self::UpgradeFile => 0.6,
+            Self::MathProblem => (0.7, 0.3),
+            Self::UpgradeFile => (0.6, 0.4),
         };
         let judge = LlmJudge::new(
             judge.ok_or("judge required")?,
@@ -242,8 +244,8 @@ impl Benchmark {
         );
         Ok(Box::new(
             Composite::new()
-                .with(weight, metric)
-                .with(1.0 - weight, source),
+                .with(metric_weight, metric)
+                .with(judge_weight, source),
         ))
     }
 }
