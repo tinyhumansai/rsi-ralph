@@ -35,6 +35,26 @@ pub enum ScoreDecision {
     Inconclusive,
 }
 
+/// The units of a `scored` interval.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntervalUnits {
+    /// The run's goal metric, oriented so positive means better.
+    #[default]
+    Metric,
+    /// Scorer qualities in `[0, 1]`, as a judge or a blend reports them.
+    Quality,
+}
+
+impl IntervalUnits {
+    /// True for the default, which the wire form omits. Takes a reference
+    /// because serde's `skip_serializing_if` passes one.
+    #[must_use]
+    pub fn is_metric(&self) -> bool {
+        *self == Self::Metric
+    }
+}
+
 /// Why a run ended.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -142,6 +162,10 @@ pub enum LoopEvent {
         lower: f64,
         /// Upper interval bound of the improvement.
         upper: f64,
+        /// Units of the interval. Omitted on the wire for metric units, so
+        /// metric-scored traces keep their bytes.
+        #[serde(default, skip_serializing_if = "IntervalUnits::is_metric")]
+        units: IntervalUnits,
     },
     /// A candidate replaced the incumbent.
     Improved {
