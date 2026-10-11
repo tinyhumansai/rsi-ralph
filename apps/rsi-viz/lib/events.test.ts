@@ -19,6 +19,17 @@ describe("parseEnvelope", () => {
     expect(r.ok).toBe(true);
   });
 
+  it("accepts an ideated proposal with a null candidate and rejects an omitted one", () => {
+    const base = '{"seq":0,"elapsed_ms":0,"event":{"kind":"ideated","epoch":1,"proposal_id":"p","parent":"a"';
+    expect(parseEnvelope(`${base},"candidate":null,"rationale":"r","hypothesis":"h"}}`).ok).toBe(true);
+    expect(parseEnvelope(`${base},"candidate":"c","rationale":"r","hypothesis":"h"}}`).ok).toBe(true);
+    expect(parseEnvelope(`${base},"rationale":"r","hypothesis":"h"}}`)).toEqual({
+      ok: false,
+      error: "ideated.candidate is not string|null",
+    });
+    expect(parseEnvelope(`${base},"candidate":7,"rationale":"r","hypothesis":"h"}}`).ok).toBe(false);
+  });
+
   it("rejects invalid json", () => {
     expect(parseEnvelope("{not json")).toEqual({ ok: false, error: "invalid json" });
   });

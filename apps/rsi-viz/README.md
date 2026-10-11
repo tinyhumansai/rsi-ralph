@@ -46,7 +46,8 @@ writes `run_finished`.
 ### Without Rust
 
 The fixtures hold a three-epoch curve-fit trace (an accept, a reject, an
-inconclusive, then the goal reached) and the 2026-10-11 hive experiment report:
+inconclusive, a proposal that never materialized, then the goal reached) and
+the 2026-10-11 hive experiment report:
 
 ```sh
 RSI_RUN_ROOT=./fixtures npm run dev
@@ -73,9 +74,9 @@ partial-line handling. Its output directories are git-ignored.
 - Run ids and file names are checked lexically (no `..`, absolute paths, NUL,
   or backslashes), then resolved with `realpath` and required to stay inside
   the real `RSI_RUN_ROOT`, so a symlink cannot escape it.
-- The trace carries no explicit proposal-to-candidate link. Within an epoch,
-  new candidates are paired with `ideated` proposals in order; re-runs of the
-  incumbent are not counted as candidates.
+- Proposals and candidates are paired by `ideated.candidate`, the content id
+  the proposal materializes into. A `null` candidate means the proposal was
+  rejected before materialization; the feed shows it as "not executed".
 
 ## Layout
 

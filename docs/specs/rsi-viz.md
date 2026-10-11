@@ -47,8 +47,12 @@ The trace wire format is owned by the script-loop PR (`docs/specs/loop-trace.md`
 once it lands): one envelope `{seq, elapsed_ms, event}` per line, where
 `event.kind` is one of `run_started`, `epoch_started`, `observed`, `ideated`,
 `executed`, `measured`, `scored`, `improved`, `epoch_finished`,
-`run_finished`. Optional numbers are `null`, never omitted. The visualizer
+`run_finished`. Optional values are `null`, never omitted. The visualizer
 mirrors this schema exactly in `lib/events.ts` and adds no fields.
+
+Proposals are paired with candidates by `ideated.candidate`, the content id
+the proposal materializes into; it is `null` when the proposal was rejected
+before materialization, and such a proposal is shown as not executed.
 
 ## HTTP surface
 
@@ -86,7 +90,8 @@ The snapshot allowlist is `archive.json`, `epoch.json`,
   highlighting the latest event's stage, pulsing while live; header with goal
   (metric, direction, target), status (live / finished with reason) and the
   incumbent; metric-vs-epoch chart (incumbent step line, candidate points
-  coloured by decision, dashed target line); proposals feed; incumbent lineage.
+  coloured by decision, dashed target line); proposals feed, including
+  proposals that were never executed; incumbent lineage.
 - Snapshot run: arm by ablation table of trial counts with anchor gain, a CI
   dot-and-whisker chart of anchor intervals, and raw JSON for other files.
 - Light and dark colour schemes; usable at phone width.

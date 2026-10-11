@@ -50,6 +50,8 @@ export interface Ideated {
   epoch: number;
   proposal_id: string;
   parent: string;
+  /** Content id the proposal materializes into; null if it was rejected first. */
+  candidate: string | null;
   rationale: string;
   hypothesis: string;
 }
@@ -149,7 +151,7 @@ export function stageOf(kind: LoopEvent["kind"]): Stage | null {
   }
 }
 
-type FieldType = "string" | "number" | "number|null" | "boolean" | "goal";
+type FieldType = "string" | "string|null" | "number" | "number|null" | "boolean" | "goal";
 
 const FIELDS: Record<LoopEvent["kind"], Record<string, FieldType>> = {
   run_started: { run_id: "string", subject: "string", goal: "goal" },
@@ -165,6 +167,7 @@ const FIELDS: Record<LoopEvent["kind"], Record<string, FieldType>> = {
     epoch: "number",
     proposal_id: "string",
     parent: "string",
+    candidate: "string|null",
     rationale: "string",
     hypothesis: "string",
   },
@@ -207,6 +210,8 @@ function matches(value: unknown, type: FieldType): boolean {
   switch (type) {
     case "string":
       return typeof value === "string";
+    case "string|null":
+      return value === null || typeof value === "string";
     case "number":
       return typeof value === "number" && Number.isFinite(value);
     case "number|null":
