@@ -114,7 +114,10 @@ fn tails_only_complete_new_lines_and_restarts_after_truncation() {
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("events.jsonl");
     let (mut offset, mut partial) = (0, String::new());
-    assert!(read_new_lines(&file, &mut offset, &mut partial).is_empty());
+    assert_eq!(
+        read_new_lines(&file, &mut offset, &mut partial),
+        Vec::<String>::new()
+    );
     fs::write(&file, "a\nb").unwrap();
     assert_eq!(read_new_lines(&file, &mut offset, &mut partial), vec!["a"]);
     fs::write(&file, "a\nbc\n").unwrap();

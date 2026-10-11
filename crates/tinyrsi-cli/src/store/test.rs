@@ -84,11 +84,11 @@ fn lists_runs_newest_first_and_marks_dead_runs_interrupted() {
     assert_eq!((dir.id.as_str(), found.status), ("a", RunStatus::Finished));
     assert!(matches!(store.find_run("demo/zzz"), Err(Error::NoRun(_))));
     assert!(matches!(store.find_run("nodash"), Err(Error::NoRun(_))));
-    assert!(
+    assert_eq!(
         Store::new(home.path().join("empty"))
             .list_runs(None)
-            .unwrap()
-            .is_empty()
+            .unwrap(),
+        vec![]
     );
 }
 

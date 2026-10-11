@@ -55,7 +55,9 @@ fn card(label: &str, scores: &[f64]) -> Scorecard {
                 .collect(),
         )]),
         judges: BTreeMap::new(),
-        headline: Some(scores.iter().sum::<f64>() / scores.len() as f64),
+        headline: Some(
+            scores.iter().sum::<f64>() / f64::from(u32::try_from(scores.len()).unwrap()),
+        ),
     }
 }
 

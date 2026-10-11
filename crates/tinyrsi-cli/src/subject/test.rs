@@ -32,7 +32,10 @@ fn a_folder_subject_copies_compares_and_promotes() {
     let cand = subject
         .candidate(&incumbent, "c1", "unused", &run.join("epoch-1/c1"))
         .unwrap();
-    assert!(subject.changes(&incumbent, &cand).unwrap().is_empty());
+    assert_eq!(
+        subject.changes(&incumbent, &cand).unwrap(),
+        Vec::<String>::new()
+    );
     write(&cand.path.join("a.py"), "a = 2\n");
     write(&cand.path.join("new.py"), "n\n");
     fs::remove_file(cand.path.join("pkg/b.py")).unwrap();
@@ -107,11 +110,7 @@ fn a_git_subject_uses_worktrees_and_fast_forwards_the_branch() {
         subject.changes(&incumbent, &cand).unwrap(),
         vec!["src/lib.rs", "tests/t.rs"]
     );
-    assert!(
-        git(&cand.path, &["status", "--porcelain"])
-            .unwrap()
-            .is_empty()
-    );
+    assert_eq!(git(&cand.path, &["status", "--porcelain"]).unwrap(), "");
     assert!(
         subject
             .diff(&incumbent, &cand)
