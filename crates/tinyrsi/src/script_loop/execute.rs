@@ -1,13 +1,14 @@
 //! Candidate materialization, bounded per-seed execution and metric parsing.
-use super::{ScriptProposal, ScriptSubject, SeedRun};
+use super::{ScriptSubject, SeedRun};
 use crate::{Error, Result};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
     time::Duration,
 };
+use tinyrsi_evolve::{ScriptProposal, is_plain_relative};
 use tinyrsi_verify::process::{self, Exit, ProcessSpec};
 
 /// Editable file contents keyed by workspace-relative path.
@@ -49,48 +50,13 @@ pub fn parse_metric(stdout: &str, name: &str) -> Result<f64> {
         .ok_or(Error::MetricInvalid)
 }
 
-/// True when `path` is relative and made only of normal components.
-fn is_plain_relative(path: &Path) -> bool {
-    !path.as_os_str().is_empty() && path.components().all(|c| matches!(c, Component::Normal(_)))
-}
-
-impl ScriptProposal {
-    /// Checks the proposal against the subject's editable set.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Error::SupervisorMalformed`] for an empty rationale,
-    /// hypothesis or file list, or a path written twice, and
-    /// [`Error::ProposalPathOutsideEditable`] for an absolute path, a path with
-    /// `.` or `..` components, or a path not in `editable`.
-    pub fn validate(&self, editable: &[PathBuf]) -> Result<()> {
-        if self.rationale.trim().is_empty()
-            || self.hypothesis.trim().is_empty()
-            || self.files.is_empty()
-        {
-            return Err(Error::SupervisorMalformed);
-        }
-        let mut seen = BTreeSet::new();
-        for file in &self.files {
-            let path = Path::new(&file.path);
-            if !is_plain_relative(path) || !editable.iter().any(|e| e == path) {
-                return Err(Error::ProposalPathOutsideEditable);
-            }
-            if !seen.insert(path) {
-                return Err(Error::SupervisorMalformed);
-            }
-        }
-        Ok(())
+/// The incumbent's sources with `proposal`'s files written over them.
+pub(super) fn apply(proposal: &ScriptProposal, incumbent: &Sources) -> Sources {
+    let mut next = incumbent.clone();
+    for file in &proposal.files {
+        next.insert(PathBuf::from(&file.path), file.content.clone());
     }
-
-    /// The incumbent's sources with this proposal's files written over them.
-    pub(super) fn apply(&self, incumbent: &Sources) -> Sources {
-        let mut next = incumbent.clone();
-        for file in &self.files {
-            next.insert(PathBuf::from(&file.path), file.content.clone());
-        }
-        next
-    }
+    next
 }
 
 /// Checks the subject before any file is touched.

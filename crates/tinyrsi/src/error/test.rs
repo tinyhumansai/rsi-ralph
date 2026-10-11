@@ -103,3 +103,33 @@ fn checker_errors_map_onto_the_variants_callers_already_match() {
         Error::HostFailed
     );
 }
+
+#[test]
+fn evolution_errors_keep_the_messages_ledgers_store() {
+    use tinyrsi_evolve::Error as Evolve;
+    for (from, to) in [
+        (Evolve::InvalidProposal, Error::InvalidProposal),
+        (Evolve::ArchiveIo, Error::ArchiveIo),
+        (Evolve::ArchiveCorrupt, Error::ArchiveCorrupt),
+        (Evolve::ArchiveLocked, Error::ArchiveLocked),
+        (Evolve::InvalidScriptSubject, Error::InvalidScriptSubject),
+        (Evolve::SupervisorMalformed, Error::SupervisorMalformed),
+        (
+            Evolve::ProposalPathOutsideEditable,
+            Error::ProposalPathOutsideEditable,
+        ),
+        (Evolve::HostFailed, Error::HostFailed),
+        (Evolve::Exhausted, Error::HostFailed),
+        (
+            Evolve::Model(tinyrsi_model::Error::InvalidRequest),
+            Error::InvalidEvaluation,
+        ),
+    ] {
+        let message = from.to_string();
+        let mapped = Error::from(from);
+        if mapped != Error::HostFailed && mapped != Error::InvalidEvaluation {
+            assert_eq!(mapped.to_string(), message);
+        }
+        assert_eq!(mapped, to);
+    }
+}
