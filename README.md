@@ -63,6 +63,7 @@ crates/
 ├── tinyrsi-model/      # bounded, metered model calls
 ├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
 ├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── tinyrsi-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
 ├── tinyrsi-score/      # Scorer port, LLM/backrooms judges, decide, statistics
 ├── tinyrsi-verify/     # host checkers, blueprints, pinned Lean, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
