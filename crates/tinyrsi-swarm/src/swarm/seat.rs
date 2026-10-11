@@ -13,7 +13,7 @@ use crate::tools;
 
 /// The permanent tools `tinyhivemind-openhuman` attaches to every seat. A
 /// seat with an explicit allow list must keep them, or it cannot talk.
-pub const HIVEMIND_TOOLS: [&str; 9] = [
+pub(crate) const HIVEMIND_TOOLS: [&str; 9] = [
     "hivemind_ask",
     "hivemind_broadcast",
     "hivemind_complete",
@@ -28,7 +28,7 @@ pub const HIVEMIND_TOOLS: [&str; 9] = [
 /// Tools every seat is denied. Turns are asynchronous: a seat that waits or
 /// polls inside its turn holds its coordinator slot until the turn wall, and
 /// the peer it waits for is never scheduled.
-pub const DENIED_TOOLS: [&str; 2] = ["wait", "wait_loop"];
+pub(crate) const DENIED_TOOLS: [&str; 2] = ["wait", "wait_loop"];
 
 /// A seat's agent specification and its announcement.
 pub(crate) fn spec(
