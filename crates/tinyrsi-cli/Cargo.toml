@@ -1,0 +1,33 @@
+[package]
+name = "tinyrsi-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The `tinyrsi` binary: run improvement loops defined as folders of JSON, Markdown and step scripts."
+readme = "README.md"
+keywords = ["rsi", "cli", "tinyrsi"]
+categories = ["command-line-utilities", "development-tools"]
+publish = false
+
+[[bin]]
+name = "tinyrsi"
+path = "src/main.rs"
+
+[dependencies]
+tinyrsi-score = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tinyrsi-verify = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
