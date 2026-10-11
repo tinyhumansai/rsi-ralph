@@ -121,11 +121,9 @@ fn run_record_warnings_are_omitted_when_empty_and_default_when_missing() {
     // A `run.json` written before warnings existed still reads.
     let mut old = serde_json::to_value(record("a", 10, RunStatus::Finished, 1)).unwrap();
     old.as_object_mut().unwrap().remove("warnings");
-    assert!(
-        serde_json::from_value::<RunRecord>(old)
-            .unwrap()
-            .warnings
-            .is_empty()
+    assert_eq!(
+        serde_json::from_value::<RunRecord>(old).unwrap().warnings,
+        Vec::<String>::new()
     );
 }
 

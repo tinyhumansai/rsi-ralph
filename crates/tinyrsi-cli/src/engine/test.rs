@@ -549,7 +549,7 @@ fn refusals_in_an_epoch_that_changed_something_are_not_reported() {
     e.meter = Some(&meter);
     let summary = e.run().unwrap();
     assert_eq!(summary.reason, StopReason::MaxEpochs);
-    assert!(summary.warnings.is_empty());
+    assert_eq!(summary.warnings, Vec::<String>::new());
     assert!(
         !events(&store, "changed")
             .iter()
@@ -575,7 +575,8 @@ fn an_empty_epoch_without_refusals_still_stalls_quietly() {
     e.meter = Some(&meter);
     let summary = e.run().unwrap();
     assert_eq!(summary.reason, StopReason::Stalled);
-    assert!(summary.warnings.is_empty() && summary.error.is_none());
+    assert_eq!(summary.warnings, Vec::<String>::new());
+    assert_eq!(summary.error, None);
     assert!(
         !events(&store, "quiet")
             .iter()
