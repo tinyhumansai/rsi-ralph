@@ -55,11 +55,12 @@ impl ModelPort for RecordedModel {
             let reply = future.await?;
             // Persist even a response that later fails request cap validation.
             // The returned content remains private and never enters the journal.
-            recording.journal.record_usage(
-                recording.id,
-                reply.input_tokens,
-                reply.output_tokens,
-            )?;
+            // A journal failure ends the call: the port boundary only carries
+            // model errors, and unrecorded usage must not reach the caller.
+            recording
+                .journal
+                .record_usage(recording.id, reply.input_tokens, reply.output_tokens)
+                .map_err(|_| crate::ModelError::CallFailed)?;
             Ok(reply)
         })
     }

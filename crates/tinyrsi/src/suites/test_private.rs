@@ -257,7 +257,7 @@ fn model_failure_or_forged_usage_is_not_fabricated_as_a_scored_run() {
                         output_tokens: 1,
                     })
                 } else {
-                    Err(Error::HostFailed)
+                    Err(crate::ModelError::CallFailed)
                 }
             })
         }

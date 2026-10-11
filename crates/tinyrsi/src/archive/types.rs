@@ -1,24 +1,8 @@
 //! Persisted archive events and proposal audit evidence.
+use crate::ProposalEvent;
 use serde::{Deserialize, Serialize};
 use tinyhivemind_lang::Package;
 use tinyhivemind_lang::lineage::Record;
-use tinyhivemind_lang::patch::Patch;
-
-/// An attempted proposal that did not produce an evaluated language record.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ProposalEvent {
-    /// Host epoch that attempted this proposal.
-    pub epoch: u64,
-    /// Exact attempted patch, including invalid operations.
-    pub patch: Patch,
-    /// Proposer's explanation.
-    pub rationale: String,
-    /// Host reason for rejecting or guarding the attempt.
-    pub reason: String,
-    /// Public transcript sequence references supporting the attempt.
-    pub transcript_refs: Vec<u64>,
-}
 
 /// Exact proposal inputs committed before executing a candidate.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

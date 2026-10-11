@@ -60,3 +60,15 @@ fn renders_lowercase_messages_for_script_loop_failures() {
         assert_eq!(error.to_string(), message);
     }
 }
+
+#[test]
+fn model_errors_map_onto_the_variants_callers_already_match() {
+    assert_eq!(
+        Error::from(tinyrsi_model::Error::InvalidRequest),
+        Error::InvalidEvaluation
+    );
+    assert_eq!(
+        Error::from(tinyrsi_model::Error::CallFailed),
+        Error::HostFailed
+    );
+}

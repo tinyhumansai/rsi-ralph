@@ -1008,7 +1008,29 @@ dependencies = [
  "tinybackrooms",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
+ "tinyrsi-model",
+ "tinyrsi-types",
  "tokio",
+]
+
+[[package]]
+name = "tinyrsi-model"
+version = "0.2.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tinybackrooms",
+ "tokio",
+]
+
+[[package]]
+name = "tinyrsi-types"
+version = "0.2.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tinyhivemind-lang",
 ]
 
 [[package]]

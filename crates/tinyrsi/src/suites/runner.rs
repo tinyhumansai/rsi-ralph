@@ -333,12 +333,12 @@ pub(super) fn request(
         .iter()
         .find(|s| s.id == task.seat)
         .ok_or(Error::HostFailed)?;
-    ModelRequest::new(
+    Ok(ModelRequest::new(
         system(&config.hive, seat, &config.memory)?,
         task.prompt.clone(),
         limits.seed,
         limits.budget,
         limits.max_output_tokens.min(limits.budget),
         limits.timeout_ms,
-    )
+    )?)
 }

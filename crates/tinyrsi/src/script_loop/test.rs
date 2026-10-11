@@ -34,7 +34,7 @@ impl ModelPort for Scripted {
             .push((request.prompt().to_owned(), request.seed()));
         let next = self.replies.lock().unwrap().pop_front();
         Box::pin(async move {
-            let content = next.ok_or(Error::HostFailed)?.into_bytes();
+            let content = next.ok_or(crate::ModelError::CallFailed)?.into_bytes();
             Ok(ModelReply {
                 content,
                 input_tokens: 100,
@@ -479,32 +479,4 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         ..ledger
     };
     assert!(prompt(&s, &empty, &sources, 3).contains("None yet."));
-}
-
-#[test]
-fn block_on_waits_for_a_wake_from_another_thread() {
-    struct Later(Arc<Mutex<Option<u8>>>, bool);
-    impl Future for Later {
-        type Output = u8;
-        fn poll(
-            mut self: std::pin::Pin<&mut Self>,
-            cx: &mut std::task::Context<'_>,
-        ) -> std::task::Poll<u8> {
-            if let Some(v) = *self.0.lock().unwrap() {
-                return std::task::Poll::Ready(v);
-            }
-            if !self.1 {
-                self.1 = true;
-                let slot = self.0.clone();
-                let waker = cx.waker().clone();
-                std::thread::spawn(move || {
-                    *slot.lock().unwrap() = Some(4);
-                    waker.wake();
-                });
-            }
-            std::task::Poll::Pending
-        }
-    }
-    use std::future::Future;
-    assert_eq!(block_on(Later(Arc::new(Mutex::new(None)), false)), 4);
 }

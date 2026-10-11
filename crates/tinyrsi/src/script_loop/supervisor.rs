@@ -4,15 +4,9 @@ use super::{
     LedgerCandidate, ScriptLedger, ScriptProposal, ScriptSubject, SupervisorLimits,
     execute::Sources,
 };
-use crate::{Error, ModelPort, ModelRequest, Result};
+use crate::{Error, ModelPort, ModelRequest, Result, block_on};
 use serde_json::{Value, json};
-use std::{
-    fmt::Write as _,
-    future::Future,
-    sync::Arc,
-    task::{Context, Poll, Wake, Waker},
-    thread::{self, Thread},
-};
+use std::{fmt::Write as _, sync::Arc};
 
 /// Name of the forced native tool.
 pub(super) const TOOL: &str = "propose_script";
@@ -207,25 +201,4 @@ pub(super) fn prompt(
         );
     }
     text
-}
-
-struct ThreadWaker(Thread);
-
-impl Wake for ThreadWaker {
-    fn wake(self: Arc<Self>) {
-        self.0.unpark();
-    }
-}
-
-/// Drives a future to completion on the current thread.
-pub(super) fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = std::pin::pin!(future);
-    let waker = Waker::from(Arc::new(ThreadWaker(thread::current())));
-    let mut cx = Context::from_waker(&waker);
-    loop {
-        match future.as_mut().poll(&mut cx) {
-            Poll::Ready(value) => return value,
-            Poll::Pending => thread::park(),
-        }
-    }
 }

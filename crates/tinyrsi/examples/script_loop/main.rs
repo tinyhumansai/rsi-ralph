@@ -49,7 +49,7 @@ impl ModelPort for Canned {
             .ok()
             .flatten();
         Box::pin(async move {
-            let content = next.ok_or(tinyrsi::Error::HostFailed)?.into_bytes();
+            let content = next.ok_or(tinyrsi::ModelError::CallFailed)?.into_bytes();
             // Nothing was generated, so nothing is charged.
             Ok(ModelReply {
                 content,

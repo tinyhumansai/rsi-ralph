@@ -9,6 +9,7 @@ use crate::{
     Archive, Comparison, Error, EvalDecision, EvalPolicy, EvalRun, PatchClass, ProposalEvent,
     Result, compare, ensure_independent,
 };
+use crate::{CandidateState, EvalStage, Proposal, ReasonCode};
 pub use normalized::{
     HApprovalGate, HCandidateOutcome, HEpoch, HEvalPair, HEvaluator, run_proposal_h,
 };

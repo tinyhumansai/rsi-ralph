@@ -25,6 +25,12 @@ license = "GPL-3.0-only"
 repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 
 [workspace.dependencies]
+# Shared proposal and candidate data. No `version` requirement on purpose: the
+# workspace version moves on every release, and nothing here is published, so
+# the path is the whole address.
+tinyrsi-types = { path = "crates/tinyrsi-types" }
+# Bounded, metered model calls shared by scoring, evolution and the loops.
+tinyrsi-model = { path = "crates/tinyrsi-model" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.

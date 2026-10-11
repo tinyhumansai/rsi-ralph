@@ -209,7 +209,7 @@ impl ModelPort for Script {
         };
         Box::pin(async move {
             if failed {
-                Err(Error::HostFailed)
+                Err(crate::ModelError::CallFailed)
             } else {
                 Ok(crate::ModelReply {
                     content,

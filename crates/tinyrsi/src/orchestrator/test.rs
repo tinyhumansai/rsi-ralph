@@ -3,6 +3,7 @@
 use super::*;
 use crate::{
     Budget, Comparison, EvalDecision, EvalPolicy, EvalRun, Operation, Package, Patch, PatchClass,
+    Prediction,
 };
 use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
 

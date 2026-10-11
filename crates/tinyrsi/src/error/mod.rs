@@ -88,6 +88,18 @@ pub enum Error {
     SupervisorMalformed,
 }
 
+/// Model-boundary failures keep the variants this crate has always reported:
+/// an invalid request, limit or reply is [`Error::InvalidEvaluation`], and a
+/// failed provider call is [`Error::HostFailed`].
+impl From<tinyrsi_model::Error> for Error {
+    fn from(error: tinyrsi_model::Error) -> Self {
+        match error {
+            tinyrsi_model::Error::InvalidRequest => Self::InvalidEvaluation,
+            _ => Self::HostFailed,
+        }
+    }
+}
+
 /// The crate's standard result type.
 ///
 /// Use this alias in public signatures instead of spelling out

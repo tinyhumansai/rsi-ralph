@@ -51,7 +51,6 @@ mod experiment;
 mod host;
 mod lineage;
 mod memory;
-mod model;
 mod observation;
 mod orchestrator;
 mod process;
@@ -71,7 +70,7 @@ pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
     Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
-    ProposalDispositionRow, ProposalEvent,
+    ProposalDispositionRow,
 };
 pub use blueprint::*;
 pub use evaluation::{
@@ -81,10 +80,12 @@ pub use evaluation::{
 pub use observation::*;
 pub use orchestrator::*;
 pub use tinyhivemind_lang;
-// The language's own definitions, re-exported so hosts name one crate.
-pub use tinyhivemind_lang::Package;
-pub use tinyhivemind_lang::lineage::{Record, VersionMetadata};
-pub use tinyhivemind_lang::patch::{Operation, Patch, PatchClass};
+// Shared proposal data and the language's own definitions, re-exported so
+// hosts name one crate.
+pub use tinyrsi_types::{
+    CandidateState, EvalStage, Operation, Package, Patch, PatchClass, Prediction, Proposal,
+    ProposalEvent, ReasonCode, Record, VersionMetadata,
+};
 
 pub use retreat::{
     RetreatOutput, RetreatTransport, build_retreat_request, decode_retreat_response,
@@ -109,9 +110,12 @@ pub use verification::*;
 pub use epoch_driver::*;
 pub use experiment::*;
 pub use memory::SnapshotMemoryStore;
-pub use model::*;
 #[cfg(feature = "host")]
 pub use suites::*;
+pub use tinyrsi_model::{
+    BudgetedModel, Error as ModelError, GenerationMeter, ModelConversant, ModelFuture,
+    ModelIdentity, ModelPort, ModelReply, ModelRequest, OpenRouterModel, block_on,
+};
 
 pub use archive::NormalizedApprovalEvent;
 
