@@ -470,20 +470,22 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         }
     };
     if prepared.stream && response.status().is_success() {
-        return stream_through(in_flight, prepared, reservation, response, move |outcome| {
+        return stream_through(in_flight, call, prepared, reservation, response, move |outcome| {
             row(&outcome.0, outcome.1)
         });
     }
     let model = prepared.model.clone();
-    let (response, outcome) = buffered(&proxy, &prepared, reservation, response).await;
+    let (response, outcome) = buffered(&proxy, call, &prepared, reservation, response).await;
     proxy.record(&row(&model, outcome));
     drop(in_flight);
     response
 }
 
 /// Reads a non-streaming (or failed) response whole, then settles it.
+/// `call` is the call's position in the upstream tally.
 async fn buffered(
     proxy: &Proxy,
+    call: u64,
     prepared: &Prepared,
     reservation: Reservation,
     response: reqwest::Response,
@@ -493,11 +495,11 @@ async fn buffered(
     let bytes = match response.bytes().await {
         Ok(bytes) => {
             let bytes = proxy.redact_body(bytes);
-            proxy.calls.answered(status.as_u16(), &bytes);
+            proxy.calls.answered(call, status.as_u16(), &bytes);
             bytes
         }
         Err(error) => {
-            proxy.calls.unreachable(&proxy.redact(&error.to_string()));
+            proxy.calls.unreachable(call, &proxy.redact(&error.to_string()));
             Bytes::new()
         }
     };
@@ -573,7 +575,7 @@ where
         drop(tx);
         // Only now is it known: a stream that broke off was never answered.
         if let Some(message) = &failure {
-            proxy.calls.unreachable(message);
+            proxy.calls.unreachable(call, message);
         }
         let usage = scanner.finish();
         let cost = proxy
