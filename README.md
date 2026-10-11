@@ -62,19 +62,19 @@ crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # bounded, metered model calls
 ├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
+├── tinyrsi-score/      # Scorer port, LLM/backrooms judges, decide, statistics
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
     │   ├── error/      # crate-wide `Error` and `Result<T>`
     │   ├── lineage/    # small in-memory ledger of graded candidates
     │   ├── archive/    # replay-validated proposals and evaluation evidence
-    │   ├── observation/, evaluation/, orchestrator/  # epoch and approval funnel
-    │   ├── scoring/, verification/  # normalized scores and real host checks
+    │   ├── observation/, orchestrator/  # epoch and approval funnel
+    │   ├── verification/  # real host checks
     │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
     │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
     │   ├── host/, suites/   # deployment and isolated model evaluation
-    │   ├── script_loop/, process/  # plain-script loop
-    │   └── experiment/ # preregistered paired trial ledger
+    │   └── script_loop/, process/  # plain-script loop
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs

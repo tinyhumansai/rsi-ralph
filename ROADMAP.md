@@ -23,7 +23,7 @@ published 24-attempt experiment is inconclusive.
   Demonstrated offline by the `observe_epochs` example.
 - P2 human-gated shadow selection: `run_proposal_h` with frozen screen,
   selection and confirmation stages (`orchestrator/`), normalized H scoring
-  and bootstrap (`scoring/`), private suites and `CoordinatorEvaluator`
+  and bootstrap (`crates/tinyrsi-score/src/scoring/`), private suites and `CoordinatorEvaluator`
   (`suites/`), immutable memory snapshots (`memory/`).
 - P3 verified decomposition: `Blueprint` (`blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
@@ -38,7 +38,7 @@ published 24-attempt experiment is inconclusive.
   `recover` over `CoordinatorHost` with SQLite fencing and compensation
   (`host/`).
 - P6 bounded experiment: `ExperimentProtocol` and `run_experiment` with
-  original/evolved arms and memory/retreat ablations (`experiment/`).
+  original/evolved arms and memory/retreat ablations (`crates/tinyrsi-score/src/experiment/`).
 - Model boundary: `ModelPort`, `OpenRouterModel`, `BudgetedModel` and
   `ModelConversant` with pre-dispatch token reservation (`crates/tinyrsi-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls

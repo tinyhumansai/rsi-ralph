@@ -122,7 +122,7 @@ them.
 task and seed, returned as `EvalPair` / `HEvalPair`. Each arm gets fresh
 coordinator storage in `CoordinatorEvaluator`.
 
-**Trial (experiment), arm, ablation.** In `experiment/`, a *trial* is one
+**Trial (experiment), arm, ablation.** In `crates/tinyrsi-score/src/experiment/`, a *trial* is one
 `TrialRequest`: an *arm* (`ExperimentArm::Original` or `Evolved`
 orchestrator configuration) crossed with an *ablation*
 (`ExperimentAblation::Full`, `MemoryOff`, `RetreatOff`) and a seed draw.
@@ -130,13 +130,13 @@ orchestrator configuration) crossed with an *ablation*
 `ExperimentExecutor`.
 
 **H score.** The normalized hive score from `score` and `compare_h`
-(`scoring/mod.rs`): each family's mean quality is normalized against its
+(`crates/tinyrsi-score/src/scoring/mod.rs`): each family's mean quality is normalized against its
 anchor, combined by an interquartile mean, then penalized for false claims,
 tampering and excess cost. `compare_h` adds a paired cluster-bootstrap
 interval and returns `Accept`, `Reject` or `Inconclusive`. Full formula in
-`scoring/README.md`.
+`crates/tinyrsi-score/src/scoring/README.md`.
 
-**Anchor.** `FamilyAnchor` (`scoring/types.rs`): a frozen `baseline` and
+**Anchor.** `FamilyAnchor` (`crates/tinyrsi-score/src/scoring/types.rs`): a frozen `baseline` and
 `reference` quality for one task family, used to normalize H. Separately,
 `AnchorLedger` monitors anchor-suite scores across epochs, and the
 experiment's *anchor suite* is a held-out draw measured before and after

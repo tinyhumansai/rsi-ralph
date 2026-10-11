@@ -26,6 +26,7 @@ crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
+├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -34,14 +35,11 @@ crates/
     │   ├── archive/          # durable selection history (records, proposals, evidence)
     │   ├── observation/      # read-only coordinator snapshots and dossiers
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
-    │   ├── evaluation/       # raw paired comparison and budgets
-    │   ├── scoring/          # normalized H, bootstrap, anchors
     │   ├── retreat/          # tinybackrooms request/response contract
     │   ├── retreat_memory/   # durable recall cache for the retreat Engine
     │   ├── memory/           # immutable hive-memory snapshot store
     │   ├── blueprint/        # verified decomposition DAG
     │   ├── verification/     # host checkers and controlled completion
-    │   ├── experiment/       # preregistered original-vs-evolved protocol
     │   ├── script_loop/      # improvement loop over a plain script
     │   ├── process/          # bounded child-process runner
     │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch

@@ -28,7 +28,7 @@ flowchart TD
     E["1 Execute<br/>CoordinatorHost (host/runtime.rs)<br/>Coordinator::send_as_host + run_until_idle (tinyhivemind)"]
     O["2 Observe<br/>DeploymentStore::observe (host/mod.rs)<br/>Observer::snapshot, Dossier::build (observation/mod.rs)"]
     I["3 Ideate<br/>prepare_retreat_epoch (epoch_driver/generation.rs)<br/>tinybackrooms Engine via ModelConversant (crates/tinyrsi-model)"]
-    S["4 Evaluate and score<br/>evaluate_retreat_epoch (epoch_driver/mod.rs)<br/>run_proposal_h (orchestrator/normalized/mod.rs)<br/>CoordinatorEvaluator::evaluate_h (suites/mod.rs), compare_h (scoring/mod.rs)"]
+    S["4 Evaluate and score<br/>evaluate_retreat_epoch (epoch_driver/mod.rs)<br/>run_proposal_h (orchestrator/normalized/mod.rs)<br/>CoordinatorEvaluator::evaluate_h (suites/mod.rs), compare_h (crates/tinyrsi-score)"]
     A["5 Approve<br/>HApprovalGate::approve_h (orchestrator/normalized/types.rs)<br/>Archive::conclude (archive/mod.rs)"]
     D["6 Deploy<br/>DeploymentStore::activate (host/mod.rs)<br/>ActivationBackend::apply on CoordinatorHost"]
     R["Undo / restart<br/>DeploymentStore::rollback, DeploymentStore::recover (host/mod.rs)"]
