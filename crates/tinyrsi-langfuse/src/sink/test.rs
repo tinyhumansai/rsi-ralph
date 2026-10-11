@@ -6,7 +6,7 @@ use super::*;
 use openhuman_embed::observe::langfuse::{SpanKind, SpanStatus};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use tinyrsi_trace::{MetricDirection, RunGoal, ScoreDecision, StopReason};
+use tinyrsi_trace::{IntervalUnits, MetricDirection, RunGoal, ScoreDecision, StopReason};
 
 fn run(reason: StopReason) -> Vec<LoopEvent> {
     vec![
@@ -30,6 +30,7 @@ fn run(reason: StopReason) -> Vec<LoopEvent> {
             estimate: 0.5,
             lower: 0.1,
             upper: 0.9,
+            units: IntervalUnits::Metric,
         },
         LoopEvent::EpochFinished {
             epoch: 1,
