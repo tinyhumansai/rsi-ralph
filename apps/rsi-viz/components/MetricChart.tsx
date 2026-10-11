@@ -60,7 +60,8 @@ function candidateTip(c: Candidate, goal: Goal | null): string {
   const parts = [`epoch ${c.epoch} · ${c.id}`, `${metric} ${formatMetric(c.mean)}`];
   if (c.proposalId) parts.push(`proposal ${c.proposalId}`);
   if (c.decision) {
-    parts.push(`${c.decision}: ${formatSigned(c.estimate)} [${formatMetric(c.lower)}, ${formatMetric(c.upper)}]`);
+    const units = c.units === "quality" ? "quality " : "";
+    parts.push(`${c.decision}: ${units}${formatSigned(c.estimate)} [${formatMetric(c.lower)}, ${formatMetric(c.upper)}]`);
   } else if (c.epoch === 0) {
     parts.push("baseline");
   }

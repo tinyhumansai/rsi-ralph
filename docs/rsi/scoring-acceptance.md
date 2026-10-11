@@ -11,17 +11,17 @@ completion. No tests are skipped or added to pretend a missing feature exists.
 
 The identifiers in the tables refer to these actual source files:
 
-- **S**: [normalized scoring tests](../../crates/tinyrsi/src/scoring/test.rs).
+- **S**: [normalized scoring tests](../../crates/tinyrsi-score/src/scoring/test.rs).
 - **N**: [normalized proposal tests](../../crates/tinyrsi/src/orchestrator/normalized/test.rs).
 - **O**: [original proposal tests](../../crates/tinyrsi/src/orchestrator/test.rs).
 - **F**: [memory/guard funnel tests](../../crates/tinyrsi/src/orchestrator/test_funnel.rs).
-- **Q**: [quality and judge-calibration tests](../../crates/tinyrsi/src/evaluation/test.rs).
+- **Q**: [quality and judge-calibration tests](../../crates/tinyrsi-score/src/evaluation/test.rs).
 - **M**: [snapshot-memory tests](../../crates/tinyrsi/src/memory/test.rs).
-- **E**: [Engine epoch tests](../../crates/tinyrsi/src/epoch_driver/test.rs).
+- **E**: [Engine epoch tests](../../crates/tinyrsi-host/src/epoch_driver/test.rs).
 
 ## Reject-code coverage and compatibility
 
-The current public [ReasonCode](../../crates/tinyrsi/src/orchestrator/types.rs)
+The current public [ReasonCode](../../crates/tinyrsi-types/src/proposal/types.rs)
 serializes twelve outcomes. The intended seventeen rejection codes below remain a more detailed taxonomy.
 `Archive::proposal_dispositions` now provides versioned exact-duplicate history
 without changing that coarse wire contract.

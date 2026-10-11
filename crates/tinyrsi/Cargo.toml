@@ -5,26 +5,20 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "A production-ready tinyrsi for installable TinyBus modules."
+description = "Host-driven improvement loops for tinyhivemind hives and plain scripts."
 documentation = "https://docs.rs/tinyrsi"
 readme = "../../README.md"
-keywords = ["tinybus", "module", "plugin", "tinyrsi"]
+keywords = ["rsi", "self-improvement", "agents", "evaluation", "tinyrsi"]
 categories = ["development-tools"]
 publish = false
 
-[lib]
-# Keep the ordinary Rust library for tests and downstream reuse while also
-# producing the native module artifact that TinyBus loads at runtime.
-crate-type = ["rlib", "cdylib"]
-
 [dependencies]
-# The wire contract: member names, payload types, and the contract version.
-# Re-exported wholesale from `src/lib.rs` so a consumer takes one dependency
-# rather than two, and so `tinyrsi::GradeEntry` and
-# `tinyrsi_bus::GradeEntry` are the same type.
-tinyrsi-bus = { workspace = true }
-tinybus = { workspace = true }
-tinybus-module = { workspace = true }
+tinyrsi-types = { workspace = true }
+tinyrsi-model = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tinyrsi-score = { workspace = true }
+tinyrsi-verify = { workspace = true }
+tinyrsi-evolve = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -35,39 +29,13 @@ fs2 = { workspace = true }
 sha2 = { workspace = true }
 jsonschema = { workspace = true }
 tempfile = { workspace = true }
-tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
 tempfile = { workspace = true }
 
-[features]
-default = []
-# Durable coordinator storage for the executable host workflow.
-host = ["tinyhivemind-hives/sqlite", "dep:tokio"]
-
 [lints]
 workspace = true
-
-[[example]]
-name = "complete_openrouter"
-required-features = ["host"]
-
-[[example]]
-name = "observe_epochs"
-required-features = ["host"]
-
-[[example]]
-name = "private_benchmark"
-required-features = ["host"]
-
-[[example]]
-name = "proposal_metrics"
-required-features = ["host"]
-
-[[example]]
-name = "verify_lean_slice"
-required-features = ["host"]
 
 # A directory example: `main.rs` plus the Python harness, starting model and
 # canned proposals it embeds. Runs offline by default, so it needs no feature.

@@ -1,15 +1,12 @@
 # TinyRSI
 
 A host-driven orchestrator for improving tinyhivemind hives through typed
-patches, private shadow evaluations and explicit human approval. It also
-provides a TinyBus lineage module for existing hosts. It is a two-crate cargo workspace:
-`crates/tinyrsi-bus` is the wire contract — member names, payload types, and
-the contract version, with no transport and no behavior — and `crates/tinyrsi`
-is the implementation, built as both an `rlib` and the `cdylib` TinyBus loads.
-A host that only makes calls depends on the contract crate alone and compiles
-neither the module nor `tinybus` itself.
+patches, private shadow evaluations and explicit human approval, plus a
+generic improvement loop for plain scripts. It is a Rust library,
+`crates/tinyrsi`, that a host program links; it has no daemon and no plugin
+surface of its own.
 
-## What the module does
+## What it does
 
 The Rust API runs a host-controlled improvement loop: persist redacted epoch
 observations, generate typed proposals, freeze normalized evaluation policy and
@@ -19,7 +16,7 @@ language `Record` and `Package` values, prepared snapshots, declarations, paired
 runs, recomputed comparisons, explicit decisions and final outcomes. Selection
 and live deployment remain separate durable facts.
 
-The optional `host` feature supplies `CoordinatorHost` over real tinyhivemind
+The `tinyrsi-host` crate supplies `CoordinatorHost` over real tinyhivemind
 storage, including SQLite, and `DeploymentStore` for activation, compensation,
 restart and parent rollback. `SnapshotMemoryStore` provides immutable local
 memory images. `VerifiedRunner` settles work only through immutable host checks;
@@ -31,14 +28,14 @@ prevents completed generation/evaluation from repeating after restart.
 observed checker evidence, then atomically consumes them into a redacted epoch
 receipt. Duplicate callbacks and repeated epoch reads do not recount work after
 restart; interrupted calls with missing usage remain explicitly unknown. Run
-`cargo run -p tinyrsi --features host --example observe_epochs` for the offline
+`cargo run -p tinyrsi-host --example observe_epochs` for the offline
 two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
 
 `EpochJournal::proposal_dataset` links typed formatter occurrences and committed
 predictions to selection-only labels, preserving missing and censored outcomes.
 Optional probabilities are frozen before evaluation; Brier, tied-rank Spearman
 and precision-at-k report their denominators without using confirmation or anchor
-measurements. See the [dataset contract](crates/tinyrsi/src/epoch_driver/dataset/README.md)
+measurements. See the [dataset contract](crates/tinyrsi-host/src/epoch_driver/dataset/README.md)
 and the `proposal_metrics` example for reporting an existing private host run.
 
 The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
@@ -56,65 +53,41 @@ These public toy fixtures do not establish positive RSI or ignition.
 See [phase status](docs/rsi/phases.md), [host runtime](docs/specs/host-runtime.md)
 and [the experiment protocol](docs/specs/ignition.md).
 
-The existing bus API remains compatible:
-
-- **`Append`** records one graded candidate: its position in the lineage, the
-  content address of its environment snapshot, its private grade, the verdict
-  (`Accepted` or `Rejected`), and the rationale for the decision. An entry
-  whose step does not exactly continue the ledger, or whose snapshot address
-  or rationale is empty, is rejected.
-- **`Head`** answers which entry is the current incumbent: the last accepted
-  entry, or `None` before the first acceptance.
-
-The interface is `ai.tinyhumans.tinyrsi.Lineage` at
-`/ai/tinyhumans/tinyrsi/Lineage`; every payload type and member name is
-published by `crates/tinyrsi-bus`, so a host names them from a library rather
-than by string literal.
-
 ## Project Structure
 
 ```text
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 crates/
-├── tinyrsi-bus/        # the wire contract: what crosses the bus, nothing else
-│   └── src/
-│       ├── lib.rs      # crate docs + the entire public re-export surface
-│       ├── names/      # interface, object path, one constant per member
-│       ├── lineage/    # the payload family the members carry
-│       └── version/    # contract version and the host bind rule
-└── tinyrsi/            # the module: behavior, adapter, and the cdylib
+├── tinyrsi-types/      # proposal and candidate data shared by every crate
+├── tinyrsi-model/      # bounded, metered model calls
+├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
+├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── tinyrsi-score/      # Scorer port, LLM/backrooms judges, decide, statistics
+├── tinyrsi-verify/     # host checkers, blueprints, pinned Lean, process runner
+├── tinyrsi-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
+├── tinyrsi-host/       # hive runtime: coordinators, suites, durable epochs, deployment
+└── tinyrsi/            # the improvement-loop library
     ├── src/
-    │   ├── lib.rs      # crate docs + public surface, re-exporting the contract
+    │   ├── lib.rs      # crate docs + the entire public surface
     │   ├── error/      # crate-wide `Error` and `Result<T>`
-    │   ├── lineage/    # the compatible bus ledger
+    │   ├── lineage/    # small in-memory ledger of graded candidates
     │   ├── archive/    # replay-validated proposals and evaluation evidence
-    │   ├── observation/, evaluation/, orchestrator/  # epoch and approval funnel
-    │   ├── scoring/, verification/  # normalized scores and real host checks
-    │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
-    │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
-    │   ├── host/, model/, suites/   # deployment and isolated model evaluation
-    │   ├── experiment/ # preregistered paired trial ledger
-    │   └── tinybus_module/   # TinyBus interface, ABI exports, integration tests
+    │   ├── observation/, orchestrator/  # epoch and approval funnel
+    │   ├── memory/     # immutable snapshots
+    │   └── script_loop/  # plain-script loop
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
-vendor/tinybus/         # pinned TinyBus host types and module SDK
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
+vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
+examples/               # end-to-end examples: math_problem, upgrade_file, hive_goal
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
 ├── specs/              # behavior and architecture specifications
 ├── plans/              # test-first implementation plans
 └── adr/                # immutable architecture decision records
 ```
-
-The split is the point. A payload type describes what a frame carries; the
-behavior that answers it is a different obligation. `tinyrsi` depends on
-`tinyrsi-bus` and re-exports all of it, so `tinyrsi::GradeEntry` and
-`tinyrsi_bus::GradeEntry` are the *same* type rather than structural twins,
-and a host is never forced to choose between linking the whole module and
-redefining the vocabulary. See
-[`crates/tinyrsi-bus/README.md`](crates/tinyrsi-bus/README.md).
 
 Within each crate, feature areas use directory modules: implementation and
 exports live in `mod.rs`, substantial types move to `types.rs`, and unit tests
@@ -137,7 +110,6 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
 cargo run -p tinyrsi --example basic
-cargo build -p tinyrsi --release --lib   # produces the installable cdylib
 ```
 
 Those four checks are exactly what CI runs. Optional extras:
@@ -156,6 +128,11 @@ cargo install cargo-llvm-cov         # once, before running the coverage gate
 runs under `target/` and follows a loop's `events.jsonl` live: current stage,
 metric by epoch, proposals with their decisions, and the incumbent lineage.
 `cd apps/rsi-viz && npm ci && npm run dev`.
+
+To see the same runs in Langfuse, add a `tinyrsi_langfuse::LangfuseTrace` to the
+loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It sends
+OTLP spans through OpenHuman's own Langfuse client and reads the same
+`LANGFUSE_*` variables; see `.env.example`.
 
 ## Live OpenRouter smoke test
 
@@ -183,7 +160,7 @@ controlled path below exercises normalized confirmation, approval and deployment
 
 ```sh
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi --features host --example complete_openrouter
+  cargo run -p tinyrsi-host --example complete_openrouter
 ```
 
 It requires inherited `OPENROUTER_API_KEY` and an actual stock Lean executable.
@@ -192,6 +169,19 @@ host-private directory (default `target/rsi-complete-live`); existing directorie
 are refused to preserve preregistration. The example spends real API tokens.
 It writes protocol and aggregate experiment reports without publishing private
 suite contents. A negative or inconclusive report is a valid result.
+
+## End-to-end examples
+
+[`examples/`](examples/README.md) runs the whole loop (evolve, score, keep
+what is better) on three problems, offline by default:
+
+- `math_problem`: compute π to 12 digits.
+- `upgrade_file`: bring a file up to a written coding standard.
+- `hive_goal`: improve a hive of agents until they solve private tasks.
+
+Run `cargo run -p tinyrsi-examples --example math_problem` (or
+`upgrade_file`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
+`RSI_RUN_ROOT=../../target/rsi-examples`.
 
 ## Improving a plain script
 
@@ -209,18 +199,8 @@ Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or
 `major` bump. Use `current` only to resume an interrupted release whose version
 commit and tag already exist. The workflow revalidates the workspace, versions
 and tags it — one `[workspace.package]` version that every member inherits —
-builds `crates/tinyrsi` as a TinyBus `cdylib`, and creates a GitHub release.
-Assets follow `tinyrsi-<version>-<platform>.<tar.gz|zip>` and contain the
-native module, its SHA-256 `modules.toml`, license, and
-[`MODULE.md`](MODULE.md). Every release also publishes `checksum.toml`, which
-TinyBus uses to verify an archive before extraction. The workflow loads the
-published Ubuntu archive through TinyBus's GitHub release API and calls its
-`Append` method before declaring the release successful. TinyBus itself is not
-shipped by this repository; the pinned submodule is the build-time SDK. The
-stable native matrix covers Ubuntu 22.04 and 24.04 on x86_64 and ARM64; Fedora
-43 and 44 on x86_64 and ARM64; rolling Arch Linux on its officially supported
-x86_64 architecture; macOS 15 and 26 on Intel and Apple Silicon; Windows Server
-2022 and 2025 on x86_64; and Windows 11 on ARM64.
+and creates a GitHub release with generated notes. A release is a tagged
+source version; there are no binary assets.
 
 The separate acceptance/deployment validation uses a model-authored, schema-bound
 context repair outside the preregistered comparison:
@@ -229,7 +209,7 @@ context repair outside the preregistered comparison:
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_CONTROLLED_ONLY=1 \
   TINYRSI_COMPLETE_DIR=target/rsi-controlled-live \
   TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi --all-features --example complete_openrouter
+  cargo run -p tinyrsi-host --example complete_openrouter
 ```
 
 It checks all three normalized evaluation stages, both sandbox gate decisions,

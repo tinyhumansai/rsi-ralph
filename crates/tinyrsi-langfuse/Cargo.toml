@@ -1,0 +1,22 @@
+[package]
+name = "tinyrsi-langfuse"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Exports TinyRSI loop traces to Langfuse through OpenHuman's client."
+readme = "../../README.md"
+keywords = ["rsi", "langfuse", "observability", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+openhuman-embed = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

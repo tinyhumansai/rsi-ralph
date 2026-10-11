@@ -17,7 +17,7 @@ mod types;
 #[cfg(test)]
 use replay::validate_watermarks;
 
-use crate::{Error, Result};
+use crate::{Error, ProposalEvent, Result};
 pub use dispositions::{DuplicateDisposition, ProposalDispositionReport, ProposalDispositionRow};
 use std::collections::BTreeMap;
 #[cfg(unix)]
@@ -29,7 +29,7 @@ use tinyhivemind_lang::Package;
 use tinyhivemind_lang::lineage::{self, Record, Verdict, VersionMetadata};
 pub use types::{
     EvaluationEvent, NormalizedApprovalEvent, NormalizedDeclarationEvent,
-    NormalizedEvaluationEvent, ProposalDeclaration, ProposalEvent,
+    NormalizedEvaluationEvent, ProposalDeclaration,
 };
 use types::{Event, Snapshot};
 

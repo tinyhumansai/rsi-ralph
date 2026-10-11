@@ -15,7 +15,7 @@ use std::{
 use tinyrsi::{
     JsonlTrace, LoopPolicy, MetricDirection, MetricSpec, ModelFuture, ModelPort, ModelReply,
     ModelRequest, MonotonicClock, OpenRouterModel, RunLocation, ScriptCommand, ScriptSubject,
-    Supervisor, SupervisorLimits, run_script_loop,
+    ScriptSupervisor, SupervisorLimits, run_script_loop,
 };
 
 const HARNESS: &str = include_str!("curve_fit.py");
@@ -49,7 +49,7 @@ impl ModelPort for Canned {
             .ok()
             .flatten();
         Box::pin(async move {
-            let content = next.ok_or(tinyrsi::Error::HostFailed)?.into_bytes();
+            let content = next.ok_or(tinyrsi::ModelError::CallFailed)?.into_bytes();
             // Nothing was generated, so nothing is charged.
             Ok(ModelReply {
                 content,
@@ -174,7 +174,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("offline supervisor: canned proposals (set TINYRSI_LIVE_OPENROUTER=1 for live)");
         Arc::new(canned())
     };
-    let supervisor = Supervisor::new(port, SupervisorLimits::default())?;
+    let supervisor = ScriptSupervisor::new(port, SupervisorLimits::default())?;
     let policy = LoopPolicy {
         max_epochs: epochs,
         proposals_per_epoch: proposals,

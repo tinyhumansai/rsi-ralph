@@ -6,7 +6,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
-use tinyrsi_bus::Verdict;
 
 fn entry(step: u64, grade: f64, verdict: Verdict) -> GradeEntry {
     GradeEntry::new(step, "sha256:abc", grade, verdict, "rationale")
@@ -93,4 +92,60 @@ fn entries_stay_in_step_order() {
     }
     let steps: Vec<u64> = lineage.entries().iter().map(|e| e.step).collect();
     assert_eq!(steps, vec![0, 1, 2, 3]);
+}
+
+#[test]
+fn an_entry_serializes_to_its_stored_form() {
+    let encoded = serde_json::to_value(entry(0, 0.703, Verdict::Accepted)).unwrap();
+    assert_eq!(
+        encoded,
+        serde_json::json!({
+            "step": 0,
+            "snapshot": "sha256:abc",
+            "grade": 0.703,
+            "verdict": "Accepted",
+            "rationale": "rationale",
+        })
+    );
+}
+
+#[test]
+fn an_entry_round_trips_through_json() {
+    let original = entry(3, 0.778, Verdict::Rejected);
+    let encoded = serde_json::to_string(&original).unwrap();
+    assert_eq!(
+        serde_json::from_str::<GradeEntry>(&encoded).unwrap(),
+        original
+    );
+}
+
+#[test]
+fn an_entry_missing_its_verdict_is_rejected() {
+    let decoded = serde_json::from_value::<GradeEntry>(serde_json::json!({
+        "step": 0,
+        "snapshot": "sha256:abc",
+        "grade": 0.5,
+        "rationale": "baseline",
+    }));
+    assert!(decoded.is_err());
+}
+
+#[test]
+fn an_unknown_verdict_is_rejected() {
+    let decoded = serde_json::from_value::<Verdict>(serde_json::json!("Pending"));
+    assert!(decoded.is_err());
+}
+
+#[test]
+fn constructors_accept_both_borrowed_and_owned_strings() {
+    assert_eq!(
+        GradeEntry::new(
+            0,
+            String::from("sha256:abc"),
+            0.5,
+            Verdict::Accepted,
+            String::from("r")
+        ),
+        GradeEntry::new(0, "sha256:abc", 0.5, Verdict::Accepted, "r")
+    );
 }

@@ -13,15 +13,9 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**TinyBus module**
-
-- `ai.tinyhumans.tinyrsi.Lineage` with `Append` and `Head`, served from an
-  in-memory `Lineage` ledger (`src/lineage/`, `src/tinybus_module/`).
-- `tinyrsi-bus` contract crate: names, payloads and `CONTRACT_VERSION`.
-- Release workflow producing per-platform module archives with
-  `checksum.toml`; `verify_module` and `verify_github_release` examples.
-
-**Improvement loop library** (paths under `crates/tinyrsi/src/`)
+**Improvement loop library** (paths under `crates/tinyrsi/src/`, or
+`crates/tinyrsi-host/src/` for `host/`, `suites/`, `epoch_driver/` and
+`evidence_journal/`)
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
   `DeploymentStore::observe` (`host/`), `EvidenceJournal`
@@ -31,24 +25,24 @@ published 24-attempt experiment is inconclusive.
   Demonstrated offline by the `observe_epochs` example.
 - P2 human-gated shadow selection: `run_proposal_h` with frozen screen,
   selection and confirmation stages (`orchestrator/`), normalized H scoring
-  and bootstrap (`scoring/`), private suites and `CoordinatorEvaluator`
+  and bootstrap (`crates/tinyrsi-score/src/scoring/`), private suites and `CoordinatorEvaluator`
   (`suites/`), immutable memory snapshots (`memory/`).
-- P3 verified decomposition: `Blueprint` (`blueprint/`), `VerifierRegistry`
+- P3 verified decomposition: `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
-  (`verification/`), plus a pinned-toolchain `lake build` checker
-  (`verification/lake/`) validated on 12 private reference proofs
+  (`crates/tinyrsi-verify/src/verification/`), plus a pinned-toolchain `lake build` checker
+  (`crates/tinyrsi-verify/src/verification/lake/`) validated on 12 private reference proofs
   ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets
-  (`epoch_driver/`), the tinybackrooms request contract (`retreat/`) and
-  `DurableRetreatMemory` (`retreat_memory/`).
+  (`epoch_driver/`), the tinybackrooms request contract (`crates/tinyrsi-evolve/src/retreat/`) and
+  `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`).
 - P5 structural deployment: `DeploymentStore::activate`, `rollback` and
   `recover` over `CoordinatorHost` with SQLite fencing and compensation
   (`host/`).
 - P6 bounded experiment: `ExperimentProtocol` and `run_experiment` with
-  original/evolved arms and memory/retreat ablations (`experiment/`).
+  original/evolved arms and memory/retreat ablations (`crates/tinyrsi-score/src/experiment/`).
 - Model boundary: `ModelPort`, `OpenRouterModel`, `BudgetedModel` and
-  `ModelConversant` with pre-dispatch token reservation (`model/`).
+  `ModelConversant` with pre-dispatch token reservation (`crates/tinyrsi-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls
   ([`docs/rsi/private-benchmarks.md`](docs/rsi/private-benchmarks.md)).
 
@@ -80,6 +74,10 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
   original-versus-learned comparison (P6).
 
 ## Out of scope
+
+- A TinyBus or other plugin surface. The lineage module and its native
+  release archives were removed
+  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); TinyRSI is a library.
 
 - Modifying vendored or upstream engines from this repository. OpenHuman,
   tinyhivemind language and coordinator, tinybackrooms and memory engines

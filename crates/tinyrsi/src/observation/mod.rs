@@ -7,7 +7,7 @@
 //! writes anything. See this directory's `README.md` for what is redacted and
 //! why the two coordinator reads are separate snapshots.
 mod types;
-use crate::blueprint::NodeStatus;
+use crate::NodeStatus;
 use crate::{Error, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use tinyhivemind_hives::{Coordinator, EpisodePhase};
@@ -168,5 +168,12 @@ impl Dossier {
         }
     }
 }
+/// Retreat reads the dossier's public JSON and seeds its engine with the epoch.
+impl tinyrsi_evolve::RetreatDossier for Dossier {
+    fn epoch(&self) -> u64 {
+        self.epoch
+    }
+}
+
 #[cfg(test)]
 mod test;
