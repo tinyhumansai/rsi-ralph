@@ -70,6 +70,7 @@ mod package;
 mod prompt;
 mod swarm;
 mod tools;
+mod trace;
 
 pub use error::{Error, Result};
 pub use event::{SeatInfo, StopReason, SwarmEvent, ToolPhase};
