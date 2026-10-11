@@ -281,3 +281,47 @@ fn a_lead_outside_the_package_is_refused_before_anything_starts() {
     assert!(matches!(error, tinyrsi_swarm::Error::UnknownLead(ref lead) if lead == "nobody"));
     assert!(!dirs.run.exists());
 }
+
+#[test]
+fn run_failures_surface_as_typed_errors_without_the_model_key() {
+    // A zero turn wall is refused by the hive adapter.
+    let zero_dirs = dirs();
+    let mut zero_turn = request(&zero_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
+    zero_turn.turn = Duration::ZERO;
+    let error = run_swarm(zero_turn, &mut |_| {}).unwrap_err();
+    assert!(matches!(error, tinyrsi_swarm::Error::Adapter(_)), "{error:?}");
+
+    // A coordinator database that cannot be opened.
+    let db_dirs = dirs();
+    std::fs::create_dir_all(db_dirs.run.join(HIVE_DB)).unwrap();
+    let error = run_swarm(
+        request(&db_dirs, "http://127.0.0.1:9", Duration::from_secs(1)),
+        &mut |_| {},
+    )
+    .unwrap_err();
+    assert!(matches!(error, tinyrsi_swarm::Error::Coordinator(_)), "{error:?}");
+
+    // A seat id OpenHuman reserves for its own agents.
+    let reserved_dirs = dirs();
+    let mut reserved = request(&reserved_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
+    let hive = reserved.package.get_mut("hive.json").unwrap();
+    *hive = hive.replace("\"implementer-a\"", "\"orchestrator\"");
+    let candidate = reserved.candidates.remove("implementer-a").unwrap();
+    reserved.candidates.insert("orchestrator".into(), candidate);
+    let error = run_swarm(reserved, &mut |_| {}).unwrap_err();
+    assert!(
+        matches!(error, tinyrsi_swarm::Error::Agent { ref seat, .. } if seat == "orchestrator"),
+        "{error:?}"
+    );
+    assert!(!format!("{error:?}").contains(MODEL_KEY));
+
+    // A run directory that is a file.
+    let file_dirs = dirs();
+    std::fs::write(&file_dirs.run, "not a directory").unwrap();
+    let error = run_swarm(
+        request(&file_dirs, "http://127.0.0.1:9", Duration::from_secs(1)),
+        &mut |_| {},
+    )
+    .unwrap_err();
+    assert!(matches!(error, tinyrsi_swarm::Error::RunDir { .. }), "{error:?}");
+}
