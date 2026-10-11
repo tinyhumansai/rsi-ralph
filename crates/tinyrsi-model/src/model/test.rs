@@ -303,3 +303,13 @@ fn public_provider_identity_survives_budget_wrapping_without_provider_calls() {
     assert_eq!(wrapped.identity(), expected);
     assert_eq!(wrapped.meter().unwrap().attempted_calls, 0);
 }
+#[test]
+fn a_request_temperature_reaches_the_provider_body() {
+    let model = OpenRouterModel::new("m".into()).unwrap();
+    assert_eq!(model.body(&request())["temperature"], serde_json::json!(0.0));
+    let warm = request().with_temperature(1.2).unwrap();
+    assert_eq!(warm.temperature(), Some(1.2));
+    assert_eq!(model.body(&warm)["temperature"], serde_json::json!(1.2));
+    assert!(request().with_temperature(2.5).is_err());
+    assert!(request().with_temperature(-0.1).is_err());
+}
