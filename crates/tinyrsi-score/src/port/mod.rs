@@ -8,7 +8,8 @@
 //!   both sides' [`Assessment::eligible`] qualities. Without eligible evidence
 //!   on both sides the result is capped at `Inconclusive`, so an uncalibrated
 //!   judge can widen a margin but never decide one.
-//! - **Units.** When both sides carry [`MetricEvidence`], the reported
+//! - **Units.** When both sides carry [`MetricEvidence`] (aligned with the
+//!   seeds and agreeing on direction, or the decision is an error), the reported
 //!   interval is the mean paired metric improvement plus or minus the policy's
 //!   standard-error multiple, in the metric's own units. Otherwise it is
 //!   `compare`'s interval in quality units.
@@ -122,8 +123,9 @@ fn paired(
 ///
 /// Returns [`crate::Error::InvalidEvaluation`] when an assessment does not
 /// have one quality (or eligible quality) per seed, a quality lies outside
-/// `[0, 1]`, there are fewer than two distinct seeds, the metric interval
-/// overflows, or `compare` rejects the policy.
+/// `[0, 1]`, metric evidence does not have one value per seed, the two
+/// metrics disagree on direction, there are fewer than two distinct seeds,
+/// the metric interval overflows, or `compare` rejects the policy.
 ///
 /// # Examples
 ///
@@ -173,20 +175,24 @@ pub fn decide(
             decision = ScoreDecision::Inconclusive;
         }
     }
-    let (estimate, lower, upper) = match (&incumbent.metric, &candidate.metric) {
-        (Some(i), Some(c))
-            if i.direction == c.direction
-                && i.values.len() == seeds.len()
-                && c.values.len() == seeds.len() =>
-        {
-            metric_interval(
-                &i.values,
-                &c.values,
-                c.direction,
-                policy.standard_error_multiplier,
-            )
-            .ok_or(crate::Error::InvalidEvaluation)?
+    for metric in [&incumbent.metric, &candidate.metric].into_iter().flatten() {
+        if metric.values.len() != seeds.len() {
+            return Err(crate::Error::InvalidEvaluation);
         }
+    }
+    let (estimate, lower, upper) = match (&incumbent.metric, &candidate.metric) {
+        // Two metrics that disagree on which way is better are not evidence
+        // in any units.
+        (Some(i), Some(c)) if i.direction != c.direction => {
+            return Err(crate::Error::InvalidEvaluation);
+        }
+        (Some(i), Some(c)) => metric_interval(
+            &i.values,
+            &c.values,
+            c.direction,
+            policy.standard_error_multiplier,
+        )
+        .ok_or(crate::Error::InvalidEvaluation)?,
         _ => (comparison.gain, comparison.lower, comparison.upper),
     };
     Ok(Decision {
