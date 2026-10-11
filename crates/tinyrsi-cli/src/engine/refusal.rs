@@ -13,7 +13,7 @@ use tinyrsi_trace::LoopEvent;
 use crate::store;
 
 /// Refusals that explain an epoch.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct Refused {
     /// Every call was refused, so the run cannot make progress.
     pub(super) all: bool,
