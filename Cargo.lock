@@ -3555,6 +3555,7 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "thiserror",
+ "tinybackrooms",
  "tinyhivemind-lang",
  "tinyrsi-gateway",
  "tinyrsi-model",

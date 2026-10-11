@@ -75,8 +75,8 @@ fn without_memory_nothing_is_written() {
 fn a_failing_backend_is_a_proposer_error() {
     let dir = tempfile::tempdir().unwrap();
     let failing = Arc::new(ScriptedConversant::new(
-        |_| Err(tinybackrooms::Error::Backend("down".into())),
-        |_| Err(tinybackrooms::Error::Backend("down".into())),
+        |_| Err(tinybackrooms::Error::Conversant("down".into())),
+        |_| Err(tinybackrooms::Error::Conversant("down".into())),
     ));
     let mut retreat = Retreat::with_backend(failing, config(), None);
     assert!(matches!(retreat.ideas(1, "x", dir.path()), Err(Error::Proposer(_))));

@@ -21,6 +21,7 @@ tinyrsi-model = { workspace = true }
 tinyrsi-score = { workspace = true }
 tinyrsi-trace = { workspace = true }
 tinyrsi-verify = { workspace = true }
+tinybackrooms = { workspace = true }
 tinyhivemind-lang = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }

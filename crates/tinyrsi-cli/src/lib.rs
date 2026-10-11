@@ -30,6 +30,7 @@ pub mod engine;
 pub mod gate;
 pub mod keys;
 pub mod manifest;
+pub mod retreat;
 pub mod score;
 pub mod serve;
 pub mod step;
