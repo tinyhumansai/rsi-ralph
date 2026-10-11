@@ -82,6 +82,12 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["r
 # Default features off: only the `langfuse` export is needed, not the agent
 # runtime's optional domains.
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse"] }
+# Runs a hive package's seats as OpenHuman agents on a tinyhivemind
+# coordinator, for `tinyrsi-swarm`. It names OpenHuman by git source; the
+# `[patch."https://github.com/tinyhumansai/openhuman"]` table below resolves
+# that onto `vendor/openhuman`, so the swarm and `tinyrsi-langfuse` link one
+# OpenHuman. Its `offline` fixture feature is enabled only by the swarm's tests.
+tinyhivemind-openhuman = { path = "vendor/tinyhivemind/crates/tinyhivemind-openhuman" }
 
 # Lints apply to every member that opts in with `[lints] workspace = true`, and
 # to every target of that member. CI runs clippy with `-D warnings`, so anything
