@@ -177,12 +177,10 @@ fn files(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
-#[test]
-fn a_loop_folder_runs_end_to_end_through_the_binary() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let tmp = tempfile::tempdir().unwrap();
-    let loop_dir = tmp.path().join("graph-coloring");
-    copy(&root.join("loops/graph-coloring"), &loop_dir);
+/// Copy the example loop, adding a judge on a priced extra model and a small
+/// creative retreat.
+fn prepare(root: &Path, loop_dir: &Path) {
+    copy(&root.join("loops/graph-coloring"), loop_dir);
     // Add a judge on a priced extra model and a small creative retreat.
     let manifest = loop_dir.join("rsi.json");
     let mut m: Value = serde_json::from_str(&std::fs::read_to_string(&manifest).unwrap()).unwrap();
@@ -201,8 +199,10 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
         "Is the change clear and general?",
     )
     .unwrap();
-    let home = tmp.path().join("home");
+}
 
+/// The scripted model server, with the runtime that keeps it serving.
+fn lab(root: &Path) -> (tokio::runtime::Runtime, MockServer) {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let server = runtime.block_on(async {
         let server = MockServer::start().await;
@@ -218,6 +218,18 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
             .await;
         server
     });
+    (runtime, server)
+}
+
+#[test]
+fn a_loop_folder_runs_end_to_end_through_the_binary() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let tmp = tempfile::tempdir().unwrap();
+    let loop_dir = tmp.path().join("graph-coloring");
+    prepare(&root, &loop_dir);
+    let home = tmp.path().join("home");
+
+    let (_runtime, server) = lab(&root);
     let upstream = server.uri();
     let env: Arc<BTreeMap<&str, String>> = Arc::new(BTreeMap::from([
         ("OPENROUTER_API_KEY", KEY.to_owned()),
