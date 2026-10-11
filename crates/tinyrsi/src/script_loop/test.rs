@@ -126,7 +126,9 @@ fn collects_diagnostic_lines_in_order() {
 
 #[test]
 fn bounds_diagnostics_by_line_count_and_length() {
-    let many: String = (0..DIAG_LINES + 5).map(|i| format!("DIAG line {i}\n")).collect();
+    let many: String = (0..DIAG_LINES + 5)
+        .map(|i| format!("DIAG line {i}\n"))
+        .collect();
     let kept = parse_diagnostics(&many);
     assert_eq!(kept.len(), DIAG_LINES);
     // The last lines are kept: scripts usually end with their summary.

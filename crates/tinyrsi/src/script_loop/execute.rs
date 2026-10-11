@@ -17,6 +17,39 @@ pub(super) type Sources = BTreeMap<PathBuf, String>;
 /// Bytes of stderr kept in the ledger and shown to the supervisor.
 const STDERR_TAIL: usize = 2_000;
 
+/// `DIAG` lines kept per seed; the last ones win, since a script's summary
+/// usually comes at the end.
+pub(super) const DIAG_LINES: usize = 20;
+
+/// Characters kept per `DIAG` line before it is cut with an ellipsis.
+pub(super) const DIAG_CHARS: usize = 300;
+
+/// The bounded `DIAG <text>` lines of script stdout, in order.
+///
+/// Diagnostics are free text for the supervisor: what the script observed or
+/// what the code under improvement did (moves tried, conflicts left, residual
+/// shape). Empty lines are dropped; at most the last [`DIAG_LINES`] are kept,
+/// each cut to [`DIAG_CHARS`] characters.
+pub(super) fn parse_diagnostics(stdout: &str) -> Vec<String> {
+    let lines: Vec<String> = stdout
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("DIAG "))
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+        .map(|text| {
+            if text.chars().count() > DIAG_CHARS {
+                let mut cut: String = text.chars().take(DIAG_CHARS).collect();
+                cut.push('…');
+                cut
+            } else {
+                text.to_owned()
+            }
+        })
+        .collect();
+    let skip = lines.len().saturating_sub(DIAG_LINES);
+    lines.into_iter().skip(skip).collect()
+}
+
 /// Parses the last `METRIC <name>=<value>` line for `name` from script stdout.
 ///
 /// Other lines and other metric names are ignored, so a script may print
@@ -163,24 +196,20 @@ fn copy_tree(from: &Path, skip: &Path, to: &Path) -> Result<()> {
 /// seed never aborts the loop.
 pub(super) fn run_seed(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, seed: u64) -> SeedRun {
     match execute(subject, dir, tmp_root, seed) {
-        Ok((result, duration_ms, stderr)) => {
+        Ok((result, duration_ms, stderr, diagnostics)) => {
             let tail = stderr.len().saturating_sub(STDERR_TAIL);
             let stderr_tail = String::from_utf8_lossy(&stderr[tail..]).into_owned();
-            match result {
-                Ok(metric) => SeedRun {
-                    seed,
-                    metric: Some(metric),
-                    error: None,
-                    duration_ms,
-                    stderr_tail,
-                },
-                Err(error) => SeedRun {
-                    seed,
-                    metric: None,
-                    error: Some(error.to_string()),
-                    duration_ms,
-                    stderr_tail,
-                },
+            let (metric, error) = match result {
+                Ok(metric) => (Some(metric), None),
+                Err(error) => (None, Some(error.to_string())),
+            };
+            SeedRun {
+                seed,
+                metric,
+                error,
+                duration_ms,
+                stderr_tail,
+                diagnostics,
             }
         }
         Err(error) => SeedRun {
@@ -189,11 +218,13 @@ pub(super) fn run_seed(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, see
             error: Some(error.to_string()),
             duration_ms: 0,
             stderr_tail: String::new(),
+            diagnostics: Vec::new(),
         },
     }
 }
 
-type Execution = (Result<f64>, u64, Vec<u8>);
+/// The metric (or why there is none), wall time, raw stderr and diagnostics.
+type Execution = (Result<f64>, u64, Vec<u8>, Vec<String>);
 
 fn execute(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, seed: u64) -> Result<Execution> {
     fs::create_dir_all(tmp_root).map_err(|_| Error::HostFailed)?;
@@ -216,6 +247,8 @@ fn execute(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, seed: u64) -> R
         cap: subject.output_cap,
     })?;
     let total = outcome.stdout.len().saturating_add(outcome.stderr.len());
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let diagnostics = parse_diagnostics(&stdout);
     let result = match outcome.exit {
         Exit::TimedOut => Err(Error::ScriptTimeout),
         Exit::OutputExceeded => Err(Error::ScriptOutputExceeded),
@@ -223,10 +256,7 @@ fn execute(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, seed: u64) -> R
             Err(Error::ScriptOutputExceeded)
         }
         Exit::Exited { success: false, .. } => Err(Error::ScriptFailed),
-        Exit::Exited { success: true, .. } => parse_metric(
-            &String::from_utf8_lossy(&outcome.stdout),
-            &subject.metric.name,
-        ),
+        Exit::Exited { success: true, .. } => parse_metric(&stdout, &subject.metric.name),
     };
-    Ok((result, outcome.duration_ms, outcome.stderr))
+    Ok((result, outcome.duration_ms, outcome.stderr, diagnostics))
 }

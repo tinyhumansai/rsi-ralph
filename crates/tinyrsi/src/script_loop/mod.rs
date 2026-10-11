@@ -18,6 +18,8 @@ use crate::{
     Error, IntervalUnits, LoopEvent, Result, RunGoal, ScoreDecision, StopReason, TraceSink,
 };
 pub use execute::parse_metric;
+#[cfg(test)]
+use execute::{DIAG_CHARS, DIAG_LINES, parse_diagnostics};
 use execute::{Sources, apply, content_id, materialize, read_sources, run_seed, validate_subject};
 use std::{
     fs::File,
