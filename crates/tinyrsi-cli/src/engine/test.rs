@@ -1,9 +1,9 @@
 //! The epoch loop end to end with a scripted hive and shell scorers.
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
-use tinyrsi_gateway::Refusal;
 use crate::{manifest, subject::copy_tree};
 use std::fs;
+use tinyrsi_gateway::Refusal;
 
 /// What a seat writes in an epoch, as `path:content`, or nothing.
 type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;
@@ -433,11 +433,17 @@ fn provided(sent: u64, refused: u64, plan: Plan, refusal: Refusal) -> (Provided,
 }
 
 fn event_lines(store: &Store, run: &str) -> Vec<serde_json::Value> {
-    fs::read_to_string(store.runs_root().join("value").join(run).join("events.jsonl"))
-        .unwrap()
-        .lines()
-        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()["event"].clone())
-        .collect()
+    fs::read_to_string(
+        store
+            .runs_root()
+            .join("value")
+            .join(run)
+            .join("events.jsonl"),
+    )
+    .unwrap()
+    .lines()
+    .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()["event"].clone())
+    .collect()
 }
 
 #[test]
@@ -544,7 +550,11 @@ fn refusals_in_an_epoch_that_changed_something_are_not_reported() {
     let summary = e.run().unwrap();
     assert_eq!(summary.reason, StopReason::MaxEpochs);
     assert!(summary.warnings.is_empty());
-    assert!(!events(&store, "changed").iter().any(|k| k == "provider_refused"));
+    assert!(
+        !events(&store, "changed")
+            .iter()
+            .any(|k| k == "provider_refused")
+    );
 }
 
 #[test]
@@ -566,5 +576,9 @@ fn an_empty_epoch_without_refusals_still_stalls_quietly() {
     let summary = e.run().unwrap();
     assert_eq!(summary.reason, StopReason::Stalled);
     assert!(summary.warnings.is_empty() && summary.error.is_none());
-    assert!(!events(&store, "quiet").iter().any(|k| k == "provider_refused"));
+    assert!(
+        !events(&store, "quiet")
+            .iter()
+            .any(|k| k == "provider_refused")
+    );
 }

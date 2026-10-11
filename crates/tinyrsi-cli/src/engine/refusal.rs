@@ -39,10 +39,9 @@ pub(super) fn explain<'a>(
     if calls.refused == 0 || (changed && !all) {
         return None;
     }
-    let (status, message) = calls
-        .last_refusal
-        .as_ref()
-        .map_or((0, String::new()), |r| (r.status, store::scrub(&r.message, secrets)));
+    let (status, message) = calls.last_refusal.as_ref().map_or((0, String::new()), |r| {
+        (r.status, store::scrub(&r.message, secrets))
+    });
     let line = format!(
         "provider refused {} of {} model calls ({status}: {message})",
         calls.refused, calls.sent

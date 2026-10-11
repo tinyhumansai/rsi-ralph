@@ -333,8 +333,14 @@ async fn upstream_rejections_cost_nothing_and_crashes_keep_the_reservation() {
 async fn counts_upstream_refusals_with_their_status_and_message() {
     let h = Harness::start(5.0, 50.0);
     assert_eq!(h.gateway.upstream_calls(), UpstreamCalls::default());
-    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({})).await.0, 200);
-    assert_eq!(h.chat("/v1/chat/completions", "crash", json!({})).await.0, 500);
+    assert_eq!(
+        h.chat("/v1/chat/completions", "hello", json!({})).await.0,
+        200
+    );
+    assert_eq!(
+        h.chat("/v1/chat/completions", "crash", json!({})).await.0,
+        500
+    );
     let before = h.gateway.upstream_calls();
     assert_eq!((before.sent, before.refused), (2, 1));
     assert_eq!(
@@ -344,8 +350,14 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
             message: "oops".into()
         })
     );
-    assert_eq!(h.chat("/v1/chat/completions", "limit", json!({})).await.0, 403);
-    assert_eq!(h.chat("/v1/chat/completions", "echo", json!({})).await.0, 401);
+    assert_eq!(
+        h.chat("/v1/chat/completions", "limit", json!({})).await.0,
+        403
+    );
+    assert_eq!(
+        h.chat("/v1/chat/completions", "echo", json!({})).await.0,
+        401
+    );
     let after = h.gateway.upstream_calls();
     assert_eq!((after.sent, after.refused), (4, 3));
     let echoed = after.last_refusal.clone().unwrap();
@@ -370,7 +382,11 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
 async fn calls_the_gateway_refuses_itself_are_not_upstream_calls() {
     let h = Harness::start(0.01, 50.0);
     let (status, _) = h
-        .chat("/v1/chat/completions", "hello", json!({"max_tokens": 16000}))
+        .chat(
+            "/v1/chat/completions",
+            "hello",
+            json!({"max_tokens": 16000}),
+        )
         .await;
     assert_eq!(status, 402);
     assert_eq!(h.gateway.upstream_calls(), UpstreamCalls::default());
