@@ -112,3 +112,28 @@ fn a_failing_backend_is_a_proposer_error() {
         Err(Error::Proposer(_))
     ));
 }
+
+#[test]
+fn a_loop_without_an_enabled_retreat_has_none_and_one_with_it_builds() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring");
+    let mut files = manifest::load_dir(&dir).unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let store = Store::new(home.path());
+    let gateway = Gateway::start(tinyrsi_gateway::GatewayConfig::new(
+        "sk-test",
+        home.path().join("run"),
+        store.spend_ledger(),
+        1.0,
+        1.0,
+    ))
+    .unwrap();
+    let parsed = manifest::parse(&files).unwrap();
+    assert!(Retreat::new(&parsed, &store, &gateway).unwrap().is_none());
+    let mut m: serde_json::Value = serde_json::from_str(&files["rsi.json"]).unwrap();
+    m["creativity"]["retreat"] = json!({ "ideas": 2 });
+    files.insert("rsi.json".into(), m.to_string());
+    let parsed = manifest::parse(&files).unwrap();
+    let retreat = Retreat::new(&parsed, &store, &gateway).unwrap().unwrap();
+    assert_eq!(retreat.memory, Some(store.retreat_dir("graph-coloring").join("ideas.json")));
+    assert!(format!("{retreat:?}").contains("ideas: 2"));
+}

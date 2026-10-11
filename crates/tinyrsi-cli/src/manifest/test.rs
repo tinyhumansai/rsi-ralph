@@ -344,3 +344,21 @@ fn env_names_follow_the_shell_convention() {
     assert!(env_name("OPENROUTER_API_KEY") && env_name("_X1"));
     assert!(!env_name("") && !env_name("1X") && !env_name("lower") && !env_name("A-B"));
 }
+
+#[test]
+fn omitted_fields_take_their_defaults() {
+    let files = with(|m| {
+        m.as_object_mut().unwrap().remove("epochs");
+        m["score"]["decide"]
+            .as_object_mut()
+            .unwrap()
+            .remove("direction");
+    });
+    let parsed = parse(&files).unwrap();
+    assert_eq!(parsed.manifest.epochs, 3);
+    assert!((parsed.manifest.score.decide.alpha - 0.10).abs() < 1e-12);
+    assert_eq!(
+        parsed.manifest.score.decide.direction,
+        tinyrsi_score::MetricDirection::Maximize
+    );
+}

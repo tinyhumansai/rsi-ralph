@@ -138,3 +138,6 @@ impl Proposer for Hive {
         })
     }
 }
+
+#[cfg(test)]
+mod test;

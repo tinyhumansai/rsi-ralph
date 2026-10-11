@@ -2,7 +2,7 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use crate::store::{RunRecord, write_json};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, io::Write as _};
 
 fn example() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../loops/graph-coloring")
@@ -132,4 +132,88 @@ fn every_status_has_a_name() {
         assert_eq!(super::status(status), name);
     }
     assert_eq!(exit_code(&Ok(())), 0);
+}
+
+/// A writer whose lines arrive on a channel, for a command that never returns.
+struct Lines(std::sync::mpsc::Sender<String>);
+
+impl Write for Lines {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _ = self.0.send(String::from_utf8_lossy(buf).into_owned());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn serve_serves_the_store_until_stopped() {
+    let home = tempfile::tempdir().unwrap();
+    let h = home.path().to_str().unwrap().to_owned();
+    let (sender, lines) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let cli = Cli::parse_from(["tinyrsi", "--home", &h, "serve", "--port", "0"]);
+        let _ = execute(cli, &env(true), &mut Lines(sender));
+    });
+    let line = lines.recv().unwrap();
+    let url = line.trim().strip_prefix("serving http://").unwrap().to_owned();
+    let mut stream = std::net::TcpStream::connect(url).unwrap();
+    write!(stream, "GET /api/runs HTTP/1.1\r\n\r\n").unwrap();
+    let mut reply = String::new();
+    std::io::Read::read_to_string(&mut stream, &mut reply).unwrap();
+    assert!(reply.starts_with("HTTP/1.1 200") && reply.ends_with("[]"));
+}
+
+#[test]
+fn run_without_a_key_fails_before_starting_anything() {
+    let home = tempfile::tempdir().unwrap();
+    let dir = example();
+    let (result, out) = exec(
+        &["--home", home.path().to_str().unwrap(), "run", dir.to_str().unwrap(), "--no-serve"],
+        false,
+    );
+    assert!(matches!(result, Err(Error::MissingKeys { .. })));
+    assert!(out.is_empty());
+    assert!(Store::new(home.path()).list_runs(None).unwrap().is_empty());
+}
+
+#[test]
+fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
+    let home = tempfile::tempdir().unwrap();
+    let h = home.path().to_str().unwrap();
+    let dir = example();
+    let checkout = dir.join("subject");
+    let (ok, out) = exec(
+        &["--home", h, "score", dir.to_str().unwrap(), "--checkout", checkout.to_str().unwrap()],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(out.contains("colors = 17.0000"));
+    let runs = Store::new(home.path()).list_runs(None).unwrap();
+    assert!(runs.is_empty(), "a scoring folder is not a run");
+    let store = Store::new(home.path());
+    let run = store.create_run("demo", Some("r2"), &BTreeMap::new()).unwrap();
+    write_json(
+        &run.record_path(),
+        &RunRecord {
+            id: "r2".into(),
+            r#loop: "demo".into(),
+            status: RunStatus::Finished,
+            pid: 1,
+            started_at: 1,
+            finished_at: None,
+            stop_reason: None,
+            incumbent: "abc".into(),
+            incumbent_score: None,
+            epochs: 0,
+            spend_usd: 0.0,
+            error: None,
+        },
+    )
+    .unwrap();
+    let (ok, out) = exec(&["--home", h, "show", "demo/r2"], true);
+    assert!(ok.is_ok());
+    assert!(out.contains("incumbent abc (-)") && !out.contains("stopped") && !out.contains("error"));
 }
