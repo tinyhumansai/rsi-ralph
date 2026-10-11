@@ -66,7 +66,8 @@ listed above it.
 |---|---|---|
 | `tinyrsi-types` | `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`, `EvalStage`, `ProposalEvent`, `Goal`; re-exports `Patch`, `Package`, `PatchClass`, `Operation`, `Record`, `VersionMetadata` from `tinyhivemind-lang` | tinyhivemind-lang |
 | `tinyrsi-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
-| `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace` | tracing; `otlp` feature: opentelemetry |
+| `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
+| `tinyrsi-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse | trace, openhuman-embed (`langfuse` only) |
 | `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | model, trace, tinybackrooms |
 | `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
 | `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver`. `retreat` reads a narrow `RetreatDossier` view instead of `observation::Dossier`, which stays in core. | types, model, tinybackrooms |
@@ -164,10 +165,21 @@ the script loop's current behavior. Implementations:
 
 `tinyrsi-trace` owns the `events.jsonl` schema unchanged. It adds
 `TracingTrace`, a `TraceSink` that mirrors each `LoopEvent` as a `tracing`
-event inside a per-run span. It also adds the `otlp` feature, which installs an
-OpenTelemetry OTLP exporter. Langfuse accepts OTLP at `/api/public/otel`. The
-endpoint and headers come from the standard `OTEL_EXPORTER_OTLP_*` variables,
-documented in `.env.example`. The hive `epoch_driver` emits the existing event
+event inside per-run and per-epoch spans, and `FanoutTrace`, which writes one
+stream to several sinks.
+
+Langfuse export reuses OpenHuman's existing client rather than a second
+exporter stack. `tinyrsi-langfuse` depends on `openhuman-embed` with only its
+`langfuse` feature (`openhuman_embed::observe::langfuse::LangfuseClient`) and
+provides `LangfuseTrace`. That sink maps each run to one Langfuse trace (id =
+run id), each epoch to a span, and each stage to an event in that span; the
+final incumbent metric becomes a numeric score. It buffers events and sends
+them on `run_finished` in batches of at most 500. Configuration is OpenHuman's:
+`LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`, or the
+TinyHumans proxy. Export is best-effort, because the trace is observability:
+a failed export is counted and retried on the next flush, never returned to the
+loop. It is its own crate so that hosts which need only `events.jsonl` do not
+compile OpenHuman. The hive `epoch_driver` emits the existing event
 kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 
 ### Removed

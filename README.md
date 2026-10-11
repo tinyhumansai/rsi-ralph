@@ -62,6 +62,7 @@ crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # bounded, metered model calls
 ├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
+├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
@@ -79,6 +80,7 @@ crates/
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
+vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
 ├── specs/              # behavior and architecture specifications
@@ -125,6 +127,11 @@ cargo install cargo-llvm-cov         # once, before running the coverage gate
 runs under `target/` and follows a loop's `events.jsonl` live: current stage,
 metric by epoch, proposals with their decisions, and the incumbent lineage.
 `cd apps/rsi-viz && npm ci && npm run dev`.
+
+To see the same runs in Langfuse, add a `tinyrsi_langfuse::LangfuseTrace` to the
+loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It exports
+through OpenHuman's own Langfuse client and reads the same `LANGFUSE_*`
+variables; see `.env.example`.
 
 ## Live OpenRouter smoke test
 
