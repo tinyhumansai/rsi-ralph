@@ -16,7 +16,7 @@ use clap::{Parser, Subcommand};
 use crate::{
     Error, Result,
     keys::Keys,
-    manifest::{self, Loop},
+    manifest::{self, Loop, Manifest},
     serve,
     store::{RunStatus, Store},
     subject::Subject,
@@ -199,18 +199,27 @@ fn check(dir: &Path, lookup: &dyn Fn(&str) -> Option<String>, out: &mut dyn Writ
     let parsed = load(dir)?;
     Keys::resolve(&parsed, dir, lookup)?;
     Subject::from_spec(&parsed.manifest.subject, dir).verify()?;
-    let m = &parsed.manifest;
-    say(
-        out,
-        &format!(
-            "ok: {} ({} subject, {} scorers, decide {} by {}, hive lead {})",
-            m.name,
-            wire(&m.subject.kind),
-            m.score.scorers.len(),
-            m.score.decide.on,
-            wire(&m.score.decide.test),
-            m.hive.lead
-        ),
+    say(out, &check_summary(&parsed.manifest))
+}
+
+/// The one-line summary `check` prints for a valid loop.
+///
+/// It names how many seeds of a scorer run at once only when that is more
+/// than one, so the default line is unchanged.
+fn check_summary(m: &Manifest) -> String {
+    let parallel = if m.score.parallel > 1 {
+        format!(", {} seeds at once", m.score.parallel)
+    } else {
+        String::new()
+    };
+    format!(
+        "ok: {} ({} subject, {} scorers, decide {} by {}{parallel}, hive lead {})",
+        m.name,
+        wire(&m.subject.kind),
+        m.score.scorers.len(),
+        m.score.decide.on,
+        wire(&m.score.decide.test),
+        m.hive.lead
     )
 }
 

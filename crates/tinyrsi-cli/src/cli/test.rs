@@ -57,6 +57,17 @@ fn check_reports_a_valid_loop_and_missing_keys() {
 }
 
 #[test]
+fn check_names_parallel_seeds_only_when_raised() {
+    let mut m = load(&example()).unwrap().manifest;
+    assert!(!check_summary(&m).contains("at once"));
+    m.score.parallel = 3;
+    assert_eq!(
+        check_summary(&m),
+        "ok: graph-coloring (dir subject, 1 scorers, decide colors by seeds, 3 seeds at once, hive lead lead)"
+    );
+}
+
+#[test]
 fn score_scores_the_incumbent_with_the_loop_scorers() {
     let home = tempfile::tempdir().unwrap();
     let dir = example();

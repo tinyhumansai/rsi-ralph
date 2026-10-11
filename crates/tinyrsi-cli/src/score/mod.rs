@@ -1,7 +1,8 @@
 //! Score functions and the decision rule.
 //!
 //! [`score_checkout`] runs every `run` scorer (once per seed for the `seeds`
-//! rule, once for `sign`) and every judge, and [`decide`] compares a
+//! rule, once for `sign`; up to `score.parallel` seeds at a time) and every
+//! judge, and [`decide`] compares a
 //! candidate's [`Scorecard`] with the incumbent's.
 //!
 //! - **`seeds`**: per-seed qualities from the deciding scorer's metric, mixed
@@ -14,7 +15,16 @@
 //!
 //! Other `run` scorers are recorded and shown, never decided on.
 
-use std::{collections::BTreeMap, path::Path, time::Duration};
+use std::{
+    collections::BTreeMap,
+    path::Path,
+    sync::{
+        Mutex, PoisonError,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    },
+    thread,
+    time::Duration,
+};
 
 use tinyrsi_score::{
     Assessment, EvalPolicy, Goal, MetricDirection, MetricEvidence, MetricScorer, ScoreDecision,
@@ -67,35 +77,17 @@ pub fn score_checkout(
     let mut runs = BTreeMap::new();
     for scorer in &spec.scorers {
         let Some(command) = &scorer.run else { continue };
-        let mut results = Vec::new();
-        for &seed in &seeds {
-            let run = StepRun {
-                id: format!("score.{}", scorer.id),
-                command: command.clone(),
-                cwd: ctx.loop_dir.clone(),
-                candidate: checkout.path.clone(),
-                label: checkout.label.clone(),
-                seed,
-                dir: dir.join(format!("score.{}.{seed}", scorer.id)),
-                timeout: Duration::from_secs(scorer.timeout_secs),
-            };
-            let outcome = step::run(ctx, &run)?;
-            let (result, reason) = if outcome.ok {
-                match step::score_result(&run, &outcome) {
-                    Ok(result) => (Some(result), None),
-                    Err(e) => (None, Some(e.to_string())),
-                }
-            } else {
-                (None, outcome.reason.clone())
-            };
-            results.push(SeedScore {
-                seed,
-                ok: result.is_some(),
-                reason,
-                result,
-                duration_ms: outcome.duration_ms,
-            });
-        }
+        let run = |seed: u64| StepRun {
+            id: format!("score.{}", scorer.id),
+            command: command.clone(),
+            cwd: ctx.loop_dir.clone(),
+            candidate: checkout.path.clone(),
+            label: checkout.label.clone(),
+            seed,
+            dir: dir.join(format!("score.{}.{seed}", scorer.id)),
+            timeout: Duration::from_secs(scorer.timeout_secs),
+        };
+        let results = run_seeds(ctx, &seeds, spec.parallel, &run)?;
         runs.insert(scorer.id.clone(), results);
     }
     let mut graded = BTreeMap::new();
@@ -121,6 +113,77 @@ pub fn score_checkout(
         runs,
         judges: graded,
         headline,
+    })
+}
+
+/// Run one scorer on every seed, at most `parallel` at a time.
+///
+/// Results come back in the order of `seeds` whatever order they finish in.
+/// With `parallel` of 1 (or a single seed) the seeds run one after another on
+/// the calling thread, stopping at the first command that cannot be started.
+/// Otherwise worker threads take seeds in order; once any command cannot be
+/// started no further seeds are begun, the ones already running finish, and
+/// the error of the earliest such seed is returned.
+fn run_seeds(
+    ctx: &StepContext,
+    seeds: &[u64],
+    parallel: u32,
+    run: &(dyn Fn(u64) -> StepRun + Sync),
+) -> Result<Vec<SeedScore>> {
+    let workers = usize::try_from(parallel)
+        .unwrap_or(usize::MAX)
+        .clamp(1, seeds.len().max(1));
+    if workers == 1 {
+        return seeds
+            .iter()
+            .map(|&seed| run_seed(ctx, &run(seed)))
+            .collect();
+    }
+    let next = AtomicUsize::new(0);
+    let failed = AtomicBool::new(false);
+    let slots: Vec<Mutex<Option<Result<SeedScore>>>> =
+        seeds.iter().map(|_| Mutex::new(None)).collect();
+    thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| {
+                while !failed.load(Ordering::SeqCst) {
+                    let i = next.fetch_add(1, Ordering::SeqCst);
+                    let Some(&seed) = seeds.get(i) else { break };
+                    let result = run_seed(ctx, &run(seed));
+                    if result.is_err() {
+                        failed.store(true, Ordering::SeqCst);
+                    }
+                    *slots[i].lock().unwrap_or_else(PoisonError::into_inner) = Some(result);
+                }
+            });
+        }
+    });
+    slots
+        .into_iter()
+        .map(|slot| slot.into_inner().unwrap_or_else(PoisonError::into_inner))
+        // A seed left unstarted after an earlier failure is never reached:
+        // `collect` stops at that earlier `Err`.
+        .map_while(|slot| slot)
+        .collect()
+}
+
+/// Run one seed and read what it reported.
+fn run_seed(ctx: &StepContext, run: &StepRun) -> Result<SeedScore> {
+    let outcome = step::run(ctx, run)?;
+    let (result, reason) = if outcome.ok {
+        match step::score_result(run, &outcome) {
+            Ok(result) => (Some(result), None),
+            Err(e) => (None, Some(e.to_string())),
+        }
+    } else {
+        (None, outcome.reason.clone())
+    };
+    Ok(SeedScore {
+        seed: run.seed,
+        ok: result.is_some(),
+        reason,
+        result,
+        duration_ms: outcome.duration_ms,
     })
 }
 

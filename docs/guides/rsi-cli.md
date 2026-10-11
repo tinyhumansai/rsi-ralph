@@ -62,6 +62,13 @@ is an OpenAI-compatible base URL that needs no key. Pick how a candidate wins:
 - per-item pass/fail on a held-out split, with an exact sign test —
   `"test": "sign", "split": "test"`.
 
+Seeds run one after another. When every seed is slow and independent, such as
+a scorer that boots a game server and plays a ten-minute episode, set
+`"parallel": 3` beside `scorers` and `decide` in `score` to run up to three
+seeds of a scorer at once. Each seed keeps its own `$RSI_OUT`, timeout and
+output cap, and results stay in seed order; make sure seeds do not fight over
+shared resources such as ports (derive them from `$RSI_SEED`).
+
 A Markdown rubric becomes an LLM judge: `{ "id": "clarity", "judge":
 "scorers/clarity.md", "weight": 0.2 }`. Judges grade the candidate's diff; they
 can hold a candidate back but never accept one on their own.

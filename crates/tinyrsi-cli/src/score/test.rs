@@ -21,6 +21,7 @@ fn scorer(id: &str, run: Option<&str>, judge: Option<&str>, weight: f64) -> Scor
 fn seeds_spec(direction: MetricDirection, scorers: Vec<ScorerSpec>) -> ScoreSpec {
     ScoreSpec {
         scorers,
+        parallel: 1,
         decide: DecideSpec {
             on: "m".into(),
             test: DecideTest::Seeds,
@@ -296,4 +297,171 @@ fn pins_the_scorecard_stored_form() {
             "judges": {}, "headline": 1.0
         })
     );
+}
+
+/// Score `dir` as the incumbent with one `run` scorer `m` running `script`
+/// under `parallel`, returning the scorecard and the wall-clock time taken.
+fn score_script(
+    dir: &Path,
+    script: &str,
+    parallel: u32,
+) -> (Result<Scorecard>, std::time::Duration) {
+    std::fs::write(dir.join("m.sh"), script).unwrap();
+    let mut spec = seeds_spec(
+        MetricDirection::Minimize,
+        vec![scorer("m", Some("/bin/sh m.sh"), None, 1.0)],
+    );
+    spec.parallel = parallel;
+    let checkout = Checkout {
+        label: "incumbent".into(),
+        path: dir.to_path_buf(),
+    };
+    let start = std::time::Instant::now();
+    let card = score_checkout(
+        &ctx(dir),
+        &spec,
+        &checkout,
+        &dir.join(format!("s{parallel}")),
+        &Judges::new(),
+        &BTreeMap::new(),
+        None,
+    );
+    (card, start.elapsed())
+}
+
+/// Every seed sleeps one second, then reports its seed as the metric.
+const SLEEPY: &str = "sleep 1\necho \"METRIC m=$RSI_SEED\"\n";
+
+#[test]
+fn seeds_run_one_at_a_time_by_default() {
+    let dir = tempfile::tempdir().unwrap();
+    let (card, took) = score_script(dir.path(), SLEEPY, 1);
+    let card = card.unwrap();
+    assert!(took >= std::time::Duration::from_secs(3), "took {took:?}");
+    let seeds: Vec<u64> = card.runs["m"].iter().map(|r| r.seed).collect();
+    assert_eq!(seeds, vec![1, 2, 3]);
+    assert_eq!(card.headline, Some(2.0));
+}
+
+#[test]
+fn parallel_seeds_run_concurrently() {
+    let dir = tempfile::tempdir().unwrap();
+    let (card, took) = score_script(dir.path(), SLEEPY, 3);
+    let card = card.unwrap();
+    assert!(
+        took < std::time::Duration::from_millis(2500),
+        "took {took:?}"
+    );
+    assert!(card.runs["m"].iter().all(|r| r.ok));
+    assert_eq!(card.headline, Some(2.0));
+}
+
+#[test]
+fn parallel_limit_caps_concurrent_seeds() {
+    let dir = tempfile::tempdir().unwrap();
+    let (card, took) = score_script(dir.path(), SLEEPY, 2);
+    assert!(card.unwrap().runs["m"].iter().all(|r| r.ok));
+    assert!(took >= std::time::Duration::from_secs(2), "took {took:?}");
+    assert!(
+        took < std::time::Duration::from_millis(2900),
+        "took {took:?}"
+    );
+}
+
+#[test]
+fn parallel_seeds_keep_seed_order_and_report_failures_like_sequential_runs() {
+    // Seed 1 finishes last and seed 2 fails, so completion order differs
+    // from seed order.
+    let script = "case $RSI_SEED in\n  1) sleep 1 ;;\n  2) echo broken >&2; exit 3 ;;\nesac\necho \"METRIC m=$RSI_SEED\"\n";
+    let dir = tempfile::tempdir().unwrap();
+    let (sequential, _) = score_script(dir.path(), script, 1);
+    let (parallel, _) = score_script(dir.path(), script, 3);
+    let strip = |card: Scorecard| -> Vec<(u64, bool, Option<String>, Option<f64>)> {
+        card.runs["m"]
+            .iter()
+            .map(|r| {
+                (
+                    r.seed,
+                    r.ok,
+                    r.reason.clone(),
+                    r.result.as_ref().map(|x| x.score),
+                )
+            })
+            .collect()
+    };
+    let expected = vec![
+        (1, true, None, Some(1.0)),
+        (2, false, Some("broken".to_owned()), None),
+        (3, true, None, Some(3.0)),
+    ];
+    let parallel = parallel.unwrap();
+    assert_eq!(parallel.headline, None, "a failed seed leaves no headline");
+    assert_eq!(strip(sequential.unwrap()), expected);
+    assert_eq!(strip(parallel), expected);
+    for seed in 1..=3 {
+        assert!(dir.path().join(format!("s3/score.m.{seed}/out")).is_dir());
+    }
+}
+
+#[test]
+fn parallel_seeds_keep_the_timeout() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut spec = seeds_spec(
+        MetricDirection::Minimize,
+        vec![scorer("m", Some("/bin/sh m.sh"), None, 1.0)],
+    );
+    spec.scorers[0].timeout_secs = 1;
+    spec.parallel = 3;
+    std::fs::write(dir.path().join("m.sh"), "sleep 30\n").unwrap();
+    let checkout = Checkout {
+        label: "incumbent".into(),
+        path: dir.path().to_path_buf(),
+    };
+    let start = std::time::Instant::now();
+    let card = score_checkout(
+        &ctx(dir.path()),
+        &spec,
+        &checkout,
+        &dir.path().join("s"),
+        &Judges::new(),
+        &BTreeMap::new(),
+        None,
+    )
+    .unwrap();
+    assert!(start.elapsed() < std::time::Duration::from_secs(10));
+    assert!(card.runs["m"].iter().all(|r| {
+        !r.ok
+            && r.reason
+                .as_deref()
+                .is_some_and(|x| x.starts_with("timed out"))
+    }));
+}
+
+#[test]
+fn an_unstartable_scorer_fails_the_checkout_in_parallel_too() {
+    for parallel in [1, 3] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut spec = seeds_spec(
+            MetricDirection::Minimize,
+            vec![scorer("m", Some("/nonexistent/scorer"), None, 1.0)],
+        );
+        spec.parallel = parallel;
+        let checkout = Checkout {
+            label: "incumbent".into(),
+            path: dir.path().to_path_buf(),
+        };
+        let result = score_checkout(
+            &ctx(dir.path()),
+            &spec,
+            &checkout,
+            &dir.path().join("s"),
+            &Judges::new(),
+            &BTreeMap::new(),
+            None,
+        );
+        assert!(
+            matches!(&result, Err(Error::Step { step, .. }) if step == "score.m"),
+            "parallel {parallel}: {result:?}"
+        );
+    }
 }
