@@ -1,5 +1,6 @@
 //! Immutable Lake staging, exact version checks and source-bound kernel diagnostics.
 use crate::{CommandSpec, Error, Result};
+#[cfg(any(feature = "host", test))]
 use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
@@ -54,6 +55,7 @@ fn version(toolchain: &str) -> Result<&str> {
 }
 
 /// Bind the installed compiler bytes and immutable project template into suite identity.
+#[cfg(any(feature = "host", test))]
 pub(crate) fn identity(command: &CommandSpec) -> Result<serde_json::Value> {
     let lean = compiler(command)?;
     let bytes = std::fs::read(&lean).map_err(|_| Error::HostFailed)?;

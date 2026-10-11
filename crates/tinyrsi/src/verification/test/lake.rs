@@ -1,9 +1,15 @@
 //! Immutable Lake project staging and stock kernel-evidence requirements.
 use super::*;
 
+fn checkout_target(name: &str) -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../target")
+        .join(name)
+}
+
 fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, CommandSpec) {
-    std::fs::create_dir_all("target/lake-fixtures").unwrap();
-    let dir = tempfile::tempdir_in("target/lake-fixtures").unwrap();
+    std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
+    let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
     let root = std::fs::canonicalize(dir.path()).unwrap();
     for (name, source) in [
         (
@@ -92,18 +98,21 @@ fn lake_version_build_and_output_failures_cannot_manufacture_proof_credit() {
 #[test]
 fn lake_configuration_and_compiler_bytes_are_frozen_into_identity() {
     let (_dir, command) = fixture("4.34.1", "", 0);
-    let bound = declaration(command.clone());
-    assert!(
-        crate::PrivateTask::new(
-            "lake-task".into(),
-            "formal-maths".into(),
-            "seat".into(),
-            "private mathematical goal".into(),
-            bound.verifier,
-            vec![1]
-        )
-        .is_ok()
-    );
+    #[cfg(feature = "host")]
+    {
+        let bound = declaration(command.clone());
+        assert!(
+            crate::PrivateTask::new(
+                "lake-task".into(),
+                "formal-maths".into(),
+                "seat".into(),
+                "private mathematical goal".into(),
+                bound.verifier,
+                vec![1]
+            )
+            .is_ok()
+        );
+    }
     let stamp = crate::verification::lake::identity(&command).unwrap();
     let compiler = std::path::Path::new(&command.program).with_file_name("lean");
     std::fs::write(&compiler, b"changed compiler bytes").unwrap();
@@ -183,7 +192,7 @@ fn live_pinned_lake_builds_the_actual_kernel_proof_and_rejects_wrong_or_native_p
     let command = CommandSpec {
         program,
         args: vec!["build".into()],
-        workspace_root: "target/lake-workspaces".into(),
+        workspace_root: checkout_target("lake-workspaces"),
         timeout_ms: 20000,
         max_output_bytes: 65536,
     };
@@ -218,8 +227,8 @@ fn live_pinned_lake_builds_the_actual_kernel_proof_and_rejects_wrong_or_native_p
 
 #[test]
 fn lake_verifier_requires_a_frozen_project_and_stock_kernel_report() {
-    std::fs::create_dir_all("target/lake-fixtures").unwrap();
-    let dir = tempfile::tempdir_in("target/lake-fixtures").unwrap();
+    std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
+    let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
     let lake = dir.path().join("lake");
     let lean = dir.path().join("lean");
     std::fs::write(&lean, b"#!/bin/sh\necho 'Lean (version 4.34.1, fixture)'\n").unwrap();
