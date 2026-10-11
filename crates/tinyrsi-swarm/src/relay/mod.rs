@@ -49,10 +49,19 @@ impl<'a> Stall<'a> {
     }
 }
 
-/// What the idle transcript is stuck on, if anything: its last message, when
-/// that is a direct message to a seat. A seat's message to `lead` is an
-/// unread reply; any other (the brief, an assignment) went unanswered. A last
-/// word sent to the host or posted to a desk leaves nothing hanging.
+/// The message-id prefix the coordinator gives the text a turn ended with:
+/// a reply, which schedules no turn for its recipient.
+const REPLY_ID_PREFIX: &str = "hivemind:event:";
+
+/// What the idle transcript is stuck on, if anything, judged by its last
+/// message:
+///
+/// - a turn's reply from a seat to `lead`: the lead never read it;
+/// - a message *sent* to a seat (the brief, a `hivemind_send_agent` call):
+///   the seat's turn on it ended without sending anything back.
+///
+/// Any other reply (the lead's closing report, whoever it is addressed to),
+/// a message to the host, or a desk post leaves nothing hanging.
 pub(crate) fn stall<'a>(transcript: &'a [Message], lead: &str) -> Option<Stall<'a>> {
     let last = transcript.last()?;
     let Destination::Agent(to) = &last.destination else {
@@ -61,12 +70,11 @@ pub(crate) fn stall<'a>(transcript: &'a [Message], lead: &str) -> Option<Stall<'
     if to == HOST_ID {
         return None;
     }
-    let from_seat = last.sender != HOST_ID && !last.sender.is_empty() && last.sender != *to;
-    Some(if from_seat && to == lead {
-        Stall::UnreadReply(last)
-    } else {
-        Stall::Unanswered(last)
-    })
+    if last.message_id.starts_with(REPLY_ID_PREFIX) {
+        let from_seat = last.sender != HOST_ID && last.sender != lead;
+        return (from_seat && to == lead).then_some(Stall::UnreadReply(last));
+    }
+    Some(Stall::Unanswered(last))
 }
 
 /// The host's direct message that hands `stall` back to its seat.
