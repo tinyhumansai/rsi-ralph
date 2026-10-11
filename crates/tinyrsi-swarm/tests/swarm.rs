@@ -28,7 +28,7 @@ fn fixture() -> PathBuf {
 }
 
 /// A chat completion carrying `message`.
-fn completion(message: Value) -> Value {
+fn completion(message: &Value) -> Value {
     let finish = if message.get("tool_calls").is_some() {
         "tool_calls"
     } else {
@@ -42,7 +42,7 @@ fn completion(message: Value) -> Value {
 }
 
 fn tool_call(id: &str, name: &str, arguments: &Value) -> Value {
-    completion(json!({
+    completion(&json!({
         "role": "assistant", "content": null,
         "tool_calls": [{"id": id, "type": "function",
             "function": {"name": name, "arguments": arguments.to_string()}}]
@@ -50,7 +50,7 @@ fn tool_call(id: &str, name: &str, arguments: &Value) -> Value {
 }
 
 fn text(content: &str) -> Value {
-    completion(json!({"role": "assistant", "content": content}))
+    completion(&json!({"role": "assistant", "content": content}))
 }
 
 /// Replies in order, then repeats the last reply forever.
