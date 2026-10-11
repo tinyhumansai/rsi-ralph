@@ -31,7 +31,7 @@ use tinyhivemind_lang::Package;
 use tinyhivemind_lang::lineage::{self, Record, Verdict, VersionMetadata};
 pub use types::{
     CandidateFailureEvent, EvaluationEvent, NormalizedApprovalEvent, NormalizedDeclarationEvent,
-    NormalizedEvaluationEvent, ProposalDeclaration,
+    NormalizedEvaluationEvent, ProposalDeclaration, RevocationEvent, RevocationReason,
 };
 use types::{Event, Snapshot};
 
@@ -334,25 +334,42 @@ impl Archive {
 
     /// Roll the head back to its accepted parent, recording the revocation.
     ///
-    /// Appends a revocation of the head, labelled with the host `epoch`, and
-    /// the parent's activation in one transaction. The revoked record keeps
-    /// its `Accepted` verdict; [`Archive::penalties`] counts it as a
-    /// `Revoked` strike against its patch shape.
+    /// Appends a revocation of the head, labelled with the host `epoch` and
+    /// the `reason` that triggered it, and the parent's activation in one
+    /// transaction. The revoked record keeps its `Accepted` verdict;
+    /// [`Archive::penalties`] counts it as a `Revoked` strike against its
+    /// patch shape whatever the reason.
     ///
     /// # Errors
     /// Returns `NoParent` if the head has no accepted parent, and `ArchiveIo`
     /// when the transaction cannot be persisted.
-    pub fn revoke(&mut self, epoch: u64) -> Result<String> {
+    pub fn revoke(&mut self, epoch: u64, reason: RevocationReason) -> Result<String> {
         let parent = self.state.revert_target()?.to_owned();
         let head = self.state.active.clone().ok_or(Error::NoParent)?;
         self.transact_many(vec![
             Event::Revocation {
-                candidate_id: head,
-                epoch,
+                revocation: RevocationEvent {
+                    candidate_id: head,
+                    epoch,
+                    reason,
+                },
             },
             Event::Activation { id: parent.clone() },
         ])?;
         Ok(parent)
+    }
+
+    /// Revocations in durable insertion order.
+    #[must_use]
+    pub fn revocations(&self) -> Vec<&RevocationEvent> {
+        self.state
+            .events
+            .iter()
+            .filter_map(|event| match event {
+                Event::Revocation { revocation } => Some(revocation),
+                _ => None,
+            })
+            .collect()
     }
 
     /// Activate the current accepted design's immediate accepted parent.

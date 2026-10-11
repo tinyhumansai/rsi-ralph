@@ -48,7 +48,12 @@ fails for the expected reason.
 4. `Event::Revocation` and `Archive::revoke`; `DeploymentStore::rollback`
    calls it. Test first: rollback records a `Revoked` strike and the record
    stays `Accepted`, across reopen.
-5. Policy fingerprint includes a non-default penalty policy.
+5. Policy fingerprint always includes the penalty policy, default or not.
+6. `RevocationReason` on the revocation event, pinned; `Archive::revocations`.
+   `DeploymentStore::enforce_anchor` rolls back on an `AnchorSignal`
+   regression with reason `anchor_regression`. Test first: regression rolls
+   back, strikes and cools the shape; a widening gap alone does nothing;
+   `NoParent` and pending errors propagate.
 
 ## 4. Generator feedback
 

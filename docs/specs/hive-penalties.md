@@ -21,6 +21,8 @@ On the hive path a patch that makes a run bad is never really penalized.
   but equally bad patch spends a full Screen budget again.
 - **Rollback forgives.** `DeploymentStore::rollback` leaves the bad record
   counted as a plain acceptance and nothing learns from it.
+- **Anchor decline is ignored.** `AnchorLedger` signals a sustained regression
+  on the frozen anchors, but nothing acts on it; rollback is manual only.
 
 ## Goals
 
@@ -29,13 +31,22 @@ On the hive path a patch that makes a run bad is never really penalized.
 3. **Enforce:** a cooldown that stops a struck patch shape before any
    evaluation spend.
 4. **Teach:** coarse, redacted outcome feedback to the proposal generator.
+5. **Revert:** roll the deployed design back automatically when its frozen
+   anchors regress.
 
 ## Non-goals
 
 - A failure term in H or `ScorePenalties`. The scoring policy, approval gates
-  and private suites are frozen host surfaces (`ROADMAP.md`).
-- Automatic rollback from `AnchorLedger` decline.
-- Tamper measurement on the hive path.
+  and private suites are frozen host surfaces (`ROADMAP.md`), and none is
+  needed: a candidate that fails runs its incumbent completed is already
+  rejected `HARMFUL` and struck, so a failure term would only re-penalize runs
+  that can never be accepted.
+- Tamper measurement on the hive path. In private trials the host `Producer`
+  builds every verification binding and the agent supplies only content, so
+  there is no tamper vector to measure.
+- Acting on a widening selection–anchor gap alone, rolling back past the
+  immediate parent to a best-anchor ancestor, or freezing the responsible
+  patch class.
 - The script loop, which already rejects a candidate with failed seeds.
 - Relabelling any recorded verdict. A revoked acceptance stays `Accepted`.
 
@@ -106,9 +117,10 @@ funnel produces `Harmful` and `Revoked` strikes but never `Regressed`.
 default two strikes within three epochs. A shape is cooled at epoch `E` when
 its strikes from epochs `e <= E` with `E - e < window_epochs` include a
 `Harmful` or `Revoked` strike, or number at least `strikes`. Zero `strikes` or
-zero `window_epochs` disables cooldown. A non-default policy is part of the
-epoch's policy fingerprint, so it cannot change between generation and
-evaluation; the default leaves existing fingerprints unchanged.
+zero `window_epochs` disables cooldown. The policy, default or not, is part of
+the epoch's policy fingerprint, so it cannot change between generation and
+evaluation. Journals prepared before penalties existed no longer match and
+must be prepared again; no compatibility with them is kept.
 
 The shared prefilter checks cooldown after the exact-duplicate check: an exact
 repeat stays `DUPLICATE`, a same-shape patch stops as `ReasonCode::Cooldown`
@@ -119,14 +131,37 @@ leave the window.
 
 ### 4. Revocation
 
-`Archive::revoke(epoch)` appends `revocation { candidate_id, epoch }` for the
-head and the `activation` of its accepted parent in one transaction, and
-returns the parent. `DeploymentStore::rollback` calls it with the checkpoint's
-epoch instead of `revert`. The record keeps `Verdict::Accepted`; the ledger
-counts a `Revoked` strike against its patch shape. `Archive::revert` is
-unchanged.
+`Archive::revoke(epoch, reason)` appends
+`revocation { revocation: { candidate_id, epoch, reason } }` for the head and
+the `activation` of its accepted parent in one transaction, and returns the
+parent. `RevocationReason` is `manual` or `anchor_regression`;
+`Archive::revocations()` lists the events in order. `DeploymentStore::rollback`
+calls it with the checkpoint's epoch and `manual` instead of `revert`. The
+record keeps `Verdict::Accepted`; the ledger counts a `Revoked` strike against
+its patch shape whatever the reason. `Archive::revert` is unchanged.
 
-### 5. Generator feedback
+### 5. Anchor regression rollback
+
+`DeploymentStore::enforce_anchor(signal, archive, backend)` acts on the
+`AnchorSignal` the host's `AnchorLedger` returned for the epoch and reports
+whether it rolled back:
+
+| Signal | Action |
+| --- | --- |
+| `regression` | Roll back exactly as `rollback` does, recording an `anchor_regression` revocation; the shape takes a `Revoked` strike and is cooled |
+| `widening_gap` only | Nothing: advice for the operator |
+| Neither | Nothing |
+
+A regression means the deployed design is measurably worse on frozen
+references nothing can optimize against. A widening gap means the selection
+suite is drifting away from the anchors, which may be overfitting or a genuine
+gain the anchors do not cover; the anchors have not fallen, so there is no
+evidence the deployed design is worse. Rollback errors propagate unchanged:
+`NoParent` for a parentless head and `HostFailed` for pending work or a
+deployment that diverged from selection. The host calls it at the same
+quiescent boundary as `activate` and `rollback`.
+
+### 6. Generator feedback
 
 Prior-idea seeds gain `"outcome"`: `crashed` (`HARMFUL`), `regressed` (a
 `Regressed` strike), `flat` (other `NO_GAIN`, `NOT_REPLICATED`,
@@ -147,8 +182,9 @@ the returned discovery text.
 
 ## Invariants
 
-- Archive, trace and retreat-memory byte forms of existing data are unchanged;
-  only additive variants, events and optional fields appear.
+- Trace and retreat-memory byte forms of existing data are unchanged; only
+  additive variants and optional fields appear. The archive `revocation` event
+  carries its reason; earlier revocation bytes are not read.
 - Every new `ReasonCode` variant is pinned in the serde test.
 - No proposer-visible text carries a delta, interval, patch literal, rationale
   or private task content.
@@ -162,6 +198,9 @@ the returned discovery text.
 - A same-shape patch is cooled with zero evaluator calls.
 - A strike ages out of the window.
 - A revocation counts as a strike and the record stays `Accepted`.
+- An anchor regression rolls the deployment back, records an
+  `anchor_regression` revocation and cools the shape; a widening gap alone
+  changes nothing; rollback errors propagate.
 - Prior-idea seeds carry an outcome and no private fields.
 - Retreat memory round-trips the new statuses.
 - `cargo run -p tinyrsi-examples --example hive_goal` shows a crashing patch
@@ -170,5 +209,6 @@ the returned discovery text.
 
 ## Open questions
 
-None blocking. Automatic rollback, a failure term in H and hive-path tamper
-measurement remain separate work.
+None blocking. Class freezing and best-anchor-ancestor rollback remain
+separate work; a failure term in H and hive-path tamper measurement are not
+needed (see Non-goals).

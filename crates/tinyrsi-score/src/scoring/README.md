@@ -82,8 +82,10 @@ After at least two configured consecutive epochs, the ledger signals:
 
 Skipped epochs reset consecutive streaks. Recovery resets the relevant streak.
 The highest anchor point estimate determines `best_epoch`; this is monitoring
-advice, not an automatic statistically optimal ancestor choice. No rollback,
-class freeze, contamination cleanup, or live activation is performed.
+advice, not an automatic statistically optimal ancestor choice. The ledger
+itself performs no rollback, class freeze, contamination cleanup, or live
+activation; the host's `DeploymentStore::enforce_anchor` rolls a regression
+back to the deployed design's parent.
 
 The module implements issue #2's H formula, paired uncertainty, hard gates,
 and basic anchor monitoring. Bradley-Terry proposal ranking, learned priors,

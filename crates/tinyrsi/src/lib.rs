@@ -56,7 +56,7 @@ pub use lineage::{GradeEntry, Lineage, Verdict};
 pub use archive::{
     Archive, CandidateFailureEvent, DuplicateDisposition, EvaluationEvent, PatchShape,
     PenaltyPolicy, PenaltyReport, ProposalDeclaration, ProposalDispositionReport,
-    ProposalDispositionRow, Strike, StrikeKind,
+    ProposalDispositionRow, RevocationEvent, RevocationReason, Strike, StrikeKind,
 };
 pub use observation::*;
 pub use orchestrator::*;

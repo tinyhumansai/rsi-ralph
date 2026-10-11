@@ -87,6 +87,9 @@ pub struct ScoreComparison {
 }
 
 /// Monitoring advice from consecutive anchor epochs; the host owns any rollback.
+///
+/// `tinyrsi-host`'s `DeploymentStore::enforce_anchor` rolls back on
+/// `regression` and treats `widening_gap` alone as advice.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AnchorSignal {
     /// Consecutive anchor intervals fell below the best previous anchor.

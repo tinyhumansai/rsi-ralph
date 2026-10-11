@@ -130,14 +130,11 @@ pub(super) fn project(events: &[Event]) -> PenaltyReport {
                 }
                 proposals += 1;
             }
-            Event::Revocation {
-                candidate_id,
-                epoch,
-            } => {
-                if let Some(record) = records.iter().find(|r| r.id == *candidate_id) {
+            Event::Revocation { revocation } => {
+                if let Some(record) = records.iter().find(|r| r.id == revocation.candidate_id) {
                     strikes.push(Strike {
                         shape: PatchShape::of(&record.patch),
-                        epoch: *epoch,
+                        epoch: revocation.epoch,
                         kind: StrikeKind::Revoked,
                         proposal: None,
                     });
