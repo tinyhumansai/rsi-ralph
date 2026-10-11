@@ -91,6 +91,6 @@ fn a_failed_write_is_reported_when_the_log_is_finished() {
     let trace = Trace::create(&path, Redactor::default(), sender).unwrap();
     // Swap in a read-only handle so the next append fails.
     trace.state.lock().unwrap().file = std::fs::File::open(&path).unwrap();
-    trace.record(message("lost"));
+    trace.emit(message("lost"));
     assert!(matches!(trace.finish(), Err(Error::RunDir { .. })));
 }
