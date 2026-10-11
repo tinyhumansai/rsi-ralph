@@ -20,6 +20,9 @@ export interface Goal {
 /** Outcome of the paired comparison between a candidate and the incumbent. */
 export type Decision = "accept" | "reject" | "inconclusive";
 
+/** Units of a scored interval: the goal metric, or scorer qualities in [0, 1]. */
+export type IntervalUnits = "metric" | "quality";
+
 /** Why the loop stopped. */
 export type FinishReason = "goal_reached" | "max_epochs" | "stalled" | "budget" | "error";
 
@@ -83,6 +86,8 @@ export interface Scored {
   estimate: number;
   lower: number;
   upper: number;
+  /** Absent for metric units, which older traces never wrote. */
+  units?: IntervalUnits;
 }
 
 export interface Improved {
@@ -200,6 +205,7 @@ const FIELDS: Record<LoopEvent["kind"], Record<string, FieldType>> = {
 };
 
 const DECISIONS: readonly string[] = ["accept", "reject", "inconclusive"];
+const UNITS: readonly string[] = ["metric", "quality"];
 const REASONS: readonly string[] = ["goal_reached", "max_epochs", "stalled", "budget", "error"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -261,6 +267,9 @@ export function parseEnvelope(line: string): ParseResult {
   }
   if (event.kind === "scored" && !DECISIONS.includes(event.decision as string)) {
     return { ok: false, error: "scored.decision is not a known decision" };
+  }
+  if (event.kind === "scored" && event.units !== undefined && !UNITS.includes(event.units as string)) {
+    return { ok: false, error: "scored.units is not known units" };
   }
   if (event.kind === "run_finished" && !REASONS.includes(event.reason as string)) {
     return { ok: false, error: "run_finished.reason is not a known reason" };

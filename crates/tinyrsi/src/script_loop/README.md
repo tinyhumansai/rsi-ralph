@@ -17,9 +17,9 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
   `LlmJudge` reading the sources. The incumbent is assessed on its first
   comparison and cached (a baseline already at the target is never scored),
   the scorer's tokens count against the budget, and `decide`'s eligibility
-  rule means an uncalibrated judge alone never promotes. Ledger rows carry
-  `units: "quality"` when the interval is in scorer qualities; the field is
-  omitted for metric units. A candidate the scorer fails on is recorded as
+  rule means an uncalibrated judge alone never promotes. Ledger rows and
+  `scored` trace events carry `units: "quality"` when the interval is in
+  scorer qualities; the field is omitted for metric units. A candidate the scorer fails on is recorded as
   `error`, with its runs, before the run ends.
   `run_script_loop` uses the metric alone (`MetricScorer`), which reproduces
   the original decisions and metric-unit intervals exactly.

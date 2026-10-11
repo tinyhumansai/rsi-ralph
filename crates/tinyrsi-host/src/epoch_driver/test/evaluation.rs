@@ -446,7 +446,10 @@ fn assert_epoch_trace(
             } if *proposal_id == format!("p7-{}", c.proposal_index) => Some(candidate.clone()),
             _ => None,
         });
-        assert_eq!(linked, Some(c.candidate_id.clone()));
+        let expected = (c.reason != ReasonCode::Duplicate)
+            .then(|| c.candidate_id.clone())
+            .flatten();
+        assert_eq!(linked, Some(expected));
     }
     // The epoch ends on a metric: the accepted candidate's H, or the
     // incumbent's on the same private draw.
@@ -505,6 +508,31 @@ fn an_unmaterialized_proposal_stays_candidate_less_on_the_trace() {
             incumbent_metric,
             ..
         } => incumbent == "base" && incumbent_metric.is_none(),
+        _ => false,
+    }));
+}
+
+#[test]
+fn a_duplicate_idea_stays_candidate_less_on_the_trace() {
+    use crate::{EpochCandidateOutcome, ManualClock, VecTrace};
+    let dir = tempfile::tempdir().unwrap();
+    let archive = Archive::open(dir.path().join("archive.json")).unwrap();
+    let outcome = RetreatEpochOutcome {
+        epoch: 3,
+        candidates: vec![EpochCandidateOutcome {
+            proposal_index: 0,
+            reason: ReasonCode::Duplicate,
+            candidate_id: Some("sha256:already-evaluated".into()),
+        }],
+        complete: true,
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    record_epoch(&mut trace, 3, &archive, &prepared(3, 1), &outcome).unwrap();
+    // Nothing ran, so the idea must not borrow the earlier candidate's
+    // measurement and decision in the visualizer.
+    assert!(trace.records().iter().all(|r| match &r.event {
+        LoopEvent::Ideated { candidate, .. } => candidate.is_none(),
+        LoopEvent::EpochFinished { .. } => true,
         _ => false,
     }));
 }

@@ -50,6 +50,16 @@ describe("parseEnvelope", () => {
     expect(parseEnvelope('{"seq":0,"elapsed_ms":0}').ok).toBe(false);
   });
 
+  it("reads a scored interval's units, defaulting to the metric", () => {
+    const line = (units: string) =>
+      `{"seq":0,"elapsed_ms":0,"event":{"kind":"scored","epoch":1,"candidate":"x","decision":"accept","estimate":0.5,"lower":0.25,"upper":0.75${units}}}`;
+    const quality = parseEnvelope(line(',"units":"quality"'));
+    expect(quality.ok && quality.envelope.event.kind === "scored" && quality.envelope.event.units).toBe("quality");
+    const metric = parseEnvelope(line(""));
+    expect(metric.ok && metric.envelope.event.kind === "scored" && metric.envelope.event.units).toBe(undefined);
+    expect(parseEnvelope(line(',"units":"furlongs"')).ok).toBe(false);
+  });
+
   it("rejects an unknown decision, finish reason, or direction", () => {
     expect(
       parseEnvelope(

@@ -113,12 +113,12 @@ pub use archive::NormalizedDeclarationEvent;
 
 // The plain-script improvement loop and the append-only trace it emits.
 pub use script_loop::{
-    CandidateDecision, IncumbentEntry, IntervalUnits, LedgerCandidate, LoopPolicy, LoopReport,
-    MetricSpec, RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
+    CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
+    RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
     parse_metric, run_script_loop, run_script_loop_with,
 };
 pub use tinyrsi_trace::{
-    Clock, Error as TraceError, FanoutTrace, JsonlTrace, LoopEvent, ManualClock, MetricDirection,
-    MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord, TraceSink,
-    TracingTrace, VecTrace,
+    Clock, Error as TraceError, FanoutTrace, IntervalUnits, JsonlTrace, LoopEvent, ManualClock,
+    MetricDirection, MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord,
+    TraceSink, TracingTrace, VecTrace,
 };

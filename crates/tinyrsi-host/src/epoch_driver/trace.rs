@@ -9,7 +9,9 @@
 //! still emits `epoch_started`, `observed` and the run boundaries itself,
 //! because only it knows where its run begins and what it observed.
 use super::{PreparedRetreatEpoch, RetreatEpochOutcome};
-use crate::{Archive, EvalDecision, LoopEvent, ReasonCode, Result, ScoreDecision, TraceSink};
+use crate::{
+    Archive, EvalDecision, IntervalUnits, LoopEvent, ReasonCode, Result, ScoreDecision, TraceSink,
+};
 
 /// The trace id of the `index`-th proposal of `epoch`, as the script loop
 /// names its own (`p<epoch>-<index>`).
@@ -29,7 +31,8 @@ fn decision(d: &EvalDecision) -> ScoreDecision {
 /// host's own numbering, which need not be the hive epoch id).
 ///
 /// - `ideated` for every prepared proposal, in rank order, naming the
-///   candidate it was formalized into, or none when it never was.
+///   candidate it was formalized into, or none when it never was or when it
+///   duplicated a patch already evaluated.
 /// - For each candidate this epoch actually evaluated: `measured` (its
 ///   normalized H estimate), `scored` (accepted only when the human approved
 ///   it; an inconclusive evaluation keeps its own decision; anything else is a
@@ -59,6 +62,9 @@ pub fn record_epoch(
             .candidates
             .iter()
             .find(|c| c.proposal_index == index)
+            // A duplicate ran nothing; linking it to the earlier candidate
+            // would show that candidate's measurement as its own.
+            .filter(|c| c.reason != ReasonCode::Duplicate)
             .and_then(|c| c.candidate_id.clone())
     };
     for (index, proposal) in prepared.proposals.iter().enumerate() {
@@ -113,6 +119,8 @@ pub fn record_epoch(
             estimate: evaluation.map_or(0.0, |e| e.comparison.delta),
             lower: evaluation.map_or(0.0, |e| e.comparison.lower),
             upper: evaluation.map_or(0.0, |e| e.comparison.upper),
+            // A hive run's goal metric is normalized H itself.
+            units: IntervalUnits::Metric,
         })?;
         if let (true, Some(e)) = (accepted, evaluation) {
             trace.record(LoopEvent::Improved {

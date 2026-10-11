@@ -87,13 +87,17 @@ impl BackroomsJudge {
     }
 
     /// One rating in `[0, 1]`, or `None` when the answer is unusable.
+    ///
+    /// The schema asks for integers, so a fractional rating such as `4.5` is
+    /// unusable rather than silently accepted.
     fn parse(&self, value: &Value) -> Option<f64> {
         let scale = |key: &str| {
             value
                 .get(key)
-                .and_then(Value::as_f64)
-                .filter(|v| (1.0..=7.0).contains(v))
-                .map(|v| (v - 1.0) / 6.0)
+                .and_then(Value::as_u64)
+                .and_then(|v| u8::try_from(v).ok())
+                .filter(|v| (1..=7).contains(v))
+                .map(|v| f64::from(v - 1) / 6.0)
         };
         let fit = scale("goal_fit")?;
         if self.novelty {

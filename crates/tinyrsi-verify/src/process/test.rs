@@ -104,7 +104,7 @@ fn fails_when_the_program_cannot_be_spawned() {
 #[test]
 fn retries_a_spawn_while_the_executable_is_busy() {
     let mut attempts = 0;
-    let spawned = spawn_retrying(|| {
+    let spawned = spawn_retrying(Instant::now(), Duration::from_secs(60), || {
         attempts += 1;
         if attempts < 3 {
             Err(std::io::Error::from_raw_os_error(TEXT_FILE_BUSY))
@@ -119,17 +119,32 @@ fn retries_a_spawn_while_the_executable_is_busy() {
 #[test]
 fn gives_up_on_other_spawn_errors_and_on_a_persistently_busy_executable() {
     let mut attempts = 0;
-    let missing = spawn_retrying::<()>(|| {
+    let missing = spawn_retrying::<()>(Instant::now(), Duration::from_secs(60), || {
         attempts += 1;
         Err(std::io::Error::from(std::io::ErrorKind::NotFound))
     });
     assert!(missing.is_err());
     assert_eq!(attempts, 1, "only a busy executable is retried");
     let mut attempts = 0;
-    let busy = spawn_retrying::<()>(|| {
+    let busy = spawn_retrying::<()>(Instant::now(), Duration::from_secs(60), || {
         attempts += 1;
         Err(std::io::Error::from_raw_os_error(TEXT_FILE_BUSY))
     });
     assert!(busy.is_err());
     assert_eq!(attempts, SPAWN_ATTEMPTS);
+}
+
+#[test]
+fn stops_retrying_a_busy_executable_once_the_timeout_has_elapsed() {
+    let mut attempts = 0;
+    let busy = spawn_retrying::<()>(Instant::now(), Duration::ZERO, || {
+        attempts += 1;
+        Err(std::io::Error::from_raw_os_error(TEXT_FILE_BUSY))
+    });
+    assert_eq!(
+        busy.unwrap_err().raw_os_error(),
+        Some(TEXT_FILE_BUSY),
+        "the busy spawn error is returned once the timeout has elapsed"
+    );
+    assert_eq!(attempts, 1, "retry sleeps count against the timeout");
 }

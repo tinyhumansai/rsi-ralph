@@ -56,7 +56,7 @@ Event kinds (stage in brackets is the visualizer's loop-ring stage):
 | `ideated` | `epoch, proposal_id: string, parent: string, candidate: string\|null, rationale: string, hypothesis: string` | ideate |
 | `executed` | `epoch, candidate: string, seed: u64, metric: number\|null, ok: bool, duration_ms: u64` | execute |
 | `measured` | `epoch, candidate: string, mean: number\|null, failures: u32, seeds: u32` | measure |
-| `scored` | `epoch, candidate: string, decision: "accept"\|"reject"\|"inconclusive", estimate: number, lower: number, upper: number` | score |
+| `scored` | `epoch, candidate: string, decision: "accept"\|"reject"\|"inconclusive", estimate: number, lower: number, upper: number, units?: "quality"` | score |
 | `improved` | `epoch, from: string, to: string, metric: number` | improve |
 | `epoch_finished` | `epoch, incumbent: string, incumbent_metric: number\|null` | — |
 | `run_finished` | `reason: "goal_reached"\|"max_epochs"\|"stalled"\|"budget"\|"error", incumbent: string, incumbent_metric: number\|null` | — |
@@ -69,7 +69,11 @@ The baseline run of the starting script is epoch 0: `executed`/`measured`
 events with `candidate` = the baseline id, and no `scored` event.
 `scored.estimate/lower/upper` are the paired candidate-minus-incumbent
 improvement in the "higher is better" orientation (for minimize metrics the
-sign is flipped, so positive always means better).
+sign is flipped, so positive always means better). They are in the goal metric's units
+unless `scored.units` is `"quality"`, which a judge or blended scorer reports
+on its `[0, 1]` quality scale. `units` is omitted for metric units, so traces
+from the metric scorer keep their exact bytes, and a missing field reads as
+`"metric"`.
 
 Example run:
 
