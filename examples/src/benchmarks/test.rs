@@ -90,3 +90,22 @@ fn the_math_problem_reaches_its_goal_offline() {
     assert!(run.dir.join("events.jsonl").exists());
     assert!(run.dir.join("workspace/check_pi.py").exists());
 }
+
+#[test]
+fn the_file_upgrade_reaches_its_goal_offline() {
+    let dir = tempfile::tempdir().unwrap();
+    let run = RunLocation {
+        id: "upgrade".into(),
+        dir: dir.path().join("upgrade"),
+    };
+    let report = Benchmark::UpgradeFile
+        .run(
+            &run,
+            &python().unwrap(),
+            Benchmark::UpgradeFile.offline_models(),
+        )
+        .unwrap();
+    assert_eq!(report.reason, tinyrsi::StopReason::GoalReached);
+    assert_eq!(report.incumbent_metric, 0.0);
+    assert_eq!((report.promotions, report.rejected), (2, 1));
+}
