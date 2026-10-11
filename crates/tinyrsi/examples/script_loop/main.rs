@@ -28,7 +28,8 @@ const BRIEF: &str = "curve_fit.py generates a noisy 1-D signal from TINYRSI_SEED
 model.fit(ts, ys) on 80% of the points and prints the held-out RMSE. Rewrite model.py so \
 fit returns a predict(t) function with lower held-out RMSE. Use only the Python standard \
 library, keep it deterministic and fast (well under 10 seconds per seed), and do not read \
-files or the network. curve_fit.py is fixed and not editable.";
+files or the network. curve_fit.py is fixed and not editable. It also prints DIAG lines \
+(training RMSE and the mean residual over ten slices of t) that you will see next round.";
 
 /// Replays canned tool-call arguments; once they run out it repeats the last,
 /// which the loop rejects as a duplicate.
