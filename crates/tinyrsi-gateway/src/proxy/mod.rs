@@ -477,7 +477,7 @@ async fn buffered(
     response: reqwest::Response,
 ) -> (Response, Outcome) {
     let status = response.status();
-    let bytes = response.bytes().await.unwrap_or_default();
+    let bytes = proxy.redact_body(response.bytes().await.unwrap_or_default());
     let usage = serde_json::from_slice::<Value>(&bytes)
         .map_or_else(|_| Usage::default(), |v| Usage::from_body(&v));
     let price = proxy.config.prices.get(&prepared.model).ok();
