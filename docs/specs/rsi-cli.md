@@ -120,6 +120,10 @@ The one tool capability, `web_search`, takes `{ "provider", "env", "seats"? }`
 search tools, with the key pinned in each seat's in-memory config only. It
 needs the `web-search` Cargo feature, on by default. Values are read
 from the process environment, then from a `.env` file in the loop folder.
+Any other plain capability (`"ladder": "LADDER_API_KEY"`) is passed to
+step commands, and only to them, under its variable name: for a scorer that
+starts a service needing its own key. Like every key, its value is scrubbed
+from anything the run stores.
 
 **`score.scorers`.** Each has a unique `id`, a `weight` (default 1) and exactly
 one of:
