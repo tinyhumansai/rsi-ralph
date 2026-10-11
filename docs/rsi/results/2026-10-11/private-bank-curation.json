@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "bank_sha256": "7645142878522f83467d52676dd955fa9b02d8473bdf12d7d6959b85ce2d764e",
+  "provenance": "agent-authored; two independent integer oracles",
+  "task_count": 48,
+  "stages": {
+    "screen": 12,
+    "selection": 12,
+    "confirmation": 12,
+    "anchor": 12
+  },
+  "families": [
+    "assignment",
+    "harshad",
+    "idempotents",
+    "euclid"
+  ],
+  "calibration_samples": 96,
+  "human_labels": false,
+  "measured_anchors": false,
+  "suite_fingerprints": {
+    "anchor": "sha256:05f0f6c1ef2939f583d0062f16614ee07f35979d87ddab79e8bd823fdea8ec8b",
+    "confirmation": "sha256:4055d868dcb99c12b2e553974b7596bbee9e8d7d7f961d8a56c97d2ca1045bf6",
+    "screen": "sha256:840a882b6c903d71290fbf038f18ddad900d18dd861288fb610c52668fb8c494",
+    "selection": "sha256:e5dc066fccbb0f279ee1ee0bc70958f19d91f3af073c8230fef3b3bc34bc8637"
+  },
+  "verified_calibration_samples": 96
+}

@@ -58,5 +58,9 @@ name = "observe_epochs"
 required-features = ["host"]
 
 [[example]]
+name = "private_benchmark"
+required-features = ["host"]
+
+[[example]]
 name = "proposal_metrics"
 required-features = ["host"]

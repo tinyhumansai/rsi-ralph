@@ -70,3 +70,15 @@ selection-only outcome/prior datasets now exist, including descriptive metrics. 
 existing owners rather than duplicate delivered host/snapshot infrastructure.
 
 This audit does not close P1–P6 or label the live experiment an improvement.
+
+## Agent-authored numerical bank
+
+The [private benchmark curation](private-benchmarks.md) now provides 48 fresh
+mathematical tasks across four disjoint stages, independently checked by two
+algorithms per family. Its 96 correct/off-by-one answer probes have actual
+golden-checker labels. Nine Euler public controls have pinned published solution
+references, including the 92%-difficulty Euclidean counting problem #433.
+
+These automatic inputs supply numerical-maths and anchor draws. Code, formal
+Lean, private-reference and harness-engineering coverage, measured normalization
+anchors and human judge calibration remain outstanding; P2/P3/P4 are still open.

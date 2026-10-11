@@ -10,6 +10,8 @@ recorded separately.
 - [Phase status](phases.md): implemented P1–P6 mechanisms and experimental limits.
 - [Remaining work audit](remaining-work.md): issue acceptance gaps after the
   merged host and scoring work, with the next implementation boundary.
+- [Private numerical benchmarks](private-benchmarks.md): 48 independently checked
+  agent-authored tasks and hard Euler controls with pinned published solutions.
 - [Host runtime](../specs/host-runtime.md): durable deployment, compensation,
   exact memory restoration and the supported runner boundary.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.
