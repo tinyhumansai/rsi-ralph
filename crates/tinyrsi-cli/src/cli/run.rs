@@ -51,6 +51,23 @@ fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
         .collect()
 }
 
+/// What steps inherit: [`inherited`] plus the loop's plain step keys, each
+/// under its own variable name. Their values are already among the secrets
+/// scrubbed from anything stored.
+fn step_env(
+    parsed: &Loop,
+    keys: &Keys,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Vec<(String, String)> {
+    let mut env = inherited(lookup);
+    for name in parsed.step_key_envs() {
+        if let Some(secret) = keys.get(name) {
+            env.push((name.to_owned(), secret.expose().to_owned()));
+        }
+    }
+    env
+}
+
 /// Start the spend gateway for one run folder.
 ///
 /// `TINYRSI_UPSTREAM` replaces `OpenRouter` with another OpenAI-compatible base
@@ -146,7 +163,7 @@ pub(super) fn run(
         judges: judges(parsed, &gateway)?,
         meter: Some(&meter),
         model_url: Some(gateway.base_url()),
-        inherited: inherited(lookup),
+        inherited: step_env(parsed, &keys, lookup),
         secrets: keys.values().map(str::to_owned).collect(),
         epochs,
     };
@@ -218,7 +235,7 @@ pub(super) fn score(
         epoch: 0,
         model_url: Some(gateway.base_url()),
         env: parsed.manifest.env.clone(),
-        inherited: inherited(lookup),
+        inherited: step_env(parsed, &keys, lookup),
     };
     let card = score::score_checkout(
         &ctx,
