@@ -1,0 +1,117 @@
+{
+  "$schema": "https://tinyhumans.ai/schemas/hive/v1",
+  "version": 1,
+  "id": "pair",
+  "name": "Pair lab",
+  "roles": [
+    { "id": "lead", "charter": "roles/lead.md" },
+    { "id": "implementer", "charter": "roles/implementer.md" }
+  ],
+  "seats": [
+    {
+      "id": "lead",
+      "label": "lead",
+      "role": "lead",
+      "prompt": "seats/lead.md",
+      "template": "openhuman",
+      "config": { "action_dir": "{incumbent}", "max_iterations": 8, "temperature": 0.0 },
+      "model": "fixture-lead",
+      "tools": { "allow": ["file_read"], "deny": ["spawn_subagent"] },
+      "mcp": [],
+      "skills": []
+    },
+    {
+      "id": "implementer-a",
+      "label": "implementer-a",
+      "role": "implementer",
+      "prompt": "seats/implementer-a.md",
+      "template": "openhuman",
+      "config": { "action_dir": "{candidate}", "max_iterations": 8 },
+      "tools": { "allow": ["file_read", "file_write"], "deny": [] },
+      "mcp": [],
+      "skills": []
+    }
+  ],
+  "desks": [
+    {
+      "id": "lab",
+      "name": "Lab",
+      "description": "a lead and one implementer",
+      "members": ["lead", "implementer-a"],
+      "responder_mode": "auto"
+    }
+  ],
+  "goals": [],
+  "missions": [],
+  "topology": [],
+  "referrals": [],
+  "context": ["context/rules.md"],
+  "policies": {
+    "episode": {
+      "turn_budget": 24,
+      "round_width": 1,
+      "revealed_width": 1,
+      "blind_round": true,
+      "dominance_cap": 50,
+      "repetition_cap": 3,
+      "distance": "sequence",
+      "quorum": { "threshold": 2, "window": 30, "require_grounded": true },
+      "weights": { "recency": 5, "importance": 30, "relevance": 20, "half_life": 20 }
+    },
+    "routing": {
+      "minimum_confidence": 0,
+      "high_impact_minimum_confidence": 0,
+      "clarification_threshold": 1000000,
+      "high_impact_threshold": 1000000,
+      "round_width": 4,
+      "choice_option_limit": 4
+    },
+    "approval": {
+      "enabled": false,
+      "default": "deny",
+      "rules": [],
+      "approver": { "kind": "absent" },
+      "allow_grants": false,
+      "max_grant_ttl": null
+    },
+    "aside": {
+      "enabled": false,
+      "max_members": 0,
+      "max_messages": 0,
+      "must_surface": false,
+      "require_thread": false
+    },
+    "referral": { "enabled": false, "max_hops": 0, "reach": "local", "returns": false },
+    "digest": {
+      "keep_live": 30,
+      "fold_after": 20,
+      "fold_after_chars": 400000,
+      "input_limit": 60,
+      "budget_chars": 4000
+    },
+    "brevity": { "message_chars": 2400, "window": 30 },
+    "directory": {
+      "half_life": 20,
+      "specialisation": 30,
+      "credibility": 20,
+      "prior": 10,
+      "discredit": 20,
+      "window": 30,
+      "floor": 1000
+    },
+    "exchange": { "enabled": false, "contact_cap": 0, "round_cap": 0 },
+    "division": { "round_width": 4, "follow_directory": true },
+    "conduct": { "child_turn_wall": 6, "turn_wall": 40 }
+  },
+  "coordinator": {
+    "round_width": 4,
+    "conduct_policy": { "child_turn_wall": 6, "turn_wall": 40 },
+    "broadcast_budget": null,
+    "retention": {
+      "settled_episodes": null,
+      "delivered": null,
+      "interrupted": null,
+      "pending_per_agent": null
+    }
+  }
+}
