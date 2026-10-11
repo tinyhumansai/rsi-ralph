@@ -170,10 +170,10 @@ pub use archive::NormalizedDeclarationEvent;
 // The plain-script improvement loop and the append-only trace it emits.
 pub use script_loop::{
     CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
-    ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject,
-    SeedRun, Supervisor, SupervisorLimits, parse_metric, run_script_loop,
+    ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject, SeedRun,
+    Supervisor, SupervisorLimits, parse_metric, run_script_loop,
 };
 pub use trace::{
-    Clock, JsonlTrace, LoopEvent, ManualClock, MetricDirection, MonotonicClock, NullTrace,
-    RunGoal, ScoreDecision, StopReason, TraceRecord, TraceSink, VecTrace,
+    Clock, JsonlTrace, LoopEvent, ManualClock, MetricDirection, MonotonicClock, NullTrace, RunGoal,
+    ScoreDecision, StopReason, TraceRecord, TraceSink, VecTrace,
 };

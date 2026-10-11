@@ -32,10 +32,16 @@ fn is_a_standard_error() {
 fn renders_lowercase_messages_for_script_loop_failures() {
     for (error, message) in [
         (Error::TraceIo, "loop trace write failed"),
-        (Error::InvalidScriptSubject, "invalid script subject or loop policy"),
+        (
+            Error::InvalidScriptSubject,
+            "invalid script subject or loop policy",
+        ),
         (Error::ScriptBaselineFailed, "baseline script failed"),
         (Error::ScriptTimeout, "script run timed out"),
-        (Error::ScriptOutputExceeded, "script run exceeded its output cap"),
+        (
+            Error::ScriptOutputExceeded,
+            "script run exceeded its output cap",
+        ),
         (Error::ScriptFailed, "script run exited unsuccessfully"),
         (Error::MetricMissing, "script run printed no metric line"),
         (

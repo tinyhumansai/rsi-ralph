@@ -43,6 +43,18 @@ fn covers_the_observed_and_failed_execution_shapes() {
         serde_json::to_string(&failed).unwrap(),
         r#"{"kind":"executed","epoch":0,"candidate":"a","seed":7,"metric":null,"ok":false,"duration_ms":4}"#
     );
+    let refused = LoopEvent::Ideated {
+        epoch: 2,
+        proposal_id: "p2-0".into(),
+        parent: "a".into(),
+        candidate: None,
+        rationale: "r".into(),
+        hypothesis: String::new(),
+    };
+    assert_eq!(
+        serde_json::to_string(&refused).unwrap(),
+        r#"{"kind":"ideated","epoch":2,"proposal_id":"p2-0","parent":"a","candidate":null,"rationale":"r","hypothesis":""}"#
+    );
     for (reason, text) in [
         (StopReason::GoalReached, "goal_reached"),
         (StopReason::Stalled, "stalled"),

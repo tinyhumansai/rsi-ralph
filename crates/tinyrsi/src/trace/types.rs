@@ -92,6 +92,9 @@ pub enum LoopEvent {
         proposal_id: String,
         /// Incumbent the proposal edits.
         parent: String,
+        /// Content id the proposal materializes into, absent when it was
+        /// refused before materialization.
+        candidate: Option<String>,
         /// Why the supervisor expects improvement.
         rationale: String,
         /// The checkable claim.

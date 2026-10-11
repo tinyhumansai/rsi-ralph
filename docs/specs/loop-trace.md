@@ -53,13 +53,17 @@ Event kinds (stage in brackets is the visualizer's loop-ring stage):
 | `run_started` | `run_id: string, subject: string, goal: {metric: string, direction: "minimize"\|"maximize", target: number\|null}` | — |
 | `epoch_started` | `epoch: u64, incumbent: string` | — |
 | `observed` | `epoch, incumbent: string, incumbent_metric: number\|null, history: u32, rejected: u32` | observe |
-| `ideated` | `epoch, proposal_id: string, parent: string, rationale: string, hypothesis: string` | ideate |
+| `ideated` | `epoch, proposal_id: string, parent: string, candidate: string\|null, rationale: string, hypothesis: string` | ideate |
 | `executed` | `epoch, candidate: string, seed: u64, metric: number\|null, ok: bool, duration_ms: u64` | execute |
 | `measured` | `epoch, candidate: string, mean: number\|null, failures: u32, seeds: u32` | measure |
 | `scored` | `epoch, candidate: string, decision: "accept"\|"reject"\|"inconclusive", estimate: number, lower: number, upper: number` | score |
 | `improved` | `epoch, from: string, to: string, metric: number` | improve |
 | `epoch_finished` | `epoch, incumbent: string, incumbent_metric: number\|null` | — |
 | `run_finished` | `reason: "goal_reached"\|"max_epochs"\|"stalled"\|"budget"\|"error", incumbent: string, incumbent_metric: number\|null` | — |
+
+`ideated.candidate` is the content id the proposal materializes into, computed
+from the proposed files before execution, or `null` when the proposal was
+refused before materialization (malformed, or a path outside the editable set).
 
 The baseline run of the starting script is epoch 0: `executed`/`measured`
 events with `candidate` = the baseline id, and no `scored` event.
@@ -75,7 +79,7 @@ Example run:
 {"seq":2,"elapsed_ms":4,"event":{"kind":"measured","epoch":0,"candidate":"a1b2c3d4e5f6","mean":0.42,"failures":0,"seeds":1}}
 {"seq":3,"elapsed_ms":5,"event":{"kind":"epoch_started","epoch":1,"incumbent":"a1b2c3d4e5f6"}}
 {"seq":4,"elapsed_ms":5,"event":{"kind":"observed","epoch":1,"incumbent":"a1b2c3d4e5f6","incumbent_metric":0.42,"history":1,"rejected":0}}
-{"seq":5,"elapsed_ms":900,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-0","parent":"a1b2c3d4e5f6","rationale":"linear model underfits","hypothesis":"cubic features cut rmse"}}
+{"seq":5,"elapsed_ms":900,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-0","parent":"a1b2c3d4e5f6","candidate":"0f9e8d7c6b5a","rationale":"linear model underfits","hypothesis":"cubic features cut rmse"}}
 {"seq":6,"elapsed_ms":1100,"event":{"kind":"executed","epoch":1,"candidate":"0f9e8d7c6b5a","seed":1,"metric":0.11,"ok":true,"duration_ms":130}}
 {"seq":7,"elapsed_ms":1101,"event":{"kind":"measured","epoch":1,"candidate":"0f9e8d7c6b5a","mean":0.11,"failures":0,"seeds":1}}
 {"seq":8,"elapsed_ms":1102,"event":{"kind":"scored","epoch":1,"candidate":"0f9e8d7c6b5a","decision":"accept","estimate":0.31,"lower":0.28,"upper":0.34}}

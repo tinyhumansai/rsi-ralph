@@ -39,7 +39,11 @@ fn captures_stdout_and_stderr_separately_with_only_the_given_environment() {
     let stdout = String::from_utf8(outcome.stdout).unwrap();
     assert!(stdout.starts_with("set nohome\n"));
     let cwd = std::fs::canonicalize(dir.path()).unwrap();
-    assert!(stdout.trim_end().ends_with(cwd.file_name().unwrap().to_str().unwrap()));
+    assert!(
+        stdout
+            .trim_end()
+            .ends_with(cwd.file_name().unwrap().to_str().unwrap())
+    );
     assert_eq!(outcome.stderr, b"err\n");
 }
 
@@ -62,7 +66,7 @@ fn kills_a_child_that_outlives_the_timeout() {
     let outcome = sh("sleep 5", dir.path(), 50, 1_000);
     assert_eq!(outcome.exit, Exit::TimedOut);
     assert!(outcome.duration_ms < 5_000);
-    assert!(outcome.stdout.is_empty());
+    assert_eq!(outcome.stdout.len(), 0);
 }
 
 #[test]

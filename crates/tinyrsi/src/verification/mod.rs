@@ -2,10 +2,10 @@
 pub(crate) mod lake;
 mod runner;
 mod types;
+use crate::process::Exit;
 use crate::{Error, Result};
 pub use runner::*;
 use sha2::{Digest, Sha256};
-use crate::process::Exit;
 use std::{collections::BTreeMap, time::Duration};
 pub use types::*;
 /// Immutable registry of authorized node checkers.
@@ -224,7 +224,10 @@ fn process_with_files(
         .collect();
     let env = [
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
-        ("TMPDIR".to_owned(), dir.path().to_string_lossy().into_owned()),
+        (
+            "TMPDIR".to_owned(),
+            dir.path().to_string_lossy().into_owned(),
+        ),
     ];
     let outcome = crate::process::run(&crate::process::ProcessSpec {
         program: c.program.as_ref(),

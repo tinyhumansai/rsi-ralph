@@ -14,8 +14,8 @@ mod score;
 mod supervisor;
 mod types;
 use crate::{Error, LoopEvent, Result, RunGoal, ScoreDecision, StopReason, TraceSink};
-use execute::{Sources, content_id, materialize, read_sources, run_seed, validate_subject};
 pub use execute::parse_metric;
+use execute::{Sources, content_id, materialize, read_sources, run_seed, validate_subject};
 use std::{
     fs::File,
     io::Write,
@@ -261,7 +261,10 @@ impl LoopState<'_> {
         }
         let direction = self.subject.metric.direction;
         let best = accepted.into_iter().reduce(|a, b| {
-            match (self.ledger.candidates[a.0].mean, self.ledger.candidates[b.0].mean) {
+            match (
+                self.ledger.candidates[a.0].mean,
+                self.ledger.candidates[b.0].mean,
+            ) {
                 (Some(x), Some(y)) if score::better(y, x, direction) => b,
                 _ => a,
             }
@@ -320,6 +323,7 @@ impl LoopState<'_> {
                     epoch,
                     proposal_id,
                     parent: parent.to_owned(),
+                    candidate: None,
                     rationale: format!("invalid proposal: {error}"),
                     hypothesis: String::new(),
                 })?;
@@ -331,17 +335,23 @@ impl LoopState<'_> {
         row.rationale.clone_from(&proposal.rationale);
         row.hypothesis.clone_from(&proposal.hypothesis);
         row.paths = proposal.files.iter().map(|f| f.path.clone()).collect();
+        let sources = proposal.apply(&self.incumbent.sources);
+        let id = content_id(&sources);
         self.emit(LoopEvent::Ideated {
             epoch,
             proposal_id,
             parent: parent.to_owned(),
+            candidate: Some(id.clone()),
             rationale: proposal.rationale.clone(),
             hypothesis: proposal.hypothesis.clone(),
         })?;
-        let sources = proposal.apply(&self.incumbent.sources);
-        let id = content_id(&sources);
         row.id = Some(id.clone());
-        if self.ledger.candidates.iter().any(|c| c.id.as_deref() == Some(&id)) {
+        if self
+            .ledger
+            .candidates
+            .iter()
+            .any(|c| c.id.as_deref() == Some(&id))
+        {
             row.decision = CandidateDecision::Duplicate;
             row.note = Some("content already evaluated in this run".into());
             self.scored(epoch, &id, ScoreDecision::Reject, (0.0, 0.0, 0.0))?;
@@ -359,10 +369,14 @@ impl LoopState<'_> {
             ScoreDecision::Reject => CandidateDecision::Reject,
             ScoreDecision::Inconclusive => CandidateDecision::Inconclusive,
         };
-        (row.estimate, row.lower, row.upper) = (Some(interval.0), Some(interval.1), Some(interval.2));
+        (row.estimate, row.lower, row.upper) =
+            (Some(interval.0), Some(interval.1), Some(interval.2));
         self.ledger.candidates.push(row);
         self.save()?;
-        Ok((decision == ScoreDecision::Accept).then(|| (self.ledger.candidates.len() - 1, sources)))
+        Ok(
+            (decision == ScoreDecision::Accept)
+                .then(|| (self.ledger.candidates.len() - 1, sources)),
+        )
     }
 
     /// Scores a measured candidate; any failed seed is a rejection.

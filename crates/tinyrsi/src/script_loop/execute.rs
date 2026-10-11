@@ -259,9 +259,10 @@ fn execute(subject: &ScriptSubject, dir: &Path, tmp_root: &Path, seed: u64) -> R
             Err(Error::ScriptOutputExceeded)
         }
         Exit::Exited { success: false, .. } => Err(Error::ScriptFailed),
-        Exit::Exited { success: true, .. } => {
-            parse_metric(&String::from_utf8_lossy(&outcome.stdout), &subject.metric.name)
-        }
+        Exit::Exited { success: true, .. } => parse_metric(
+            &String::from_utf8_lossy(&outcome.stdout),
+            &subject.metric.name,
+        ),
     };
     Ok((result, outcome.duration_ms, outcome.stderr))
 }

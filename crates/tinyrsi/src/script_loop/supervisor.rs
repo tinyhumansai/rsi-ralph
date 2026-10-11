@@ -92,7 +92,8 @@ impl Supervisor {
         request.check(&reply)?;
         Ok(SupervisorTurn {
             tokens: reply.input_tokens.saturating_add(reply.output_tokens),
-            proposal: serde_json::from_slice(&reply.content).map_err(|_| Error::SupervisorMalformed),
+            proposal: serde_json::from_slice(&reply.content)
+                .map_err(|_| Error::SupervisorMalformed),
         })
     }
 }
