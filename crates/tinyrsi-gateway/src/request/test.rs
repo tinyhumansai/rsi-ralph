@@ -40,8 +40,8 @@ fn any_provider_leaves_routing_to_the_upstream() {
     prices.insert(
         "reasoning",
         Price {
-            prompt: usd(1, 0.3),
-            completion: usd(1, 1.2),
+            prompt: 0.3e-6,
+            completion: 1.2e-6,
             provider: ANY_PROVIDER.to_owned(),
         },
     );
