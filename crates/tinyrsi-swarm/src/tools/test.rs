@@ -89,7 +89,13 @@ fn a_search_key_enables_its_provider_on_the_direct_route() {
         Some("AIza-test-secret")
     );
     assert_eq!(config.search.exa.api_key, None);
-    assert_eq!(config.search.providers["gemini"], Default::default());
+    // Default settings are enabled on the direct route; a fresh config has
+    // Gemini on the managed route instead.
+    let mut empty = config.search.providers.clone();
+    empty.clear();
+    let direct = *empty.entry(String::new()).or_default();
+    assert_eq!(config.search.providers["gemini"], direct);
+    assert_ne!(RuntimeConfig::default().search.providers["gemini"], direct);
     assert!(!config.search.providers.contains_key("unknown"));
     for provider in SEARCH_PROVIDERS {
         let mut config = RuntimeConfig::default();
