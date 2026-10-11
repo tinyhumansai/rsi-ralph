@@ -7,6 +7,8 @@ use crate::{
 #[derive(Default)]
 pub(super) struct Host {
     calls: u64,
+    /// Stage at which the candidate, not the incumbent, fails its runs.
+    harm: Option<EvalStage>,
 }
 impl Evaluator for Host {
     fn pin_memory(&mut self, inc: &CandidateState, _: &Patch) -> Result<BTreeMap<String, u64>> {
@@ -31,6 +33,13 @@ impl HEvaluator for Host {
         _: &Budget,
     ) -> Result<HEvalPair> {
         self.calls += 1;
+        if self.harm == Some(stage) {
+            return Err(Error::CandidateFailed(crate::CandidateFailure {
+                kind: crate::CandidateFailureKind::Crash,
+                failed_runs: 2,
+                runs: 3,
+            }));
+        }
         let fresh = stage == EvalStage::Confirmation;
         let rows = |quality| {
             (0..3)
@@ -561,4 +570,53 @@ fn a_failing_trace_sink_surfaces_as_a_trace_error() {
         record_epoch(&mut Broken, 1, &archive, &prepared(1, 1), &outcome),
         Err(Error::TraceIo)
     );
+}
+
+#[test]
+fn a_harmful_candidate_is_measured_with_its_failed_runs() {
+    use crate::{EpochCandidateOutcome, ManualClock, ScoreDecision, VecTrace, run_proposal_h};
+    let dir = tempfile::tempdir().unwrap();
+    let (mut archive, _, _, epoch) = fixtures(&dir.path().join("a"));
+    let incumbent = archive.head().unwrap().id.clone();
+    let mut host = Host {
+        harm: Some(EvalStage::Screen),
+        ..Host::default()
+    };
+    let mut human = Human {
+        approve: true,
+        calls: 0,
+    };
+    let stopped = run_proposal_h(&mut archive, &epoch, &proposal(), &mut host, &mut human).unwrap();
+    assert_eq!(stopped.reason, ReasonCode::Harmful);
+    let candidate = stopped.candidate_id.clone().unwrap();
+    let mut prepared = prepared(epoch.epoch.id, 1);
+    prepared.incumbent_id = incumbent;
+    let outcome = RetreatEpochOutcome {
+        epoch: epoch.epoch.id,
+        candidates: vec![EpochCandidateOutcome {
+            proposal_index: 0,
+            reason: stopped.reason,
+            candidate_id: stopped.candidate_id,
+        }],
+        complete: true,
+    };
+    let mut trace = VecTrace::new(ManualClock::new());
+    record_epoch(&mut trace, 2, &archive, &prepared, &outcome).unwrap();
+    let events: Vec<LoopEvent> = trace.records().iter().map(|r| r.event.clone()).collect();
+    let kinds: Vec<&str> = events.iter().map(LoopEvent::kind).collect();
+    assert_eq!(kinds, ["ideated", "measured", "scored", "epoch_finished"]);
+    assert_eq!(
+        events[1],
+        LoopEvent::Measured {
+            epoch: 2,
+            candidate: candidate.clone(),
+            mean: None,
+            failures: 2,
+            seeds: 3,
+        }
+    );
+    assert!(matches!(
+        &events[2],
+        LoopEvent::Scored { decision: ScoreDecision::Reject, candidate: c, .. } if *c == candidate
+    ));
 }

@@ -101,6 +101,28 @@ pub struct NormalizedApprovalEvent {
     pub approved: bool,
 }
 
+/// Candidate runs that failed where the incumbent's completed, kept as
+/// evidence that the patch, not the host, broke the run.
+///
+/// Holds coarse counts and a failure kind only: no stderr, model reply or
+/// private task text.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CandidateFailureEvent {
+    /// Prepared or recorded content identity of the failed candidate.
+    pub candidate_id: String,
+    /// Host epoch of the attempt.
+    pub epoch: u64,
+    /// Screen, Selection, or Confirmation.
+    pub stage: String,
+    /// The first failure observed in job order.
+    pub kind: crate::CandidateFailureKind,
+    /// Candidate runs that failed; at least one.
+    pub failed_runs: u32,
+    /// Candidate runs the stage attempted; at least `failed_runs`.
+    pub runs: u32,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum Event {
@@ -133,6 +155,9 @@ pub(super) enum Event {
     },
     NormalizedApproval {
         approval: Box<NormalizedApprovalEvent>,
+    },
+    CandidateFailure {
+        failure: CandidateFailureEvent,
     },
 }
 

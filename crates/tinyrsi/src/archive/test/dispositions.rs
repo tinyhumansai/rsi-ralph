@@ -133,6 +133,7 @@ fn both_coarse_reason_spellings_are_recognized_without_changing_wire_contract() 
         ReasonCode::ApprovalDenied,
         ReasonCode::HostFailure,
         ReasonCode::Accepted,
+        ReasonCode::Harmful,
     ];
     for reason in reasons {
         stop(&mut archive, &record.patch, &format!("{reason:?}"));
@@ -140,7 +141,7 @@ fn both_coarse_reason_spellings_are_recognized_without_changing_wire_contract() 
         stop(&mut archive, &record.patch, wire.as_str().unwrap());
     }
     let report = archive.proposal_dispositions();
-    assert_eq!(report.rows.len(), 24);
+    assert_eq!(report.rows.len(), 26);
     for (rows, expected) in report.rows.chunks(2).zip(reasons) {
         assert_eq!(rows[0].reason, Some(expected));
         assert_eq!(rows[1].reason, Some(expected));

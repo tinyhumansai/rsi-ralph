@@ -73,7 +73,9 @@ epoch evaluated `measured` (the H estimate), `scored` (accepted only after human
 approval) and `improved` when accepted, and finally `epoch_finished` with the
 accepted H or the incumbent's H on the epoch's draw. Evaluations are bound to
 the epoch, incumbent, proposal and candidate; a never-formalized proposal or a
-duplicate ran nothing and gets no `measured` or `scored`. The host still emits
+duplicate ran nothing and gets no `measured` or `scored`. A `HARMFUL`
+candidate is measured from its `CandidateFailureEvent`: no mean, its failed
+runs as `failures` and the runs attempted as `seeds`. The host still emits
 `run_started`, `epoch_started`, `observed` and `run_finished`, and chooses the
 epoch label, because only it knows where its run begins and what it observed.
 `examples/complete` shows the full sequence.

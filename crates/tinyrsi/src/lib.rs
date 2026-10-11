@@ -54,8 +54,8 @@ pub use error::{Error, Result};
 pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
-    Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
-    ProposalDispositionRow,
+    Archive, CandidateFailureEvent, DuplicateDisposition, EvaluationEvent, ProposalDeclaration,
+    ProposalDispositionReport, ProposalDispositionRow,
 };
 pub use observation::*;
 pub use orchestrator::*;
@@ -63,8 +63,8 @@ pub use tinyhivemind_lang;
 // Shared proposal data and the language's own definitions, re-exported so
 // hosts name one crate.
 pub use tinyrsi_types::{
-    CandidateState, EvalStage, Operation, Package, Patch, PatchClass, Prediction, Proposal,
-    ProposalEvent, ReasonCode, Record, VersionMetadata,
+    CandidateFailure, CandidateFailureKind, CandidateState, EvalStage, Operation, Package, Patch,
+    PatchClass, Prediction, Proposal, ProposalEvent, ReasonCode, Record, VersionMetadata,
 };
 
 pub use archive::NormalizedEvaluationEvent;

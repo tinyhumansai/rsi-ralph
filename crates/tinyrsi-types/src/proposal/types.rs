@@ -78,4 +78,6 @@ pub enum ReasonCode {
     HostFailure,
     /// Selected, confirmed and human-approved design.
     Accepted,
+    /// The candidate failed runs the incumbent completed on the same draws.
+    Harmful,
 }

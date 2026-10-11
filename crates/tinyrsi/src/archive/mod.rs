@@ -28,7 +28,7 @@ use std::path::{Path, PathBuf};
 use tinyhivemind_lang::Package;
 use tinyhivemind_lang::lineage::{self, Record, Verdict, VersionMetadata};
 pub use types::{
-    EvaluationEvent, NormalizedApprovalEvent, NormalizedDeclarationEvent,
+    CandidateFailureEvent, EvaluationEvent, NormalizedApprovalEvent, NormalizedDeclarationEvent,
     NormalizedEvaluationEvent, ProposalDeclaration,
 };
 use types::{Event, Snapshot};
@@ -235,6 +235,29 @@ impl Archive {
             .iter()
             .filter_map(|event| match event {
                 Event::Evaluation { evaluation } => Some(evaluation),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Persist evidence that a candidate failed runs its incumbent completed.
+    ///
+    /// # Errors
+    /// Returns `InvalidRecord` for an unknown candidate, an unknown stage or
+    /// counts outside `1 <= failed_runs <= runs`, and `ArchiveIo` for storage
+    /// failures.
+    pub fn record_candidate_failure(&mut self, failure: CandidateFailureEvent) -> Result<()> {
+        self.transact(Event::CandidateFailure { failure })
+    }
+
+    /// Candidate failure evidence in durable insertion order.
+    #[must_use]
+    pub fn candidate_failures(&self) -> Vec<&CandidateFailureEvent> {
+        self.state
+            .events
+            .iter()
+            .filter_map(|event| match event {
+                Event::CandidateFailure { failure } => Some(failure),
                 _ => None,
             })
             .collect()

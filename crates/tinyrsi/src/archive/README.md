@@ -85,3 +85,10 @@ host decision and is not synthesized by this archive.
 
 `proposal_dispositions` supplies a [safe versioned projection](dispositions/README.md)
 of exact-duplicate history without changing archive events or selection labels.
+
+`record_candidate_failure` persists a `CandidateFailureEvent`: a prepared or
+recorded candidate failed `failed_runs` of `runs` runs at one stage while the
+incumbent completed the same draw. Replay requires a known candidate, a
+Screen/Selection/Confirmation stage and `1 <= failed_runs <= runs`. The event
+holds a coarse kind and counts only. `candidate_failures` lists them in order;
+the loop trace reads them for `measured.failures`.

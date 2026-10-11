@@ -29,7 +29,9 @@ pub use types::*;
 ///
 /// # Errors
 /// Returns archive failures or an invalid epoch/incumbent configuration. Host
-/// evaluation failures are archived as [`ReasonCode::HostFailure`].
+/// evaluation failures are archived as [`ReasonCode::HostFailure`]; a
+/// candidate that failed runs its incumbent completed
+/// ([`Error::CandidateFailed`]) is archived as [`ReasonCode::Harmful`].
 pub fn run_proposal(
     archive: &mut Archive,
     epoch: &Epoch,
@@ -88,8 +90,9 @@ pub fn run_proposal(
         EvalStage::Selection,
         EvalStage::Confirmation,
     ] {
-        let Some((pair, comparison)) = flow.measure(stage, evaluator) else {
-            return flow.stop(ReasonCode::HostFailure);
+        let (pair, comparison) = match flow.measure(stage, evaluator)? {
+            Ok(measured) => measured,
+            Err(reason) => return flow.stop(reason),
         };
 
         flow.archive.record_evaluation(crate::EvaluationEvent {
@@ -206,16 +209,20 @@ struct Flow<'a> {
     runs: Vec<EvalRun>,
 }
 impl Flow<'_> {
+    /// Runs one stage, or names why the attempt stops instead.
     fn measure(
         &mut self,
         stage: EvalStage,
         evaluator: &mut impl Evaluator,
-    ) -> Option<(EvalPair, Comparison)> {
-        let Ok(pair) =
-            evaluator.evaluate(&self.incumbent, &self.candidate, stage, &self.epoch.budget)
-        else {
-            return None;
-        };
+    ) -> Result<std::result::Result<(EvalPair, Comparison), ReasonCode>> {
+        let pair =
+            match evaluator.evaluate(&self.incumbent, &self.candidate, stage, &self.epoch.budget) {
+                Ok(pair) => pair,
+                Err(error) => {
+                    return failure_reason(self.archive, &error, &self.id, self.epoch.id, stage)
+                        .map(Err);
+                }
+            };
         let mut policy = self.epoch.policy.clone();
         policy.margin = policy.margin.max(self.proposal.prediction.minimum_gain);
         let Ok(comparison) = compare(
@@ -224,9 +231,9 @@ impl Flow<'_> {
             &self.epoch.budget,
             &policy,
         ) else {
-            return None;
+            return Ok(Err(ReasonCode::HostFailure));
         };
-        Some((pair, comparison))
+        Ok(Ok((pair, comparison)))
     }
     fn stop(self, reason: ReasonCode) -> Result<CandidateOutcome> {
         if !self.runs.is_empty() && !self.archive.records().iter().any(|r| r.id == self.id) {
@@ -288,6 +295,36 @@ impl Flow<'_> {
             apply_at: approved.then(|| apply_at(self.proposal.patch.class)),
         })
     }
+}
+/// Names the stop for an evaluator error, keeping evidence of a candidate
+/// failure.
+///
+/// Only [`Error::CandidateFailed`] with consistent counts is the candidate's
+/// fault: it is archived as a [`crate::CandidateFailureEvent`] and stops as
+/// [`ReasonCode::Harmful`]. Every other error, including malformed failure
+/// counts, stays a [`ReasonCode::HostFailure`].
+fn failure_reason(
+    archive: &mut Archive,
+    error: &Error,
+    candidate_id: &str,
+    epoch: u64,
+    stage: EvalStage,
+) -> Result<ReasonCode> {
+    let Error::CandidateFailed(failure) = error else {
+        return Ok(ReasonCode::HostFailure);
+    };
+    if failure.failed_runs == 0 || failure.failed_runs > failure.runs {
+        return Ok(ReasonCode::HostFailure);
+    }
+    archive.record_candidate_failure(crate::CandidateFailureEvent {
+        candidate_id: candidate_id.to_owned(),
+        epoch,
+        stage: format!("{stage:?}"),
+        kind: failure.kind,
+        failed_runs: failure.failed_runs,
+        runs: failure.runs,
+    })?;
+    Ok(ReasonCode::Harmful)
 }
 fn decision_reason(stage: EvalStage, c: &Comparison) -> Option<ReasonCode> {
     match &c.decision {

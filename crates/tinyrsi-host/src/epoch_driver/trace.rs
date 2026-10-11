@@ -37,6 +37,9 @@ fn decision(d: &EvalDecision) -> ScoreDecision {
 ///   normalized H estimate), `scored` (accepted only when the human approved
 ///   it; an inconclusive evaluation keeps its own decision; anything else is a
 ///   rejection), and `improved` from the prepared incumbent when accepted.
+///   A candidate that failed runs its incumbent completed (`HARMFUL`) is
+///   measured from its `CandidateFailureEvent`: no mean, its failed runs as
+///   `failures` and the runs attempted as `seeds`.
 ///   Evaluations are matched on this epoch, incumbent, proposal and candidate,
 ///   so an earlier epoch's evidence is never replayed. A proposal that was
 ///   never formalized, or that duplicated an evaluated patch, ran nothing and
@@ -78,6 +81,7 @@ pub fn record_epoch(
         })?;
     }
     let evaluations = archive.normalized_evaluations();
+    let failures = archive.candidate_failures();
     let mut incumbent_metric = None;
     for c in &outcome.candidates {
         let (Some(candidate), Some(proposal)) = (
@@ -95,7 +99,19 @@ pub fn record_epoch(
                 && e.proposal == *proposal
                 && e.candidate_id == *candidate
         });
-        if let Some(e) = evaluation {
+        let failure = failures
+            .iter()
+            .rev()
+            .find(|f| f.epoch == prepared.epoch && f.candidate_id == *candidate);
+        if let Some(f) = failure {
+            trace.record(LoopEvent::Measured {
+                epoch,
+                candidate: candidate.clone(),
+                mean: None,
+                failures: f.failed_runs,
+                seeds: f.runs,
+            })?;
+        } else if let Some(e) = evaluation {
             trace.record(LoopEvent::Measured {
                 epoch,
                 candidate: candidate.clone(),
@@ -103,6 +119,8 @@ pub fn record_epoch(
                 failures: 0,
                 seeds: u32::try_from(e.candidate.len()).unwrap_or(u32::MAX),
             })?;
+        }
+        if let Some(e) = evaluation {
             incumbent_metric = incumbent_metric.or(Some(e.comparison.incumbent.value));
         }
         let accepted = c.reason == ReasonCode::Accepted;

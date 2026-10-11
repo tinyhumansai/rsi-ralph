@@ -60,3 +60,18 @@ an entire experiment, including anchors and failed attempts. Private checker
 references never enter model requests or public fingerprints. Public hashes
 are identifiers, not encryption; use high-entropy private tasks when resistance
 to offline prompt guessing matters.
+
+## Attributing failures
+
+`CoordinatorEvaluator` tags every job by arm. It reserves both arms first,
+then runs every incumbent job before any candidate job. An unsupported
+incumbent hive, an unreservable incumbent request or any failed incumbent run
+is the host's: the stage fails as before. When the incumbent completed but the
+candidate did not, the stage returns `Error::CandidateFailed` with a
+`CandidateFailure`: `unsupported` for a candidate hive that fails validation
+or lacks a task's seat, `over_budget` for a request that cannot be reserved or
+a reply over its reservation, `timeout` for a provider timeout, and `crash`
+otherwise. Every candidate job still runs, so `failed_runs` counts all of the
+draw's failed candidate runs and `runs` its candidate runs; anchor draws keep
+stopping at the first failed batch. The orchestrator records the stop as
+`HARMFUL` (see `docs/specs/hive-penalties.md`).

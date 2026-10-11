@@ -3,7 +3,9 @@
 //! `PrivateSuites` freezes disjoint screen, selection, confirmation and anchor
 //! draws of `PrivateTask`s and fingerprints their prompts, checkers and seeds.
 //! `CoordinatorEvaluator` implements `HEvaluator` by running every arm, task
-//! and seed in a fresh in-memory coordinator with its own pinned memory.
+//! and seed in a fresh in-memory coordinator with its own pinned memory. The
+//! incumbent arm runs first; a candidate that then fails runs the incumbent
+//! completed is reported as `Error::CandidateFailed`, not as a host failure.
 //! `ControlledRunnerFactory` is the bounded single-seat runner used for live
 //! deployment. See this directory's `README.md` for the isolation rules.
 mod factory;
@@ -14,14 +16,19 @@ mod runner;
 pub(crate) use runner::options as coordinator_options;
 mod types;
 use crate::{
-    Budget, CandidateState, Error, EvalPair, EvalRun, EvalStage, Evaluator, HEvalPair, HEvaluator,
-    ModelPort, Patch, Result, ScoreHealth, SnapshotMemoryStore,
+    Budget, CandidateFailure, CandidateFailureKind, CandidateState, Error, EvalPair, EvalRun,
+    EvalStage, Evaluator, HEvalPair, HEvaluator, ModelPort, Patch, Result, ScoreHealth,
+    SnapshotMemoryStore,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
 pub use types::{PrivateSuites, PrivateTask};
+/// One trial to run: a task, the hive configuration under test, and its caps.
+type Job = (PrivateTask, runner::Configuration, runner::RunOptions);
+/// Each executed job's run, or how it failed, in job order.
+type Outcomes = Vec<std::result::Result<EvalRun, runner::RunFailure>>;
 /// A synchronous orchestrator bridge owning an isolated asynchronous executor.
 ///
 /// Call evaluation from a nonasync host thread. Every task/seed/arm creates fresh
@@ -190,20 +197,27 @@ impl CoordinatorEvaluator {
             seed,
         }
     }
-    fn execute(
-        &self,
-        jobs: Vec<(PrivateTask, runner::Configuration, runner::RunOptions)>,
-    ) -> Result<Vec<EvalRun>> {
+    /// Runs every job after checking all their reservations, failing on the
+    /// first failed run.
+    fn execute(&self, jobs: Vec<Job>) -> Result<Vec<EvalRun>> {
         // Check every input/output reservation before any arm reaches the provider.
         for (task, config, limits) in &jobs {
             runner::request(task, config, limits)?;
         }
+        self.run_jobs(jobs, false)?
+            .into_iter()
+            .map(|outcome| outcome.map_err(|failure| failure.error))
+            .collect()
+    }
+    /// Runs jobs four at a time, returning outcomes in job order. Unless
+    /// `exhaustive`, it stops after the first batch with a failure.
+    fn run_jobs(&self, jobs: Vec<Job>, exhaustive: bool) -> Result<Outcomes> {
         self.runtime
             .as_ref()
             .ok_or(Error::HostFailed)?
             .block_on(async move {
                 let mut jobs = jobs.into_iter().enumerate();
-                let mut completed = vec![];
+                let mut outcomes = vec![];
                 loop {
                     let mut pending = tokio::task::JoinSet::new();
                     for (index, (task, config, limits)) in jobs.by_ref().take(4) {
@@ -214,25 +228,78 @@ impl CoordinatorEvaluator {
                     if pending.is_empty() {
                         break;
                     }
-                    let mut failure = None;
+                    let mut failed = false;
                     while let Some(result) = pending.join_next().await {
-                        match result {
-                            Ok((index, Ok(run))) => completed.push((index, run)),
-                            Ok((_, Err(error))) => {
-                                failure.get_or_insert(error);
-                            }
-                            Err(_) => {
-                                failure.get_or_insert(Error::HostFailed);
-                            }
-                        }
+                        let (index, outcome) = result.unwrap_or((
+                            usize::MAX,
+                            Err(runner::RunFailure {
+                                error: Error::HostFailed,
+                                kind: CandidateFailureKind::Crash,
+                            }),
+                        ));
+                        failed |= outcome.is_err();
+                        outcomes.push((index, outcome));
                     }
-                    if let Some(error) = failure {
-                        return Err(error);
+                    if failed && !exhaustive {
+                        break;
                     }
                 }
-                completed.sort_by_key(|(index, _)| *index);
-                Ok(completed.into_iter().map(|(_, run)| run).collect())
+                outcomes.sort_by_key(|(index, _)| *index);
+                Ok(outcomes.into_iter().map(|(_, outcome)| outcome).collect())
             })
+    }
+    /// Runs the incumbent arm to completion, then every candidate job.
+    ///
+    /// Both arms are reserved before any provider call. The incumbent's
+    /// failures are the host's; once it completed, the candidate's failures
+    /// are its own and return [`Error::CandidateFailed`].
+    fn run_arms(
+        &self,
+        incumbent_jobs: Vec<Job>,
+        candidate_jobs: Vec<Job>,
+        runs: u32,
+    ) -> Result<(Vec<EvalRun>, Vec<EvalRun>)> {
+        let blame = |kind, failed: usize| -> Result<Error> {
+            Ok(Error::CandidateFailed(CandidateFailure {
+                kind,
+                failed_runs: u32::try_from(failed).map_err(|_| Error::InvalidEvaluation)?,
+                runs,
+            }))
+        };
+        for (task, config, limits) in &incumbent_jobs {
+            runner::request(task, config, limits)?;
+        }
+        let unreserved = candidate_jobs
+            .iter()
+            .filter_map(|(task, config, limits)| runner::request(task, config, limits).err())
+            .collect::<Vec<_>>();
+        if let Some(first) = unreserved.first() {
+            // A request the model layer refuses did not fit its budget; any
+            // other error means the candidate lacks the seat a task needs.
+            let kind = if *first == Error::InvalidEvaluation {
+                CandidateFailureKind::OverBudget
+            } else {
+                CandidateFailureKind::Unsupported
+            };
+            return Err(blame(kind, unreserved.len())?);
+        }
+        let incumbent_runs = self
+            .run_jobs(incumbent_jobs, false)?
+            .into_iter()
+            .map(|outcome| outcome.map_err(|failure| failure.error))
+            .collect::<Result<Vec<_>>>()?;
+        let mut candidate_runs = vec![];
+        let mut failures = vec![];
+        for outcome in self.run_jobs(candidate_jobs, true)? {
+            match outcome {
+                Ok(run) => candidate_runs.push(run),
+                Err(failure) => failures.push(failure.kind),
+            }
+        }
+        if let Some(kind) = failures.first() {
+            return Err(blame(*kind, failures.len())?);
+        }
+        Ok((incumbent_runs, candidate_runs))
     }
     fn paired(
         &mut self,
@@ -250,21 +317,36 @@ impl CoordinatorEvaluator {
             .get(stage)
             .ok_or(Error::InvalidEvaluation)?;
         let left = runner::configuration(incumbent, &self.memory, self.model_name.as_deref())?;
-        let right = runner::configuration(candidate, &self.memory, self.model_name.as_deref())?;
-        let mut jobs = vec![];
+        let runs = tasks.iter().map(|task| task.seeds.len()).sum::<usize>();
+        let runs = u32::try_from(runs).map_err(|_| Error::InvalidEvaluation)?;
+        let hive = runner::lower(candidate)?;
+        if runner::validate(&hive, self.model_name.as_deref()).is_err() {
+            return Err(Error::CandidateFailed(CandidateFailure {
+                kind: CandidateFailureKind::Unsupported,
+                failed_runs: runs,
+                runs,
+            }));
+        }
+        let right = runner::Configuration {
+            hive,
+            memory: self
+                .memory
+                .read(&candidate.package, &candidate.memory_watermarks)?,
+        };
+        let mut incumbent_jobs = vec![];
+        let mut candidate_jobs = vec![];
         for task in tasks {
             if fingerprint::checker(&task.verifier)? != task.checker_stamp {
                 return Err(Error::InvalidEvaluation);
             }
             for seed in &task.seeds {
                 let limits = self.limits(*seed, budget);
-                jobs.push((task.clone(), left.clone(), limits.clone()));
-                jobs.push((task.clone(), right.clone(), limits));
+                incumbent_jobs.push((task.clone(), left.clone(), limits.clone()));
+                candidate_jobs.push((task.clone(), right.clone(), limits));
             }
         }
-        let runs = self.execute(jobs)?;
-        let incumbent_runs: Vec<_> = runs.iter().step_by(2).cloned().collect();
-        let candidate_runs: Vec<_> = runs.into_iter().skip(1).step_by(2).collect();
+        let (incumbent_runs, candidate_runs) =
+            self.run_arms(incumbent_jobs, candidate_jobs, runs)?;
         let left_health = health(&incumbent_runs, 1.0)?;
         let left_cost: u64 = incumbent_runs
             .iter()

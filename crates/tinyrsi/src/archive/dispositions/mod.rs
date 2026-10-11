@@ -23,6 +23,7 @@ fn reason(text: &str) -> Option<ReasonCode> {
                 ReasonCode::ApprovalDenied,
                 ReasonCode::HostFailure,
                 ReasonCode::Accepted,
+                ReasonCode::Harmful,
             ]
             .into_iter()
             .find(|r| format!("{r:?}") == text)
@@ -30,6 +31,7 @@ fn reason(text: &str) -> Option<ReasonCode> {
 }
 
 /// Failed infrastructure, duplicates and unvalidated accepted claims do not prove rejection.
+/// A harmful stop does: the candidate failed runs its incumbent completed.
 fn terminal_rejection(text: &str) -> bool {
     reason(text).is_some_and(|r| {
         !matches!(
