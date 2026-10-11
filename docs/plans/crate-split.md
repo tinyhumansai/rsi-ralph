@@ -37,9 +37,10 @@ separate commits from moves.
    - Move `evaluation/`, `scoring/` and `experiment/`.
    - Extract `script_loop/score.rs` as `MetricScorer` plus `decide`.
    - Test first: `MetricScorer` monotonicity, `decide` parity with the old
-     `score`, `LlmJudge` median and malformed reply, the uncalibrated judge
-     never accepting, `BackroomsJudge` with `ScriptedConversant`, and
-     `Composite` weights and eligibility.
+     `score` (decision and metric-unit interval), `LlmJudge` median and
+     malformed reply, the uncalibrated judge never accepting, the eligibility
+     gate inside a `Composite`, `BackroomsJudge` with `ScriptedConversant`, and
+     `Composite` weights.
 5. **`tinyrsi-verify`.** Move `process/`, `blueprint/` and `verification/`, then
    add `VerifierScorer` with pass and fail tests.
 6. **`tinyrsi-evolve`.**
@@ -49,7 +50,10 @@ separate commits from moves.
    - `retreat` takes a `RetreatDossier` view instead of `observation::Dossier`.
 7. **Core and host.**
    - Rewire `script_loop` onto `Scorer` and `Evolver`.
-   - Move the `host`-gated modules into `tinyrsi-host` and drop the feature.
+   - Move the `host`-gated modules (`host`, `suites`, `epoch_driver`,
+     `evidence_journal`) into `tinyrsi-host` and drop the feature. `memory` and
+     `observation` stay in core; the `MemorySnapshot` implementation moves to
+     the host crate.
    - Point the host examples and the CI coverage script at the new crate.
    - Emit `LoopEvent`s from `epoch_driver`.
 8. **Examples.**

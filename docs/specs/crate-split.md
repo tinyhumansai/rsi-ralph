@@ -69,13 +69,16 @@ listed above it.
 | `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace` | tracing; `otlp` feature: opentelemetry |
 | `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | model, trace, tinybackrooms |
 | `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
-| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver` | types, model, tinybackrooms |
-| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `script_loop` (driver, execution, ledger) | all of the above |
-| `tinyrsi-host` | `host`, `suites`, `memory`, `epoch_driver`, `observation`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
+| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor`, `ScriptedEvolver`. `retreat` reads a narrow `RetreatDossier` view instead of `observation::Dossier`, which stays in core. | types, model, tinybackrooms |
+| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger) | all of the above |
+| `tinyrsi-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
 | `tinyrsi-examples` | three runnable examples, `publish = false` | tinyrsi-host |
 
 `tinyrsi-host` replaces the `host` Cargo feature: its modules are exactly the
-ones the feature gated. Each crate has its own `Error` and `Result`. A crate's
+ones the feature gated. `memory` and `observation` compile without the feature
+today, so they stay in `tinyrsi` and keep their paths; only the
+`MemorySnapshot` implementation for `SnapshotMemoryStore`, which already
+needed the feature, moves to `tinyrsi-host` beside the trait. Each crate has its own `Error` and `Result`. A crate's
 error wraps the errors of the crates it depends on, with `#[from]`. `tinyrsi`
 re-exports every crate below it, and `tinyrsi-host` re-exports `tinyrsi`, so
 existing `tinyrsi::Name` paths keep resolving.
@@ -89,9 +92,11 @@ pub trait Scorer<S: ?Sized> {
 }
 
 pub struct Assessment {
-    pub qualities: Vec<f64>,       // aligned with `seeds`, each in (0, 1)
-    pub rationale: Option<String>, // a judge's reasoning, when there is one
-    pub tokens: u64,               // measured model tokens spent assessing
+    pub qualities: Vec<f64>,          // aligned with `seeds`, each in (0, 1)
+    pub eligible: Option<Vec<f64>>,   // qualities from accept-eligible evidence only
+    pub metric: Option<MetricEvidence>, // raw per-seed metric and direction, if any
+    pub rationale: Option<String>,    // a judge's reasoning, when there is one
+    pub tokens: u64,                  // measured model tokens spent assessing
 }
 ```
 
@@ -99,24 +104,39 @@ The port is synchronous, like the script loop. Model-backed scorers drive their
 `ModelPort` future on the calling thread with `tinyrsi_model::block_on`.
 `decide(incumbent, candidate, seeds, policy)` turns two assessments into a
 `ScoreDecision` and an interval, using `evaluation::compare`. It is the only
-decision function.
+decision function, and it applies three rules:
+
+1. The decision is `compare`'s on `qualities`.
+2. **Eligibility gate.** An `Accept` stands only if `compare` also accepts on
+   `eligible`. When either side's `eligible` is `None`, the decision is capped
+   at `Inconclusive`. Evidence that cannot support acceptance on its own
+   therefore never decides one, whatever its weight.
+3. **Units.** When both sides carry `metric`, the reported estimate and bounds
+   are the mean paired metric improvement `s * (candidate - incumbent)` plus
+   or minus the policy's standard-error multiple, in metric units. This is
+   exactly what `script_loop/score.rs` reports today. Otherwise they are in
+   quality units.
 
 Implementations:
 
 - `MetricScorer`: the script loop's existing quality map
-  `q = 1/2 + atan(s * m) / pi` over measured per-seed metrics.
+  `q = 1/2 + atan(s * m) / pi` over measured per-seed metrics. It sets
+  `eligible` to its qualities and carries `metric`.
 - `LlmJudge`: a rubric prompt, `raters` independent forced tool calls per seed
   and a median quality. It is constructed with an optional `JudgeCalibration`.
-  An uncalibrated judge, or one whose calibration is below its threshold, still
-  assesses, but `decide` never returns `Accept` on its assessment alone. It must
-  be combined in a `Composite` with a calibrated or non-judge scorer.
+  It sets `eligible` only when that calibration passes its threshold. An
+  uncalibrated judge still assesses, but by rule 2 it can never produce an
+  `Accept` on its own.
 - `BackroomsJudge`: runs tinybackrooms' `judge`, `originality` and
   `elaboration` scorers over the candidate rendered as one item, through a
   `Conversant`. Its total maps into `(0, 1)`. It carries the same calibration
   gate as `LlmJudge`.
-- `Composite`: a weighted mean of scorers' per-seed qualities. Weights are
-  positive and sum to one. It is accept-eligible only when at least one member
-  is.
+- `Composite`: a weighted mean of members' per-seed qualities. Weights are
+  positive and sum to one. Its `eligible` is the weighted mean of the
+  *eligible members only*, with their weights renormalized, or `None` when no
+  member is eligible. Its `metric` is set only when exactly one member carries
+  one. So a high-weight uncalibrated judge can widen the margin, but the
+  eligible evidence must still show an improvement by itself.
 - `VerifierScorer` (in `tinyrsi-verify`): a `HostVerifier` or Lake check per
   seed. A pass is quality `1 - ε` and a failure is `ε`.
 
@@ -171,8 +191,8 @@ removed; `Lineage::append` and `Lineage::head` remain.
   SQLite or Tokio.
 - `evaluation::compare` and `scoring::compare_h` are the only accept/reject
   rules. A scorer produces qualities and never decides.
-- A judge without passing calibration can never be the sole reason a candidate
-  is accepted.
+- A judge without passing calibration can never be the reason a candidate is
+  accepted: `decide` requires acceptance on accept-eligible evidence alone.
 - Archive JSON, `ledger.json` and `events.jsonl` keep their exact bytes for the
   same inputs. The existing pinned tests stay unchanged and green.
 - Every public item keeps a rustdoc comment. Every source file keeps at least
@@ -186,7 +206,11 @@ removed; `Lineage::append` and `Lineage::head` remain.
 - The script loop runs on `Scorer` and `Evolver`. Its existing tests pass
   unchanged, apart from constructing a `ScriptSupervisor` where they built a
   `Supervisor`.
-- A test shows an uncalibrated `LlmJudge` alone yields no `Accept`.
+- Tests show an uncalibrated `LlmJudge` alone yields no `Accept`. They also
+  show that a `Composite` of a high-weight favourable uncalibrated judge and a
+  low-weight flat eligible scorer yields no `Accept`.
+- `decide` on `MetricScorer` assessments reproduces the script loop's current
+  decisions and metric-unit intervals exactly.
 - `cargo run -p tinyrsi-examples --example math_problem`, `upgrade_file` and
   `hive_goal` run offline, each records at least one accepted and one rejected
   candidate, and each writes an `events.jsonl` that `apps/rsi-viz/` lists.
