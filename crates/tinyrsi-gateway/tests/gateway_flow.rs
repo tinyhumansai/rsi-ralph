@@ -14,11 +14,14 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use serde_json::{Value, json};
-use tinyrsi_gateway::{Error, GLM_FLASH, Gateway, GatewayConfig, Refusal, UpstreamCalls};
+use tinyrsi_gateway::{CallMark, Error, GLM_FLASH, Gateway, GatewayConfig, Refusal, UpstreamCalls};
 
 const KEY: &str = "sk-or-test-SECRET-7f3a9c";
 
 type Seen = Arc<Mutex<Vec<(String, Value)>>>;
+
+/// Lets a `hold` call answer; until set, it waits however long it takes.
+static RELEASE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 async fn mock_chat(
     State(seen): State<Seen>,
@@ -47,6 +50,17 @@ async fn mock_chat(
             format!("invalid credential: {auth}"),
         )
             .into_response(),
+        // Waits for the test to release it, then refuses.
+        "hold" => {
+            while !RELEASE.load(std::sync::atomic::Ordering::SeqCst) {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+            (
+                StatusCode::FORBIDDEN,
+                Json(json!({"error": {"message": "late refusal", "code": 403}})),
+            )
+                .into_response()
+        }
         "overcost" => Json(json!({"choices": [], "usage": {"cost": 10.0}})).into_response(),
         "slow" => {
             tokio::time::sleep(Duration::from_millis(300)).await;
@@ -358,6 +372,7 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
         h.chat("/v1/chat/completions", "crash", json!({})).await.0,
         500
     );
+    let mark = h.gateway.call_mark();
     let before = h.gateway.upstream_calls();
     assert_eq!((before.sent, before.refused), (2, 1));
     assert_eq!(
@@ -380,7 +395,7 @@ async fn counts_upstream_refusals_with_their_status_and_message() {
     let echoed = after.last_refusal.clone().unwrap();
     assert_eq!(echoed.status, 401);
     assert!(!echoed.message.contains(KEY), "{}", echoed.message);
-    let delta = after.since(&before);
+    let delta = h.gateway.upstream_calls_since(mark);
     assert_eq!((delta.sent, delta.refused), (2, 2));
     assert_eq!(
         h.chat("/v1/chat/completions", "limit", json!({})).await.0,
@@ -418,24 +433,35 @@ async fn a_call_whose_body_breaks_off_counts_as_refused() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_call_still_waiting_on_the_provider_is_already_sent() {
+async fn a_late_refusal_counts_against_the_calls_sent_before_it() {
     let h = Arc::new(Harness::start(5.0, 50.0));
+    let start = h.gateway.call_mark();
     let waiting = Arc::clone(&h);
-    let call = tokio::spawn(async move {
-        waiting
-            .chat("/v1/chat/completions", "slow", json!({}))
-            .await
-    });
-    for _ in 0..100 {
-        if !h.upstream.seen.lock().unwrap().is_empty() {
-            break;
-        }
+    let held =
+        tokio::spawn(async move { waiting.chat("/v1/chat/completions", "hold", json!({})).await });
+    // The held call cannot answer until released, however slow the host.
+    while h.upstream.seen.lock().unwrap().is_empty() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let calls = h.gateway.upstream_calls();
-    assert_eq!((calls.sent, calls.refused), (1, 0));
-    assert_eq!(call.await.unwrap().0, 200);
-    assert_eq!(h.gateway.upstream_calls(), calls);
+    assert_eq!((calls.sent, calls.refused), (1, 0), "sent while in flight");
+    let mark = h.gateway.call_mark();
+    assert_eq!(h.chat("/v1/chat/completions", "hello", json!({})).await.0, 200);
+    RELEASE.store(true, std::sync::atomic::Ordering::SeqCst);
+    assert_eq!(held.await.unwrap().0, 403);
+    // The late refusal belongs to the call sent before `mark`.
+    assert_eq!(
+        h.gateway.upstream_calls_since(mark),
+        UpstreamCalls {
+            sent: 1,
+            refused: 0,
+            last_refusal: None
+        }
+    );
+    let all = h.gateway.upstream_calls_since(start);
+    assert_eq!((all.sent, all.refused), (2, 1));
+    assert_eq!(all, h.gateway.upstream_calls());
+    assert_eq!(start, CallMark::default());
 }
 
 #[tokio::test(flavor = "multi_thread")]
