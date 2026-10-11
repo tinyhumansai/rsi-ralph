@@ -64,7 +64,10 @@ let subject = ScriptSubject {
 `LoopPolicy::default()` runs up to 5 epochs of 2 proposals, stops after 2
 epochs without a promotion, and accepts a candidate when the paired lower bound
 of its improvement is above zero (`eval.margin = 0`). Raise `eval.margin` (in
-quality units, see the module README) to demand larger gains.
+quality units, see the module README) to demand larger gains. When that
+interval is inconclusive, a candidate no worse on any seed and better on at
+least one is still accepted (`accept_dominant`, default on); set it to `false`
+to rely on the interval alone.
 
 Each epoch asks for `proposals_per_epoch` proposals, one slot at a time, and
 `LoopPolicy::slots` gives each slot its own question. The default three are

@@ -73,12 +73,18 @@ pub struct LoopPolicy {
     pub slots: Vec<SlotDirective>,
     /// Paired acceptance policy; quality units are described in the README.
     pub eval: EvalPolicy,
+    /// Accept an `Inconclusive` candidate that is no worse than the incumbent
+    /// on any seed and strictly better on at least one, by metric and by
+    /// eligible quality (see `tinyrsi_score::dominates`). Few seeds cannot
+    /// resolve an uneven gain with the paired interval alone; for a
+    /// deterministic script, per-seed dominance is exact on those seeds.
+    pub accept_dominant: bool,
 }
 
 impl Default for LoopPolicy {
     /// Five epochs of two proposals, patience two, the default slot
-    /// directives ([`SlotDirective::defaults`]) and twelve approaches of
-    /// context.
+    /// directives ([`SlotDirective::defaults`]), twelve approaches of
+    /// context, and dominating candidates accepted.
     fn default() -> Self {
         Self {
             max_epochs: 5,
@@ -92,6 +98,7 @@ impl Default for LoopPolicy {
                 margin: 0.0,
                 ..EvalPolicy::default()
             },
+            accept_dominant: true,
         }
     }
 }

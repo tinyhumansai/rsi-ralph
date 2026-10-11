@@ -13,6 +13,9 @@
 //!   interval is the mean paired metric improvement plus or minus the policy's
 //!   standard-error multiple, in the metric's own units. Otherwise it is
 //!   `compare`'s interval in quality units.
+//!
+//! [`dominates`] is a separate, stricter-in-kind test a loop may apply to an
+//! `Inconclusive` result: no worse on any seed and better on at least one.
 mod types;
 
 use crate::{Budget, EvalDecision, EvalPolicy, EvalRun, Result, compare};
@@ -201,6 +204,64 @@ pub fn decide(
         lower,
         upper,
     })
+}
+
+/// Whether `candidate` is at least as good as `incumbent` on every seed and
+/// strictly better on at least one, by the metric both sides measured.
+///
+/// For deterministic subjects, where a seed always yields the same metric,
+/// this is exact evidence on the measured seeds that the paired interval of
+/// [`decide`] cannot resolve with few seeds: a gain on one seed and ties on
+/// the rest has a mean whose interval spans zero. It says nothing about seeds
+/// that were not measured.
+///
+/// Both sides must carry [`MetricEvidence`] of the same length and direction,
+/// and [`Assessment::eligible`] qualities of the same length, with the
+/// candidate's no lower on any seed; anything else is `false`. So an
+/// uncalibrated judge can never decide a dominance either.
+///
+/// # Examples
+///
+/// ```
+/// use tinyrsi_score::{Assessment, MetricEvidence, MetricDirection, dominates};
+///
+/// let colours = |values: Vec<f64>| Assessment {
+///     qualities: vec![0.5; values.len()],
+///     eligible: Some(vec![0.5; values.len()]),
+///     metric: Some(MetricEvidence { values, direction: MetricDirection::Minimize }),
+///     rationale: None,
+///     tokens: 0,
+/// };
+/// assert!(dominates(&colours(vec![11.0, 6.0, 6.0]), &colours(vec![6.0, 6.0, 6.0])));
+/// assert!(!dominates(&colours(vec![11.0, 6.0, 6.0]), &colours(vec![6.0, 7.0, 6.0])));
+/// assert!(!dominates(&colours(vec![6.0, 6.0, 6.0]), &colours(vec![6.0, 6.0, 6.0])));
+/// ```
+#[must_use]
+pub fn dominates(incumbent: &Assessment, candidate: &Assessment) -> bool {
+    let (Some(i), Some(c)) = (&incumbent.metric, &candidate.metric) else {
+        return false;
+    };
+    let (Some(ie), Some(ce)) = (&incumbent.eligible, &candidate.eligible) else {
+        return false;
+    };
+    if i.direction != c.direction
+        || i.values.len() != c.values.len()
+        || ie.len() != ce.len()
+        || ce.iter().zip(ie).any(|(c, i)| c < i)
+    {
+        return false;
+    }
+    let sign = match c.direction {
+        MetricDirection::Maximize => 1.0,
+        MetricDirection::Minimize => -1.0,
+    };
+    let gains: Vec<f64> = i
+        .values
+        .iter()
+        .zip(&c.values)
+        .map(|(i, c)| sign * (c - i))
+        .collect();
+    gains.iter().all(|g| *g >= 0.0) && gains.iter().any(|g| *g > 0.0)
 }
 
 #[cfg(test)]

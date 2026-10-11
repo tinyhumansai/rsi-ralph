@@ -66,7 +66,7 @@ pub use evaluation::{
 pub use experiment::*;
 pub use judge::{BackroomsJudge, JudgeLimits, LlmJudge};
 pub use metric::MetricScorer;
-pub use port::{Assessment, Decision, MetricEvidence, Scorer, decide};
+pub use port::{Assessment, Decision, MetricEvidence, Scorer, decide, dominates};
 pub use scoring::{
     AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
     ScorePenalties, ScoringPolicy, ScoringPolicySpec, compare_h, geometric_family_mean, score,
