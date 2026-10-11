@@ -3,7 +3,7 @@
 use super::*;
 use crate::{manifest, subject::copy_tree};
 use std::fs;
-use tinyrsi_gateway::Refusal;
+use tinyrsi_gateway::{CallMark, Refusal};
 
 /// What a seat writes in an epoch, as `path:content`, or nothing.
 type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;
@@ -291,7 +291,10 @@ fn stops_on_budget_before_an_epoch() {
     };
     let spend = Spend(0.5);
     // A meter that cannot see upstream calls reports none.
-    assert_eq!(spend.upstream_calls(), UpstreamCalls::default());
+    assert_eq!(
+        spend.upstream_calls_since(spend.call_mark()),
+        UpstreamCalls::default()
+    );
     let mut e = engine(&parsed, &dir, &store, "b", &mut hive);
     e.meter = Some(&spend);
     let summary = e.run().unwrap();
@@ -365,9 +368,9 @@ fn the_incumbent_cache_keeps_scores_under_different_env_apart() {
     assert_eq!(baseline("5", "b"), Some(5.0));
 }
 
-/// Upstream call outcomes, shared by a hive that makes calls and the meter
-/// that reports them.
-type Calls = std::rc::Rc<std::cell::RefCell<UpstreamCalls>>;
+/// Each upstream call in dispatch order, with its refusal if it had one;
+/// shared by a hive that makes calls and the meter that reports them.
+type Calls = std::rc::Rc<std::cell::RefCell<Vec<Option<Refusal>>>>;
 
 /// A hive whose model calls go through a provider: each epoch it makes
 /// `sent` calls, the last `refused` of which the provider refuses.
@@ -386,10 +389,9 @@ impl Proposer for Provided {
 
     fn propose(&mut self, request: &ProposalRequest<'_>) -> Result<ProposalReport> {
         let mut calls = self.calls.borrow_mut();
-        calls.sent += self.sent;
-        calls.refused += self.refused;
-        if self.refused > 0 {
-            calls.last_refusal = Some(self.refusal.clone());
+        for i in 0..self.sent {
+            let refused = i >= self.sent - self.refused;
+            calls.push(refused.then(|| self.refusal.clone()));
         }
         drop(calls);
         self.hive.propose(request)
@@ -408,18 +410,29 @@ impl Meter for Watched {
         None
     }
 
-    fn upstream_calls(&self) -> UpstreamCalls {
-        self.0.borrow().clone()
+    fn call_mark(&self) -> CallMark {
+        CallMark(self.0.borrow().len() as u64)
+    }
+
+    fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
+        let calls = self.0.borrow();
+        let later = &calls[usize::try_from(mark.0).unwrap()..];
+        let refusals: Vec<&Refusal> = later.iter().flatten().collect();
+        UpstreamCalls {
+            sent: later.len() as u64,
+            refused: refusals.len() as u64,
+            last_refusal: refusals.last().map(|r| (*r).clone()),
+        }
     }
 }
 
 fn provided(sent: u64, refused: u64, plan: Plan, refusal: Refusal) -> (Provided, Watched) {
     // Calls made before the run, such as the retreat's, are not the hive's.
-    let calls = Calls::new(std::cell::RefCell::new(UpstreamCalls {
-        sent: 5,
-        refused: 1,
-        last_refusal: None,
-    }));
+    let earlier = Refusal {
+        status: 500,
+        message: "before the hive".into(),
+    };
+    let calls = Calls::new(std::cell::RefCell::new(vec![None, Some(earlier)]));
     let hive = Provided {
         hive: Scripted {
             seats: vec!["a".into()],
