@@ -744,4 +744,6 @@ fn write_atomic(path: &Path, value: &impl serde::Serialize) -> Result<()> {
 #[cfg(test)]
 mod test;
 #[cfg(test)]
+mod test_approaches;
+#[cfg(test)]
 mod test_loop;

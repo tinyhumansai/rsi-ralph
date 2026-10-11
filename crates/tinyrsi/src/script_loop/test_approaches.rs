@@ -212,7 +212,7 @@ fn renders_the_tried_section_with_its_resubmission_rule() {
     );
     assert_eq!(render_tried(&ledger, MetricDirection::Minimize, 0), "");
     let unlabelled = render_tried(
-        &super::test_approaches::ledger(vec![]),
+        &ledger(vec![]),
         MetricDirection::Minimize,
         12,
     );
