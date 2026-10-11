@@ -72,12 +72,12 @@ cargo +1.99 run -p tinyrsi-examples --example math_problem   # and upgrade_file,
 
 ## Checklist
 
-- [x] Temperature on the model path
-- [x] Proposal fields, brief temperature, schema
-- [x] Trace field
-- [x] Policy and ledger types
-- [x] Approaches summary
-- [x] Prompt and loop
-- [x] Examples
-- [x] Visualizer
-- [x] Docs
+- [ ] Temperature on the model path
+- [ ] Proposal fields, brief temperature, schema
+- [ ] Trace field
+- [ ] Policy and ledger types
+- [ ] Approaches summary
+- [ ] Prompt and loop
+- [ ] Examples
+- [ ] Visualizer
+- [ ] Docs
