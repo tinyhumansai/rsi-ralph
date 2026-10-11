@@ -215,8 +215,8 @@ is shown as `interrupted`.
 
 ```text
 tinyrsi check <loop>
-tinyrsi run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve]
-tinyrsi score <loop> --label L [--checkout P]
+tinyrsi run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve] [--env K=V]...
+tinyrsi score <loop> --label L [--checkout P] [--env K=V]...
 tinyrsi runs  [--loop NAME]
 tinyrsi show  <loop>/<run-id>
 tinyrsi serve [--port 8787]
@@ -228,6 +228,11 @@ over a read-only API: `/api/runs`, `/api/runs/<loop>/<run>/events` (SSE,
 replay then tail) and `/api/runs/<loop>/<run>/files/<path>` for `run.json`,
 `ledger.json`, an epoch's `brief.md` and a candidate's `change.diff`. The store
 layout is also what `apps/rsi-viz` discovers, with `RSI_RUN_ROOT=$TINYRSI_HOME`.
+
+`--env K=V` (repeatable) overrides `rsi.json`'s `env` for one invocation; `run`
+records the merged manifest in its frozen loop copy. The incumbent score cache
+is keyed on `env` as well as the revision and scorers, so a limited score never
+stands in for a full one.
 
 Exit status is 0 on success, 1 on a loop error, 2 on invalid input.
 
