@@ -78,6 +78,16 @@ module, so a per-seat key selects the tools but does not yet authenticate
 their calls. The fix belongs upstream in
 `openhuman-core/src/modules/search/proxy.rs`.
 
+## Pin requirement
+
+Read-only seats message through the `hivemind_*` tools, so those tools must
+be read-only to OpenHuman's security gate. tinyhivemind `c130000` declares
+them as acting (`PermissionLevel::Write`), and the pinned OpenHuman refuses
+every acting tool in the read-only tier, so a read-only lead cannot send.
+tinyhivemind `e68a560` (which also pins this repository's OpenHuman,
+`467ab70`) marks them read-only; the integration tests in `tests/swarm.rs`
+need it.
+
 ## Lessons carried over from the first live run
 
 | Problem | What this crate does |
