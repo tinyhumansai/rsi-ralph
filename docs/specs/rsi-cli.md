@@ -218,10 +218,14 @@ Candidates with no change are recorded as `empty` and not scored.
 A hive whose model calls the provider refuses changes nothing, which would
 otherwise look like a hive with no ideas and end the run as `stalled`. The
 gateway therefore tallies what the provider made of every forwarded call
-(`Gateway::upstream_calls`: calls sent, calls refused with a non-success
-status or never answered, and the latest refusal's status and message), and
-the engine compares readings taken around the hive. Calls the gateway refuses
-itself, such as one over budget, are not provider refusals.
+(calls sent, calls refused with a non-success status or never answered
+completely, and the latest refusal's status and message). The engine takes a
+`CallMark` before the hive runs and reads `Gateway::upstream_calls_since(mark)`
+after. A call counts as sent when it is forwarded, so one still in flight is
+included, and each refusal counts against the call it answers, so a call sent
+in one epoch and refused in the next never makes the next epoch look refused.
+Calls the gateway refuses itself, such as one over budget, are not provider
+refusals.
 
 - When an epoch changed nothing and the provider refused some of its calls,
   the engine writes a `provider_refused` trace event and adds a warning to
