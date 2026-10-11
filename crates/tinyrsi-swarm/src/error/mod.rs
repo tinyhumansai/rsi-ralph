@@ -55,6 +55,15 @@ pub enum Error {
         /// The requested provider.
         provider: String,
     },
+    /// The incumbent or a candidate checkout does not resolve to a directory.
+    #[error("cannot open checkout {path}")]
+    Checkout {
+        /// The checkout path as given.
+        path: PathBuf,
+        /// The underlying I/O failure.
+        #[source]
+        source: std::io::Error,
+    },
     /// The run directory could not be created, or a run file not written.
     #[error("cannot write swarm run file {path}")]
     RunDir {
