@@ -22,7 +22,7 @@ fn an_unknown_capability_or_provider_is_unsupported() {
         key(WEB_SEARCH, "perplexity", None),
     ] {
         assert!(matches!(
-            validate(&[bad.clone()], &seats()),
+            validate(std::slice::from_ref(&bad), &seats()),
             Err(Error::UnsupportedTool { capability, provider })
                 if capability == bad.capability && provider == bad.provider
         ));
