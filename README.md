@@ -61,6 +61,7 @@ Cargo.toml              # virtual workspace: members, [workspace.package],
 crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # bounded, metered model calls
+├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
@@ -72,7 +73,7 @@ crates/
     │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
     │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
     │   ├── host/, suites/   # deployment and isolated model evaluation
-    │   ├── script_loop/, process/, trace/  # plain-script loop and its trace
+    │   ├── script_loop/, process/  # plain-script loop
     │   └── experiment/ # preregistered paired trial ledger
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples

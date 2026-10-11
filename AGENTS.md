@@ -25,6 +25,7 @@ ROADMAP.md              # shipped / next / out of scope
 crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
+├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -43,7 +44,6 @@ crates/
     │   ├── experiment/       # preregistered original-vs-evolved protocol
     │   ├── script_loop/      # improvement loop over a plain script
     │   ├── process/          # bounded child-process runner
-    │   ├── trace/            # append-only `events.jsonl` loop trace
     │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
     │   ├── evidence_journal/ # [host] measured turn callbacks and epoch receipts
     │   ├── host/             # [host] DeploymentStore, CoordinatorHost
