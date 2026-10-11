@@ -27,7 +27,19 @@ would invalidate the requested arm.
 all strictly decoded formatter occurrences. Selected proposals come first;
 unselected occurrences follow without deduplication. Every actual typed attempt
 can reach the RSI funnel, where repeated patches receive `Duplicate` outcomes.
-Schema-invalid outputs remain counters, never persisted raw artifacts.
+`EpochJournal::generation_receipts` returns versioned safe formatter-call rows.
+Each call receives an ID before dispatch; each item keeps its original offset,
+including duplicates and repairs. Fixed dispositions distinguish schema, strict
+decoding and public-text guard failures. Backend failures and malformed envelopes
+receive call-level statuses. Receipts describe generation, not host evaluation.
+
+Sidecars named `<journal>.generation-<epoch>.json` contain no generated bodies,
+raw errors, prompts or output digests. Atomic fsynced writes precede exposure to
+the Engine; a write failure prevents successful preparation. Callback lifetimes
+retain the journal's exclusive writer lock. Pending calls survive interruption
+and never trigger an implicit retry. Copy these sidecars together with the private
+journal when restoring a run. Legacy journals without receipts return `None`;
+new journals reject missing, corrupt or mismatched sidecars.
 
 `EpochJournal` exclusively locks a versioned host-private snapshot, records an
 intent before model calls and atomically persists strictly decoded proposals.

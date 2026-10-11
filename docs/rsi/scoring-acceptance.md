@@ -31,7 +31,7 @@ case; consumers must not confuse those representations.
 
 | Intended code | Current behavior / existing test | Remaining implementation test |
 | --- | --- | --- |
-| `SCHEMA` | Invalid Engine occurrence counter: E `actual_engine_counts_invalid_attempt_and_retains_durable_discovery` | Persist each invalid/repair occurrence's safe ID, stage and code |
+| `SCHEMA` | E `real_engine_repairs_keep_distinct_failed_and_successful_call_ids`; versioned `GenerationAudit` call IDs and item offsets survive reopen | Link generation occurrences to the future outcome/prior dataset; historical live runs retain counters only |
 | `UNFORMALIZABLE` | O `rejects_invalid_predictions_wrong_classes_and_stale_operations_without_models` | Preserve detailed formalization subtype when new taxonomy ships |
 | `INVALID_REF` | Invalid patch targets fold into `UNFORMALIZABLE`; same O test | Distinguish dangling references from stale preconditions |
 | `INVARIANT` | Invalid candidate folds into `UNFORMALIZABLE`; formalization rejects | Exercise each invariant with an explicit subtype, no evaluation calls |

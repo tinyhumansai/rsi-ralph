@@ -92,6 +92,10 @@ pub(super) struct Entry {
     pub prepared: Option<PreparedRetreatEpoch>,
     pub meter: GenerationMeter,
     pub generation_failed: bool,
+    #[serde(default)]
+    pub generation_receipts: bool,
+    #[serde(default)]
+    pub generation_mode: Option<GenerationMode>,
     pub invalid_items: usize,
     pub evaluating: bool,
     pub outcome: RetreatEpochOutcome,
@@ -101,4 +105,32 @@ pub(super) struct Entry {
 pub(super) struct Snapshot {
     pub version: u32,
     pub entries: std::collections::BTreeMap<u64, Entry>,
+}
+
+impl Entry {
+    pub(super) fn intent(
+        epoch: u64,
+        incumbent_id: String,
+        fingerprint: String,
+        meter: GenerationMeter,
+        mode: GenerationMode,
+    ) -> Self {
+        Self {
+            epoch,
+            incumbent_id,
+            fingerprint,
+            prepared: None,
+            meter,
+            generation_failed: false,
+            generation_receipts: true,
+            generation_mode: Some(mode),
+            invalid_items: 0,
+            evaluating: false,
+            outcome: RetreatEpochOutcome {
+                epoch,
+                candidates: vec![],
+                complete: false,
+            },
+        }
+    }
 }
