@@ -215,6 +215,15 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
 
     assert_eq!(outcome.stop, StopReason::Idle);
     assert_eq!(outcome.failed, 0);
+    // The lead is read-only; its hive tools must still run. tinyhivemind
+    // before e68a560 marks them as acting tools, which OpenHuman's read-only
+    // tier refuses.
+    assert!(
+        events.iter().any(|event| matches!(event,
+            SwarmEvent::ToolCall { seat, tool, phase: ToolPhase::Completed, success: Some(true), .. }
+                if seat == "lead" && tool == "hivemind_send_agent")),
+        "the read-only lead could not message: {events:?}"
+    );
     assert_eq!(
         std::fs::read_to_string(dirs.candidate.join("NOTES.md")).unwrap(),
         NOTE
