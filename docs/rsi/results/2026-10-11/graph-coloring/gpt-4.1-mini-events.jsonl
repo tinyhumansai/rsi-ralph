@@ -1,0 +1,83 @@
+{"seq":0,"elapsed_ms":0,"event":{"kind":"run_started","run_id":"graph_coloring-1791720221-32071","subject":"coloring.py","goal":{"metric":"colors","direction":"minimize","target":6.0}}}
+{"seq":1,"elapsed_ms":40,"event":{"kind":"executed","epoch":0,"candidate":"1dd16294a8d2","seed":1,"metric":17.0,"ok":true,"duration_ms":38}}
+{"seq":2,"elapsed_ms":76,"event":{"kind":"executed","epoch":0,"candidate":"1dd16294a8d2","seed":2,"metric":18.0,"ok":true,"duration_ms":35}}
+{"seq":3,"elapsed_ms":114,"event":{"kind":"executed","epoch":0,"candidate":"1dd16294a8d2","seed":3,"metric":16.0,"ok":true,"duration_ms":36}}
+{"seq":4,"elapsed_ms":114,"event":{"kind":"measured","epoch":0,"candidate":"1dd16294a8d2","mean":17.0,"failures":0,"seeds":3}}
+{"seq":5,"elapsed_ms":122,"event":{"kind":"epoch_started","epoch":1,"incumbent":"1dd16294a8d2"}}
+{"seq":6,"elapsed_ms":122,"event":{"kind":"observed","epoch":1,"incumbent":"1dd16294a8d2","incumbent_metric":17.0,"history":1,"rejected":0}}
+{"seq":7,"elapsed_ms":2894,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-0","parent":"1dd16294a8d2","candidate":"543e6b083f06","rationale":"Welsh-Powell orders vertices by descending degree, coloring high-degree vertices first, which tends to reduce the total colors needed in greedy coloring.","hypothesis":"Using Welsh-Powell heuristic reduces the number of colors used compared to the original first-fit in label order."}}
+{"seq":8,"elapsed_ms":2929,"event":{"kind":"executed","epoch":1,"candidate":"543e6b083f06","seed":1,"metric":15.0,"ok":true,"duration_ms":34}}
+{"seq":9,"elapsed_ms":2961,"event":{"kind":"executed","epoch":1,"candidate":"543e6b083f06","seed":2,"metric":15.0,"ok":true,"duration_ms":31}}
+{"seq":10,"elapsed_ms":2994,"event":{"kind":"executed","epoch":1,"candidate":"543e6b083f06","seed":3,"metric":15.0,"ok":true,"duration_ms":32}}
+{"seq":11,"elapsed_ms":2994,"event":{"kind":"measured","epoch":1,"candidate":"543e6b083f06","mean":15.0,"failures":0,"seeds":3}}
+{"seq":12,"elapsed_ms":2994,"event":{"kind":"scored","epoch":1,"candidate":"543e6b083f06","decision":"accept","estimate":2.0,"lower":0.8452994616207485,"upper":3.1547005383792515}}
+{"seq":13,"elapsed_ms":6258,"event":{"kind":"ideated","epoch":1,"proposal_id":"p1-1","parent":"1dd16294a8d2","candidate":"c5779c9642d9","rationale":"The current algorithm colors vertices in label order, which can lead to suboptimal colorings. Welsh-Powell orders vertices by descending degree, coloring the most connected vertices first, which is a known heuristic to reduce colors used.","hypothesis":"Using Welsh-Powell heuristic reduces the number of colors by coloring higher-degree vertices first, which tends to reduce the total colors needed."}}
+{"seq":14,"elapsed_ms":6291,"event":{"kind":"executed","epoch":1,"candidate":"c5779c9642d9","seed":1,"metric":15.0,"ok":true,"duration_ms":31}}
+{"seq":15,"elapsed_ms":6324,"event":{"kind":"executed","epoch":1,"candidate":"c5779c9642d9","seed":2,"metric":15.0,"ok":true,"duration_ms":32}}
+{"seq":16,"elapsed_ms":6357,"event":{"kind":"executed","epoch":1,"candidate":"c5779c9642d9","seed":3,"metric":15.0,"ok":true,"duration_ms":32}}
+{"seq":17,"elapsed_ms":6357,"event":{"kind":"measured","epoch":1,"candidate":"c5779c9642d9","mean":15.0,"failures":0,"seeds":3}}
+{"seq":18,"elapsed_ms":6357,"event":{"kind":"scored","epoch":1,"candidate":"c5779c9642d9","decision":"accept","estimate":2.0,"lower":0.8452994616207485,"upper":3.1547005383792515}}
+{"seq":19,"elapsed_ms":6375,"event":{"kind":"improved","epoch":1,"from":"1dd16294a8d2","to":"543e6b083f06","metric":15.0}}
+{"seq":20,"elapsed_ms":6385,"event":{"kind":"epoch_finished","epoch":1,"incumbent":"543e6b083f06","incumbent_metric":15.0}}
+{"seq":21,"elapsed_ms":6385,"event":{"kind":"epoch_started","epoch":2,"incumbent":"543e6b083f06"}}
+{"seq":22,"elapsed_ms":6385,"event":{"kind":"observed","epoch":2,"incumbent":"543e6b083f06","incumbent_metric":15.0,"history":2,"rejected":0}}
+{"seq":23,"elapsed_ms":11021,"event":{"kind":"ideated","epoch":2,"proposal_id":"p2-0","parent":"543e6b083f06","candidate":"a10bb5bb0f37","rationale":"DSATUR is a well-known heuristic for graph coloring that tends to use fewer colors than the simpler Welsh-Powell heuristic by dynamically choosing the next vertex to color based on saturation degree, which better manages color assignments and reduces color count.","hypothesis":"Using the DSATUR heuristic will reduce the number of colors used compared to Welsh-Powell, improving the metric."}}
+{"seq":24,"elapsed_ms":11057,"event":{"kind":"executed","epoch":2,"candidate":"a10bb5bb0f37","seed":1,"metric":14.0,"ok":true,"duration_ms":34}}
+{"seq":25,"elapsed_ms":11084,"event":{"kind":"executed","epoch":2,"candidate":"a10bb5bb0f37","seed":2,"metric":12.0,"ok":true,"duration_ms":26}}
+{"seq":26,"elapsed_ms":11111,"event":{"kind":"executed","epoch":2,"candidate":"a10bb5bb0f37","seed":3,"metric":13.0,"ok":true,"duration_ms":26}}
+{"seq":27,"elapsed_ms":11111,"event":{"kind":"measured","epoch":2,"candidate":"a10bb5bb0f37","mean":13.0,"failures":0,"seeds":3}}
+{"seq":28,"elapsed_ms":11111,"event":{"kind":"scored","epoch":2,"candidate":"a10bb5bb0f37","decision":"accept","estimate":2.0,"lower":0.8452994616207485,"upper":3.1547005383792515}}
+{"seq":29,"elapsed_ms":15472,"event":{"kind":"ideated","epoch":2,"proposal_id":"p2-1","parent":"543e6b083f06","candidate":"dc356583f965","rationale":"DSATUR is a well-known heuristic that often produces better colorings than Welsh-Powell by dynamically choosing the next vertex to color based on saturation degree, leading to fewer colors used.","hypothesis":"Using DSATUR heuristic will reduce the number of colors used compared to Welsh-Powell."}}
+{"seq":30,"elapsed_ms":15497,"event":{"kind":"executed","epoch":2,"candidate":"dc356583f965","seed":1,"metric":14.0,"ok":true,"duration_ms":24}}
+{"seq":31,"elapsed_ms":15522,"event":{"kind":"executed","epoch":2,"candidate":"dc356583f965","seed":2,"metric":12.0,"ok":true,"duration_ms":24}}
+{"seq":32,"elapsed_ms":15546,"event":{"kind":"executed","epoch":2,"candidate":"dc356583f965","seed":3,"metric":13.0,"ok":true,"duration_ms":24}}
+{"seq":33,"elapsed_ms":15546,"event":{"kind":"measured","epoch":2,"candidate":"dc356583f965","mean":13.0,"failures":0,"seeds":3}}
+{"seq":34,"elapsed_ms":15546,"event":{"kind":"scored","epoch":2,"candidate":"dc356583f965","decision":"accept","estimate":2.0,"lower":0.8452994616207485,"upper":3.1547005383792515}}
+{"seq":35,"elapsed_ms":15567,"event":{"kind":"improved","epoch":2,"from":"543e6b083f06","to":"a10bb5bb0f37","metric":13.0}}
+{"seq":36,"elapsed_ms":15578,"event":{"kind":"epoch_finished","epoch":2,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0}}
+{"seq":37,"elapsed_ms":15578,"event":{"kind":"epoch_started","epoch":3,"incumbent":"a10bb5bb0f37"}}
+{"seq":38,"elapsed_ms":15578,"event":{"kind":"observed","epoch":3,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0,"history":3,"rejected":0}}
+{"seq":39,"elapsed_ms":19936,"event":{"kind":"ideated","epoch":3,"proposal_id":"p3-0","parent":"a10bb5bb0f37","candidate":"b61f593c8605","rationale":"By checking saturation consistency before accepting a vertex from the heap, we avoid processing stale entries. Using neighbor_colors directly for used colors avoids recomputation. These changes improve efficiency and may lead to better color assignments.","hypothesis":"Avoid unnecessary heap pushes and improve tie-breaking to reduce runtime and possibly reduce colors used."}}
+{"seq":40,"elapsed_ms":19966,"event":{"kind":"executed","epoch":3,"candidate":"b61f593c8605","seed":1,"metric":14.0,"ok":true,"duration_ms":29}}
+{"seq":41,"elapsed_ms":19995,"event":{"kind":"executed","epoch":3,"candidate":"b61f593c8605","seed":2,"metric":12.0,"ok":true,"duration_ms":28}}
+{"seq":42,"elapsed_ms":20023,"event":{"kind":"executed","epoch":3,"candidate":"b61f593c8605","seed":3,"metric":13.0,"ok":true,"duration_ms":26}}
+{"seq":43,"elapsed_ms":20023,"event":{"kind":"measured","epoch":3,"candidate":"b61f593c8605","mean":13.0,"failures":0,"seeds":3}}
+{"seq":44,"elapsed_ms":20023,"event":{"kind":"scored","epoch":3,"candidate":"b61f593c8605","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":45,"elapsed_ms":24495,"event":{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a10bb5bb0f37","candidate":"4afd91c5949f","rationale":"By checking saturation consistency before accepting a vertex from the heap, we avoid processing outdated saturation values, which leads to more accurate vertex selection and potentially better color assignments.","hypothesis":"Avoid processing stale heap entries by checking saturation consistency before accepting a vertex from the heap, improving efficiency and possibly reducing colors used."}}
+{"seq":46,"elapsed_ms":24528,"event":{"kind":"executed","epoch":3,"candidate":"4afd91c5949f","seed":1,"metric":14.0,"ok":true,"duration_ms":30}}
+{"seq":47,"elapsed_ms":24560,"event":{"kind":"executed","epoch":3,"candidate":"4afd91c5949f","seed":2,"metric":12.0,"ok":true,"duration_ms":31}}
+{"seq":48,"elapsed_ms":24593,"event":{"kind":"executed","epoch":3,"candidate":"4afd91c5949f","seed":3,"metric":13.0,"ok":true,"duration_ms":32}}
+{"seq":49,"elapsed_ms":24593,"event":{"kind":"measured","epoch":3,"candidate":"4afd91c5949f","mean":13.0,"failures":0,"seeds":3}}
+{"seq":50,"elapsed_ms":24593,"event":{"kind":"scored","epoch":3,"candidate":"4afd91c5949f","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":51,"elapsed_ms":24602,"event":{"kind":"epoch_finished","epoch":3,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0}}
+{"seq":52,"elapsed_ms":24602,"event":{"kind":"epoch_started","epoch":4,"incumbent":"a10bb5bb0f37"}}
+{"seq":53,"elapsed_ms":24602,"event":{"kind":"observed","epoch":4,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0,"history":3,"rejected":2}}
+{"seq":54,"elapsed_ms":30430,"event":{"kind":"ideated","epoch":4,"proposal_id":"p4-0","parent":"a10bb5bb0f37","candidate":"375806871915","rationale":"By verifying that the saturation value in the heap matches the current saturation before coloring a vertex, we avoid using outdated saturation values that could lead to suboptimal color assignments. This should improve the quality of the coloring and potentially reduce the number of colors used.","hypothesis":"Avoid processing stale heap entries by checking saturation consistency before accepting a vertex from the heap, improving efficiency and possibly reducing colors used."}}
+{"seq":55,"elapsed_ms":30464,"event":{"kind":"executed","epoch":4,"candidate":"375806871915","seed":1,"metric":14.0,"ok":true,"duration_ms":32}}
+{"seq":56,"elapsed_ms":30494,"event":{"kind":"executed","epoch":4,"candidate":"375806871915","seed":2,"metric":12.0,"ok":true,"duration_ms":29}}
+{"seq":57,"elapsed_ms":30525,"event":{"kind":"executed","epoch":4,"candidate":"375806871915","seed":3,"metric":13.0,"ok":true,"duration_ms":30}}
+{"seq":58,"elapsed_ms":30525,"event":{"kind":"measured","epoch":4,"candidate":"375806871915","mean":13.0,"failures":0,"seeds":3}}
+{"seq":59,"elapsed_ms":30525,"event":{"kind":"scored","epoch":4,"candidate":"375806871915","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":60,"elapsed_ms":36340,"event":{"kind":"ideated","epoch":4,"proposal_id":"p4-1","parent":"a10bb5bb0f37","candidate":"72f3923ef160","rationale":"By verifying the saturation value in the heap matches the current saturation before coloring a vertex, we avoid using outdated saturation values that could lead to suboptimal color assignments. This should improve the quality of the coloring and potentially reduce the number of colors used.","hypothesis":"Avoid processing stale heap entries by checking saturation consistency before accepting a vertex from the heap, improving efficiency and possibly reducing colors used."}}
+{"seq":61,"elapsed_ms":36398,"event":{"kind":"executed","epoch":4,"candidate":"72f3923ef160","seed":1,"metric":14.0,"ok":true,"duration_ms":55}}
+{"seq":62,"elapsed_ms":36456,"event":{"kind":"executed","epoch":4,"candidate":"72f3923ef160","seed":2,"metric":12.0,"ok":true,"duration_ms":56}}
+{"seq":63,"elapsed_ms":36504,"event":{"kind":"executed","epoch":4,"candidate":"72f3923ef160","seed":3,"metric":13.0,"ok":true,"duration_ms":47}}
+{"seq":64,"elapsed_ms":36504,"event":{"kind":"measured","epoch":4,"candidate":"72f3923ef160","mean":13.0,"failures":0,"seeds":3}}
+{"seq":65,"elapsed_ms":36505,"event":{"kind":"scored","epoch":4,"candidate":"72f3923ef160","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":66,"elapsed_ms":36532,"event":{"kind":"epoch_finished","epoch":4,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0}}
+{"seq":67,"elapsed_ms":36532,"event":{"kind":"epoch_started","epoch":5,"incumbent":"a10bb5bb0f37"}}
+{"seq":68,"elapsed_ms":36532,"event":{"kind":"observed","epoch":5,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0,"history":3,"rejected":4}}
+{"seq":69,"elapsed_ms":41230,"event":{"kind":"ideated","epoch":5,"proposal_id":"p5-0","parent":"a10bb5bb0f37","candidate":"71058e49d4ed","rationale":"By verifying the saturation value in the heap matches the current saturation before coloring a vertex, we avoid using outdated saturation values that could lead to suboptimal color assignments. This should improve the quality of the coloring and potentially reduce the number of colors used.","hypothesis":"Avoid processing stale heap entries by checking saturation consistency before accepting a vertex from the heap, improving efficiency and possibly reducing colors used."}}
+{"seq":70,"elapsed_ms":41271,"event":{"kind":"executed","epoch":5,"candidate":"71058e49d4ed","seed":1,"metric":14.0,"ok":true,"duration_ms":38}}
+{"seq":71,"elapsed_ms":41309,"event":{"kind":"executed","epoch":5,"candidate":"71058e49d4ed","seed":2,"metric":12.0,"ok":true,"duration_ms":37}}
+{"seq":72,"elapsed_ms":41349,"event":{"kind":"executed","epoch":5,"candidate":"71058e49d4ed","seed":3,"metric":13.0,"ok":true,"duration_ms":39}}
+{"seq":73,"elapsed_ms":41349,"event":{"kind":"measured","epoch":5,"candidate":"71058e49d4ed","mean":13.0,"failures":0,"seeds":3}}
+{"seq":74,"elapsed_ms":41349,"event":{"kind":"scored","epoch":5,"candidate":"71058e49d4ed","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":75,"elapsed_ms":46211,"event":{"kind":"ideated","epoch":5,"proposal_id":"p5-1","parent":"a10bb5bb0f37","candidate":"74d951b56587","rationale":"By verifying the saturation value in the heap matches the current saturation before coloring a vertex, we avoid using outdated saturation values that could lead to suboptimal color assignments. This should improve the quality of the coloring and potentially reduce the number of colors used.","hypothesis":"Avoid processing stale heap entries by checking saturation consistency before accepting a vertex from the heap, improving efficiency and possibly reducing colors used."}}
+{"seq":76,"elapsed_ms":46249,"event":{"kind":"executed","epoch":5,"candidate":"74d951b56587","seed":1,"metric":14.0,"ok":true,"duration_ms":36}}
+{"seq":77,"elapsed_ms":46284,"event":{"kind":"executed","epoch":5,"candidate":"74d951b56587","seed":2,"metric":12.0,"ok":true,"duration_ms":34}}
+{"seq":78,"elapsed_ms":46317,"event":{"kind":"executed","epoch":5,"candidate":"74d951b56587","seed":3,"metric":13.0,"ok":true,"duration_ms":32}}
+{"seq":79,"elapsed_ms":46317,"event":{"kind":"measured","epoch":5,"candidate":"74d951b56587","mean":13.0,"failures":0,"seeds":3}}
+{"seq":80,"elapsed_ms":46317,"event":{"kind":"scored","epoch":5,"candidate":"74d951b56587","decision":"reject","estimate":-0.0,"lower":-0.0,"upper":0.0}}
+{"seq":81,"elapsed_ms":46346,"event":{"kind":"epoch_finished","epoch":5,"incumbent":"a10bb5bb0f37","incumbent_metric":13.0}}
+{"seq":82,"elapsed_ms":46346,"event":{"kind":"run_finished","reason":"stalled","incumbent":"a10bb5bb0f37","incumbent_metric":13.0}}
