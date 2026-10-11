@@ -240,3 +240,16 @@ async fn dedicated_worker_wakes_an_executor_and_propagates_provider_errors() {
     assert_eq!(reply.content, b"ok");
     assert!(ModelWorker::start(|| Err(Error::HostFailed)).await.is_err());
 }
+
+#[test]
+fn public_provider_identity_survives_budget_wrapping_without_provider_calls() {
+    let provider = OpenRouterModel::new("openai/frozen-test-model".into()).unwrap();
+    let expected = Some(ModelIdentity {
+        provider: "openrouter".into(),
+        model: "openai/frozen-test-model".into(),
+    });
+    assert_eq!(provider.identity(), expected);
+    let wrapped = BudgetedModel::new(Arc::new(provider), 1000).unwrap();
+    assert_eq!(wrapped.identity(), expected);
+    assert_eq!(wrapped.meter().unwrap().attempted_calls, 0);
+}

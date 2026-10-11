@@ -223,6 +223,12 @@ impl OpenRouterModel {
     }
 }
 impl ModelPort for OpenRouterModel {
+    fn identity(&self) -> Option<ModelIdentity> {
+        Some(ModelIdentity {
+            provider: "openrouter".into(),
+            model: self.model.clone(),
+        })
+    }
     fn generate(&self, request: ModelRequest) -> ModelFuture {
         let model = self.clone();
         ModelWorker::start(move || model.call(&request))
@@ -424,6 +430,9 @@ impl BudgetedModel {
     }
 }
 impl ModelPort for BudgetedModel {
+    fn identity(&self) -> Option<ModelIdentity> {
+        self.backend.port.identity()
+    }
     fn generate(&self, request: ModelRequest) -> ModelFuture {
         let backend = self.backend.clone();
         Box::pin(async move {

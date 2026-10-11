@@ -5,7 +5,7 @@ use crate::{
     ScoreComparison, ScoreHealth,
 };
 #[derive(Default)]
-struct Host {
+pub(super) struct Host {
     calls: u64,
 }
 impl Evaluator for Host {
@@ -66,9 +66,9 @@ impl HEvaluator for Host {
         })
     }
 }
-struct Human {
-    approve: bool,
-    calls: u64,
+pub(super) struct Human {
+    pub(super) approve: bool,
+    pub(super) calls: u64,
 }
 impl HApprovalGate for Human {
     fn approve_h(&mut self, _: &str, _: &Proposal, _: &ScoreComparison) -> Result<bool> {
@@ -115,6 +115,11 @@ fn evaluation_reopens_without_repeating_private_draws_or_human_decision() {
             ))
             .unwrap();
         drop(runtime);
+        let proposal_count = journal.prepared(1).unwrap().proposals.len();
+        let priors = vec![Some(0.75); proposal_count];
+        journal
+            .register_proposal_priors(1, &priors, &archive)
+            .unwrap();
         let mut host = Host::default();
         let mut human = Human {
             approve: approved,
@@ -140,6 +145,7 @@ fn evaluation_reopens_without_repeating_private_draws_or_human_decision() {
         );
         assert_eq!(host.calls, 3);
         assert_eq!(human.calls, 1);
+        let dataset = assert_selection_dataset(&mut journal, &archive, proposal_count, &priors);
         assert_eq!(memory.outcomes().unwrap().len(), 1);
         assert_eq!(
             archive.head().unwrap().id == checkpoint.deployed_id.clone().unwrap(),
@@ -157,9 +163,49 @@ fn evaluation_reopens_without_repeating_private_draws_or_human_decision() {
         )
         .unwrap();
         assert_eq!(outcome, repeated);
+        assert_eq!(
+            journal.proposal_dataset(1, &archive).unwrap(),
+            Some(dataset)
+        );
         assert_eq!(host.calls, 3);
         assert_eq!(human.calls, 1);
     }
+}
+/// Checks that only actual selection measurements label the generated occurrences.
+fn assert_selection_dataset(
+    journal: &mut EpochJournal,
+    archive: &Archive,
+    proposal_count: usize,
+    priors: &[Option<f64>],
+) -> ProposalOutcomeDataset {
+    let dataset = journal.proposal_dataset(1, archive).unwrap().unwrap();
+    assert_eq!(dataset.rows.len(), proposal_count);
+    assert_eq!(
+        dataset.rows[0].selection.as_ref().unwrap().eligible,
+        Some(true)
+    );
+    assert_eq!(dataset.rows[0].prior, Some(0.75));
+    assert_eq!(
+        dataset.rows[0].occurrence,
+        Some(ProposalOccurrence {
+            call_id: 1,
+            item_index: 0
+        })
+    );
+    assert_eq!(dataset.rows[0].stage, ProposalStage::Confirmation);
+    assert_eq!(dataset.metrics(1).unwrap().brier, Some(0.0625));
+    let public = serde_json::to_string(&dataset).unwrap();
+    assert!(!public.contains("fresh"));
+    assert!(!public.contains("Guess"));
+    journal
+        .register_proposal_priors(1, priors, archive)
+        .unwrap();
+    assert!(
+        journal
+            .register_proposal_priors(1, &vec![Some(0.25); proposal_count], archive)
+            .is_err()
+    );
+    dataset
 }
 #[test]
 fn interrupted_evaluation_never_replays_unknown_effects() {

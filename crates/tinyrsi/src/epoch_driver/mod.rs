@@ -1,4 +1,6 @@
 //! Restart-safe normalized proposal generation and separate synchronous evaluation.
+mod dataset;
+pub use dataset::*;
 mod generation;
 mod journal;
 mod receipt_types;
