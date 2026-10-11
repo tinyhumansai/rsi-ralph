@@ -52,6 +52,10 @@ language model, if the library could run that cycle end to end.
   seed's metric. A seed fails on timeout (`ScriptTimeout`), output overflow
   (`ScriptOutputExceeded`), a non-zero exit (`ScriptFailed`), no metric line
   (`MetricMissing`), or a non-finite or unparsable value (`MetricInvalid`).
+  Every stdout line of the form `DIAG <text>` is kept, whether or not the seed
+  passed, in `SeedRun::diagnostics`: the last 20 non-empty lines, each cut to
+  300 characters with an ellipsis. Diagnostics never affect the score. They
+  exist so the supervisor sees what a run did, not only how well.
 - **Score:** a candidate with any failed seed is rejected. Otherwise the
   candidate and incumbent per-seed metrics on the identical seeds are mapped to
   qualities with the monotone transform `q = 1/2 + atan(s * m) / pi` (`s = +1`
@@ -68,8 +72,8 @@ language model, if the library could run that cycle end to end.
   tool call `propose_script` whose JSON schema is `ScriptProposal { rationale,
   hypothesis, files: [{path, content}] }`. Its prompt holds the goal and target,
   the incumbent's editable sources, the per-epoch metric history and the last
-  `rejected_context` rejected proposals with their mean metric, decision and
-  stderr tail. A reply that is not exactly one such object is
+  `rejected_context` rejected proposals with their mean metric, decision,
+  stderr tail and diagnostics, and the incumbent's diagnostics for every seed. A reply that is not exactly one such object is
   `SupervisorMalformed`; a path outside `editable` (including absolute paths
   and `..`) is `ProposalPathOutsideEditable`. Both are recorded as invalid
   attempts and the loop continues. A transport failure ends the run.
