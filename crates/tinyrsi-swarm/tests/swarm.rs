@@ -213,7 +213,6 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     )
     .unwrap();
 
-    for r in server_runtime.block_on(server.received_requests()).unwrap() { if let Ok(v) = serde_json::from_slice::<Value>(&r.body) { for m in v["messages"].as_array().unwrap() { if m["role"] == "tool" { eprintln!("DEBUGTOOL {}", m["content"]); } } } }
     assert_eq!(outcome.stop, StopReason::Idle);
     assert_eq!(outcome.failed, 0);
     assert_eq!(
