@@ -286,6 +286,7 @@ fn summary_json_has_the_documented_shape() {
             "proposals",
             "rejected",
             "repeat",
+            "repeats",
             "repetition_share",
             "run_dir",
             "stop",

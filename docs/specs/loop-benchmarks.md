@@ -131,6 +131,7 @@ written (otherwise zero and no metrics).
 | `repeats`, `repetition_share` | see below |
 | `tokens` | `ledger.tokens` |
 | `wall_ms` | wall time of the run, including fixture setup |
+| `run_dir` | the run's directory |
 | `error` | the run's error message, `null` on success |
 
 ### Repetition share

@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             r.stop,
             r.epochs,
             r.tokens,
-            Duration::from_ms(r.wall_ms),
+            seconds(r.wall_ms),
             r.error
                 .as_deref()
                 .map_or_else(String::new, |e| format!(" (error: {e})")),
@@ -102,12 +102,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Milliseconds shown as seconds.
-struct Duration(f64);
-
-impl Duration {
-    #[expect(clippy::cast_precision_loss, reason = "wall times stay far below 2^53 ms")]
-    fn from_ms(ms: u64) -> f64 {
-        ms as f64 / 1000.0
-    }
+/// Milliseconds as seconds, for display.
+#[expect(clippy::cast_precision_loss, reason = "wall times stay far below 2^53 ms")]
+fn seconds(ms: u64) -> f64 {
+    ms as f64 / 1000.0
 }
