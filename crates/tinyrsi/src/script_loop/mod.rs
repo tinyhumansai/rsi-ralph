@@ -61,14 +61,19 @@ pub fn run_script_loop(
 /// `LlmJudge` reading the sources.
 ///
 /// The scorer sees each fully measured candidate ([`ScriptCandidate`]) and is
-/// asked once per candidate; the incumbent's assessment is cached when it is
-/// promoted. Its measured tokens count against the policy's token budget.
-/// Everything else (measurement, the metric target, promotion of the best
-/// accepted metric, the ledger and the trace) is as in [`run_script_loop`].
+/// asked once per candidate; the incumbent is assessed on its first
+/// comparison and cached, so a baseline that already meets the target is
+/// never scored. Its measured tokens count against the policy's token budget.
+/// Ledger intervals are in [`IntervalUnits::Quality`] unless both sides carry
+/// metric evidence. Everything else (measurement, the metric target,
+/// promotion of the best accepted metric, the ledger and the trace) is as in
+/// [`run_script_loop`].
 ///
 /// # Errors
 ///
-/// As [`run_script_loop`], plus any error of the scorer.
+/// As [`run_script_loop`], plus any error of the scorer. A candidate the
+/// scorer fails on is kept in the ledger as [`CandidateDecision::Error`],
+/// with its measurements, before the error is returned.
 pub fn run_script_loop_with(
     subject: &ScriptSubject,
     supervisor: &dyn Evolver<ScriptBrief, Proposal = ScriptProposal>,
@@ -154,7 +159,7 @@ fn validate_policy(policy: &LoopPolicy, run: &RunLocation) -> Result<()> {
 struct Incumbent {
     id: String,
     sources: Sources,
-    /// The scorer's view of the incumbent, cached from when it was promoted.
+    /// The scorer's view of the incumbent, cached once first needed.
     assessment: Option<Assessment>,
     metrics: Vec<f64>,
     mean: f64,
@@ -175,9 +180,14 @@ struct LoopState<'a> {
     epochs: u64,
 }
 
-/// A candidate's decision, its `(estimate, lower, upper)` interval, and its
-/// assessment when it was scored.
-type Judged = (ScoreDecision, (f64, f64, f64), Option<Assessment>);
+/// A candidate's decision, its `(estimate, lower, upper)` interval and their
+/// units, and its assessment when it was scored.
+type Judged = (
+    ScoreDecision,
+    (f64, f64, f64),
+    IntervalUnits,
+    Option<Assessment>,
+);
 
 /// What one evaluated candidate produced.
 struct Measured {
@@ -242,6 +252,7 @@ impl LoopState<'_> {
             estimate: None,
             lower: None,
             upper: None,
+            units: IntervalUnits::Metric,
             promoted: ok,
             note: None,
             runs: measured.runs,
@@ -252,7 +263,8 @@ impl LoopState<'_> {
             .filter_map(|r| r.metric)
             .collect::<Vec<_>>();
         if let (true, Some(mean)) = (ok, measured.mean) {
-            self.incumbent.assessment = Some(self.assess(&sources, &metrics)?);
+            // The baseline is assessed lazily, on the first comparison, so a
+            // baseline that already meets the target costs no scorer call.
             self.incumbent.metrics = metrics;
             self.incumbent.mean = mean;
             self.ledger.incumbents.push(IncumbentEntry {
@@ -342,6 +354,7 @@ impl LoopState<'_> {
             estimate: None,
             lower: None,
             upper: None,
+            units: IntervalUnits::Metric,
             promoted: false,
             note: None,
         };
@@ -390,10 +403,23 @@ impl LoopState<'_> {
             return Ok(None);
         }
         let measured = self.measure(epoch, &id, &sources)?;
-        let (decision, interval, assessment) = self.judge(&sources, &measured)?;
-        self.scored(epoch, &id, decision, interval)?;
+        let judged = self.judge(&sources, &measured);
         row.runs = measured.runs;
         row.mean = measured.mean;
+        let (decision, interval, units, assessment) = match judged {
+            Ok(judged) => judged,
+            Err(error) => {
+                // The candidate ran: keep its measurements before the
+                // scorer's error ends the run.
+                row.decision = CandidateDecision::Error;
+                row.note = Some(error.to_string());
+                self.ledger.candidates.push(row);
+                self.save()?;
+                return Err(error);
+            }
+        };
+        self.scored(epoch, &id, decision, interval)?;
+        row.units = units;
         row.decision = match decision {
             ScoreDecision::Accept => CandidateDecision::Accept,
             ScoreDecision::Reject => CandidateDecision::Reject,
@@ -468,18 +494,36 @@ impl LoopState<'_> {
         if measured.failures == 0 {
             let metrics: Vec<f64> = measured.runs.iter().filter_map(|r| r.metric).collect();
             let candidate = self.assess(sources, &metrics)?;
-            let incumbent = self
-                .incumbent
-                .assessment
-                .as_ref()
-                .ok_or(Error::InvalidRecord)?;
-            let d = decide(
-                incumbent,
+            let incumbent = if let Some(cached) = self.incumbent.assessment.take() {
+                cached
+            } else {
+                let (sources, metrics) = (
+                    self.incumbent.sources.clone(),
+                    self.incumbent.metrics.clone(),
+                );
+                self.assess(&sources, &metrics)?
+            };
+            let decided = decide(
+                &incumbent,
                 &candidate,
                 &self.subject.seeds,
                 &self.policy.eval,
-            )?;
-            return Ok((d.decision, (d.estimate, d.lower, d.upper), Some(candidate)));
+            );
+            // `decide` reports metric units exactly when both sides carry a
+            // metric.
+            let units = if incumbent.metric.is_some() && candidate.metric.is_some() {
+                IntervalUnits::Metric
+            } else {
+                IntervalUnits::Quality
+            };
+            self.incumbent.assessment = Some(incumbent);
+            let d = decided?;
+            return Ok((
+                d.decision,
+                (d.estimate, d.lower, d.upper),
+                units,
+                Some(candidate),
+            ));
         }
         let base: Vec<Option<f64>> = self.incumbent.metrics.iter().copied().map(Some).collect();
         let cand: Vec<Option<f64>> = measured.runs.iter().map(|r| r.metric).collect();
@@ -487,6 +531,7 @@ impl LoopState<'_> {
         Ok((
             ScoreDecision::Reject,
             score::failed_interval(&base, &cand, direction, multiplier),
+            IntervalUnits::Metric,
             None,
         ))
     }

@@ -296,6 +296,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         estimate: None,
         lower: None,
         upper: None,
+        units: IntervalUnits::Metric,
         promoted: false,
         note: None,
     };

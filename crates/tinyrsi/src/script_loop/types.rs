@@ -59,7 +59,8 @@ pub struct LoopPolicy {
     pub proposals_per_epoch: u32,
     /// Consecutive epochs without a promotion before stopping as stalled.
     pub patience: u32,
-    /// Measured supervisor tokens after which no new proposal is requested.
+    /// Measured supervisor and scorer tokens after which no new proposal is
+    /// requested.
     pub token_budget: u64,
     /// Rejected proposals shown to the supervisor, most recent first.
     pub rejected_context: usize,
@@ -132,6 +133,31 @@ pub enum CandidateDecision {
     Invalid,
     /// Its content was already evaluated in this run.
     Duplicate,
+    /// It was measured, but the scorer failed on it and the run ended.
+    Error,
+}
+
+/// The units of a ledger row's `estimate`, `lower` and `upper`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntervalUnits {
+    /// The subject's metric, oriented so positive means better. The default
+    /// scorer and any failed-seed rejection report these.
+    #[default]
+    Metric,
+    /// Scorer qualities in `[0, 1]`, as a custom scorer without metric
+    /// evidence on both sides reports them (see `tinyrsi_score::decide`).
+    Quality,
+}
+
+impl IntervalUnits {
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's skip_serializing_if passes a reference"
+    )]
+    fn is_metric(&self) -> bool {
+        *self == Self::Metric
+    }
 }
 
 /// One ledger row: an evaluated, invalid or duplicate candidate.
@@ -157,15 +183,19 @@ pub struct LedgerCandidate {
     pub mean: Option<f64>,
     /// Disposition.
     pub decision: CandidateDecision,
-    /// Paired improvement estimate in metric units, positive meaning better.
+    /// Paired improvement estimate, positive meaning better, in `units`.
     pub estimate: Option<f64>,
     /// Lower bound of the improvement.
     pub lower: Option<f64>,
     /// Upper bound of the improvement.
     pub upper: Option<f64>,
+    /// Units of the interval. Omitted from the JSON when they are metric
+    /// units, so ledgers written by the default scorer are unchanged.
+    #[serde(default, skip_serializing_if = "IntervalUnits::is_metric")]
+    pub units: IntervalUnits,
     /// True once it became the incumbent.
     pub promoted: bool,
-    /// Why an invalid proposal was refused.
+    /// Why an invalid proposal was refused, or the scorer's error.
     pub note: Option<String>,
 }
 
@@ -191,7 +221,7 @@ pub struct ScriptLedger {
     pub metric: MetricSpec,
     /// Seeds every candidate runs on.
     pub seeds: Vec<u64>,
-    /// Measured supervisor tokens.
+    /// Measured supervisor and scorer tokens.
     pub tokens: u64,
     /// Why the run ended, absent while it is running.
     pub stop: Option<StopReason>,
@@ -222,7 +252,7 @@ pub struct LoopReport {
     pub promotions: u32,
     /// Candidates evaluated and not accepted, plus invalid and duplicate ones.
     pub rejected: u32,
-    /// Measured supervisor tokens.
+    /// Measured supervisor and scorer tokens.
     pub tokens: u64,
     /// Path of `ledger.json`.
     pub ledger: PathBuf,
