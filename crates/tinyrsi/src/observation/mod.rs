@@ -168,5 +168,12 @@ impl Dossier {
         }
     }
 }
+/// Retreat reads the dossier's public JSON and seeds its engine with the epoch.
+impl tinyrsi_evolve::RetreatDossier for Dossier {
+    fn epoch(&self) -> u64 {
+        self.epoch
+    }
+}
+
 #[cfg(test)]
 mod test;

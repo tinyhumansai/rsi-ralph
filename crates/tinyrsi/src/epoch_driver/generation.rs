@@ -350,7 +350,7 @@ fn validate_input(input: &RetreatEpochInput<'_>, memory: &DurableRetreatMemory) 
     if input.orchestrator_context.trim().is_empty() {
         return Err(Error::InvalidProposal);
     }
-    memory.validate_public_text(input.orchestrator_context)
+    Ok(memory.validate_public_text(input.orchestrator_context)?)
 }
 fn fingerprint(input: &RetreatEpochInput<'_>, incumbent: &str) -> Result<String> {
     hash(

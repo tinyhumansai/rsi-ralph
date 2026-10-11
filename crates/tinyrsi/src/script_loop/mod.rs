@@ -1,7 +1,7 @@
 //! A complete, repeating improvement loop over a plain script.
 //!
 //! [`run_script_loop`] measures the starting script on fixed seeds (epoch 0),
-//! then repeats: observe the incumbent, ask the [`Supervisor`] for proposals,
+//! then repeats: observe the incumbent, ask the supervisor for proposals,
 //! materialize and execute each candidate on the same seeds, score it paired
 //! against the incumbent with [`crate::compare`], and promote the best accepted
 //! candidate. It stops when the target is reached, the epoch limit is hit,
@@ -10,18 +10,19 @@
 //! [`TraceSink`]. Design, safety limits and file layout are in this module's
 //! `README.md` and `docs/specs/script-loop.md`.
 mod execute;
+mod prompt;
 mod score;
-mod supervisor;
 mod types;
 use crate::{Error, LoopEvent, Result, RunGoal, ScoreDecision, StopReason, TraceSink};
 pub use execute::parse_metric;
-use execute::{Sources, content_id, materialize, read_sources, run_seed, validate_subject};
+use execute::{Sources, apply, content_id, materialize, read_sources, run_seed, validate_subject};
 use std::{
     fs::File,
     io::Write,
     path::{Path, PathBuf},
 };
-pub use supervisor::Supervisor;
+use tinyrsi_evolve::{EvolveContext, Evolver, ScriptBrief, ScriptProposal};
+use tinyrsi_types::Goal;
 pub use types::*;
 
 /// Runs the loop to a stop reason and returns its summary.
@@ -44,7 +45,7 @@ pub use types::*;
 /// writes `run_finished` with reason `error` and the ledger before returning.
 pub fn run_script_loop(
     subject: &ScriptSubject,
-    supervisor: &Supervisor,
+    supervisor: &dyn Evolver<ScriptBrief, Proposal = ScriptProposal>,
     policy: &LoopPolicy,
     run: &RunLocation,
     trace: &mut dyn TraceSink,
@@ -132,7 +133,7 @@ struct Incumbent {
 
 struct LoopState<'a> {
     subject: &'a ScriptSubject,
-    supervisor: &'a Supervisor,
+    supervisor: &'a dyn Evolver<ScriptBrief, Proposal = ScriptProposal>,
     policy: &'a LoopPolicy,
     run: &'a RunLocation,
     workspace: PathBuf,
@@ -285,19 +286,7 @@ impl LoopState<'_> {
     /// it was accepted.
     fn propose(&mut self, epoch: u64, k: u32, parent: &str) -> Result<Option<(usize, Sources)>> {
         let proposal_id = format!("p{epoch}-{k}");
-        let prompt = supervisor::prompt(
-            self.subject,
-            &self.ledger,
-            &self.incumbent.sources,
-            self.policy.rejected_context,
-        );
-        let turn = self
-            .supervisor
-            .propose(self.subject, prompt, (epoch << 16) | u64::from(k))?;
-        self.ledger.tokens = self.ledger.tokens.saturating_add(turn.tokens);
-        let checked = turn
-            .proposal
-            .and_then(|p| p.validate(&self.subject.editable).map(|()| p));
+        let checked = self.ask(epoch, k)?;
         let mut row = LedgerCandidate {
             epoch,
             proposal_id: Some(proposal_id.clone()),
@@ -335,7 +324,7 @@ impl LoopState<'_> {
         row.rationale.clone_from(&proposal.rationale);
         row.hypothesis.clone_from(&proposal.hypothesis);
         row.paths = proposal.files.iter().map(|f| f.path.clone()).collect();
-        let sources = proposal.apply(&self.incumbent.sources);
+        let sources = apply(&proposal, &self.incumbent.sources);
         let id = content_id(&sources);
         self.emit(LoopEvent::Ideated {
             epoch,
@@ -377,6 +366,38 @@ impl LoopState<'_> {
             (decision == ScoreDecision::Accept)
                 .then(|| (self.ledger.candidates.len() - 1, sources)),
         )
+    }
+
+    /// Asks the evolver for one proposal, charging its measured tokens. The
+    /// inner result is the proposal or the reason it was rejected; the outer
+    /// error is a failed evolver call, which ends the run.
+    fn ask(&mut self, epoch: u64, k: u32) -> Result<Result<ScriptProposal>> {
+        let brief = ScriptBrief {
+            prompt: prompt::prompt(
+                self.subject,
+                &self.ledger,
+                &self.incumbent.sources,
+                self.policy.rejected_context,
+            ),
+            editable: self.subject.editable.clone(),
+        };
+        let context = EvolveContext {
+            epoch,
+            index: k,
+            seed: (epoch << 16) | u64::from(k),
+        };
+        let proposed =
+            self.supervisor
+                .propose(&brief, &Goal::new(self.subject.brief.clone()), &context)?;
+        self.ledger.tokens = self.ledger.tokens.saturating_add(proposed.tokens);
+        // The script loop asks for one proposal per call; an evolver that
+        // returned none produced nothing usable.
+        Ok(proposed
+            .proposals
+            .into_iter()
+            .next()
+            .unwrap_or(Err(tinyrsi_evolve::Error::SupervisorMalformed))
+            .map_err(Error::from))
     }
 
     /// Scores a measured candidate; any failed seed is a rejection.

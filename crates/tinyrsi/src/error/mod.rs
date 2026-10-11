@@ -132,6 +132,26 @@ impl From<tinyrsi_verify::Error> for Error {
     }
 }
 
+/// Evolution failures keep the variants, and so the messages, this crate has
+/// always reported; the script loop stores a rejected proposal's message in
+/// its ledger.
+impl From<tinyrsi_evolve::Error> for Error {
+    fn from(error: tinyrsi_evolve::Error) -> Self {
+        use tinyrsi_evolve::Error as Evolve;
+        match error {
+            Evolve::InvalidProposal => Self::InvalidProposal,
+            Evolve::ArchiveIo => Self::ArchiveIo,
+            Evolve::ArchiveCorrupt => Self::ArchiveCorrupt,
+            Evolve::ArchiveLocked => Self::ArchiveLocked,
+            Evolve::InvalidScriptSubject => Self::InvalidScriptSubject,
+            Evolve::SupervisorMalformed => Self::SupervisorMalformed,
+            Evolve::ProposalPathOutsideEditable => Self::ProposalPathOutsideEditable,
+            Evolve::Model(model) => model.into(),
+            _ => Self::HostFailed,
+        }
+    }
+}
+
 /// The crate's standard result type.
 ///
 /// Use this alias in public signatures instead of spelling out

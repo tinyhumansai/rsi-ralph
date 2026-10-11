@@ -289,3 +289,19 @@ async fn coordinator_cursor_consumes_each_private_payload_once() {
     assert_eq!(observer.snapshot(&coordinator).unwrap().transcript, []);
     assert!(!revisions.has_changed().unwrap());
 }
+
+#[test]
+fn a_dossier_is_the_evidence_retreat_reads() {
+    use tinyrsi_evolve::RetreatDossier;
+    let dossier = Dossier::build(
+        11,
+        &Observation::default(),
+        &[],
+        &[],
+        MemoryHealth::default(),
+    );
+    assert_eq!(dossier.epoch(), 11);
+    let request =
+        crate::build_retreat_request("hive", &dossier, &crate::Package::default(), &[]).unwrap();
+    assert_eq!(request["config"]["seed"], 11);
+}

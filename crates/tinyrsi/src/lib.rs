@@ -50,8 +50,6 @@ mod lineage;
 mod memory;
 mod observation;
 mod orchestrator;
-mod retreat;
-mod retreat_memory;
 mod script_loop;
 #[cfg(feature = "host")]
 mod suites;
@@ -75,17 +73,17 @@ pub use tinyrsi_types::{
     ProposalEvent, ReasonCode, Record, VersionMetadata,
 };
 
-pub use retreat::{
-    RetreatOutput, RetreatTransport, build_retreat_request, decode_retreat_response,
-    generate_retreat,
-};
-
-pub use retreat::{generate_retreat_with_engine, typed_retreat_request};
-
 pub use archive::NormalizedEvaluationEvent;
 #[cfg(feature = "host")]
 pub use host::*;
-pub use retreat_memory::*;
+// Evolution: the Evolver port, the script supervisor, retreat and its memory.
+pub use tinyrsi_evolve::{
+    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, Proposed,
+    ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver, RetreatMemoryOutcome,
+    RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief, ScriptProposal,
+    ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
+    decode_retreat_response, generate_retreat, generate_retreat_with_engine, typed_retreat_request,
+};
 // Checkers: blueprints, verifier registry, verified completion.
 pub use tinyrsi_verify::{
     ArtifactFuture, ArtifactProducer, ArtifactSubmission, Blueprint, BlueprintNode, CommandSpec,
@@ -128,8 +126,8 @@ pub use archive::NormalizedDeclarationEvent;
 // The plain-script improvement loop and the append-only trace it emits.
 pub use script_loop::{
     CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
-    ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject, SeedRun,
-    Supervisor, SupervisorLimits, parse_metric, run_script_loop,
+    RunLocation, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun, parse_metric,
+    run_script_loop,
 };
 pub use tinyrsi_trace::{
     Clock, Error as TraceError, FanoutTrace, JsonlTrace, LoopEvent, ManualClock, MetricDirection,

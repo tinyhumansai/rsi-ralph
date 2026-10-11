@@ -1032,11 +1032,28 @@ dependencies = [
  "tinybackrooms",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
+ "tinyrsi-evolve",
  "tinyrsi-model",
  "tinyrsi-score",
  "tinyrsi-trace",
  "tinyrsi-types",
  "tinyrsi-verify",
+ "tokio",
+]
+
+[[package]]
+name = "tinyrsi-evolve"
+version = "0.2.1"
+dependencies = [
+ "fs2",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tinybackrooms",
+ "tinyhivemind-lang",
+ "tinyrsi-model",
+ "tinyrsi-types",
  "tokio",
 ]
 

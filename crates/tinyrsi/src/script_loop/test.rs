@@ -1,7 +1,7 @@
 //! Unit tests for measurement, proposal validation, execution, scoring and the
 //! supervisor, plus the shared fixtures the loop tests use.
 #![expect(clippy::unwrap_used, reason = "assert deterministic test fixtures")]
-use super::{score::*, supervisor::*, *};
+use super::{prompt::*, score::*, *};
 use crate::{
     EvalPolicy, MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest, ScoreDecision,
 };
@@ -10,6 +10,7 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
+use tinyrsi_evolve::{ScriptSupervisor, SupervisorLimits};
 
 /// A model port that replays canned tool-call arguments, then fails.
 pub(super) struct Scripted {
@@ -86,8 +87,8 @@ pub(super) fn subject(dir: &Path, script: &str) -> ScriptSubject {
     }
 }
 
-pub(super) fn supervisor(port: Arc<Scripted>) -> Supervisor {
-    Supervisor::new(port, SupervisorLimits::default()).unwrap()
+pub(super) fn supervisor(port: Arc<Scripted>) -> ScriptSupervisor {
+    ScriptSupervisor::new(port, SupervisorLimits::default()).unwrap()
 }
 
 #[test]
@@ -115,65 +116,6 @@ fn reports_non_finite_or_unparsable_metrics() {
     }
 }
 
-fn proposal(paths: &[&str]) -> ScriptProposal {
-    ScriptProposal {
-        rationale: "r".into(),
-        hypothesis: "h".into(),
-        files: paths
-            .iter()
-            .map(|p| ProposedFile {
-                path: (*p).into(),
-                content: "x".into(),
-            })
-            .collect(),
-    }
-}
-
-#[test]
-fn rejects_proposal_paths_outside_the_editable_set() {
-    let editable = vec![PathBuf::from("run.sh"), PathBuf::from("lib/model.py")];
-    assert!(
-        proposal(&["run.sh", "lib/model.py"])
-            .validate(&editable)
-            .is_ok()
-    );
-    for bad in [
-        "/etc/passwd",
-        "../run.sh",
-        "lib/../run.sh",
-        "./run.sh",
-        "other.sh",
-        "",
-    ] {
-        assert_eq!(
-            proposal(&[bad]).validate(&editable).unwrap_err(),
-            Error::ProposalPathOutsideEditable,
-            "{bad}"
-        );
-    }
-}
-
-#[test]
-fn rejects_empty_or_repeated_proposals_as_malformed() {
-    let editable = vec![PathBuf::from("run.sh")];
-    assert_eq!(
-        proposal(&[]).validate(&editable).unwrap_err(),
-        Error::SupervisorMalformed
-    );
-    assert_eq!(
-        proposal(&["run.sh", "run.sh"])
-            .validate(&editable)
-            .unwrap_err(),
-        Error::SupervisorMalformed
-    );
-    let mut blank = proposal(&["run.sh"]);
-    blank.rationale = " ".into();
-    assert_eq!(
-        blank.validate(&editable).unwrap_err(),
-        Error::SupervisorMalformed
-    );
-}
-
 #[test]
 fn content_ids_are_short_stable_and_content_sensitive() {
     let a: Sources = [(PathBuf::from("a"), "bc".to_owned())].into();
@@ -181,7 +123,15 @@ fn content_ids_are_short_stable_and_content_sensitive() {
     assert_eq!(content_id(&a).len(), 12);
     assert_eq!(content_id(&a), content_id(&a.clone()));
     assert_ne!(content_id(&a), content_id(&b));
-    let applied = proposal(&["a"]).apply(&a);
+    let rewrite = tinyrsi_evolve::ScriptProposal {
+        rationale: "r".into(),
+        hypothesis: "h".into(),
+        files: vec![tinyrsi_evolve::ProposedFile {
+            path: "a".into(),
+            content: "x".into(),
+        }],
+    };
+    let applied = apply(&rewrite, &a);
     assert_eq!(applied[Path::new("a")], "x");
 }
 
@@ -354,67 +304,6 @@ fn scores_with_the_paired_evaluation_policy() {
         ..policy
     };
     assert!(score(&[1, 2], &[0.5, 0.5], &[0.3, 0.3], min, &invalid).is_err());
-}
-
-#[test]
-fn supervisor_rejects_unusable_limits() {
-    let port = Scripted::new(vec![]);
-    for limits in [
-        SupervisorLimits {
-            call_tokens: 0,
-            ..SupervisorLimits::default()
-        },
-        SupervisorLimits {
-            output_tokens: 0,
-            ..SupervisorLimits::default()
-        },
-        SupervisorLimits {
-            output_tokens: 300_000,
-            ..SupervisorLimits::default()
-        },
-        SupervisorLimits {
-            timeout_ms: 0,
-            ..SupervisorLimits::default()
-        },
-        SupervisorLimits {
-            timeout_ms: 300_001,
-            ..SupervisorLimits::default()
-        },
-    ] {
-        assert_eq!(
-            Supervisor::new(port.clone(), limits).unwrap_err(),
-            Error::InvalidScriptSubject
-        );
-    }
-    assert!(format!("{:?}", supervisor(port)).contains("limits"));
-}
-
-#[test]
-fn supervisor_decodes_one_tool_call_and_flags_malformed_replies() {
-    let dir = tempfile::tempdir().unwrap();
-    let s = subject(dir.path(), &loss("0.5"));
-    let port = Scripted::new(vec![
-        reply(&loss("0.3")),
-        "not json".into(),
-        r#"{"rationale":"r","hypothesis":"h","files":[],"extra":1}"#.into(),
-    ]);
-    let sup = supervisor(port.clone());
-    let turn = sup.propose(&s, "prompt".into(), 9).unwrap();
-    assert_eq!(turn.tokens, 150);
-    assert_eq!(turn.proposal.unwrap().files[0].content, loss("0.3"));
-    for _ in 0..2 {
-        let turn = sup.propose(&s, "prompt".into(), 9).unwrap();
-        assert_eq!(turn.proposal.unwrap_err(), Error::SupervisorMalformed);
-    }
-    assert_eq!(
-        sup.propose(&s, "prompt".into(), 9).unwrap_err(),
-        Error::HostFailed
-    );
-    assert_eq!(port.seen.lock().unwrap()[0].1, 9);
-    assert_eq!(
-        schema(&s)["properties"]["files"]["items"]["properties"]["path"]["enum"][0],
-        "run.sh"
-    );
 }
 
 #[test]

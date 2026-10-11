@@ -33,6 +33,8 @@ tinyrsi-types = { path = "crates/tinyrsi-types" }
 tinyrsi-score = { path = "crates/tinyrsi-score" }
 # Host checkers, blueprints and the bounded process runner.
 tinyrsi-verify = { path = "crates/tinyrsi-verify" }
+# The Evolver port, the script supervisor and tinybackrooms retreat.
+tinyrsi-evolve = { path = "crates/tinyrsi-evolve" }
 # The loop trace written for the visualizer and mirrored into `tracing`.
 tinyrsi-trace = { path = "crates/tinyrsi-trace" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
