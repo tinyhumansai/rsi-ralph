@@ -422,6 +422,11 @@ async fn failed_generation_is_charged_and_never_retried_on_restart() {
         .await
         .is_err()
     );
+    let dataset = journal.proposal_dataset(1, &archive).unwrap().unwrap();
+    assert!(dataset.generation_complete);
+    assert_eq!(dataset.meter.failed_calls, 1);
+    assert_eq!(dataset.rows, Vec::<ProposalOutcomeRow>::new());
+    assert_eq!(dataset.generation_seed, Some(42));
     let audit = journal.generation_receipts(1).unwrap().unwrap();
     assert_eq!(audit.calls[0].status, GenerationCallStatus::Failed);
     assert_eq!(audit.calls[0].items, Vec::<GenerationDisposition>::new());
@@ -443,3 +448,5 @@ mod evaluation;
 mod failures;
 
 mod receipts;
+
+mod dataset;

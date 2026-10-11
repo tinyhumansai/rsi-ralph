@@ -12,6 +12,20 @@ pub type ModelFuture = Pin<Box<dyn Future<Output = Result<ModelReply>> + Send + 
 pub trait ModelPort: Send + Sync {
     /// Generates one artifact under frozen host limits.
     fn generate(&self, request: ModelRequest) -> ModelFuture;
+    /// Public provider/model configuration, absent when the adapter cannot attest it.
+    /// This is host provenance, not proof of a remote service's implementation.
+    fn identity(&self) -> Option<ModelIdentity> {
+        None
+    }
+}
+/// Public host-configured model provenance; never credentials or response text.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelIdentity {
+    /// Public provider identifier.
+    pub provider: String,
+    /// Public immutable model configuration identifier.
+    pub model: String,
 }
 /// Private prompt and immutable limits; debugging excludes all prompt content.
 #[derive(Clone)]

@@ -43,6 +43,10 @@ struct RecordedModel {
     recording: Recording,
 }
 impl ModelPort for RecordedModel {
+    /// Keeps provider identity intact through accounting wrappers.
+    fn identity(&self) -> Option<crate::ModelIdentity> {
+        self.inner.identity()
+    }
     /// Saves measured tokens before later response-cap or checker rejection.
     fn generate(&self, request: ModelRequest) -> ModelFuture {
         let future = self.inner.generate(request);

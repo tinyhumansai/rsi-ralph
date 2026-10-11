@@ -96,6 +96,16 @@ pub(super) struct Entry {
     pub generation_receipts: bool,
     #[serde(default)]
     pub generation_mode: Option<GenerationMode>,
+    #[serde(default)]
+    pub model: Option<crate::ModelIdentity>,
+    #[serde(default)]
+    pub generation_seed: Option<u64>,
+    #[serde(default)]
+    pub proposal_sources: Option<Vec<super::dataset::Origin>>,
+    #[serde(default)]
+    pub priors: Option<Vec<Option<f64>>>,
+    #[serde(default)]
+    pub selection_binding: Option<super::dataset::SelectionBinding>,
     pub invalid_items: usize,
     pub evaluating: bool,
     pub outcome: RetreatEpochOutcome,
@@ -108,6 +118,26 @@ pub(super) struct Snapshot {
 }
 
 impl Entry {
+    /// Captures public model provenance and private selection bindings before dispatch.
+    pub(super) fn for_generation(
+        input: &super::RetreatEpochInput<'_>,
+        incumbent_id: String,
+        fingerprint: String,
+        meter: GenerationMeter,
+        model: Option<crate::ModelIdentity>,
+    ) -> Self {
+        let mut entry = Self::intent(
+            input.epoch.epoch.id,
+            incumbent_id,
+            fingerprint,
+            meter,
+            input.mode,
+        );
+        entry.model = model;
+        entry.generation_seed = Some(input.generation_seed);
+        entry.selection_binding = Some(input.epoch.into());
+        entry
+    }
     pub(super) fn intent(
         epoch: u64,
         incumbent_id: String,
@@ -124,6 +154,11 @@ impl Entry {
             generation_failed: false,
             generation_receipts: true,
             generation_mode: Some(mode),
+            model: None,
+            generation_seed: None,
+            proposal_sources: None,
+            priors: None,
+            selection_binding: None,
             invalid_items: 0,
             evaluating: false,
             outcome: RetreatEpochOutcome {

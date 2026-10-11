@@ -56,3 +56,6 @@ stops after acceptance. Reopening a completed evaluation repeats neither private
 draws nor the human decision. The explicit `HApprovalGate` remains mandatory;
 accepted archive selection does not silently activate a runtime. The caller
 uses `DeploymentStore` to activate or roll back exact accepted snapshots.
+
+[Selection-only outcome datasets](dataset/README.md) connect these occurrence
+identities to frozen priors, measured selection labels and descriptive metrics.
