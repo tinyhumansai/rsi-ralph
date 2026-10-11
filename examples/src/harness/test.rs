@@ -258,7 +258,7 @@ fn a_cell_without_goals_or_metrics_aggregates_to_nulls() {
     assert_eq!(row.median_final_metric, None);
     assert_eq!(row.mean_repetition_share, None);
     assert_eq!(row.metric, "");
-    assert!(aggregate(&[]).is_empty());
+    assert_eq!(aggregate(&[]), Vec::<SummaryRow>::new());
 }
 
 #[test]
