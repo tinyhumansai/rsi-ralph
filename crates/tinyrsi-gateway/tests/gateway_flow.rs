@@ -790,16 +790,18 @@ fn drop_stops_the_gateway_and_releases_the_ledger() {
     assert!((again.spend().total_limit_usd - 3.0).abs() < 1e-12);
 }
 
-/// An upstream that closes its first connection without answering (as a
-/// server does to a pooled keep-alive connection it has already dropped), then
-/// answers every later one with a priced chat completion.
-fn drops_first_connection() -> (String, std::thread::JoinHandle<()>) {
+/// An upstream that closes its first `dropped` connections without answering
+/// (as a server does to pooled keep-alive connections it has already closed),
+/// then answers the next one with a priced chat completion.
+fn drops_first_connections(dropped: usize) -> (String, std::thread::JoinHandle<()>) {
     use std::io::{Read, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
     let handle = std::thread::spawn(move || {
-        let (first, _) = listener.accept().unwrap();
-        drop(first);
+        for _ in 0..dropped {
+            let (stale, _) = listener.accept().unwrap();
+            drop(stale);
+        }
         let (mut second, _) = listener.accept().unwrap();
         let mut request = Vec::new();
         let mut chunk = [0_u8; 4096];
@@ -841,9 +843,9 @@ fn drops_first_connection() -> (String, std::thread::JoinHandle<()>) {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_connection_dropped_before_any_response_is_retried_once() {
+async fn connections_dropped_before_any_response_are_retried_on_fresh_ones() {
     let dir = tempfile::tempdir().unwrap();
-    let (upstream, server) = drops_first_connection();
+    let (upstream, server) = drops_first_connections(2);
     let mut config = GatewayConfig::new(
         KEY,
         dir.path().join("run"),
