@@ -38,7 +38,7 @@ tokio = { workspace = true, features = ["sync"] }
 tempfile = { workspace = true }
 # A loopback OpenAI-compatible model that scripts each seat's replies, so the
 # integration test runs offline and deterministically.
-wiremock = "0.6"
+wiremock = { workspace = true }
 
 [lints]
 workspace = true
