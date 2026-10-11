@@ -1,4 +1,11 @@
 //! Host-owned verified decomposition; configuration never changes during reports.
+//!
+//! A `Blueprint` is a dependency DAG of `BlueprintNode`s. Each node starts
+//! unverified, and only the host's explicit `report(id, passed)` moves it to
+//! verified or failed. A failure invalidates verified transitive dependents so
+//! they are checked again. The graph tracks state only: it never runs a
+//! verifier or completes coordinator work. See this directory's `README.md`
+//! for the verifier ladder and its constraints.
 mod types;
 use crate::{Error, Result};
 use std::collections::BTreeSet;

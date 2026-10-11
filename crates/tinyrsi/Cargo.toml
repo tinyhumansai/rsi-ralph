@@ -64,3 +64,7 @@ required-features = ["host"]
 [[example]]
 name = "proposal_metrics"
 required-features = ["host"]
+
+[[example]]
+name = "verify_lean_slice"
+required-features = ["host"]

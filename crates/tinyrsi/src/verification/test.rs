@@ -498,5 +498,6 @@ fn rejects_schema_configuration_and_observes_process_host_failures() {
     );
 }
 
+mod lake;
 mod proof;
 mod runner;

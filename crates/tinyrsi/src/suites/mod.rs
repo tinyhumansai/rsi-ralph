@@ -1,4 +1,11 @@
 //! Immutable private draws evaluated inside real, isolated coordinator episodes.
+//!
+//! `PrivateSuites` freezes disjoint screen, selection, confirmation and anchor
+//! draws of `PrivateTask`s and fingerprints their prompts, checkers and seeds.
+//! `CoordinatorEvaluator` implements `HEvaluator` by running every arm, task
+//! and seed in a fresh in-memory coordinator with its own pinned memory.
+//! `ControlledRunnerFactory` is the bounded single-seat runner used for live
+//! deployment. See this directory's `README.md` for the isolation rules.
 mod factory;
 mod fingerprint;
 pub use factory::ControlledRunnerFactory;

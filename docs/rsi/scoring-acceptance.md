@@ -22,8 +22,9 @@ The identifiers in the tables refer to these actual source files:
 ## Reject-code coverage and compatibility
 
 The current public [ReasonCode](../../crates/tinyrsi/src/orchestrator/types.rs)
-serializes twelve outcomes. The intended seventeen rejection codes below are a
-future more detailed taxonomy, not a change to that wire contract in this PR.
+serializes twelve outcomes. The intended seventeen rejection codes below remain a more detailed taxonomy.
+`Archive::proposal_dispositions` now provides versioned exact-duplicate history
+without changing that coarse wire contract.
 Current evaluation evidence retains detailed decision explanations even when
 its top-level reason is coarse. Current reason strings in archive events may
 use Rust variant spelling, while serialized `ReasonCode` uses screaming snake
@@ -38,8 +39,8 @@ case; consumers must not confuse those representations.
 | `GUARD` | N `duplicate_and_guarded_normalized_attempts_keep_their_history` | Keep protected-attempt counters with explicit denominators |
 | `MEMORY_REACH` | F `pinning_failures_and_unrelated_memory_changes_are_guarded` | Emit distinct reach code for each eval/orchestrator namespace |
 | `CONTAMINATION` | M `refuses_stale_entries_readonly_targets_canaries_and_conflicting_snapshots` | Distinct contamination code; durable halt/invalidation tests below |
-| `DUP_ACCEPTED` | Exact hash/content identity folds into `DUPLICATE`; the cited N duplicate test exercises rejected history, not an accepted-history case | Explicit accepted-history regression; distinguish accepted history and frozen embedding near-duplicates |
-| `DUP_REJECTED` | O `screen_stops_losers_and_duplicate_proposals_stay_in_history` | Distinguish rejected history and require recorded new evidence |
+| `DUP_ACCEPTED` | Exact hash/content identity folds into `DUPLICATE`; the cited N duplicate test exercises rejected history, not an accepted-history case | `duplicate_dispositions_distinguish_accepted_and_rejected_host_history` exercises actual accepted history; embedding near-duplicates remain outstanding |
+| `DUP_REJECTED` | O `screen_stops_losers_and_duplicate_proposals_stay_in_history` | Exact rejected history is now distinguished chronologically; semantic new-evidence retries remain outstanding |
 | `UNTESTABLE` | N `normalized_configuration_and_prediction_validation_precede_execution` | Extend prediction schema only with versioned compatibility tests |
 | `UNGROUNDED` | O `rejects_ungrounded_and_guarded_proposals_before_execution` checks existence | Existing-but-irrelevant references must fail semantic support checks |
 | `NO_EFFECT` | Generic paired Screen exists; rejection folds into `NO_GAIN` | Assert targeted failures improve under frozen replay criteria |
@@ -51,6 +52,11 @@ case; consumers must not confuse those representations.
 
 `DUPLICATE` also covers already-prepared content identities before spending
 evaluation budget: F `already_prepared_candidates_are_detected_before_spending_evaluation_budget`.
+The [safe disposition projection](../specs/proposal-dispositions.md) emits
+`DUP_ACCEPTED`, `DUP_REJECTED` and `DUP_UNRESOLVED` using preceding archive
+events only. Prepared-only or unknown history does not become a rejection, and
+later acceptance does not retrospectively label older duplicates.
+
 Host failure, approval denial, inconclusive and accepted dispositions are tested
 separately; none should become a measured eligibility label just because it is
 present in the archive.
