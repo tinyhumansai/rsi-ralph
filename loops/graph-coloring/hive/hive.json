@@ -16,16 +16,13 @@
   "seats": [
     {
       "id": "lead",
-      "label": "lead",
       "role": "lead",
       "prompt": "seats/lead.md",
       "template": "openhuman",
       "config": {
         "action_dir": "{incumbent}",
-        "max_iterations": 20,
-        "temperature": 0.0
+        "max_iterations": 20
       },
-      "model": null,
       "tools": {
         "allow": [
           "file_read",
@@ -43,22 +40,17 @@
           "spawn_parallel_agents",
           "web_fetch"
         ]
-      },
-      "mcp": [],
-      "skills": []
+      }
     },
     {
       "id": "implementer",
-      "label": "implementer",
       "role": "implementer",
       "prompt": "seats/implementer.md",
       "template": "openhuman",
       "config": {
         "action_dir": "{candidate}",
-        "max_iterations": 20,
-        "temperature": 0.0
+        "max_iterations": 20
       },
-      "model": null,
       "tools": {
         "allow": [
           "file_read",
@@ -79,9 +71,7 @@
           "spawn_parallel_agents",
           "web_fetch"
         ]
-      },
-      "mcp": [],
-      "skills": []
+      }
     }
   ],
   "desks": [
@@ -96,111 +86,21 @@
       "responder_mode": "auto"
     }
   ],
-  "goals": [],
-  "missions": [],
-  "topology": [],
-  "referrals": [],
   "context": [
     "context/rules.md"
   ],
   "policies": {
-    "episode": {
-      "turn_budget": 24,
-      "round_width": 1,
-      "revealed_width": 1,
-      "blind_round": true,
-      "dominance_cap": 50,
-      "repetition_cap": 3,
-      "distance": "sequence",
-      "quorum": {
-        "threshold": 2,
-        "window": 30,
-        "require_grounded": true
-      },
-      "weights": {
-        "recency": 5,
-        "importance": 30,
-        "relevance": 20,
-        "half_life": 20
-      }
-    },
     "routing": {
-      "minimum_confidence": 0,
-      "high_impact_minimum_confidence": 0,
-      "clarification_threshold": 1000000,
-      "high_impact_threshold": 1000000,
-      "round_width": 4,
-      "choice_option_limit": 4
-    },
-    "approval": {
-      "enabled": false,
-      "default": "deny",
-      "rules": [],
-      "approver": {
-        "kind": "absent"
-      },
-      "allow_grants": false,
-      "max_grant_ttl": null
-    },
-    "aside": {
-      "enabled": false,
-      "max_members": 0,
-      "max_messages": 0,
-      "must_surface": false,
-      "require_thread": false
-    },
-    "referral": {
-      "enabled": false,
-      "max_hops": 0,
-      "reach": "local",
-      "returns": false
-    },
-    "digest": {
-      "keep_live": 30,
-      "fold_after": 20,
-      "fold_after_chars": 400000,
-      "input_limit": 60,
-      "budget_chars": 4000
-    },
-    "brevity": {
-      "message_chars": 2400,
-      "window": 30
-    },
-    "directory": {
-      "half_life": 20,
-      "specialisation": 30,
-      "credibility": 20,
-      "prior": 10,
-      "discredit": 20,
-      "window": 30,
-      "floor": 1000
-    },
-    "exchange": {
-      "enabled": false,
-      "contact_cap": 0,
-      "round_cap": 0
+      "round_width": 4
     },
     "division": {
-      "round_width": 4,
-      "follow_directory": true
+      "round_width": 4
     },
-    "conduct": {
-      "child_turn_wall": 6,
-      "turn_wall": 40
+    "episode": {
+      "turn_budget": 24
     }
   },
   "coordinator": {
-    "round_width": 4,
-    "conduct_policy": {
-      "child_turn_wall": 6,
-      "turn_wall": 40
-    },
-    "broadcast_budget": null,
-    "retention": {
-      "settled_episodes": null,
-      "delivered": null,
-      "interrupted": null,
-      "pending_per_agent": null
-    }
+    "round_width": 4
   }
 }

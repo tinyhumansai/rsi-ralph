@@ -67,16 +67,14 @@ guarantee.
 
 The one capability is `web_search` (Cargo feature `web-search`, which turns
 on OpenHuman's module loader): providers `brave`, `exa`, `gemini`,
-`parallel`, `querit`, `tavily`, `tinyfish`. A key switches its provider to
-the direct route for its seats and adds `web_search_tool`,
-`web_answer_tool` (Gemini grounding) and `web_contents_tool` to their allow
-lists.
-
-Known limitation: the pinned OpenHuman's search proxy re-reads `config.toml`
-and the process environment before each call and runs one process-wide
-module, so a per-seat key selects the tools but does not yet authenticate
-their calls. The fix belongs upstream in
-`openhuman-core/src/modules/search/proxy.rs`.
+`parallel`, `querit`, `tavily`, `tinyfish`. A key is pinned in memory on each of its
+seats' agent config (`SearchConfig::pin_host_credential`, OpenHuman #7460),
+which puts its provider on the direct route, and `web_search_tool`,
+`web_answer_tool` (Gemini grounding) and `web_contents_tool` join their allow
+lists. The key is never written to the saved `api_key` fields, never
+serialized and prints redacted; OpenHuman's search proxy uses a pinned
+config as given and reconfigures its one module per caller, so seats with
+different keys never share one.
 
 ## Pin requirement
 
