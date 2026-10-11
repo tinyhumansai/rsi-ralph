@@ -130,12 +130,6 @@ impl Benchmark {
         }
     }
 
-    /// The loop policy the benchmark runs with.
-    #[must_use]
-    pub fn policy(self) -> LoopPolicy {
-        self.definition().policy
-    }
-
     /// The offline model ports: the canned supervisor and, when the
     /// benchmark has one, the scripted judge.
     #[must_use]
