@@ -137,7 +137,11 @@ pub fn score_result(step: &StepRun, outcome: &StepOutcome) -> Result<ScoreResult
         }
     };
     let finite = result.score.is_finite()
-        && result.metrics.values().all(|v| v.is_finite())
+        && result
+            .metrics
+            .values()
+            .chain(result.private.values())
+            .all(|v| v.is_finite())
         && result
             .splits
             .values()

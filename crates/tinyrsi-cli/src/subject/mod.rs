@@ -50,6 +50,31 @@ impl Subject {
         }
     }
 
+    /// Check that the subject exists: the folder, or the repository and its
+    /// branch.
+    ///
+    /// # Errors
+    /// Returns [`Error::Path`] for a missing folder and [`Error::Git`] for a
+    /// path that is not a repository or a branch that does not exist.
+    pub fn verify(&self) -> Result<()> {
+        match self {
+            Self::Dir { source } => {
+                if source.is_dir() {
+                    Ok(())
+                } else {
+                    Err(Error::Path {
+                        path: source.display().to_string(),
+                    })
+                }
+            }
+            Self::Git { repo, branch } => git(
+                repo,
+                &["rev-parse", "--verify", "--quiet", &format!("refs/heads/{branch}")],
+            )
+            .map(|_| ()),
+        }
+    }
+
     /// Materialize the incumbent at `<run>/incumbent`.
     ///
     /// # Errors

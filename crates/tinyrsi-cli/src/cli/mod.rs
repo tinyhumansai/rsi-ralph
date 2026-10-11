@@ -18,6 +18,7 @@ use crate::{
     manifest::{self, Loop},
     serve,
     store::{RunStatus, Store},
+    subject::Subject,
 };
 
 mod run;
@@ -193,6 +194,7 @@ fn score_text(score: Option<f64>) -> String {
 fn check(dir: &Path, lookup: &dyn Fn(&str) -> Option<String>, out: &mut dyn Write) -> Result<()> {
     let parsed = load(dir)?;
     Keys::resolve(&parsed, dir, lookup)?;
+    Subject::from_spec(&parsed.manifest.subject, dir).verify()?;
     let m = &parsed.manifest;
     say(
         out,
