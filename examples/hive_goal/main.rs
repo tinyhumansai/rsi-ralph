@@ -31,14 +31,14 @@
 //! seat-prompt edit (rejected `WRONG_CLASS`: only context edits are allowed),
 //! a context item sending the agents to a calculator tool the hive lacks
 //! (rejected `HARMFUL`: the incumbent completes its private runs, the
-//! candidate crashes on every one), a reworded copy of that item (stopped
+//! candidate overspends its reservation on every one), a reworded copy of that item (stopped
 //! `COOLDOWN` with no evaluation: same patch shape, fresh strike) and a
 //! context edit asking for brevity (rejected `INCONCLUSIVE`: it changes
 //! nothing measurable); in epoch 2 the real repair (`ACCEPTED`). Normalized H
 //! moves from -0.10 (nothing solved, less the false-claim penalty for every
 //! failed check) to about 1.00. The run exits non-zero if no proposal is
 //! accepted or the deployed hive still fails, and offline also if the
-//! crashing edit is not penalized.
+//! overspending edit is not penalized.
 //!
 //! With `TINYRSI_LIVE_OPENROUTER=1` (plus `OPENROUTER_API_KEY`;
 //! `OPENROUTER_MODEL` picks the model) one real model plays both the agents
@@ -138,7 +138,7 @@ fn main() -> Outcome<()> {
         .iter()
         .all(|reason| hive_loop.reasons.contains(reason));
     if !live() && !penalized {
-        return Err("the crashing edit was not rejected HARMFUL and cooled".into());
+        return Err("the overspending edit was not rejected HARMFUL and cooled".into());
     }
     let HiveLoop {
         archive,

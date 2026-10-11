@@ -12,7 +12,8 @@
 //! real model is shown) to ground its proposals, and replays a fixed script:
 //! four bad ideas on its first call, the real repair afterwards. Two of them
 //! tell the agents to call a calculator tool the hive does not have; the
-//! agents then crash on every run, which the host penalizes.
+//! agents then loop looking for it and overspend every run, which the host
+//! penalizes.
 use crate::hive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tinyrsi_host::{
@@ -43,7 +44,15 @@ const CRASHING: &str = "calculator tool";
 impl ModelPort for ContextFollower {
     fn generate(&self, request: ModelRequest) -> ModelFuture {
         if request.system().contains(CRASHING) {
-            return Box::pin(async { Err(ModelError::CallFailed) });
+            // The agents keep searching for the missing tool and run past the
+            // output reservation. A real port reports the usage it was billed;
+            // the host refuses the overspent reply as the hive's failure.
+            let reply = ModelReply {
+                content: b"searching for the calculator tool".to_vec(),
+                input_tokens: 1,
+                output_tokens: request.max_output_tokens().saturating_add(1),
+            };
+            return Box::pin(async move { Ok(reply) });
         }
         let answer = if request.system().contains(hive::HELPFUL.trim_end()) {
             solve(task(request.prompt()))
@@ -196,7 +205,7 @@ fn context_edit(
     proposal(title, mechanism, patch, refs, nodes)
 }
 
-/// Adds a `tools` item to the shared context. The agents crash on any
+/// Adds a `tools` item to the shared context. The agents overspend on any
 /// context naming the calculator tool, so the host rejects the first such
 /// edit `HARMFUL`; any other text for the same item has the same patch shape
 /// and is cooled without evaluation.

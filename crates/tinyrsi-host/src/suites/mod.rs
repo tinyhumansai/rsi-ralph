@@ -29,6 +29,30 @@ pub use types::{PrivateSuites, PrivateTask};
 type Job = (PrivateTask, runner::Configuration, runner::RunOptions);
 /// Each executed job's run, or how it failed, in job order.
 type Outcomes = Vec<std::result::Result<EvalRun, runner::RunFailure>>;
+
+/// The error charging `failed` of `runs` candidate runs to the candidate.
+fn blame(kind: CandidateFailureKind, failed: usize, runs: u32) -> Result<Error> {
+    Ok(Error::CandidateFailed(CandidateFailure {
+        kind,
+        failed_runs: u32::try_from(failed).map_err(|_| Error::InvalidEvaluation)?,
+        runs,
+    }))
+}
+
+/// Charges failed candidate runs, the incumbent having completed its own.
+///
+/// Any failure the host or provider owns makes the whole draw a host
+/// failure: the patch is only blamed when every failure was the hive's.
+/// Returns `None` when nothing failed.
+fn charge(failures: &[runner::Blame], runs: u32) -> Result<Option<Error>> {
+    if failures.contains(&runner::Blame::Host) {
+        return Ok(Some(Error::HostFailed));
+    }
+    match failures.first() {
+        Some(runner::Blame::Hive(kind)) => blame(*kind, failures.len(), runs).map(Some),
+        Some(runner::Blame::Host) | None => Ok(None),
+    }
+}
 /// A synchronous orchestrator bridge owning an isolated asynchronous executor.
 ///
 /// Call evaluation from a nonasync host thread. Every task/seed/arm creates fresh
@@ -234,7 +258,7 @@ impl CoordinatorEvaluator {
                             usize::MAX,
                             Err(runner::RunFailure {
                                 error: Error::HostFailed,
-                                kind: CandidateFailureKind::Crash,
+                                blame: runner::Blame::Host,
                             }),
                         ));
                         failed |= outcome.is_err();
@@ -259,13 +283,6 @@ impl CoordinatorEvaluator {
         candidate_jobs: Vec<Job>,
         runs: u32,
     ) -> Result<(Vec<EvalRun>, Vec<EvalRun>)> {
-        let blame = |kind, failed: usize| -> Result<Error> {
-            Ok(Error::CandidateFailed(CandidateFailure {
-                kind,
-                failed_runs: u32::try_from(failed).map_err(|_| Error::InvalidEvaluation)?,
-                runs,
-            }))
-        };
         for (task, config, limits) in &incumbent_jobs {
             runner::request(task, config, limits)?;
         }
@@ -281,7 +298,7 @@ impl CoordinatorEvaluator {
             } else {
                 CandidateFailureKind::Unsupported
             };
-            return Err(blame(kind, unreserved.len())?);
+            return Err(blame(kind, unreserved.len(), runs)?);
         }
         let incumbent_runs = self
             .run_jobs(incumbent_jobs, false)?
@@ -293,11 +310,11 @@ impl CoordinatorEvaluator {
         for outcome in self.run_jobs(candidate_jobs, true)? {
             match outcome {
                 Ok(run) => candidate_runs.push(run),
-                Err(failure) => failures.push(failure.kind),
+                Err(failure) => failures.push(failure.blame),
             }
         }
-        if let Some(kind) = failures.first() {
-            return Err(blame(*kind, failures.len())?);
+        if let Some(error) = charge(&failures, runs)? {
+            return Err(error);
         }
         Ok((incumbent_runs, candidate_runs))
     }
