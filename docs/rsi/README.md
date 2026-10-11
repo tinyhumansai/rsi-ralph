@@ -42,6 +42,9 @@ recorded separately.
   uses existing APIs without modifying the vendored OpenHuman engine.
 - [Original implementation plan](../plans/2026-10-10-rsi-orchestrator.md).
 - [Measured arithmetic smoke](live-smoke.md): earlier connectivity evidence.
+- [Script loop live run](script-loop-results.md): an LLM-supervised curve-fit
+  loop cut RMSE 0.644 → 0.258 in three promotions, then stalled short of its
+  0.06 target; why, and the ranked next improvements.
 
 The host feature now includes real coordinator evaluation, immutable local memory,
 durable Engine epochs and attempts, human-gated activation, compensation and
