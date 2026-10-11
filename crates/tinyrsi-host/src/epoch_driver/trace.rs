@@ -78,6 +78,7 @@ pub fn record_epoch(
             candidate: candidate_of(index),
             rationale: proposal.mechanism.clone(),
             hypothesis: proposal.title.clone(),
+            approach: None,
         })?;
     }
     let evaluations = archive.normalized_evaluations();

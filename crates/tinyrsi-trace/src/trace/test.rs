@@ -19,6 +19,32 @@ fn every_specified_example_line_round_trips_byte_for_byte() {
 }
 
 #[test]
+fn ideated_carries_an_optional_approach_label() {
+    let labelled = LoopEvent::Ideated {
+        epoch: 3,
+        proposal_id: "p3-1".into(),
+        parent: "a".into(),
+        candidate: Some("b".into()),
+        rationale: "r".into(),
+        hypothesis: "h".into(),
+        approach: Some("tabu search".into()),
+    };
+    let text = r#"{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a","candidate":"b","rationale":"r","hypothesis":"h","approach":"tabu search"}"#;
+    assert_eq!(serde_json::to_string(&labelled).unwrap(), text);
+    assert_eq!(serde_json::from_str::<LoopEvent>(text).unwrap(), labelled);
+    // A missing field and an explicit null both read as no label.
+    for absent in [
+        r#"{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a","candidate":"b","rationale":"r","hypothesis":"h"}"#,
+        r#"{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a","candidate":"b","rationale":"r","hypothesis":"h","approach":null}"#,
+    ] {
+        let LoopEvent::Ideated { approach, .. } = serde_json::from_str(absent).unwrap() else {
+            panic!("not an ideated event: {absent}");
+        };
+        assert_eq!(approach, None);
+    }
+}
+
+#[test]
 fn covers_the_observed_and_failed_execution_shapes() {
     let observed = LoopEvent::Observed {
         epoch: 1,
@@ -50,6 +76,7 @@ fn covers_the_observed_and_failed_execution_shapes() {
         candidate: None,
         rationale: "r".into(),
         hypothesis: String::new(),
+        approach: None,
     };
     assert_eq!(
         serde_json::to_string(&refused).unwrap(),
