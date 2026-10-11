@@ -82,3 +82,15 @@ fn an_unwritable_log_path_is_a_run_dir_error() {
         Err(Error::RunDir { path: failed, .. }) if failed == path
     ));
 }
+
+#[test]
+fn a_failed_write_is_reported_when_the_log_is_finished() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("events.jsonl");
+    let (sender, _receiver) = mpsc::channel();
+    let trace = Trace::create(&path, Redactor::default(), sender).unwrap();
+    // Swap in a read-only handle so the next append fails.
+    trace.state.lock().unwrap().file = std::fs::File::open(&path).unwrap();
+    trace.record(message("lost"));
+    assert!(matches!(trace.finish(), Err(Error::RunDir { .. })));
+}

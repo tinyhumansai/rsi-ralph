@@ -63,10 +63,7 @@ fn collect(
     prefix: &mut Vec<String>,
     files: &mut BTreeMap<String, String>,
 ) -> Result<()> {
-    let io = |source| Error::PackageIo {
-        path: dir.to_path_buf(),
-        source,
-    };
+    let io = package_io(dir);
     let mut entries = std::fs::read_dir(dir)
         .map_err(io)?
         .collect::<std::io::Result<Vec<_>>>()
@@ -81,10 +78,7 @@ fn collect(
         if name.starts_with('.') {
             continue;
         }
-        let kind = entry.file_type().map_err(|source| Error::PackageIo {
-            path: path.clone(),
-            source,
-        })?;
+        let kind = entry.file_type().map_err(package_io(&path))?;
         if kind.is_symlink() {
             continue;
         }
@@ -118,11 +112,14 @@ fn key(prefix: &[String], name: &str) -> String {
     parts.join("/")
 }
 
+/// Wrap an I/O failure on `path` as [`Error::PackageIo`].
+fn package_io(path: &Path) -> impl FnOnce(std::io::Error) -> Error + use<> {
+    let path = path.to_path_buf();
+    move |source| Error::PackageIo { path, source }
+}
+
 fn read(path: PathBuf) -> Result<String> {
-    let bytes = std::fs::read(&path).map_err(|source| Error::PackageIo {
-        path: path.clone(),
-        source,
-    })?;
+    let bytes = std::fs::read(&path).map_err(package_io(&path))?;
     String::from_utf8(bytes).map_err(|_| Error::PackageEncoding { path })
 }
 
