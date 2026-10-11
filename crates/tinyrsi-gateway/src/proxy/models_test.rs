@@ -19,7 +19,10 @@ fn only_limit_fields_are_kept_and_entries_without_any_are_dropped() {
     assert_eq!(limits["flash"].get("context_length"), Some(&json!(262_144)));
     assert!(limits["flash"].get("pricing").is_none());
     assert!(limits["flash"].get("rungs").is_none());
-    assert_eq!(limits["z-ai/glm"]["top_provider"]["context_length"], 128_000);
+    assert_eq!(
+        limits["z-ai/glm"]["top_provider"]["context_length"],
+        128_000
+    );
 }
 
 #[test]
@@ -36,5 +39,8 @@ fn an_entry_keeps_its_id_and_object_whatever_the_upstream_says() {
         entry("flash", Some(&limits)),
         json!({"id": "flash", "object": "model", "context_length": 1000})
     );
-    assert_eq!(entry("bare", None), json!({"id": "bare", "object": "model"}));
+    assert_eq!(
+        entry("bare", None),
+        json!({"id": "bare", "object": "model"})
+    );
 }

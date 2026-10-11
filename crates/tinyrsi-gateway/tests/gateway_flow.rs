@@ -805,7 +805,10 @@ fn drop_stops_the_gateway_and_releases_the_ledger() {
 async fn the_model_listing_carries_the_upstreams_context_window() {
     let h = Harness::start(5.0, 50.0);
     let tagged = format!("{}/__tag/evolve/builder/v1", h.base());
-    for models_url in [format!("{}/v1/models", h.base()), format!("{tagged}/models")] {
+    for models_url in [
+        format!("{}/v1/models", h.base()),
+        format!("{tagged}/models"),
+    ] {
         let models: Value = h
             .client
             .get(models_url)
