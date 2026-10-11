@@ -110,6 +110,7 @@ fn files(dir: &Path) -> Vec<PathBuf> {
 fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let tmp = tempfile::tempdir().unwrap();
+    let tmp = Box::leak(Box::new(tmp));
     let loop_dir = tmp.path().join("graph-coloring");
     copy(&root.join("loops/graph-coloring"), &loop_dir);
     let home = tmp.path().join("home");
