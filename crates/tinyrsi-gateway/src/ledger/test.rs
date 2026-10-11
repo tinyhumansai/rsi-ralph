@@ -174,6 +174,6 @@ fn rejects_a_corrupt_ledger() {
 #[test]
 fn reports_unreadable_ledgers() {
     let scratch = Scratch::new();
-    let error = Ledger::open(&scratch.path(), 50.0).unwrap_err();
+    let error = Ledger::open(scratch.path(), 50.0).unwrap_err();
     assert!(matches!(error, Error::Io { .. }), "{error}");
 }
