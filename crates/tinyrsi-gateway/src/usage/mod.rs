@@ -1,6 +1,6 @@
 //! Reading what a call actually cost from the upstream response.
 //!
-//! OpenRouter reports `usage.cost` in dollars when asked. A non-streaming
+//! The upstream reports `usage.cost` in dollars when asked. A non-streaming
 //! response carries `usage` at the top level; a stream carries it in one of
 //! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
 //! as they pass through. When the cost is missing but token counts are

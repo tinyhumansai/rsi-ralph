@@ -3,7 +3,7 @@
 //! [`prepare`] validates the model against the [`PriceTable`], rejects
 //! content the run configuration does not support (images), bounds the
 //! completion length, pins the provider and its price ceiling, asks
-//! OpenRouter to report cost, and computes the worst-case dollar cost the
+//! the upstream to report cost, and computes the worst-case dollar cost the
 //! call reserves before it is sent.
 
 use serde_json::{Value, json};

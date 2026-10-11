@@ -2,14 +2,14 @@
 //!
 //! Every model that may cross the gateway has an entry here. The prices are
 //! *ceilings* in US dollars per token: reservations are computed from them,
-//! and OpenRouter is told never to route to a provider charging more
+//! and the upstream is told never to route to a provider charging more
 //! (`provider.max_price`). A model without an entry is refused.
 
 use std::collections::BTreeMap;
 
 use crate::error::{Error, Result};
 
-/// GLM 5.3 Flash, the default chat model of a TinyRSI run.
+/// GLM 5.3 Flash, the default chat model of a `tinyrsi` run.
 pub const GLM_FLASH: &str = "z-ai/glm-5.3-flash";
 /// The default embedding model.
 pub const EMBEDDING: &str = "openai/text-embedding-3-small";
@@ -21,7 +21,7 @@ pub struct Price {
     pub prompt: f64,
     /// Dollars per completion token.
     pub completion: f64,
-    /// The only OpenRouter provider the model may be routed to.
+    /// The only upstream provider the model may be routed to.
     pub provider: String,
 }
 

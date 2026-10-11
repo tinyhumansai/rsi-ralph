@@ -1,14 +1,14 @@
-//! The single spend choke point for a TinyRSI run.
+//! The single spend choke point for a `tinyrsi` run.
 //!
 //! Every model call a run makes goes through this OpenAI-compatible
-//! loopback proxy to OpenRouter, which:
+//! loopback proxy to the openrouter.ai API, which:
 //!
 //! 1. allows only the models in its [`PriceTable`];
 //! 2. pins each model to one provider with a price ceiling, bounds
 //!    `max_tokens`, and applies a default `reasoning.effort`;
 //! 3. reserves the call's worst-case cost against **both** the per-run and
 //!    the campaign-wide ledger, refusing with HTTP 402 if it does not fit;
-//! 4. settles to the cost OpenRouter reports (pricing token counts at the
+//! 4. settles to the cost the upstream reports (pricing token counts at the
 //!    ceiling when it reports none, keeping the whole reservation when it
 //!    reports nothing), even if the client disconnected mid-call;
 //! 5. appends a row to `<run_dir>/meter.jsonl` tagged with the caller's
@@ -17,7 +17,7 @@
 //! [`Gateway::start`] runs it in-process on its own background thread and
 //! Tokio runtime, so a synchronous caller such as the `tinyrsi` CLI can
 //! start one per run, hand [`Gateway::tagged_url`] to each client as its
-//! OpenAI base URL, read [`Gateway::spend`] between steps, and
+//! OpenAI-compatible base URL, read [`Gateway::spend`] between steps, and
 //! [`Gateway::shutdown`] at the end.
 //!
 //! # Example

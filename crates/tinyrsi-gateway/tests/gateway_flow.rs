@@ -1,4 +1,4 @@
-//! End to end: a real gateway in front of a mock OpenRouter on loopback.
+//! End to end: a real gateway in front of a mock upstream on loopback.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -63,7 +63,7 @@ async fn mock_embeddings(Json(_body): Json<Value>) -> Response {
         .into_response()
 }
 
-/// A mock OpenRouter on its own thread and runtime, so a test blocking on
+/// A mock upstream on its own thread and runtime, so a test blocking on
 /// the gateway's shutdown never starves it.
 struct Upstream {
     addr: SocketAddr,
