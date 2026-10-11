@@ -62,7 +62,7 @@ pub struct ProcessOutcome {
     pub stdout: Vec<u8>,
     /// Up to `cap + 1` bytes of stderr; empty unless the child exited.
     pub stderr: Vec<u8>,
-    /// Wall-clock milliseconds from spawn to termination.
+    /// Wall-clock milliseconds from the first spawn attempt to termination.
     pub duration_ms: u64,
 }
 
@@ -72,22 +72,35 @@ const SPAWN_ATTEMPTS: u32 = 20;
 /// `ETXTBSY` on Linux and macOS.
 const TEXT_FILE_BUSY: i32 = 26;
 
+/// Pause between spawn attempts while the executable is busy.
+const SPAWN_RETRY_DELAY: Duration = Duration::from_millis(5);
+
 /// Spawns with `spawn`, retrying briefly while the executable is busy.
 ///
 /// A script written just before it runs can be held open for writing by a
 /// child another thread is forking (the descriptor is inherited until that
 /// child execs), and `exec` then fails with `ETXTBSY`. That clears within
 /// moments, so the spawn is retried a bounded number of times; any other
-/// error is returned at once.
-fn spawn_retrying<T>(mut spawn: impl FnMut() -> std::io::Result<T>) -> std::io::Result<T> {
+/// error is returned at once. Retry sleeps count against `timeout`, measured
+/// from `start`: once it has elapsed the busy error is returned rather than
+/// retried, so a run never outlasts its wall-clock limit by waiting to spawn.
+fn spawn_retrying<T>(
+    start: Instant,
+    timeout: Duration,
+    mut spawn: impl FnMut() -> std::io::Result<T>,
+) -> std::io::Result<T> {
     let mut attempt = 1;
     loop {
         match spawn() {
             Err(error)
                 if error.raw_os_error() == Some(TEXT_FILE_BUSY) && attempt < SPAWN_ATTEMPTS =>
             {
+                let remaining = timeout.saturating_sub(start.elapsed());
+                if remaining.is_zero() {
+                    return Err(error);
+                }
                 attempt += 1;
-                thread::sleep(Duration::from_millis(5));
+                thread::sleep(SPAWN_RETRY_DELAY.min(remaining));
             }
             other => return other,
         }
@@ -99,7 +112,8 @@ fn spawn_retrying<T>(mut spawn: impl FnMut() -> std::io::Result<T>) -> std::io::
 /// # Errors
 ///
 /// Returns [`Error::HostFailed`] when the capture files cannot be created or
-/// read, or the child cannot be spawned or polled.
+/// read, or the child cannot be spawned or polled. A child whose executable
+/// stays busy until the timeout elapses counts as one that cannot be spawned.
 pub fn run(spec: &ProcessSpec<'_>) -> Result<ProcessOutcome> {
     let stdout = spec.scratch.join("stdout");
     let stderr = spec.scratch.join("stderr");
@@ -119,8 +133,9 @@ pub fn run(spec: &ProcessSpec<'_>) -> Result<ProcessOutcome> {
         .stdin(Stdio::null())
         .stdout(Stdio::from(out))
         .stderr(Stdio::from(err));
-    let mut child = spawn_retrying(|| invocation.spawn()).map_err(|_| Error::HostFailed)?;
     let start = Instant::now();
+    let mut child = spawn_retrying(start, spec.timeout, || invocation.spawn())
+        .map_err(|_| Error::HostFailed)?;
     let elapsed = |start: Instant| u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
     loop {
         let bytes = std::fs::metadata(&stdout)
