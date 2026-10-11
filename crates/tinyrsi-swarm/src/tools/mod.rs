@@ -104,11 +104,10 @@ pub(crate) fn apply(config: &mut RuntimeConfig, keys: &[ToolKey]) {
         };
         credentials.api_key = Some(key.secret.clone());
         search.enabled = Some(true);
-        // The default settings are enabled on the direct route, which is
-        // the one a bring-your-own key authenticates.
-        search
-            .providers
-            .insert(key.provider.clone(), Default::default());
+        // Replace any managed entry with the default settings: enabled, on
+        // the direct route a bring-your-own key authenticates.
+        search.providers.remove(&key.provider);
+        search.providers.entry(key.provider.clone()).or_default();
     }
 }
 
