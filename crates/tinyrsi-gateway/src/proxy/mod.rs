@@ -448,7 +448,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         endpoint.path()
     );
     let call = proxy.calls.dispatched();
-    let send = || {
+    let forward = || {
         proxy
             .client
             .post(&url)
@@ -456,12 +456,12 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
             .json(&prepared.body)
             .send()
     };
-    let mut sent = send().await;
+    let mut sent = forward().await;
     // A pooled keep-alive connection the upstream has already closed fails
     // before any response; the upstream never saw the request, so it is sent
     // once more on a fresh connection.
     if sent.as_ref().is_err_and(never_answered) {
-        sent = send().await;
+        sent = forward().await;
     }
     let response = match sent {
         Ok(response) => response,
