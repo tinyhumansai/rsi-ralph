@@ -1,6 +1,9 @@
 //! Restart-safe normalized proposal generation and separate synchronous evaluation.
 mod generation;
 mod journal;
+mod receipt_types;
+mod receipts;
+pub use receipt_types::*;
 mod types;
 use crate::{
     Archive, DurableRetreatMemory, Error, HApprovalGate, HEpoch, HEvaluator, ReasonCode, Result,

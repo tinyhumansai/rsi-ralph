@@ -13,7 +13,7 @@ use std::{
 pub struct EpochJournal {
     pub(super) path: PathBuf,
     pub(super) state: Snapshot,
-    writer_lock: File,
+    pub(super) writer_lock: std::sync::Arc<WriterLock>,
 }
 impl EpochJournal {
     /// Opens exclusively and validates already-completed generation receipts.
@@ -58,10 +58,13 @@ impl EpochJournal {
             Err(_) => return Err(Error::ArchiveIo),
         };
         validate(&state)?;
+        for entry in state.entries.values() {
+            read_receipts(&path, entry)?;
+        }
         Ok(Self {
             path,
             state,
-            writer_lock: lock,
+            writer_lock: std::sync::Arc::new(WriterLock(lock)),
         })
     }
     /// Already prepared proposals; reading never repeats a model call.
@@ -86,6 +89,16 @@ impl EpochJournal {
     #[must_use]
     pub fn generation_invalid_items(&self, epoch: u64) -> Option<usize> {
         self.state.entries.get(&epoch).map(|e| e.invalid_items)
+    }
+    /// Safe per-occurrence formatter receipts, including pending calls and failures.
+    /// Returns `None` for an absent epoch or a legacy journal without receipts.
+    /// # Errors
+    /// Returns storage errors or corrupt receipt identity and ordering.
+    pub fn generation_receipts(&self, epoch: u64) -> Result<Option<super::GenerationAudit>> {
+        let Some(entry) = self.state.entries.get(&epoch) else {
+            return Ok(None);
+        };
+        read_receipts(&self.path, entry)
     }
     pub(super) fn commit_entry(&mut self, entry: Entry) -> Result<()> {
         let mut next = self.state.clone();
@@ -139,9 +152,28 @@ impl std::fmt::Debug for EpochJournal {
             .finish_non_exhaustive()
     }
 }
-impl Drop for EpochJournal {
+pub(super) struct WriterLock(File);
+impl Drop for WriterLock {
     fn drop(&mut self) {
         // Do not leave a lock held by a concurrent child's transient inherited fd.
-        let _ = fs2::FileExt::unlock(&self.writer_lock);
+        let _ = fs2::FileExt::unlock(&self.0);
     }
+}
+
+fn read_receipts(path: &Path, entry: &Entry) -> Result<Option<super::GenerationAudit>> {
+    let audit = super::receipts::read(path, entry.epoch, &entry.fingerprint)?;
+    if (entry.generation_receipts && audit.is_none())
+        || audit.as_ref().is_some_and(|audit| {
+            entry.prepared.as_ref().is_some_and(|prepared| {
+                audit.mode != prepared.mode
+                    || audit
+                        .calls
+                        .iter()
+                        .any(|call| call.status == super::GenerationCallStatus::Pending)
+            })
+        })
+    {
+        return Err(Error::ArchiveCorrupt);
+    }
+    Ok(audit)
 }

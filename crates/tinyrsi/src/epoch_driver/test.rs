@@ -341,6 +341,19 @@ async fn actual_engine_counts_invalid_attempt_and_retains_durable_discovery() {
     assert_eq!(prepared.proposals.len(), 1);
     assert_eq!(prepared.invalid_items, 1);
     assert_eq!(journal.generation_invalid_items(1), Some(1));
+    let audit = journal.generation_receipts(1).unwrap().unwrap();
+    assert_eq!(audit.calls.len(), 1);
+    assert_eq!(
+        audit.calls[0].items,
+        vec![
+            GenerationDisposition::SchemaRejected,
+            GenerationDisposition::Decoded,
+        ]
+    );
+    let path = journal.path.clone();
+    drop(journal);
+    let journal = EpochJournal::open(path).unwrap();
+    assert_eq!(journal.generation_receipts(1).unwrap(), Some(audit));
     assert_eq!(
         memory
             .recall(memory.namespace(), "", 10)
@@ -409,8 +422,13 @@ async fn failed_generation_is_charged_and_never_retried_on_restart() {
         .await
         .is_err()
     );
+    let audit = journal.generation_receipts(1).unwrap().unwrap();
+    assert_eq!(audit.calls[0].status, GenerationCallStatus::Failed);
+    assert_eq!(audit.calls[0].items, Vec::<GenerationDisposition>::new());
     assert_eq!(calls.load(Ordering::Relaxed), 1);
 }
 mod evaluation;
 
 mod failures;
+
+mod receipts;

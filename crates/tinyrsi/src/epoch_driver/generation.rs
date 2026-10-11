@@ -1,8 +1,5 @@
 //! Public-schema generation with hard model reservations and durable intent.
-use super::{
-    EpochJournal, GenerationBudget, GenerationMode, PreparedRetreatEpoch, RetreatEpochOutcome,
-    types::Entry,
-};
+use super::{EpochJournal, GenerationBudget, GenerationMode, PreparedRetreatEpoch, types::Entry};
 use crate::{
     Archive, DeploymentCheckpoint, Dossier, DurableRetreatMemory, Error, HEpoch, ModelConversant,
     ModelPort, Package, Proposal, ProposalEvent, Result,
@@ -82,7 +79,7 @@ pub fn normalized_retreat_request(
 ///
 /// A durable intent precedes model execution. Completed generation reopens without
 /// model calls. An interrupted unknown call stays blocked; it is never retried
-/// implicitly. Invalid artifacts and failed attempts retain counters, not raw text.
+/// implicitly. Invalid artifacts and failed attempts retain safe occurrence receipts, not raw text.
 /// # Errors
 /// Returns stale observation/configuration, interrupted generation or host errors.
 pub async fn prepare_retreat_epoch(
@@ -104,15 +101,12 @@ pub async fn prepare_retreat_epoch(
         .ok_or(Error::InvalidRecord)?;
     let fingerprint = fingerprint(&input, &incumbent_id)?;
     if let Some(previous) = previous {
+        journal.generation_receipts(input.epoch.epoch.id)?;
         if previous.fingerprint != fingerprint {
             return Err(Error::InvalidProposal);
         }
         let prepared = previous.prepared.ok_or(Error::HostFailed)?;
-        for proposal in &prepared.proposals {
-            memory.validate_public_text(
-                &serde_json::to_string(proposal).map_err(|_| Error::InvalidProposal)?,
-            )?;
-        }
+        validate_prepared(&prepared, &memory)?;
         return Ok(prepared);
     }
     if input.checkpoint.pending.is_some()
@@ -148,23 +142,23 @@ pub async fn prepare_retreat_epoch(
         input.budget.output_tokens,
         input.budget.timeout_ms,
     )?);
-    let mut entry = Entry {
-        epoch: input.epoch.epoch.id,
-        incumbent_id: incumbent_id.clone(),
-        fingerprint: fingerprint.clone(),
-        prepared: None,
-        meter: backend.meter()?,
-        generation_failed: false,
-        invalid_items: 0,
-        evaluating: false,
-        outcome: RetreatEpochOutcome {
-            epoch: input.epoch.epoch.id,
-            candidates: vec![],
-            complete: false,
-        },
-    };
+    let mut entry = Entry::intent(
+        input.epoch.epoch.id,
+        incumbent_id,
+        fingerprint,
+        backend.meter()?,
+    );
     journal.commit_entry(entry.clone())?;
+    let receipts = Arc::new(super::receipts::ReceiptStore::create(
+        &journal.path,
+        entry.epoch,
+        entry.fingerprint.clone(),
+        input.mode,
+        journal.writer_lock.clone(),
+    )?);
     let audited = Arc::new(AuditedConversant {
+        receipts: receipts.clone(),
+        memory: memory.clone(),
         backend: backend.clone(),
         schema: request.output.schema.clone(),
         invalid: AtomicUsize::new(0),
@@ -180,6 +174,7 @@ pub async fn prepare_retreat_epoch(
     .await;
     entry.meter = backend.meter()?;
     entry.invalid_items = audited.invalid.load(Ordering::Relaxed);
+    let response = response.and_then(|values| receipts.settled().map(|()| values));
     let values = match response {
         Ok(values) => values,
         Err(error) => {
@@ -189,6 +184,14 @@ pub async fn prepare_retreat_epoch(
         }
     };
     finish_preparation(journal, entry, values, &memory, &input)
+}
+fn validate_prepared(prepared: &PreparedRetreatEpoch, memory: &DurableRetreatMemory) -> Result<()> {
+    for proposal in &prepared.proposals {
+        memory.validate_public_text(
+            &serde_json::to_string(proposal).map_err(|_| Error::InvalidProposal)?,
+        )?;
+    }
+    Ok(())
 }
 fn finish_preparation(
     journal: &mut EpochJournal,
@@ -342,6 +345,8 @@ struct AuditedConversant {
     schema: Value,
     invalid: AtomicUsize,
     attempts: Mutex<Vec<Value>>,
+    receipts: Arc<super::receipts::ReceiptStore>,
+    memory: Arc<DurableRetreatMemory>,
 }
 impl Conversant for AuditedConversant {
     fn turn(
@@ -356,11 +361,60 @@ impl Conversant for AuditedConversant {
     ) -> tinybackrooms::BoxFuture<'_, tinybackrooms::Result<tinybackrooms::StructuredReply>> {
         Box::pin(async move {
             let proposals = request.tool == "submit_items";
-            let response = self.backend.structured(request).await?;
+            let call = if proposals {
+                Some(self.receipts.begin().map_err(audit_error)?)
+            } else {
+                None
+            };
+            let response = match self.backend.structured(request).await {
+                Ok(response) => response,
+                Err(error) => {
+                    if let Some(call) = call {
+                        self.receipts
+                            .finish(call, super::GenerationCallStatus::Failed, vec![])
+                            .map_err(audit_error)?;
+                    }
+                    return Err(error);
+                }
+            };
             if proposals {
                 let validator = jsonschema::validator_for(&self.schema).map_err(|_| {
                     tinybackrooms::Error::Conversant("invalid frozen proposal schema".into())
                 })?;
+                if let Some(call) = call {
+                    let (status, items) = response
+                        .value
+                        .get("items")
+                        .and_then(Value::as_array)
+                        .map_or((super::GenerationCallStatus::Malformed, vec![]), |items| {
+                            (
+                                super::GenerationCallStatus::Returned,
+                                items
+                                    .iter()
+                                    .map(|item| {
+                                        if !validator.is_valid(item) {
+                                            super::GenerationDisposition::SchemaRejected
+                                        } else if serde_json::from_value::<Proposal>(item.clone())
+                                            .is_err()
+                                        {
+                                            super::GenerationDisposition::DecodeRejected
+                                        } else if self
+                                            .memory
+                                            .validate_public_text(&item.to_string())
+                                            .is_err()
+                                        {
+                                            super::GenerationDisposition::PrivacyRejected
+                                        } else {
+                                            super::GenerationDisposition::Decoded
+                                        }
+                                    })
+                                    .collect(),
+                            )
+                        });
+                    self.receipts
+                        .finish(call, status, items)
+                        .map_err(audit_error)?;
+                }
                 let rejected = response
                     .value
                     .get("items")
@@ -389,6 +443,9 @@ impl Conversant for AuditedConversant {
             Ok(response)
         })
     }
+}
+fn audit_error(_: Error) -> tinybackrooms::Error {
+    tinybackrooms::Error::Conversant("proposal audit unavailable".into())
 }
 impl std::fmt::Debug for RetreatEpochInput<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
