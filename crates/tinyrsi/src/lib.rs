@@ -18,7 +18,11 @@
 //! # Layout
 //!
 //! - `src/error/` holds the crate-wide [`Error`] enum and the [`Result`] alias
-//!   returned by every fallible public function.
+//!   returned by every fallible function defined in this crate. Items
+//!   re-exported from lower crates keep their own error type:
+//!   [`ModelRequest::new`] and the other model APIs return [`ModelError`].
+//!   Every such error converts into [`Error`] with `?`, landing on the variant
+//!   this crate always reported.
 //! - Each feature area lives in its own module directory with a `mod.rs`
 //!   module root, an optional `types.rs`, and a `test.rs` holding its unit
 //!   tests.
