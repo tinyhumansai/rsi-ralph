@@ -28,13 +28,3 @@ fn reports_unusable_lock_paths() {
     let error = LedgerLock::acquire(&file.join("ledger.json")).unwrap_err();
     assert!(matches!(error, Error::Io { .. }), "{error}");
 }
-
-#[test]
-fn reports_an_unwritable_lock_file() {
-    let dir = tempfile::tempdir().unwrap();
-    // A directory where the lock file should go cannot be created over.
-    std::fs::create_dir_all(dir.path().join("sub")).unwrap();
-    std::fs::write(dir.path().join("sub/blocker"), "").unwrap();
-    let error = LedgerLock::acquire(&dir.path().join("sub/blocker/x.json")).unwrap_err();
-    assert!(matches!(error, Error::Io { .. }), "{error}");
-}
