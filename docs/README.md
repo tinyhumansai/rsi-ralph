@@ -41,8 +41,9 @@ docs/
 
 - **[`specs/`](specs/README.md)** — one file per feature or subsystem of this
   crate (host runtime, epoch evidence, generation receipts, proposal
-  outcomes, ignition experiment, private benchmarks, module release). Each
-  states behavior, invariants and acceptance criteria that the code must meet.
+  outcomes, proposal dispositions, pinned Lake, ignition experiment, private
+  benchmarks, module release). Each states behavior, invariants and
+  acceptance criteria that the code must meet.
 - **[`plans/`](plans/README.md)** — the test-first steps that delivered a
   spec, with the same file stem (`specs/host-runtime.md` ↔
   `plans/host-runtime.md`). Plans are records of how work landed; the spec
@@ -55,8 +56,9 @@ docs/
   conceptually and are broader than any one module.
 - **Dated run reports** — pages under `rsi/` that describe a specific run,
   such as [`rsi/complete-live.md`](rsi/complete-live.md),
-  [`rsi/live-smoke.md`](rsi/live-smoke.md) and
-  [`rsi/p1-evidence.md`](rsi/p1-evidence.md). Their raw outputs are in
+  [`rsi/live-smoke.md`](rsi/live-smoke.md),
+  [`rsi/p1-evidence.md`](rsi/p1-evidence.md) and
+  [`rsi/pinned-lean.md`](rsi/pinned-lean.md). Their raw outputs are in
   `rsi/results/<date>/`. These pages are historical evidence: correct a
   factual error, but do not rewrite them to match later code.
 - **[`adr/`](adr/0001-record-architecture-decisions.md)** — one dated record

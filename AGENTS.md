@@ -135,7 +135,8 @@ Supporting commands:
 - `cargo test --doc` — run doctests alone when editing documentation examples.
 
 Other examples: `live_openrouter` (arithmetic smoke, opt-in like the above),
-`private_benchmark` and `proposal_metrics` (both need `host`), `verify_module`
+`private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all need
+`host`; the last builds private Lean proofs with a pinned Lake), `verify_module`
 (loads a built `cdylib` through TinyBus) and `verify_github_release` (downloads
 and loads a tagged release asset).
 

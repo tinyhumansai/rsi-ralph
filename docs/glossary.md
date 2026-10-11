@@ -146,6 +146,9 @@ each trial.
 stopped or was accepted, from `Untestable` and `Ungrounded` through `NoGain`,
 `NotReplicated` and `ApprovalDenied` to `Accepted`. `HostFailure` means the
 evaluator or approval service failed, not the proposal.
+`Archive::proposal_dispositions` (`archive/dispositions/`) lists these
+reasons in order and splits `Duplicate` into `DUP_ACCEPTED`, `DUP_REJECTED`
+and `DUP_UNRESOLVED` by what the earlier identical patch led to.
 
 ## Changing the hive
 
@@ -172,7 +175,9 @@ through the host's `report`. The host's per-node checker results
 **Verifier.** `VerifierKind` (`blueprint/types.rs`) ranks evidence from
 `Proof` down to `Rubric` and `Preference` (the last two are weak).
 `HostVerifier` (`verification/types.rs`) is the concrete check: `Process`,
-`Golden`, `Schema` or `Lean`.
+`Golden`, `Schema`, `Lean` (a restricted proof block checked directly) or
+`Lake` (a frozen project built with a pinned Lean toolchain; see
+`verification/lake/README.md`).
 
 **Approval gate.** `HApprovalGate::approve_h`
 (`orchestrator/normalized/types.rs`): the only path from a confirmed

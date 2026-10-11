@@ -3,9 +3,11 @@
 //! `VerifierRegistry` freezes which checks apply to which node and seat.
 //! `VerifiedRunner` binds an artifact to its episode, seat, node and
 //! transcript references and submits coordinator completion only after the
-//! required checks pass. Process, schema, golden and Lean checkers run under
-//! host control with private inputs. See this directory's `README.md` for the
-//! process sandbox boundary.
+//! required checks pass. Process, schema, golden, Lean and pinned Lake
+//! checkers run under host control with private inputs. See this directory's
+//! `README.md` for the process sandbox boundary and `lake/README.md` for the
+//! pinned toolchain rules.
+pub(crate) mod lake;
 mod runner;
 mod types;
 use crate::{Error, Result};
@@ -47,6 +49,13 @@ impl VerifierRegistry {
                     {
                         return Err(Error::InvalidBlueprint);
                     }
+                }
+                HostVerifier::Lake {
+                    command,
+                    theorem,
+                    toolchain,
+                } => {
+                    lake::validate(command, theorem, toolchain)?;
                 }
                 HostVerifier::Schema { schema } => {
                     jsonschema::validator_for(schema).map_err(|_| Error::InvalidBlueprint)?;
@@ -106,6 +115,20 @@ impl VerifierRegistry {
                     (false, None)
                 }
             }
+            HostVerifier::Lake {
+                command,
+                theorem,
+                toolchain,
+            } => {
+                let proof =
+                    std::str::from_utf8(&artifact.content).map_err(|_| Error::InvalidBlueprint)?;
+                if safe_proof(proof) {
+                    let source = format!("{theorem}\n{proof}\n#print axioms rsi_goal\n");
+                    lake::execute(command, &source, toolchain)?
+                } else {
+                    (false, None)
+                }
+            }
         };
         let artifact_digest = format!("{:x}", Sha256::digest(&artifact.content));
         Ok(VerificationEvidence {
@@ -154,12 +177,25 @@ fn execute(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>)> {
 fn execute_lean(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>)> {
     let (passed, code, output) = process(c, content)?;
     // Only the stock kernel axiom report for this frozen theorem is accepted.
-    let output = std::str::from_utf8(&output).unwrap_or("");
-    let mut reports = output.lines().map(str::trim).filter(|line| {
-        line.starts_with("'rsi_goal' does not depend on any axioms")
-            || line.starts_with("'rsi_goal' depends on axioms:")
-    });
-    let trusted = reports.next().is_some_and(|line| {
+    Ok((passed && trusted_axioms(&output, false), code))
+}
+fn trusted_axioms(output: &[u8], lake: bool) -> bool {
+    let output = std::str::from_utf8(output).unwrap_or("");
+    let mut reports = output
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if lake {
+                crate::verification::lake::diagnostic(line)
+            } else {
+                Some(line)
+            }
+        })
+        .filter(|line| {
+            line.starts_with("'rsi_goal' does not depend on any axioms")
+                || line.starts_with("'rsi_goal' depends on axioms:")
+        });
+    reports.next().is_some_and(|line| {
         line == "'rsi_goal' does not depend on any axioms"
             || line
                 .strip_prefix("'rsi_goal' depends on axioms:")
@@ -174,15 +210,24 @@ fn execute_lean(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>)> 
                             )
                         })
                 })
-    }) && reports.next().is_none();
-    Ok((passed && trusted, code))
+    }) && reports.next().is_none()
 }
 fn process(c: &CommandSpec, content: &[u8]) -> Result<(bool, Option<i32>, Vec<u8>)> {
+    process_with_files(c, content, &[])
+}
+fn process_with_files(
+    c: &CommandSpec,
+    content: &[u8],
+    files: &[(&str, &[u8])],
+) -> Result<(bool, Option<i32>, Vec<u8>)> {
     std::fs::create_dir_all(&c.workspace_root).map_err(|_| Error::HostFailed)?;
     let root = std::fs::canonicalize(&c.workspace_root).map_err(|_| Error::HostFailed)?;
     let dir = tempfile::tempdir_in(root).map_err(|_| Error::HostFailed)?;
     let artifact = dir.path().join("artifact.lean");
     std::fs::write(&artifact, content).map_err(|_| Error::HostFailed)?;
+    for (name, bytes) in files {
+        std::fs::write(dir.path().join(name), bytes).map_err(|_| Error::HostFailed)?;
+    }
     let stdout = dir.path().join("stdout");
     let stderr = dir.path().join("stderr");
     let out = File::create(&stdout).map_err(|_| Error::HostFailed)?;

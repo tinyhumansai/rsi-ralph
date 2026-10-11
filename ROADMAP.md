@@ -25,7 +25,9 @@ published 24-attempt experiment is inconclusive.
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
   `DeploymentStore::observe` (`host/`), `EvidenceJournal`
-  (`evidence_journal/`) and the replay-validated `Archive` (`archive/`).
+  (`evidence_journal/`) and the replay-validated `Archive` (`archive/`),
+  including chronological proposal dispositions with accepted, rejected and
+  unresolved duplicate history (`archive/dispositions/`).
   Demonstrated offline by the `observe_epochs` example.
 - P2 human-gated shadow selection: `run_proposal_h` with frozen screen,
   selection and confirmation stages (`orchestrator/`), normalized H scoring
@@ -33,7 +35,9 @@ published 24-attempt experiment is inconclusive.
   (`suites/`), immutable memory snapshots (`memory/`).
 - P3 verified decomposition: `Blueprint` (`blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
-  (`verification/`).
+  (`verification/`), plus a pinned-toolchain `lake build` checker
+  (`verification/lake/`) validated on 12 private reference proofs
+  ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets
   (`epoch_driver/`), the tinybackrooms request contract (`retreat/`) and
@@ -61,11 +65,12 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
   and memory updates and live agent replacement are not implemented (P5).
 - **Production approval.** Replace the scripted `Deny` / `ContextGate`
   fixtures with a real exact-candidate human approval port (P2).
-- **Versioned host rejection taxonomy**, including accepted-versus-rejected
-  duplicate history (scoring #2).
+- **Detailed host rejection taxonomy.** Exact-duplicate history exists;
+  formalization, reach/contamination and constraint/canary subtypes do not
+  (scoring #2).
 - **Curated suites and empirical anchors.** Multi-family private tasks with
-  measured family anchors, a curated Lean project checked by `lake build`,
-  and code, formal and harness-engineering coverage (P2, P3).
+  measured family anchors, broader independent proof tasks, and code and
+  harness-engineering coverage (P2, P3).
 - **Calibrated proposal ranking.** Calibrated priors, blinded pairwise
   judgments and cost-aware successive halving (P4).
 - **Sequential testing and anchor history.** Preregistered alpha spending,

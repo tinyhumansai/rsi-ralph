@@ -447,3 +447,5 @@ fn rejects_learning_that_unfreezes_original_readonly_memory() {
     );
     assert_eq!(archive.records().len(), 1);
 }
+
+mod dispositions;
