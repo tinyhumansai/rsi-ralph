@@ -44,7 +44,8 @@ other through a handful of shared data types. The phases are:
   loop.
 - The bus items (`INTERFACE`, `METHODS`, `OBJECT_PATH`, `CONTRACT_VERSION`,
   `is_compatible`, the `Lineage*` request and response types) and the `host`
-  feature are removed. This is a breaking change and needs a minor bump.
+  feature are removed. Items that needed the `host` feature move to
+  `tinyrsi_host::` paths. This is a breaking change and needs a minor bump.
 - Releases no longer ship native module archives. A release is a tagged source
   version.
 - There are more manifests to maintain, and a change that spans phases touches
