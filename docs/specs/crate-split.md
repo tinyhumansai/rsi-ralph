@@ -75,6 +75,7 @@ listed above it.
 | `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
 | `tinyrsi-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
 | `tinyrsi-examples` | three runnable examples, `publish = false` | tinyrsi-host |
+| `tinyrsi-swarm` | `run_swarm`, `load_package`, `editing_seats`: one epoch of a hive package run as `OpenHuman` agents editing candidate checkouts | tinyhivemind-openhuman, tinyhivemind-hives (sqlite), tinyhivemind-lang, openhuman-embed |
 
 `tinyrsi-host` replaces the `host` Cargo feature: its modules are exactly the
 ones the feature gated. `memory` and `observation` compile without the feature

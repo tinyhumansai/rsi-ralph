@@ -35,6 +35,7 @@ crates/
 ├── tinyrsi-host/       # hive runtime: coordinators, suites, epochs, deployment
 │   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
 │   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
+├── tinyrsi-swarm/      # a hive package run as OpenHuman agents editing candidates
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
