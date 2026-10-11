@@ -411,7 +411,7 @@ impl Meter for Watched {
     }
 
     fn call_mark(&self) -> CallMark {
-        CallMark(self.0.borrow().len() as u64)
+        CallMark(u64::try_from(self.0.borrow().len()).unwrap())
     }
 
     fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
@@ -419,8 +419,8 @@ impl Meter for Watched {
         let later = &calls[usize::try_from(mark.0).unwrap()..];
         let refusals: Vec<&Refusal> = later.iter().flatten().collect();
         UpstreamCalls {
-            sent: later.len() as u64,
-            refused: refusals.len() as u64,
+            sent: u64::try_from(later.len()).unwrap(),
+            refused: u64::try_from(refusals.len()).unwrap(),
             last_refusal: refusals.last().map(|r| (*r).clone()),
         }
     }

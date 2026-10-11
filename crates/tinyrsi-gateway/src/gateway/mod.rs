@@ -21,7 +21,7 @@ use std::sync::mpsc::{Receiver, sync_channel};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use crate::calls::UpstreamCalls;
+use crate::calls::{CallMark, UpstreamCalls};
 use crate::error::{Error, Result};
 use crate::ledger::{Budgets, Ledger};
 use crate::lock::LedgerLock;
@@ -152,12 +152,25 @@ impl Gateway {
         }
     }
 
-    /// What the provider made of the calls forwarded to it so far. Take a
-    /// reading before and after a phase and compare them with
-    /// [`UpstreamCalls::since`] to see that phase's calls alone.
+    /// What the provider made of every call forwarded to it so far.
     #[must_use]
     pub fn upstream_calls(&self) -> UpstreamCalls {
-        self.proxy.upstream_calls()
+        self.upstream_calls_since(CallMark::default())
+    }
+
+    /// A mark after every call forwarded so far, for
+    /// [`Gateway::upstream_calls_since`].
+    #[must_use]
+    pub fn call_mark(&self) -> CallMark {
+        self.proxy.calls().mark()
+    }
+
+    /// The calls forwarded at or after `mark` and what the provider has made
+    /// of them so far. A refusal counts against the call it answers, so a
+    /// call forwarded before `mark` and refused after it is not included.
+    #[must_use]
+    pub fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
+        self.proxy.calls().since(mark)
     }
 
     /// Stops the gateway and waits for its thread to finish.

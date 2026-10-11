@@ -7,7 +7,7 @@
 //! over its limit answers `403`, a rate limit `429`) or no complete answer:
 //! a connection that fails, or a body that breaks off, even after success
 //! headers. A call counts as sent when it is forwarded; a stream's refusal is
-//! known only once its body ends.
+//! known only once its body ends, and is kept with the call it answers.
 //! Calls the gateway refuses itself, such as one over budget, never reach
 //! the provider and are not counted.
 
@@ -15,57 +15,92 @@ mod types;
 
 use std::sync::{Mutex, PoisonError};
 
-pub use types::{Refusal, UpstreamCalls};
+pub use types::{CallMark, Refusal, UpstreamCalls};
 
 /// The longest refusal message kept, in characters.
 const MESSAGE_CHARS: usize = 300;
 
-/// The running tally behind [`UpstreamCalls`].
+/// The running tally behind [`UpstreamCalls`]: how many calls were
+/// dispatched, and each refusal with the position of the call it answers.
+///
+/// A refusal is kept with its call's position rather than counted when it
+/// arrives, so a call sent in one phase and refused during the next is
+/// never charged to the later phase.
 #[derive(Debug, Default)]
-pub(crate) struct CallTally(Mutex<UpstreamCalls>);
+pub(crate) struct CallTally(Mutex<Tally>);
+
+#[derive(Debug, Default)]
+struct Tally {
+    sent: u64,
+    refusals: Vec<(u64, Refusal)>,
+}
 
 impl CallTally {
-    /// Counts a call as sent, as it is forwarded. Counting before the
-    /// answer means a reading taken while a call is still waiting on the
-    /// provider includes it, so a phase's calls are never undercounted.
-    pub(crate) fn dispatched(&self) {
-        self.lock().sent += 1;
+    /// Counts a call as sent, as it is forwarded, and returns its position
+    /// for recording its answer. Counting before the answer means a reading
+    /// taken while a call is still waiting on the provider includes it.
+    pub(crate) fn dispatched(&self) -> u64 {
+        let mut tally = self.lock();
+        tally.sent += 1;
+        tally.sent - 1
     }
 
-    /// Records the answer to a dispatched call: `status`, with `body`. A
+    /// The mark after every call dispatched so far.
+    pub(crate) fn mark(&self) -> CallMark {
+        CallMark(self.lock().sent)
+    }
+
+    /// Records the answer to call `call`: `status`, with `body`. A
     /// non-success status is a refusal, whose message is read from `body`.
     /// The body must already be free of the provider key.
-    pub(crate) fn answered(&self, status: u16, body: &[u8]) {
+    pub(crate) fn answered(&self, call: u64, status: u16, body: &[u8]) {
         if !(200..300).contains(&status) {
-            self.refuse(Refusal {
-                status,
-                message: refusal_message(body),
-            });
+            self.refuse(
+                call,
+                Refusal {
+                    status,
+                    message: refusal_message(body),
+                },
+            );
         }
     }
 
-    /// Records that a dispatched call got no complete answer, as a `502`
-    /// refusal carrying `error`, which must already be free of the
-    /// provider key.
-    pub(crate) fn unreachable(&self, error: &str) {
-        self.refuse(Refusal {
-            status: 502,
-            message: shorten(error),
-        });
+    /// Records that call `call` got no complete answer, as a `502` refusal
+    /// carrying `error`, which must already be free of the provider key.
+    pub(crate) fn unreachable(&self, call: u64, error: &str) {
+        self.refuse(
+            call,
+            Refusal {
+                status: 502,
+                message: shorten(error),
+            },
+        );
     }
 
-    /// The tally so far.
-    pub(crate) fn snapshot(&self) -> UpstreamCalls {
-        self.lock().clone()
+    /// The calls dispatched at or after `mark`, and what is known so far of
+    /// their refusals.
+    pub(crate) fn since(&self, mark: CallMark) -> UpstreamCalls {
+        let tally = self.lock();
+        let mut refused = 0;
+        let mut last_refusal = None;
+        for (call, refusal) in &tally.refusals {
+            if *call >= mark.0 {
+                refused += 1;
+                last_refusal = Some(refusal);
+            }
+        }
+        UpstreamCalls {
+            sent: tally.sent.saturating_sub(mark.0),
+            refused,
+            last_refusal: last_refusal.cloned(),
+        }
     }
 
-    fn refuse(&self, refusal: Refusal) {
-        let mut calls = self.lock();
-        calls.refused += 1;
-        calls.last_refusal = Some(refusal);
+    fn refuse(&self, call: u64, refusal: Refusal) {
+        self.lock().refusals.push((call, refusal));
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<'_, UpstreamCalls> {
+    fn lock(&self) -> std::sync::MutexGuard<'_, Tally> {
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }

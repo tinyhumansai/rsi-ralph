@@ -27,7 +27,7 @@ use futures_util::StreamExt;
 use serde_json::{Value, json};
 use tokio::sync::Notify;
 
-use crate::calls::{CallTally, UpstreamCalls};
+use crate::calls::CallTally;
 use crate::error::Error;
 use crate::ledger::{Budgets, LedgerState, Reservation};
 use crate::meter::{Meter, MeterRow, Tags};
@@ -133,9 +133,9 @@ impl Proxy {
         (run.clone(), total.clone())
     }
 
-    /// What the provider made of the calls forwarded so far.
-    pub(crate) fn upstream_calls(&self) -> UpstreamCalls {
-        self.calls.snapshot()
+    /// The tally of calls forwarded upstream.
+    pub(crate) fn calls(&self) -> &CallTally {
+        &self.calls
     }
 
     /// Waits until no call is between reserving and settling, or `limit`
@@ -441,7 +441,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         proxy.config.upstream.trim_end_matches('/'),
         endpoint.path()
     );
-    proxy.calls.dispatched();
+    let call = proxy.calls.dispatched();
     let sent = proxy
         .client
         .post(url)
@@ -453,7 +453,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         Ok(response) => response,
         Err(error) => {
             let error = Error::Upstream(proxy.redact(&error.to_string()));
-            proxy.calls.unreachable(&error.to_string());
+            proxy.calls.unreachable(call, &error.to_string());
             let settle_error = proxy.settle(reservation, None);
             proxy.record(&row(
                 &prepared.model,

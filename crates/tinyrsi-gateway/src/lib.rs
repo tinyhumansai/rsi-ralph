@@ -76,7 +76,7 @@ mod proxy;
 mod request;
 mod usage;
 
-pub use calls::{Refusal, UpstreamCalls};
+pub use calls::{CallMark, Refusal, UpstreamCalls};
 pub use error::{Error, Result};
 pub use gateway::{DEFAULT_LISTEN, DEFAULT_UPSTREAM, DRAIN_LIMIT, Gateway, GatewayConfig, Spend};
 pub use price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable};
