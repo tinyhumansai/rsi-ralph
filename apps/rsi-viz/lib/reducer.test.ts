@@ -111,4 +111,19 @@ describe("reducer", () => {
     applyEnvelope(s0, fixture()[5]!);
     expect(JSON.stringify(s0)).toBe(snapshot);
   });
+  it("keeps a candidate's interval units, metric unless the event says otherwise", () => {
+    const scored = (candidate: string, units?: "metric" | "quality"): LoopEvent => ({
+      kind: "scored",
+      epoch: 1,
+      candidate,
+      decision: "accept",
+      estimate: 0.5,
+      lower: 0.25,
+      upper: 0.75,
+      ...(units ? { units } : {}),
+    });
+    const s = reduceEnvelopes([env(0, scored("q", "quality")), env(1, scored("m"))]);
+    expect(s.candidates.q!.units).toBe("quality");
+    expect(s.candidates.m!.units).toBe("metric");
+  });
 });
