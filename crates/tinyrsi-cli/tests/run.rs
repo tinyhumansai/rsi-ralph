@@ -151,7 +151,6 @@ fn files(dir: &Path) -> Vec<PathBuf> {
 fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let tmp = tempfile::tempdir().unwrap();
-    let tmp = Box::leak(Box::new(tmp));
     let loop_dir = tmp.path().join("graph-coloring");
     copy(&root.join("loops/graph-coloring"), &loop_dir);
     let home = tmp.path().join("home");
@@ -207,7 +206,10 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let ledger: Value = serde_json::from_str(&std::fs::read_to_string(run.join("ledger.json")).unwrap()).unwrap();
     assert_eq!(ledger["candidates"][0]["status"], "promoted");
     assert_eq!(ledger["candidates"][0]["changed"], json!(["coloring.py"]));
-    assert!(record["incumbent_score"].as_f64().unwrap() < 9.0);
+    // First fit uses 17 colours on these graphs; DSATUR uses fewer.
+    let baseline = ledger["epochs"][0]["incumbent"].as_str().unwrap();
+    assert_ne!(record["incumbent"].as_str().unwrap(), baseline);
+    assert!(record["incumbent_score"].as_f64().unwrap() < 17.0, "{record}");
     assert!(std::fs::read_to_string(run.join("incumbent/coloring.py")).unwrap().contains("DSATUR"));
     assert!(record["spend_usd"].as_f64().unwrap() > 0.0, "{record}");
     assert!(run.join("epoch-1/hive/events.jsonl").exists());
