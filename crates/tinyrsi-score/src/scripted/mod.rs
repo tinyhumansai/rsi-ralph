@@ -1,5 +1,5 @@
 //! A scorer written as a closure: scripted checks, fixtures and offline runs.
-use crate::{Assessment, Result, Scorer};
+use crate::{Assessment, Error, Result, Scorer};
 use tinyrsi_types::Goal;
 
 /// The closure behind a [`ScriptedScorer`].
@@ -27,10 +27,20 @@ impl<S: ?Sized> ScriptedScorer<S> {
 
     /// An eligible scorer giving every seed `quality(subject)`, clamped to
     /// `[0, 1]`.
+    ///
+    /// # Errors
+    ///
+    /// The scorer's [`Scorer::assess`] returns [`Error::InvalidEvaluation`]
+    /// when `quality` yields NaN or an infinity, which no clamp can turn
+    /// into a quality.
     #[must_use]
     pub fn uniform(quality: impl Fn(&S) -> f64 + Send + Sync + 'static) -> Self {
         Self::new(move |subject, _, seeds| {
-            let q = quality(subject).clamp(0.0, 1.0);
+            let q = quality(subject);
+            if !q.is_finite() {
+                return Err(Error::InvalidEvaluation);
+            }
+            let q = q.clamp(0.0, 1.0);
             let qualities = vec![q; seeds.len()];
             Ok(Assessment {
                 eligible: Some(qualities.clone()),
