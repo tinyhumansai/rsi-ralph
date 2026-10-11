@@ -9,7 +9,7 @@
 use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
-use crate::price::{PriceTable, usd};
+use crate::price::{ANY_PROVIDER, PriceTable, usd};
 
 /// Prompt-side slack added to the byte count when bounding a call's cost.
 /// Bytes over-count tokens for text; the slack covers templates a provider
