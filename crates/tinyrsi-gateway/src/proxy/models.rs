@@ -4,7 +4,7 @@
 //! point of it: a seat should see what it may call, not the upstream's whole
 //! catalog. But an id is not all a client reads there. Agent harnesses size
 //! their context management from the listing's `context_length` (and its
-//! relatives), and one that finds none has to assume the worst. OpenHuman's
+//! relatives), and one that finds none has to assume the worst. `OpenHuman`'s
 //! assumption is to blank old tool results on every turn, rewriting history
 //! the provider already cached, so a hive behind this gateway missed its
 //! prompt cache on 77 of 80 builder turns (measured 2026-10-12).
@@ -23,8 +23,8 @@ use super::Proxy;
 /// How long the upstream listing may take before the ids are served bare.
 const LISTING_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// The fields copied from an upstream listing entry: the ones OpenAI-
-/// compatible clients read a model's window and output cap from. Prices and
+/// The fields copied from an upstream listing entry: the ones
+/// `OpenAI`-compatible clients read a model's window and output cap from. Prices and
 /// descriptions stay behind; the gateway's own table decides those.
 const LIMIT_FIELDS: [&str; 8] = [
     "context_length",
