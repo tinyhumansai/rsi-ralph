@@ -100,3 +100,36 @@ fn fails_when_the_program_cannot_be_spawned() {
     });
     assert_eq!(result.unwrap_err(), Error::HostFailed);
 }
+
+#[test]
+fn retries_a_spawn_while_the_executable_is_busy() {
+    let mut attempts = 0;
+    let spawned = spawn_retrying(|| {
+        attempts += 1;
+        if attempts < 3 {
+            Err(std::io::Error::from_raw_os_error(TEXT_FILE_BUSY))
+        } else {
+            Ok("child")
+        }
+    });
+    assert_eq!(spawned.unwrap(), "child");
+    assert_eq!(attempts, 3);
+}
+
+#[test]
+fn gives_up_on_other_spawn_errors_and_on_a_persistently_busy_executable() {
+    let mut attempts = 0;
+    let missing = spawn_retrying::<()>(|| {
+        attempts += 1;
+        Err(std::io::Error::from(std::io::ErrorKind::NotFound))
+    });
+    assert!(missing.is_err());
+    assert_eq!(attempts, 1, "only a busy executable is retried");
+    let mut attempts = 0;
+    let busy = spawn_retrying::<()>(|| {
+        attempts += 1;
+        Err(std::io::Error::from_raw_os_error(TEXT_FILE_BUSY))
+    });
+    assert!(busy.is_err());
+    assert_eq!(attempts, SPAWN_ATTEMPTS);
+}

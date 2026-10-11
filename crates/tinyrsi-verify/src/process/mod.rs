@@ -66,6 +66,34 @@ pub struct ProcessOutcome {
     pub duration_ms: u64,
 }
 
+/// How many times a spawn is tried while the executable is busy.
+const SPAWN_ATTEMPTS: u32 = 20;
+
+/// `ETXTBSY` on Linux and macOS.
+const TEXT_FILE_BUSY: i32 = 26;
+
+/// Spawns with `spawn`, retrying briefly while the executable is busy.
+///
+/// A script written just before it runs can be held open for writing by a
+/// child another thread is forking (the descriptor is inherited until that
+/// child execs), and `exec` then fails with `ETXTBSY`. That clears within
+/// moments, so the spawn is retried a bounded number of times; any other
+/// error is returned at once.
+fn spawn_retrying<T>(mut spawn: impl FnMut() -> std::io::Result<T>) -> std::io::Result<T> {
+    let mut attempt = 1;
+    loop {
+        match spawn() {
+            Err(error)
+                if error.raw_os_error() == Some(TEXT_FILE_BUSY) && attempt < SPAWN_ATTEMPTS =>
+            {
+                attempt += 1;
+                thread::sleep(Duration::from_millis(5));
+            }
+            other => return other,
+        }
+    }
+}
+
 /// Runs one child to completion, timeout, or output overflow.
 ///
 /// # Errors
@@ -83,16 +111,15 @@ pub fn run(spec: &ProcessSpec<'_>) -> Result<ProcessOutcome> {
         use std::os::unix::process::CommandExt;
         invocation.process_group(0);
     }
-    let mut child = invocation
+    invocation
         .args(spec.args)
         .env_clear()
         .envs(spec.env.iter().map(|(k, v)| (k, v)))
         .current_dir(spec.cwd)
         .stdin(Stdio::null())
         .stdout(Stdio::from(out))
-        .stderr(Stdio::from(err))
-        .spawn()
-        .map_err(|_| Error::HostFailed)?;
+        .stderr(Stdio::from(err));
+    let mut child = spawn_retrying(|| invocation.spawn()).map_err(|_| Error::HostFailed)?;
     let start = Instant::now();
     let elapsed = |start: Instant| u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
     loop {
