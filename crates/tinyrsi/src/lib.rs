@@ -134,7 +134,7 @@ pub use script_loop::{
     parse_metric, run_script_loop, run_script_loop_with,
 };
 pub use tinyrsi_trace::{
-    Clock, Error as TraceError, FanoutTrace, JsonlTrace, LoopEvent, ManualClock, MetricDirection,
-    MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord, TraceSink,
-    TracingTrace, VecTrace,
+    Clock, Error as TraceError, FanoutTrace, IntervalUnits, JsonlTrace, LoopEvent, ManualClock,
+    MetricDirection, MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord,
+    TraceSink, TracingTrace, VecTrace,
 };

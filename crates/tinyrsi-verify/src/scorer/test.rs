@@ -84,3 +84,47 @@ fn a_checker_that_cannot_run_is_a_host_failure() {
         Err(tinyrsi_score::Error::HostFailed)
     );
 }
+
+fn lean_scorer(binding: VerificationBinding) -> VerifierScorer {
+    let workspace = tempfile::tempdir().unwrap();
+    let registry = VerifierRegistry::new(vec![VerifierDeclaration {
+        node_id: "answer".into(),
+        owner_seat: "seat".into(),
+        verifier: HostVerifier::Lean {
+            command: crate::CommandSpec {
+                program: "/nonexistent/lean".into(),
+                args: vec!["{artifact}".into()],
+                workspace_root: workspace.path().to_path_buf(),
+                timeout_ms: 1000,
+                max_output_bytes: 64,
+            },
+            theorem: "theorem rsi_goal : True :=".into(),
+        },
+    }])
+    .unwrap();
+    VerifierScorer::new(registry, binding)
+}
+
+#[test]
+fn a_proof_that_is_not_utf8_scores_zero() {
+    let a = lean_scorer(binding())
+        .assess(&[0xff, 0xfe], &Goal::new("answer"), &[1, 2])
+        .unwrap();
+    assert_eq!(a.qualities, vec![0.0, 0.0]);
+    assert_eq!(
+        a.rationale.as_deref(),
+        Some("checker failed on node answer")
+    );
+}
+
+#[test]
+fn a_proof_that_is_not_utf8_still_refuses_an_unauthorized_binding() {
+    let forged = VerificationBinding {
+        seat_id: "intruder".into(),
+        ..binding()
+    };
+    assert_eq!(
+        lean_scorer(forged).assess(&[0xff, 0xfe], &Goal::new("answer"), &[1]),
+        Err(tinyrsi_score::Error::InvalidEvaluation)
+    );
+}
