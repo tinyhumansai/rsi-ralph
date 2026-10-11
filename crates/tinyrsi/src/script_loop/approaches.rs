@@ -200,9 +200,11 @@ pub(super) fn render_this_epoch(ledger: &ScriptLedger, epoch: u64) -> String {
     for c in earlier {
         let _ = writeln!(
             text,
-            "- {}: approach \"{}\", decision {}, mean {}",
+            "- {}: approach {}, decision {}, mean {}",
             c.proposal_id.as_deref().unwrap_or_default(),
-            c.approach.as_deref().unwrap_or("unlabelled"),
+            c.approach
+                .as_deref()
+                .map_or_else(|| "unlabelled".to_owned(), |a| format!("\"{a}\"")),
             decision_name(c.decision),
             mean(c.mean)
         );

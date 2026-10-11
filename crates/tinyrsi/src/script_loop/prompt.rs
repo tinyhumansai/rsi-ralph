@@ -1,17 +1,32 @@
-//! The supervisor prompt: the goal, metric history, recent rejections and the
-//! incumbent's sources, rendered from the loop's own ledger.
+//! The supervisor prompt: the goal, metric history, approaches already tried,
+//! earlier proposals this epoch, recent rejections, the incumbent's sources
+//! and the slot's directive, rendered from the loop's own ledger.
 //!
 //! The loop renders it because the ledger is the loop's; the supervisor in
 //! `tinyrsi-evolve` only sends it.
-use super::{LedgerCandidate, ScriptLedger, ScriptSubject, SeedRun, execute::Sources};
+use super::{
+    LedgerCandidate, LoopPolicy, ScriptLedger, ScriptSubject, SeedRun, approaches,
+    execute::Sources,
+};
 use std::fmt::Write as _;
 
-/// Builds the supervisor prompt from the subject, ledger and incumbent.
+/// Which proposal of which epoch a prompt is for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Slot {
+    /// Epoch number.
+    pub epoch: u64,
+    /// Slot index within the epoch, from 0.
+    pub index: u32,
+}
+
+/// Builds the supervisor prompt for one slot from the subject, ledger,
+/// incumbent and policy.
 pub(super) fn prompt(
     subject: &ScriptSubject,
     ledger: &ScriptLedger,
     sources: &Sources,
-    rejected_context: usize,
+    policy: &LoopPolicy,
+    slot: Slot,
 ) -> String {
     let metric = &subject.metric;
     let mut text = String::new();
@@ -61,14 +76,21 @@ pub(super) fn prompt(
             let _ = writeln!(text, "No diagnostics recorded for the incumbent.");
         }
     }
-    let _ = writeln!(text, "\n# Recently rejected proposals");
+    text.push('\n');
+    text.push_str(&approaches::render_tried(
+        ledger,
+        metric.direction,
+        policy.approach_context,
+    ));
+    text.push_str(&approaches::render_this_epoch(ledger, slot.epoch));
+    let _ = writeln!(text, "# Recently rejected proposals");
     let rejected: Vec<&LedgerCandidate> = ledger
         .candidates
         .iter()
         .rev()
         .filter(|c| !c.promoted && c.proposal_id.is_some())
         .filter(|c| c.decision != super::CandidateDecision::Accept)
-        .take(rejected_context)
+        .take(policy.rejected_context)
         .collect();
     if rejected.is_empty() {
         let _ = writeln!(text, "None yet.");
@@ -79,8 +101,9 @@ pub(super) fn prompt(
         let errors: Vec<&str> = c.runs.iter().filter_map(|r| r.error.as_deref()).collect();
         let _ = writeln!(
             text,
-            "- {:?}: decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}\n  diagnostics: {}",
+            "- {:?} ({}): decision {:?}, mean {:?}, errors {:?}, note {:?}\n  rationale: {}\n  hypothesis: {}\n  stderr tail: {}\n  diagnostics: {}",
             c.proposal_id.as_deref().unwrap_or_default(),
+            c.approach.as_deref().unwrap_or("unlabelled"),
             c.decision,
             c.mean,
             errors,
@@ -98,6 +121,15 @@ pub(super) fn prompt(
             "\n## {}\n```\n{}\n```",
             path.display(),
             source.trim_end()
+        );
+    }
+    if let Some(directive) = policy.slot(slot.index) {
+        let _ = writeln!(
+            text,
+            "\n# This proposal (slot {} of {})\n{}",
+            slot.index.saturating_add(1),
+            policy.proposals_per_epoch,
+            directive.instruction.trim()
         );
     }
     text
