@@ -68,3 +68,9 @@ required-features = ["host"]
 [[example]]
 name = "verify_lean_slice"
 required-features = ["host"]
+
+# A directory example: `main.rs` plus the Python harness, starting model and
+# canned proposals it embeds. Runs offline by default, so it needs no feature.
+[[example]]
+name = "script_loop"
+path = "examples/script_loop/main.rs"
