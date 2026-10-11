@@ -26,6 +26,7 @@ crates/
 ├── tinyrsi-types/      # proposal and candidate data shared by every crate
 ├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
 ├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
+├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
@@ -47,6 +48,7 @@ crates/
 examples/               # `tinyrsi-examples`: math_problem, upgrade_file, hive_goal
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
+vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
 apps/rsi-viz/           # read-only Next.js loop visualizer
 docs/                   # see docs/README.md for what lives where
 ```
@@ -181,10 +183,11 @@ releases are reproducible.
 
 ### Vendored dependencies
 
-tinyhivemind and tinybackrooms are registered as the `vendor/tinyhivemind` and
-`vendor/tinybackrooms` git submodules and pinned by their gitlinks. They supply
-the hive language, coordinator and storage, and the creative-retreat engine.
-Initialize them after cloning with:
+tinyhivemind, tinybackrooms and OpenHuman are registered as the
+`vendor/tinyhivemind`, `vendor/tinybackrooms` and `vendor/openhuman` git
+submodules and pinned by their gitlinks. They supply the hive language,
+coordinator and storage, the creative-retreat engine, and the Langfuse client
+`tinyrsi-langfuse` exports through. Initialize them after cloning with:
 
 ```sh
 git submodule update --init --recursive
@@ -193,7 +196,9 @@ git submodule update --init --recursive
 Do not edit vendored code from the parent repository. Make changes in the
 vendored project's own repository, push them there, then update this
 repository's gitlink in a separate commit. Keep the exact path dependencies and
-minimal features unless a new capability requires more.
+minimal features unless a new capability requires more. The root `[patch]`
+tables mirror `vendor/openhuman/Cargo.toml`; update them in the same commit as
+that gitlink.
 
 ## Testing
 
