@@ -497,6 +497,7 @@ impl Engine<'_> {
             candidate: Some(checkout.label.clone()),
             rationale: format!("{} changed {} files", record.seat, record.changed.len()),
             hypothesis: record.changed.join(", "),
+            approach: None,
         })?;
         let steps = dir.join("steps").join(&checkout.label);
         let ctx = self.context(epoch, &state.incumbent);

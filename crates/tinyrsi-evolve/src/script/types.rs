@@ -3,13 +3,18 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// What the supervisor reads: the prompt the loop rendered from its ledger,
-/// and the files a proposal may rewrite.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// the files a proposal may rewrite, and how to sample.
+#[derive(Debug, Clone, PartialEq)]
 pub struct ScriptBrief {
-    /// The full user prompt: goal, metric history, rejections, sources.
+    /// The full user prompt: goal, metric history, approaches already tried,
+    /// rejections, sources and this slot's directive.
     pub prompt: String,
     /// Workspace-relative paths a proposal may replace.
     pub editable: Vec<PathBuf>,
+    /// Sampling temperature for this call, or `None` for the model's default
+    /// (`0.0` for `tinyrsi_model::ModelRequest`). A supervisor that cannot
+    /// sample, such as a canned replay, ignores it.
+    pub temperature: Option<f64>,
 }
 
 /// Per-call limits of the supervisor's model requests.
@@ -47,6 +52,17 @@ pub struct ProposedFile {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ScriptProposal {
+    /// A short label naming the technique, such as `"tabu search"` or
+    /// `"cubic least squares"`; the loop groups attempts by it. The tool
+    /// schema requires it, but it defaults to empty (unlabelled) so replies
+    /// written before labels existed still decode. See
+    /// [`ScriptProposal::approach_label`].
+    #[serde(default)]
+    pub approach: String,
+    /// What is concretely different from an earlier attempt of the same
+    /// approach, when this proposal retries one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub differs_from_previous: Option<String>,
     /// Why the change should help.
     pub rationale: String,
     /// The checkable expected effect on the metric.

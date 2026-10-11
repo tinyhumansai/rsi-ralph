@@ -336,6 +336,14 @@ svg text {
   margin-right: 6px;
 }
 
+.feed .approach {
+  color: var(--muted);
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+
 .lineage {
   display: flex;
   flex-wrap: wrap;

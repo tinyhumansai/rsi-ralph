@@ -23,6 +23,11 @@ whether it worked. Each item gets its own spec in `docs/specs/` and plan in
 
 ### 1. Hypothesis ledger in the prompt (repetition)
 
+**Status: implemented** ([spec](../specs/hypothesis-ledger.md)). `approach`
+is required by the tool schema and grouped by normalized label; a resubmitted
+approach is not refused, only discouraged, until the benchmark harness
+measures the repetition share.
+
 - **Change:** keep a compact, deduplicated list of approaches already tried,
   each with its best metric and a one-line verdict ("Kempe pass: 0 moves, no
   gain"). Ask the supervisor, in the tool schema, to tag each proposal with an
@@ -35,6 +40,11 @@ whether it worked. Each item gets its own spec in `docs/specs/` and plan in
   (gpt-4.1-mini runs: over 50%). Target under 15%, and fewer epochs to stall.
 
 ### 2. Diverse proposals per epoch (identical slots)
+
+**Status: implemented** ([spec](../specs/hypothesis-ledger.md)).
+`LoopPolicy::slots` holds the three directives below by default, slots see
+earlier slots of the same epoch, and a slot may set a temperature
+(`ModelRequest::with_temperature`). The default samples every slot at 0.
 
 - **Change:** give each slot in an epoch a different instruction. For
   example: slot 0 is "best next step", slot 1 is "a different algorithm
@@ -81,6 +91,11 @@ whether it worked. Each item gets its own spec in `docs/specs/` and plan in
   mini-only on all three benchmarks.
 
 ### 6. Benchmark harness for the loop itself
+
+**Implemented:** [loop benchmarks spec](../specs/loop-benchmarks.md),
+`cargo run -p tinyrsi-examples --example benchmarks`. The repetition share is
+a proxy (identical content or normalized hypothesis of an earlier ruled-out
+proposal) until item 1 adds an `approach` label.
 
 - **Change:** a runner that executes every benchmark × model × N repeats and
   writes one comparison table: goal rate, epochs and tokens to goal, and the

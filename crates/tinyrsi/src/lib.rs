@@ -117,7 +117,7 @@ pub use archive::NormalizedDeclarationEvent;
 pub use script_loop::{
     CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
     RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
-    parse_metric, run_script_loop, run_script_loop_with,
+    SlotDirective, parse_metric, run_script_loop, run_script_loop_with,
 };
 pub use tinyrsi_trace::{
     Clock, Error as TraceError, FanoutTrace, IntervalUnits, JsonlTrace, LoopEvent, ManualClock,

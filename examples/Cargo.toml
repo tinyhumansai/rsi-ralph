@@ -5,13 +5,15 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Runnable end-to-end TinyRSI examples: a math problem, a file upgrade, graph colouring and a hive of agents."
+description = "Runnable end-to-end TinyRSI examples: a math problem, a file upgrade, graph colouring, a hive of agents, and a benchmark runner."
 readme = "README.md"
 publish = false
 
 [dependencies]
 tinyrsi = { workspace = true }
 tinyrsi-host = { workspace = true }
+# The benchmark runner's `summary.json` records and rows.
+serde = { workspace = true }
 serde_json = { workspace = true }
 tinyhivemind-hives = { workspace = true }
 tinyhivemind-lang = { workspace = true }
@@ -38,3 +40,7 @@ path = "hive_goal/main.rs"
 [[example]]
 name = "graph_coloring"
 path = "graph_coloring/main.rs"
+
+[[example]]
+name = "benchmarks"
+path = "benchmarks/main.rs"

@@ -15,6 +15,7 @@ use tinyrsi_evolve::{ScriptSupervisor, SupervisorLimits};
 pub(super) struct Scripted {
     replies: Mutex<VecDeque<String>>,
     pub seen: Mutex<Vec<(String, u64)>>,
+    pub temperatures: Mutex<Vec<f64>>,
 }
 
 impl Scripted {
@@ -22,6 +23,7 @@ impl Scripted {
         Arc::new(Self {
             replies: Mutex::new(replies.into()),
             seen: Mutex::new(vec![]),
+            temperatures: Mutex::new(vec![]),
         })
     }
 }
@@ -32,6 +34,10 @@ impl ModelPort for Scripted {
             .lock()
             .unwrap()
             .push((request.prompt().to_owned(), request.seed()));
+        self.temperatures
+            .lock()
+            .unwrap()
+            .push(request.temperature().unwrap_or(0.0));
         let next = self.replies.lock().unwrap().pop_front();
         Box::pin(async move {
             let content = next.ok_or(crate::ModelError::CallFailed)?.into_bytes();
@@ -150,6 +156,8 @@ fn content_ids_are_short_stable_and_content_sensitive() {
     assert_eq!(content_id(&a), content_id(&a.clone()));
     assert_ne!(content_id(&a), content_id(&b));
     let rewrite = tinyrsi_evolve::ScriptProposal {
+        approach: String::new(),
+        differs_from_previous: None,
         rationale: "r".into(),
         hypothesis: "h".into(),
         files: vec![tinyrsi_evolve::ProposedFile {
@@ -346,6 +354,9 @@ fn diagnosed_baseline() -> LedgerCandidate {
         units: IntervalUnits::Metric,
         promoted: true,
         note: None,
+        approach: None,
+        differs_from_previous: None,
+        temperature: None,
     }
 }
 
@@ -379,6 +390,9 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         units: IntervalUnits::Metric,
         promoted: false,
         note: None,
+        approach: Some("sleep sort".into()),
+        differs_from_previous: None,
+        temperature: None,
     };
     let baseline = diagnosed_baseline();
     let ledger = ScriptLedger {
@@ -396,7 +410,8 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         candidates: vec![baseline, rejected],
     };
     let sources = read_sources(&s).unwrap();
-    let text = prompt(&s, &ledger, &sources, 3);
+    let first = Slot { epoch: 2, index: 0 };
+    let text = prompt(&s, &ledger, &sources, &LoopPolicy::default(), first);
     for needle in [
         "Minimize the loss.",
         "target: 0.1",
@@ -410,6 +425,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         "seed 1: first fit used 9 colours",
         "seed 2: (none)",
         "conflicts left: 12",
+        "\"p1-0\" (sleep sort): decision Reject",
     ] {
         assert!(text.contains(needle), "{needle}");
     }
@@ -417,7 +433,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         candidates: vec![],
         ..ledger
     };
-    let text = prompt(&s, &empty, &sources, 3);
+    let text = prompt(&s, &empty, &sources, &LoopPolicy::default(), first);
     assert!(text.contains("None yet."));
     assert!(text.contains("No diagnostics recorded"));
 }

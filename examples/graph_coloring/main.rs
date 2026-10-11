@@ -16,92 +16,27 @@
 //! and DSATUR followed by `TabuCol` (reaches 6). With
 //! `TINYRSI_LIVE_OPENROUTER=1` the supervisor is a real model. The run's
 //! `events.jsonl` lands under `target/rsi-examples/graph_coloring/`.
+//!
+//! The subject, scorer, policy and canned replies are defined once in
+//! `tinyrsi_examples::benchmarks`, which the `benchmarks` runner shares.
 use std::{error::Error, sync::Arc};
-use tinyrsi::{
-    JsonlTrace, LoopPolicy, MetricDirection, MetricScorer, MetricSpec, MonotonicClock, Projected,
-    ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, StopReason, SupervisorLimits,
-    run_script_loop_with,
+use tinyrsi::{ModelPort, StopReason};
+use tinyrsi_examples::{
+    benchmarks::{Benchmark, Models},
+    live_or, python, run_location,
 };
-use tinyrsi_examples::{Replies, live_or, proposal, python, run_location};
-
-const CHECKER: &str = include_str!("check_coloring.py");
-const START: &str = include_str!("coloring.py");
-const DSATUR: &str = include_str!("proposals/dsatur.py");
-const RANDOM_ORDER: &str = include_str!("proposals/random_order.py");
-const TABUCOL: &str = include_str!("proposals/tabucol.py");
-
-const BRIEF: &str = "coloring.py defines color(n, edges): given n vertices labelled 0..n-1 and a \
-list of undirected edges (a, b), return a list of n non-negative integers so that no edge joins \
-two vertices of the same colour. The fixed checker check_coloring.py feeds it random graphs with \
-150 vertices and about 3,300 edges, rejects any invalid colouring (the seed then fails), and \
-prints the number of distinct colours used. Rewrite coloring.py so color() uses as few colours \
-as possible. Use only the Python standard library; stay well under 20 seconds per graph; do not \
-read files, the environment, or the checker. Name the algorithm in a docstring. Print \
-`DIAG <text>` lines to stdout to report what your algorithm did (for example how many \
-colours each phase reached, moves tried, conflicts left); you will see them next round.";
-
-fn canned() -> Replies {
-    Replies::new([
-        proposal(
-            "First fit in label order ignores structure; constrained vertices get colours late.",
-            "DSATUR colours the most saturated vertex first and needs fewer colours.",
-            "coloring.py",
-            DSATUR,
-        ),
-        proposal(
-            "Label order is arbitrary, so a shuffled order should be no worse.",
-            "First fit in a random order matches DSATUR at lower cost.",
-            "coloring.py",
-            RANDOM_ORDER,
-        ),
-        proposal(
-            "DSATUR is greedy and stops at its first valid colouring.",
-            "TabuCol local search shrinks the DSATUR palette to the optimum.",
-            "coloring.py",
-            TABUCOL,
-        ),
-    ])
-}
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let run = run_location("graph_coloring")?;
-    let workspace = run.dir.join("workspace");
-    std::fs::create_dir_all(&workspace)?;
-    std::fs::write(workspace.join("check_coloring.py"), CHECKER)?;
-    std::fs::write(workspace.join("coloring.py"), START)?;
-    let subject = ScriptSubject {
-        name: "coloring.py".into(),
-        brief: BRIEF.into(),
-        workspace,
-        editable: vec!["coloring.py".into()],
-        command: ScriptCommand {
-            program: python()?,
-            args: vec!["check_coloring.py".into()],
-        },
-        metric: MetricSpec {
-            name: "colors".into(),
-            direction: MetricDirection::Minimize,
-            target: Some(6.0),
-        },
-        seeds: vec![1, 2, 3],
-        timeout_ms: 30_000,
-        output_cap: 65_536,
-        env: vec![("PYTHONDONTWRITEBYTECODE".into(), "1".into())],
+    let benchmark = Benchmark::GraphColoring;
+    let run = run_location(benchmark.name())?;
+    let models = Models {
+        supervisor: live_or(Arc::new(benchmark.offline_supervisor()))?,
+        judge: benchmark
+            .offline_judge()
+            .map(|grader| live_or(Arc::new(grader) as Arc<dyn ModelPort>))
+            .transpose()?,
     };
-    let supervisor =
-        ScriptSupervisor::new(live_or(Arc::new(canned()))?, SupervisorLimits::default())?;
-    let scorer = Projected::new(
-        |c: &ScriptCandidate| c.metrics.as_slice(),
-        MetricScorer::new(MetricDirection::Minimize),
-    );
-    let policy = LoopPolicy {
-        max_epochs: 6,
-        proposals_per_epoch: 2,
-        patience: 3,
-        ..LoopPolicy::default()
-    };
-    let mut trace = JsonlTrace::create(run.dir.join("events.jsonl"), MonotonicClock::new())?;
-    let report = run_script_loop_with(&subject, &supervisor, &scorer, &policy, &run, &mut trace)?;
+    let report = benchmark.run(&run, &python()?, models)?;
     println!(
         "{:?} after {} epochs: {:.2} -> {:.2} colours (optimum 6); {} promotions, {} rejected",
         report.reason,

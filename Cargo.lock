@@ -3527,7 +3527,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3554,7 +3554,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "schemars",
  "serde",
@@ -3675,6 +3675,7 @@ dependencies = [
 name = "tinyrsi-examples"
 version = "0.2.1"
 dependencies = [
+ "serde",
  "serde_json",
  "tempfile",
  "tinyhivemind-hives",

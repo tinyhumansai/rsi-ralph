@@ -52,6 +52,14 @@ describe("reducer", () => {
     ]);
     expect(s.candidates["5e4d3c2b1a09"]).toMatchObject({ proposalId: "p2-0", lower: -0.11, upper: -0.05 });
     expect(s.candidates["a1b2c3d4e5f6"]!.proposalId).toBeNull();
+    // The fixture labels its first two proposals; the rest carry no label.
+    expect(s.proposals.map((p) => p.approach)).toEqual([
+      "cubic least squares",
+      "degree-9 polynomial",
+      null,
+      null,
+      null,
+    ]);
   });
 
   it("pairs by id even when candidates run out of proposal order", () => {

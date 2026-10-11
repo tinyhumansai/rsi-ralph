@@ -2,7 +2,8 @@
 
 **Status:** Accepted. **Owner:** TinyRSI maintainers.
 
-Related: [loop trace](loop-trace.md), [guide](../guides/script-loop.md).
+Related: [loop trace](loop-trace.md), [guide](../guides/script-loop.md),
+[hypothesis ledger and slot directives](hypothesis-ledger.md).
 
 ## Problem
 
@@ -36,8 +37,9 @@ language model, if the library could run that cycle end to end.
 - **Policy** (`LoopPolicy`): `max_epochs`, `proposals_per_epoch`, `patience`
   (epochs without promotion before stopping), `token_budget` (measured
   supervisor tokens, plus scorer tokens under `run_script_loop_with`), `rejected_context` (how many rejected proposals the
-  supervisor sees), and the `EvalPolicy` used for scoring (margin zero by
-  default).
+  supervisor sees), `approach_context` (how many tried approaches the
+  supervisor sees), `slots` (one `SlotDirective` per slot, cycled), and the
+  `EvalPolicy` used for scoring (margin zero by default).
 - **Execute:** each candidate is materialized into
   `<run>/candidates/<content-id>/` by copying the workspace (symlinks and the
   run directory itself are skipped) and writing every editable file with the
@@ -69,11 +71,15 @@ language model, if the library could run that cycle end to end.
 - **Improve:** among the epoch's accepted candidates the one with the best mean
   metric becomes the incumbent and later proposals build on it.
 - **Ideate:** `Supervisor` (now `tinyrsi_evolve::ScriptSupervisor`) wraps a `ModelPort` and makes one forced native
-  tool call `propose_script` whose JSON schema is `ScriptProposal { rationale,
-  hypothesis, files: [{path, content}] }`. Its prompt holds the goal and target,
-  the incumbent's editable sources, the per-epoch metric history and the last
-  `rejected_context` rejected proposals with their mean metric, decision,
-  stderr tail and diagnostics, and the incumbent's diagnostics for every seed. A reply that is not exactly one such object is
+  tool call `propose_script` whose JSON schema is `ScriptProposal { approach,
+  differs_from_previous?, rationale, hypothesis, files: [{path, content}] }`.
+  Its prompt holds the goal and target, the incumbent's editable sources, the
+  per-epoch metric history, the approaches already tried and the earlier
+  proposals of this epoch (see the [hypothesis ledger](hypothesis-ledger.md)),
+  the last `rejected_context` rejected proposals with their approach, mean
+  metric, decision, stderr tail and diagnostics, the incumbent's diagnostics
+  for every seed, and last the slot's directive. A slot directive's
+  temperature is passed to the model request. A reply that is not exactly one such object is
   `SupervisorMalformed`; a path outside `editable` (including absolute paths
   and `..`) is `ProposalPathOutsideEditable`. Both are recorded as invalid
   attempts and the loop continues. A transport failure ends the run.
@@ -84,8 +90,9 @@ language model, if the library could run that cycle end to end.
   fails (the error is returned after `run_finished` is written).
 - **Ledger:** `<run>/ledger.json`, rewritten atomically (temporary file,
   `fsync`, rename, directory `fsync`) after every candidate, holds every
-  candidate with its parent, proposal, per-seed runs, mean, decision and
-  interval, the incumbent chain, token use and the stop reason.
+  candidate with its parent, proposal (including its approach label, any
+  `differs_from_previous` and the requested temperature), per-seed runs, mean,
+  decision and interval, the incumbent chain, token use and the stop reason.
 
 New errors: `InvalidScriptSubject`, `ScriptBaselineFailed`, `ScriptTimeout`,
 `ScriptOutputExceeded`, `ScriptFailed`, `MetricMissing`, `MetricInvalid`,
