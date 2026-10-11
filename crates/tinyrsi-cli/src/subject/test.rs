@@ -169,3 +169,22 @@ fn git_errors_carry_the_last_stderr_line() {
     let err = git(root.path(), &["rev-parse", "nope"]).unwrap_err();
     assert!(matches!(err, Error::Git { args, .. } if args == "rev-parse nope"));
 }
+
+#[test]
+fn a_git_spec_resolves_its_repository_and_branch() {
+    let spec = SubjectSpec {
+        kind: SubjectKind::Git,
+        path: "/repos/memory".into(),
+        branch: Some("rsi/main".into()),
+        editable: vec!["src/".into()],
+        frozen: vec![],
+        require_test_change: true,
+    };
+    assert_eq!(
+        Subject::from_spec(&spec, Path::new("/loops/x")),
+        Subject::Git {
+            repo: PathBuf::from("/repos/memory"),
+            branch: "rsi/main".into()
+        }
+    );
+}
