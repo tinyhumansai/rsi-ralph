@@ -8,9 +8,6 @@ pub enum Error {
     /// could not be created, or a line could not be encoded or written.
     #[error("loop trace write failed")]
     Io,
-    /// An exporter was configured without a usable endpoint or header.
-    #[error("invalid trace exporter configuration")]
-    InvalidExporter,
 }
 
 /// The crate's standard result type.
