@@ -2,7 +2,10 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use super::{DEFAULT_LISTEN, DEFAULT_UPSTREAM, Gateway, GatewayConfig, Spend, encode_segment};
+use super::{
+    DEFAULT_LISTEN, DEFAULT_UPSTREAM, Gateway, GatewayConfig, Spend, encode_segment, refuse,
+    wait_ready,
+};
 use crate::error::Error;
 
 fn config(dir: &std::path::Path) -> GatewayConfig {
@@ -89,4 +92,20 @@ fn remaining_is_the_tighter_cap_and_never_negative() {
         ..spend
     };
     assert!(spend.remaining_usd().abs() < 1e-12);
+}
+
+#[test]
+fn a_refused_or_silent_server_thread_fails_the_start_and_is_reaped() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut gateway = Gateway::start(config(dir.path())).unwrap();
+    let (ready, waiting) = std::sync::mpsc::sync_channel(1);
+    refuse(&ready, Error::ServerStopped);
+    let refused = wait_ready(&waiting, &mut gateway).unwrap_err();
+    assert!(matches!(refused, Error::ServerStopped), "{refused}");
+    assert!(gateway.thread.is_none(), "the server thread was joined");
+    let (ready, waiting) = std::sync::mpsc::sync_channel(1);
+    drop(ready);
+    let silent = wait_ready(&waiting, &mut gateway).unwrap_err();
+    assert!(matches!(silent, Error::ServerStopped), "{silent}");
+    gateway.shutdown().unwrap();
 }
