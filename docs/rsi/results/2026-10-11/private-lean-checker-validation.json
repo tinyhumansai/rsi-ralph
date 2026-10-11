@@ -1,0 +1,74 @@
+{
+  "kind": "host-reference checker validation; no model trials",
+  "provenance": "agent-authored finite mathematics",
+  "reference_builds": [
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "anchor-lean-euclid"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "anchor-lean-idempotent"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "anchor-lean-inverse"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "confirmation-lean-euclid"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "confirmation-lean-idempotent"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "confirmation-lean-inverse"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "screen-lean-euclid"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "screen-lean-idempotent"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "screen-lean-inverse"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "selection-lean-euclid"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "selection-lean-idempotent"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "task_id": "selection-lean-inverse"
+    }
+  ],
+  "suite_fingerprints": {
+    "anchor": "sha256:34cfd79715bb3ddbd7ec9add7cfdef3ebd9fd239b13da847f4869aaa38b27ab8",
+    "confirmation": "sha256:7636e30441a7649f53e2e4428de209a9e4e83e734fae7b84aad91a18321a7d30",
+    "screen": "sha256:5e62e090c3598e1deef7fa64cd86dd5c610722222ca5d0c5235c626dfc5435a2",
+    "selection": "sha256:54a7c2c2985db8206d3ec7a1f1af47baa5b0e8dead0977d1d231d58c64c848aa"
+  },
+  "toolchain": "leanprover/lean4:v4.34.1",
+  "version": 1
+}

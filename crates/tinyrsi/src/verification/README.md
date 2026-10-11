@@ -41,3 +41,8 @@ checker and before its DAG/completion update. A failed callback parks the turn
 without submitting completion. `ControlledRunnerFactory::with_evidence_journal`
 uses this port together with provider usage callbacks to persist measured
 evidence before allowing its host outcome to finalize.
+
+`Lake` uses the same restricted proof boundary inside a fresh pinned project.
+Both actual compiler binaries and the immutable project template are included
+in private suite identities. See [checker constraints](lake/README.md) and the
+[private slice example](../../examples/verify_lean_slice/README.md).
