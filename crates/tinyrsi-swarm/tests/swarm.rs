@@ -213,7 +213,7 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     )
     .unwrap();
 
-    eprintln!("DEBUG {outcome:?} {events:#?} {:?}", server_runtime.block_on(server.received_requests()).unwrap().iter().map(|r| (r.method.to_string(), r.url.path().to_owned(), String::from_utf8_lossy(&r.body).chars().take(300).collect::<String>())).collect::<Vec<_>>());
+    eprintln!("DEBUG {outcome:?} {events:#?} {:?}", server_runtime.block_on(server.received_requests()).unwrap().iter().map(|r| (r.method.to_string(), r.url.path().to_owned(), String::from_utf8_lossy(&r.body).chars().rev().take(1500).collect::<String>().chars().rev().collect::<String>())).collect::<Vec<_>>());
     assert_eq!(outcome.stop, StopReason::Idle);
     assert_eq!(outcome.failed, 0);
     assert_eq!(
