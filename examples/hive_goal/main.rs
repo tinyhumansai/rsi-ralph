@@ -28,12 +28,17 @@
 //! no credentials, a few seconds. The agents are a `ContextFollower` model
 //! that does what its shared context says, so only the right context makes
 //! the private checkers pass. The proposer replays a script: in epoch 1 a
-//! seat-prompt edit (rejected `WRONG_CLASS`: only context edits are allowed)
-//! and a context edit asking for brevity (rejected `INCONCLUSIVE`: it changes
+//! seat-prompt edit (rejected `WRONG_CLASS`: only context edits are allowed),
+//! a context item sending the agents to a calculator tool the hive lacks
+//! (rejected `HARMFUL`: the incumbent completes its private runs, the
+//! candidate overspends its reservation on every one), a reworded copy of that item (stopped
+//! `COOLDOWN` with no evaluation: same patch shape, fresh strike) and a
+//! context edit asking for brevity (rejected `INCONCLUSIVE`: it changes
 //! nothing measurable); in epoch 2 the real repair (`ACCEPTED`). Normalized H
 //! moves from -0.10 (nothing solved, less the false-claim penalty for every
 //! failed check) to about 1.00. The run exits non-zero if no proposal is
-//! accepted or the deployed hive still fails.
+//! accepted or the deployed hive still fails, and offline also if the
+//! overspending edit is not penalized.
 //!
 //! With `TINYRSI_LIVE_OPENROUTER=1` (plus `OPENROUTER_API_KEY`;
 //! `OPENROUTER_MODEL` picks the model) one real model plays both the agents
@@ -109,6 +114,7 @@ fn main() -> Outcome<()> {
         runtime: tokio::runtime::Runtime::new()?,
         archive,
         rejected: 0,
+        reasons: vec![],
     };
     hive_loop.trace.record(LoopEvent::RunStarted {
         run_id: run.id.clone(),
@@ -128,6 +134,12 @@ fn main() -> Outcome<()> {
         }
     }
 
+    let penalized = [ReasonCode::Harmful, ReasonCode::Cooldown]
+        .iter()
+        .all(|reason| hive_loop.reasons.contains(reason));
+    if !live() && !penalized {
+        return Err("the overspending edit was not rejected HARMFUL and cooled".into());
+    }
     let HiveLoop {
         archive,
         mut trace,
@@ -186,6 +198,8 @@ struct HiveLoop {
     runtime: tokio::runtime::Runtime,
     /// Proposals rejected so far, across epochs.
     rejected: u32,
+    /// Every reason a proposal stopped with, across epochs.
+    reasons: Vec<ReasonCode>,
 }
 
 impl HiveLoop {
@@ -253,6 +267,21 @@ impl HiveLoop {
                 code(candidate.reason)?,
                 proposal.title
             );
+            self.reasons.push(candidate.reason);
+            if let Some(failure) = self
+                .archive
+                .candidate_failures()
+                .into_iter()
+                .find(|f| Some(&f.candidate_id) == candidate.candidate_id.as_ref())
+            {
+                println!(
+                    "      candidate failed {}/{} private runs the incumbent completed ({:?})",
+                    failure.failed_runs, failure.runs, failure.kind
+                );
+            }
+            if candidate.reason == ReasonCode::Cooldown {
+                println!("      same patch shape as a struck edit: not evaluated");
+            }
             if candidate.reason == ReasonCode::Accepted {
                 let id = candidate
                     .candidate_id
@@ -384,6 +413,7 @@ fn h_epoch(dossier: &Dossier, evaluator: &CoordinatorEvaluator) -> HEpoch {
             transcript_refs: dossier.transcript_sequences.clone(),
             failure_nodes: nodes,
             budget: Budget { max_tokens: 16_384 },
+            penalty: tinyrsi_host::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: hive::policy(),
@@ -391,7 +421,7 @@ fn h_epoch(dossier: &Dossier, evaluator: &CoordinatorEvaluator) -> HEpoch {
     }
 }
 
-/// One direct proposer call per epoch returning at most three proposals.
+/// One direct proposer call per epoch returning at most four proposals.
 fn generation() -> GenerationBudget {
     GenerationBudget {
         total_tokens: 200_000,
@@ -400,8 +430,8 @@ fn generation() -> GenerationBudget {
         timeout_ms: 120_000,
         variations: 1,
         generations: 1,
-        items_per_variation: 3,
-        select_top_k: 3,
+        items_per_variation: 4,
+        select_top_k: 4,
         judge_raters: 1,
         wall_clock_secs: 120,
     }

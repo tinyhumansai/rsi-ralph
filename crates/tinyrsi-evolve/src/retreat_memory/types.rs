@@ -25,6 +25,10 @@ pub enum RetreatOutcomeStatus {
     Approved,
     /// Host rejected the candidate.
     Rejected,
+    /// The candidate failed runs its incumbent completed (`HARMFUL`).
+    Harmful,
+    /// The host measured a confident regression.
+    Regressed,
 }
 /// Redacted host outcome; never contains private patches or oracle output.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,4 +40,8 @@ pub struct RetreatMemoryOutcome {
     pub candidate_id: String,
     /// Host outcome classification.
     pub status: RetreatOutcomeStatus,
+    /// Public patch shape (class and edited targets, no values) of a harmful
+    /// or regressed candidate; omitted from storage when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shape: Option<String>,
 }

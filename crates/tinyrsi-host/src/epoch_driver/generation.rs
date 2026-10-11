@@ -2,7 +2,7 @@
 use super::{EpochJournal, GenerationBudget, GenerationMode, PreparedRetreatEpoch, types::Entry};
 use crate::{
     Archive, DeploymentCheckpoint, Dossier, DurableRetreatMemory, Error, HEpoch, ModelConversant,
-    ModelPort, Package, Proposal, ProposalEvent, Result,
+    ModelPort, Package, PriorIdea, PriorOutcome, Proposal, ProposalEvent, Result, StrikeKind,
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -43,6 +43,40 @@ pub fn normalized_retreat_request(
     mode: GenerationMode,
     budget: &GenerationBudget,
 ) -> Result<GenerateRequest> {
+    let priors: Vec<_> = rejected.iter().map(PriorIdea::from_event).collect();
+    normalized_request(hive_id, dossier, incumbent, &priors, mode, budget)
+}
+/// Every archived stop as a prior-idea seed, struck attempts first and
+/// otherwise in archive order; a `Regressed` strike labels its seed
+/// `regressed`.
+pub(super) fn prior_ideas(archive: &Archive) -> Vec<PriorIdea> {
+    let strikes = archive.penalties().strikes;
+    let mut priors: Vec<(bool, PriorIdea)> = archive
+        .proposals()
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let idea = PriorIdea::from_event(event);
+            match strikes.iter().find(|s| s.proposal == Some(index)) {
+                Some(s) if s.kind == StrikeKind::Regressed => {
+                    (true, idea.with_outcome(PriorOutcome::Regressed))
+                }
+                Some(_) => (true, idea),
+                None => (false, idea),
+            }
+        })
+        .collect();
+    priors.sort_by_key(|(struck, _)| !*struck);
+    priors.into_iter().map(|(_, idea)| idea).collect()
+}
+fn normalized_request(
+    hive_id: &str,
+    dossier: &Dossier,
+    incumbent: &Package,
+    priors: &[PriorIdea],
+    mode: GenerationMode,
+    budget: &GenerationBudget,
+) -> Result<GenerateRequest> {
     if budget.total_tokens == 0
         || budget.call_tokens == 0
         || budget.call_tokens > budget.total_tokens
@@ -54,7 +88,8 @@ pub fn normalized_retreat_request(
     {
         return Err(Error::InvalidProposal);
     }
-    let mut request = crate::typed_retreat_request(hive_id, dossier, incumbent, rejected)?;
+    let mut request =
+        crate::typed_retreat_request_with_priors(hive_id, dossier, incumbent, priors)?;
     request.output.schema["properties"]["prediction"]["properties"]["metric"]["const"] =
         json!("normalized_h");
     request.input.brief.push_str(" Predict normalized_h gain under the host's frozen verified quality, health and cost policy. Output prediction.metric exactly normalized_h.");
@@ -117,12 +152,12 @@ pub async fn prepare_retreat_epoch(
     {
         return Err(Error::InvalidRecord);
     }
-    let rejected: Vec<_> = input.archive.proposals().into_iter().cloned().collect();
-    let mut request = normalized_retreat_request(
+    let priors = prior_ideas(input.archive);
+    let mut request = normalized_request(
         input.hive_id,
         input.dossier,
         package,
-        &rejected,
+        &priors,
         input.mode,
         input.budget,
     )?;
@@ -358,9 +393,13 @@ fn fingerprint(input: &RetreatEpochInput<'_>, incumbent: &str) -> Result<String>
     )
 }
 pub(super) fn policy_fingerprint(epoch: &HEpoch) -> Result<String> {
-    hash(
-        &json!({"id":epoch.epoch.id,"class":epoch.epoch.class,"refs":epoch.epoch.transcript_refs,"nodes":epoch.epoch.failure_nodes,"budget":epoch.epoch.budget,"policy":epoch.policy,"suites":epoch.suite_ids}),
-    )
+    let mut frozen = json!({"id":epoch.epoch.id,"class":epoch.epoch.class,"refs":epoch.epoch.transcript_refs,"nodes":epoch.epoch.failure_nodes,"budget":epoch.epoch.budget,"policy":epoch.policy,"suites":epoch.suite_ids});
+    // The default penalty policy is left out, so fingerprints frozen before
+    // penalties existed still match; any other policy is frozen with the epoch.
+    if epoch.epoch.penalty != crate::PenaltyPolicy::default() {
+        frozen["penalty"] = json!(epoch.epoch.penalty);
+    }
+    hash(&frozen)
 }
 fn hash(value: &Value) -> Result<String> {
     Ok(format!(

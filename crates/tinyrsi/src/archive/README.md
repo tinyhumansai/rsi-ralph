@@ -12,7 +12,10 @@ that snapshot. Accepted candidates must descend from the active head. Rejected
 candidates remain available through `rejected` and never activate themselves.
 
 `revert` records an activation of the active head's immediate accepted parent.
-It preserves all candidates and survives reopening.
+It preserves all candidates and survives reopening. `revoke(epoch)` does the
+same and, in the same transaction, records a revocation of the head; the
+record keeps its `Accepted` verdict and the [strike ledger](penalty/README.md)
+(`penalties`) counts it against its patch shape.
 `declare_proposal` commits the exact typed prediction, risk and effort before
 evaluation, retaining host-private provenance across restarts.
 `record_proposal` retains failed attempts without fabricating language records;
@@ -85,3 +88,10 @@ host decision and is not synthesized by this archive.
 
 `proposal_dispositions` supplies a [safe versioned projection](dispositions/README.md)
 of exact-duplicate history without changing archive events or selection labels.
+
+`record_candidate_failure` persists a `CandidateFailureEvent`: a prepared or
+recorded candidate failed `failed_runs` of `runs` runs at one stage while the
+incumbent completed the same draw. Replay requires a known candidate, a
+Screen/Selection/Confirmation stage and `1 <= failed_runs <= runs`. The event
+holds a coarse kind and counts only. `candidate_failures` lists them in order;
+the loop trace reads them for `measured.failures`.

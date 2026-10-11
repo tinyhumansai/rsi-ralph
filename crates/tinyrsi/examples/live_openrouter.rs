@@ -201,6 +201,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         transcript_refs: vec![1],
         failure_nodes: vec!["arithmetic".into()],
         budget: Budget { max_tokens: 256 },
+        penalty: tinyrsi::PenaltyPolicy::default(),
         policy: EvalPolicy {
             cost_tolerance: 0.5,
             ..EvalPolicy::default()

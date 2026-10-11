@@ -22,6 +22,8 @@ fn every_reason_code_serializes_in_screaming_snake_case() {
         (ReasonCode::ApprovalDenied, "APPROVAL_DENIED"),
         (ReasonCode::HostFailure, "HOST_FAILURE"),
         (ReasonCode::Accepted, "ACCEPTED"),
+        (ReasonCode::Harmful, "HARMFUL"),
+        (ReasonCode::Cooldown, "COOLDOWN"),
     ];
     for (code, text) in codes {
         assert_eq!(serde_json::to_value(code).unwrap(), json!(text));

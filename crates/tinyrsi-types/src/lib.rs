@@ -34,10 +34,12 @@
 //! crates that do that work.
 
 mod candidate;
+mod failure;
 mod goal;
 mod proposal;
 
 pub use candidate::{CandidateState, EvalStage};
+pub use failure::{CandidateFailure, CandidateFailureKind};
 pub use goal::Goal;
 pub use proposal::{Prediction, Proposal, ProposalEvent, ReasonCode};
 

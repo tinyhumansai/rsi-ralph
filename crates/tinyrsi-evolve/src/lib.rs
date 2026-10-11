@@ -39,9 +39,10 @@ mod scripted;
 pub use error::{Error, Result};
 pub use port::{EvolveContext, Evolver, Proposed};
 pub use retreat::{
-    RetreatBrief, RetreatDossier, RetreatEvolver, RetreatOutput, RetreatTransport,
-    build_retreat_request, decode_retreat_response, generate_retreat, generate_retreat_with_engine,
-    typed_retreat_request,
+    PriorIdea, PriorOutcome, RetreatBrief, RetreatDossier, RetreatEvolver, RetreatOutput,
+    RetreatTransport, build_retreat_request, build_retreat_request_with_priors,
+    decode_retreat_response, generate_retreat, generate_retreat_with_engine, typed_retreat_request,
+    typed_retreat_request_with_priors,
 };
 pub use retreat_memory::*;
 pub use script::{

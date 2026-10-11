@@ -50,6 +50,12 @@ pub enum Error {
     /// A host-owned evaluation or approval operation failed.
     #[error("host operation failed")]
     HostFailed,
+    /// The candidate failed runs the incumbent completed on the same draws:
+    /// it crashed, timed out, overran its reservation or lowered to a hive
+    /// the evaluator cannot run. The orchestrator records it as
+    /// [`crate::ReasonCode::Harmful`], never as a host failure.
+    #[error("candidate failed runs the incumbent completed")]
+    CandidateFailed(tinyrsi_types::CandidateFailure),
     /// Turn callbacks or epoch identities conflict with retained host evidence.
     #[error("invalid or conflicting host evidence")]
     InvalidEvidence,
@@ -115,6 +121,7 @@ impl From<tinyrsi_score::Error> for Error {
     fn from(error: tinyrsi_score::Error) -> Self {
         match error {
             tinyrsi_score::Error::HostFailed => Self::HostFailed,
+            tinyrsi_score::Error::CandidateFailed(failure) => Self::CandidateFailed(failure),
             tinyrsi_score::Error::JudgeMalformed => Self::JudgeMalformed,
             tinyrsi_score::Error::Model(model) => model.into(),
             _ => Self::InvalidEvaluation,

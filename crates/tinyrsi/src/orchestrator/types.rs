@@ -1,7 +1,7 @@
 //! Typed proposal, evaluation and human-approval ports.
 use crate::{
     Budget, CandidateState, Comparison, EvalPolicy, EvalRun, EvalStage, Patch, PatchClass,
-    Proposal, ReasonCode, Result,
+    PenaltyPolicy, Proposal, ReasonCode, Result,
 };
 use std::collections::BTreeMap;
 
@@ -18,6 +18,8 @@ pub struct Epoch {
     pub failure_nodes: Vec<String>,
     /// Hard per-run budget.
     pub budget: Budget,
+    /// Strikes that cool a patch shape before any evaluation spend.
+    pub penalty: PenaltyPolicy,
     /// Host-selected statistical constraints.
     pub policy: EvalPolicy,
 }

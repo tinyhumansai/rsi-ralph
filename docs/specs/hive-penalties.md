@@ -56,7 +56,8 @@ On the hive path a patch that makes a run bad is never really penalized.
 | The incumbent's lowered hive is unsupported, or any incumbent job fails | `HostFailed` (unchanged) |
 | The candidate's lowered hive fails `validate` after the incumbent's passed | `CandidateFailed`, `unsupported` |
 | A candidate request cannot be reserved within the budget, or names a seat the candidate lacks, after the incumbent's requests were | `CandidateFailed`, `over_budget` or `unsupported` |
-| The incumbent arm completes and a candidate job then fails | `CandidateFailed`: `timeout` (provider timeout), `over_budget` (reply over its reservation), otherwise `crash` |
+| The incumbent arm completes and a candidate provider call fails (transport, status, credentials) or a job task panics | `HostFailed`: an outage is not evidence against the patch |
+| The incumbent arm completes and a candidate job then fails otherwise | `CandidateFailed`: `timeout` (provider timeout), `over_budget` (reply over its reservation), otherwise `crash` |
 
 The incumbent arm runs to completion first; only then do candidate jobs run.
 Every candidate job runs, so `failed_runs` counts every failed candidate run

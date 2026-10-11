@@ -82,6 +82,19 @@ fn scoring_errors_map_onto_the_variants_callers_already_match() {
     );
     assert_eq!(Error::from(Score::HostFailed), Error::HostFailed);
     assert_eq!(Error::from(Score::JudgeMalformed), Error::JudgeMalformed);
+    let failure = crate::CandidateFailure {
+        kind: crate::CandidateFailureKind::Timeout,
+        failed_runs: 2,
+        runs: 4,
+    };
+    assert_eq!(
+        Error::from(Score::CandidateFailed(failure)),
+        Error::CandidateFailed(failure)
+    );
+    assert_eq!(
+        Error::CandidateFailed(failure).to_string(),
+        "candidate failed runs the incumbent completed"
+    );
     assert_eq!(
         Error::from(Score::Model(tinyrsi_model::Error::CallFailed)),
         Error::HostFailed
