@@ -29,6 +29,8 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 # workspace version moves on every release, and nothing here is published, so
 # the path is the whole address.
 tinyrsi-types = { path = "crates/tinyrsi-types" }
+# The loop library the host runtime builds on.
+tinyrsi = { path = "crates/tinyrsi" }
 # Paired comparison, normalized scoring, experiments and the `Scorer` port.
 tinyrsi-score = { path = "crates/tinyrsi-score" }
 # Host checkers, blueprints and the bounded process runner.

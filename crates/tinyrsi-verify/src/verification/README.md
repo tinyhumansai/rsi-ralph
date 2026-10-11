@@ -45,4 +45,4 @@ evidence before allowing its host outcome to finalize.
 `Lake` uses the same restricted proof boundary inside a fresh pinned project.
 Both actual compiler binaries and the immutable project template are included
 in private suite identities. See [checker constraints](lake/README.md) and the
-[private slice example](../../../tinyrsi/examples/verify_lean_slice/README.md).
+[private slice example](../../../tinyrsi-host/examples/verify_lean_slice/README.md).

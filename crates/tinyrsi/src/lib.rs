@@ -39,24 +39,14 @@
 //! ```
 
 mod archive;
-#[cfg(feature = "host")]
-mod epoch_driver;
 mod error;
-#[cfg(feature = "host")]
-mod evidence_journal;
-#[cfg(feature = "host")]
-mod host;
 mod lineage;
 mod memory;
 mod observation;
 mod orchestrator;
 mod script_loop;
-#[cfg(feature = "host")]
-mod suites;
 
 pub use error::{Error, Result};
-#[cfg(feature = "host")]
-pub use evidence_journal::{EvidenceEpoch, EvidenceJournal, RecordedTurn, RecordedTurnStatus};
 pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
@@ -74,8 +64,6 @@ pub use tinyrsi_types::{
 };
 
 pub use archive::NormalizedEvaluationEvent;
-#[cfg(feature = "host")]
-pub use host::*;
 // Evolution: the Evolver port, the script supervisor, retreat and its memory.
 pub use tinyrsi_evolve::{
     DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, Proposed,
@@ -92,12 +80,8 @@ pub use tinyrsi_verify::{
     VerifierRegistry, VerifierScorer,
 };
 
-#[cfg(feature = "host")]
-pub use epoch_driver::*;
 // Scoring: paired comparison, normalized H, experiments.
 pub use memory::SnapshotMemoryStore;
-#[cfg(feature = "host")]
-pub use suites::*;
 pub use tinyrsi_model::{
     BudgetedModel, Error as ModelError, GenerationMeter, ModelConversant, ModelFuture,
     ModelIdentity, ModelPort, ModelReply, ModelRequest, OpenRouterModel, block_on,
