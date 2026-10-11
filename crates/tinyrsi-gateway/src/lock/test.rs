@@ -28,3 +28,26 @@ fn reports_unusable_lock_paths() {
     let error = LedgerLock::acquire(&file.join("ledger.json")).unwrap_err();
     assert!(matches!(error, Error::Io { .. }), "{error}");
 }
+
+#[test]
+fn reports_a_lock_folder_that_cannot_be_created_or_written() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("a-file");
+    std::fs::write(&file, "").unwrap();
+    let error = LedgerLock::acquire(&file.join("deeper/ledger.json")).unwrap_err();
+    assert!(matches!(error, Error::Io { .. }), "{error}");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let sealed = dir.path().join("sealed");
+        std::fs::create_dir(&sealed).unwrap();
+        std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o500)).unwrap();
+        let result = LedgerLock::acquire(&sealed.join("ledger.json"));
+        std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o700)).unwrap();
+        // Root ignores directory permissions; everyone else is refused.
+        if let Err(error) = result {
+            assert!(matches!(error, Error::Io { .. }), "{error}");
+        }
+    }
+}

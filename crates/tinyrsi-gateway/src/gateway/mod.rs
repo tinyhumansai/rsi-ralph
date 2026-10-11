@@ -182,18 +182,20 @@ impl Drop for Gateway {
 
 /// Waits for the background thread to report that it is serving.
 fn wait_ready(ready: &Receiver<Result<()>>, gateway: &mut Gateway) -> Result<()> {
-    match ready.recv() {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err(error)) => {
-            // The thread has already returned; reap it.
-            let _ = gateway.stop();
-            Err(error)
-        }
-        Err(_) => {
-            let _ = gateway.stop();
-            Err(Error::ServerStopped)
-        }
+    // A closed channel means the thread died before reporting.
+    let outcome = ready.recv().unwrap_or(Err(Error::ServerStopped));
+    if outcome.is_err() {
+        // The thread has already returned; reap it.
+        let _ = gateway.stop();
     }
+    outcome
+}
+
+/// Report a setup failure to the starting thread, which turns it into the
+/// error `Gateway::start` returns.
+fn refuse(ready: &std::sync::mpsc::SyncSender<Result<()>>, error: Error) -> Result<()> {
+    let _ = ready.send(Err(error));
+    Ok(())
 }
 
 /// The background thread's body: build a runtime, serve until stopped,
@@ -204,28 +206,24 @@ fn serve(
     stopped: tokio::sync::oneshot::Receiver<()>,
     ready: &std::sync::mpsc::SyncSender<Result<()>>,
 ) -> Result<()> {
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
+    let built = tokio::runtime::Builder::new_multi_thread()
         .thread_name("tinyrsi-gateway-worker")
         .enable_all()
         .build()
-    {
+        .map_err(Error::Runtime);
+    let runtime = match built {
         Ok(runtime) => runtime,
-        Err(error) => {
-            let _ = ready.send(Err(Error::Runtime(error)));
-            return Ok(());
-        }
+        Err(error) => return refuse(ready, error),
     };
     runtime.block_on(async move {
         let addr = listener.local_addr().ok();
-        let listener = match tokio::net::TcpListener::from_std(listener) {
+        let adopted = tokio::net::TcpListener::from_std(listener).map_err(|source| Error::Bind {
+            addr: addr.unwrap_or(DEFAULT_LISTEN),
+            source,
+        });
+        let listener = match adopted {
             Ok(listener) => listener,
-            Err(source) => {
-                let _ = ready.send(Err(Error::Bind {
-                    addr: addr.unwrap_or(DEFAULT_LISTEN),
-                    source,
-                }));
-                return Ok(());
-            }
+            Err(error) => return refuse(ready, error),
         };
         let _ = ready.send(Ok(()));
         let served = axum::serve(listener, Arc::clone(&proxy).router())
