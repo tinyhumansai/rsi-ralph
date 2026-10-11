@@ -31,3 +31,5 @@ See [`host-runtime.md`](host-runtime.md) or
   and run snapshots (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — score, evolve, core and observe
   crates; TinyBus module removal.
+- [`hive-penalties.md`](hive-penalties.md) — attributing candidate failures,
+  the strike ledger, cooldown, revocation and generator feedback.

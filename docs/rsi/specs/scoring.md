@@ -197,6 +197,10 @@ map distinguishes implemented ports/signals from future automatic controllers.
 | Class eligibility/acceptance near zero over frozen epoch window | Switch authorized class or broaden retreat mode, lens or variations |
 | Prior calibration deteriorates | Reduce its EV influence; allocate more tests uniformly |
 | Approval denied/unavailable or execution fails | Preserve incumbent; retain denial/host-failure disposition |
+| Candidate fails runs the incumbent completed on the same draws (crash, timeout, over-budget reply, unsupported hive) | Reject with `HARMFUL`; record the failure counts; strike its patch shape |
+| Upper ΔH bound below zero (`NO_GAIN` or `NOT_REPLICATED`) | Strike its patch shape as a confident regression |
+| Patch shape has a `HARMFUL` or revoked strike, or enough regressions, within the frozen penalty window | Stop with `COOLDOWN` before any evaluation spend; eligible again once its strikes leave the window |
+| Host rolls back a deployed acceptance | Record a revocation; keep the `Accepted` verdict; strike its patch shape |
 
 Hard gates include every family regression allowance, no worse false-claim or
 tamper rates, and token cost within `(1+epsilon)` of the incumbent. A zero cost

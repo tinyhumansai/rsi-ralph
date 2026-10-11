@@ -28,3 +28,4 @@ this repository.
 - [`script-loop.md`](script-loop.md) — script loop, example and hive trace.
 - [`rsi-viz.md`](rsi-viz.md) — loop visualizer (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — crate-by-crate extraction order.
+- [`hive-penalties.md`](hive-penalties.md) — four stacked penalty changes.
