@@ -47,12 +47,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         vec![ModelChoice::Offline]
     };
-    let out = match &options.out {
-        Some(out) => out.clone(),
-        None => {
-            let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-            PathBuf::from("target/rsi-benchmarks").join(stamp.to_string())
-        }
+    let out = if let Some(out) = &options.out {
+        out.clone()
+    } else {
+        let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        PathBuf::from("target/rsi-benchmarks").join(stamp.to_string())
     };
     let jobs = plan(&options.benchmarks, &models, options.repeats, &out);
     println!("{} runs under {}", jobs.len(), out.display());
