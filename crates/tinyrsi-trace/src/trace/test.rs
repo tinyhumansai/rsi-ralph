@@ -37,10 +37,13 @@ fn ideated_carries_an_optional_approach_label() {
         r#"{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a","candidate":"b","rationale":"r","hypothesis":"h"}"#,
         r#"{"kind":"ideated","epoch":3,"proposal_id":"p3-1","parent":"a","candidate":"b","rationale":"r","hypothesis":"h","approach":null}"#,
     ] {
-        let LoopEvent::Ideated { approach, .. } = serde_json::from_str(absent).unwrap() else {
-            panic!("not an ideated event: {absent}");
-        };
-        assert_eq!(approach, None);
+        assert!(
+            matches!(
+                serde_json::from_str(absent).unwrap(),
+                LoopEvent::Ideated { approach: None, .. }
+            ),
+            "{absent}"
+        );
     }
 }
 
