@@ -12,6 +12,8 @@ recorded separately.
   merged host and scoring work, with the next implementation boundary.
 - [Private numerical benchmarks](private-benchmarks.md): 48 independently checked
   agent-authored tasks and hard Euler controls with pinned published solutions.
+- [Pinned Lean checks](pinned-lean.md): exact toolchain builds of 12 private
+  finite mathematics reference proofs, with safe receipts.
 - [Host runtime](../specs/host-runtime.md): durable deployment, compensation,
   exact memory restoration and the supported runner boundary.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.

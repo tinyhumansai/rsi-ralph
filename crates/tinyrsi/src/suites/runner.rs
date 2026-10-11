@@ -182,7 +182,7 @@ pub(super) fn blueprint(task: &PrivateTask) -> Result<Blueprint> {
         HostVerifier::Golden { .. } => VerifierKind::HeldOutReference,
         HostVerifier::Schema { .. } => VerifierKind::Schema,
         HostVerifier::Process(_) => VerifierKind::Execution,
-        HostVerifier::Lean { .. } => VerifierKind::Proof,
+        HostVerifier::Lean { .. } | HostVerifier::Lake { .. } => VerifierKind::Proof,
     };
     Blueprint::new(vec![BlueprintNode {
         id: "artifact".into(),
@@ -301,7 +301,7 @@ fn observed_run(
         HostVerifier::Golden { .. } => VerifierTier::HeldOutReference,
         HostVerifier::Schema { .. } => VerifierTier::Schema,
         HostVerifier::Process(_) => VerifierTier::Execution,
-        HostVerifier::Lean { .. } => VerifierTier::Proof,
+        HostVerifier::Lean { .. } | HostVerifier::Lake { .. } => VerifierTier::Proof,
     };
     let quality = QualityRubric::new(0.5, vec![tier])?.score(
         result.passed,

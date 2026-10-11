@@ -18,6 +18,14 @@ pub(super) fn checker(verifier: &HostVerifier) -> Result<String> {
             command: c,
             theorem,
         } => json!({"lean":command(c)?,"theorem":theorem}),
+        HostVerifier::Lake {
+            command: c,
+            theorem,
+            toolchain,
+        } => json!({
+            "lake": command(c)?, "theorem": theorem, "toolchain": toolchain,
+            "project": crate::verification::lake::identity(c)?
+        }),
     };
     Ok(digest(
         &serde_json::to_vec(&value).map_err(|_| Error::InvalidEvaluation)?,
