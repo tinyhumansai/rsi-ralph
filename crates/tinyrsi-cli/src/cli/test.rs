@@ -238,3 +238,54 @@ fn score_accepts_an_explicit_checkout_and_show_skips_absent_fields() {
         out.contains("incumbent abc (-)") && !out.contains("stopped") && !out.contains("error")
     );
 }
+
+#[test]
+fn env_overrides_merge_into_the_manifest_and_reject_malformed_pairs() {
+    let files = manifest::load_dir(&example()).unwrap();
+    let merged = with_env(files.clone(), &["LIMIT=5".into(), "MODE=a=b".into()]).unwrap();
+    let parsed = manifest::parse(&merged).unwrap();
+    assert_eq!(
+        parsed.manifest.env.get("LIMIT").map(String::as_str),
+        Some("5")
+    );
+    assert_eq!(
+        parsed.manifest.env.get("MODE").map(String::as_str),
+        Some("a=b")
+    );
+    assert_eq!(with_env(files.clone(), &[]).unwrap(), files);
+    for bad in ["NOEQUALS", "=value"] {
+        let err = with_env(files.clone(), &[bad.into()]).unwrap_err();
+        assert!(matches!(err, Error::Field { .. }), "{bad}: {err:?}");
+    }
+    let reserved = with_env(files, &["RSI_OUT=x".into()]).unwrap();
+    assert!(matches!(
+        manifest::parse(&reserved),
+        Err(Error::Field { .. })
+    ));
+}
+
+#[test]
+fn score_passes_env_overrides_to_the_scorer() {
+    let home = tempfile::tempdir().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let dir = root.path().join("loop");
+    crate::subject::copy_tree(&example(), &dir).unwrap();
+    std::fs::write(
+        dir.join("scorers/colors.py"),
+        "import os\nprint(f\"METRIC colors={os.environ['COLORS']}\")\n",
+    )
+    .unwrap();
+    let (ok, out) = exec(
+        &[
+            "--home",
+            home.path().to_str().unwrap(),
+            "score",
+            dir.to_str().unwrap(),
+            "--env",
+            "COLORS=4",
+        ],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?} {out}");
+    assert!(out.contains("colors = 4.0000"), "{out}");
+}

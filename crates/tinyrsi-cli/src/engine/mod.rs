@@ -206,7 +206,8 @@ impl Engine<'_> {
     }
 
     /// Score the incumbent, or reuse the cached score of the same revision
-    /// under the same scorers.
+    /// under the same scorers and step environment (`env` can change what a
+    /// scorer measures, such as how many items it scores).
     fn baseline(
         &self,
         incumbent: &Checkout,
@@ -218,6 +219,7 @@ impl Engine<'_> {
             let mut hasher = Sha256::new();
             hasher.update(revision.as_bytes());
             hasher.update(serde_json::to_vec(spec).unwrap_or_default());
+            hasher.update(serde_json::to_vec(&self.parsed.manifest.env).unwrap_or_default());
             crate::subject::hex(&hasher.finalize()[..8])
         };
         let cached = self

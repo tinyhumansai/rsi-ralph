@@ -5,6 +5,7 @@
 //! run fails, 2 for invalid input (a malformed loop folder or arguments).
 
 use std::{
+    collections::BTreeMap,
     io::Write,
     net::SocketAddr,
     path::{Path, PathBuf},
@@ -59,6 +60,10 @@ pub enum Command {
         /// Do not serve the UI.
         #[arg(long)]
         no_serve: bool,
+        /// Extra step environment, `KEY=VALUE`, overriding `rsi.json`'s `env`;
+        /// recorded in the run's copy of the loop. Repeatable.
+        #[arg(long = "env", value_name = "KEY=VALUE")]
+        env: Vec<String>,
     },
     /// Score one checkout with the loop's scorers, outside any run.
     Score {
@@ -70,6 +75,10 @@ pub enum Command {
         /// Checkout to score; defaults to the subject's incumbent.
         #[arg(long)]
         checkout: Option<PathBuf>,
+        /// Extra step environment, `KEY=VALUE`, overriding `rsi.json`'s `env`.
+        /// Repeatable.
+        #[arg(long = "env", value_name = "KEY=VALUE")]
+        env: Vec<String>,
     },
     /// List stored runs, newest first.
     Runs {
@@ -140,8 +149,10 @@ pub fn execute(
             epochs,
             port,
             no_serve,
+            env,
         } => {
-            let parsed = load(&r#loop)?;
+            let files = with_env(manifest::load_dir(&r#loop)?, &env)?;
+            manifest::parse(&files)?;
             let server = if no_serve {
                 None
             } else {
@@ -150,22 +161,15 @@ pub fn execute(
             if let Some(server) = &server {
                 say(out, &format!("ui: {}", server.url()))?;
             }
-            run::run(
-                &parsed,
-                &r#loop,
-                &store,
-                run.as_deref(),
-                epochs,
-                lookup,
-                out,
-            )
+            run::run(&files, &r#loop, &store, run.as_deref(), epochs, lookup, out)
         }
         Command::Score {
             r#loop,
             label,
             checkout,
+            env,
         } => {
-            let parsed = load(&r#loop)?;
+            let parsed = manifest::parse(&with_env(manifest::load_dir(&r#loop)?, &env)?)?;
             run::score(
                 &parsed,
                 &r#loop,
@@ -249,6 +253,46 @@ fn show(store: &Store, run: &str, out: &mut dyn Write) -> Result<()> {
         say(out, &format!("error     {error}"))?;
     }
     say(out, &format!("folder    {}", dir.path.display()))
+}
+
+/// The loop folder's files with `overrides` (`KEY=VALUE`) merged into
+/// `rsi.json`'s `env`, so a run's frozen copy records what its steps saw.
+/// The result still goes through [`manifest::parse`], which validates names.
+fn with_env(
+    mut files: BTreeMap<String, String>,
+    overrides: &[String],
+) -> Result<BTreeMap<String, String>> {
+    if overrides.is_empty() {
+        return Ok(files);
+    }
+    let source = files
+        .get(manifest::MANIFEST)
+        .ok_or_else(|| Error::MissingFile {
+            path: manifest::MANIFEST.into(),
+        })?;
+    let mut value: serde_json::Value = serde_json::from_str(source).map_err(|e| Error::Json {
+        message: e.to_string(),
+    })?;
+    let env = value
+        .as_object_mut()
+        .ok_or_else(|| Error::field("rsi.json", "must be a JSON object"))?
+        .entry("env")
+        .or_insert_with(|| serde_json::json!({}));
+    let env = env
+        .as_object_mut()
+        .ok_or_else(|| Error::field("env", "must be an object"))?;
+    for pair in overrides {
+        let (key, val) = pair
+            .split_once('=')
+            .filter(|(key, _)| !key.is_empty())
+            .ok_or_else(|| Error::field(format!("--env {pair}"), "expected KEY=VALUE"))?;
+        env.insert(key.to_owned(), serde_json::Value::String(val.to_owned()));
+    }
+    let text = serde_json::to_string_pretty(&value).map_err(|e| Error::Json {
+        message: e.to_string(),
+    })?;
+    files.insert(manifest::MANIFEST.to_owned(), text + "\n");
+    Ok(files)
 }
 
 fn load(dir: &Path) -> Result<Loop> {

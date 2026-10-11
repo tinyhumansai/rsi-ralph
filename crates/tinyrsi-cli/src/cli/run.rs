@@ -107,7 +107,7 @@ fn judges(parsed: &Loop, gateway: &Gateway) -> Result<Judges> {
 
 /// `tinyrsi run`.
 pub(super) fn run(
-    parsed: &Loop,
+    files: &BTreeMap<String, String>,
     loop_dir: &Path,
     store: &Store,
     run_id: Option<&str>,
@@ -115,10 +115,10 @@ pub(super) fn run(
     lookup: &dyn Fn(&str) -> Option<String>,
     out: &mut dyn Write,
 ) -> Result<()> {
+    let parsed = &manifest::parse(files)?;
     let keys = Keys::resolve(parsed, loop_dir, lookup)?;
     Subject::from_spec(&parsed.manifest.subject, loop_dir).verify()?;
-    let files = manifest::load_dir(loop_dir)?;
-    let run = store.create_run(&parsed.manifest.name, run_id, &files)?;
+    let run = store.create_run(&parsed.manifest.name, run_id, files)?;
     say(
         out,
         &format!(
