@@ -64,19 +64,19 @@ pub fn start(store: Store, addr: SocketAddr) -> Result<Server> {
     let addr = listener
         .local_addr()
         .map_err(|e| Error::io("listen on", addr.to_string(), e))?;
-    let root = store.runs_root();
     thread::spawn(move || {
         for stream in listener.incoming().flatten() {
-            let root = root.clone();
+            let store = store.clone();
             thread::spawn(move || {
-                let _ = handle(&root, stream);
+                let _ = handle(&store, stream);
             });
         }
     });
     Ok(Server { addr })
 }
 
-fn handle(root: &Path, mut stream: TcpStream) -> std::io::Result<()> {
+fn handle(store: &Store, mut stream: TcpStream) -> std::io::Result<()> {
+    let root = store.runs_root();
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     let mut reader = BufReader::new(stream.try_clone()?);
     let mut request_line = String::new();
@@ -97,9 +97,7 @@ fn handle(root: &Path, mut stream: TcpStream) -> std::io::Result<()> {
     match route(path) {
         Route::Page => respond(&mut stream, 200, "text/html; charset=utf-8", PAGE.as_bytes()),
         Route::Runs => {
-            let runs = Store::new(root.parent().unwrap_or(root))
-                .list_runs(None)
-                .unwrap_or_default();
+            let runs = store.list_runs(None).unwrap_or_default();
             let body = serde_json::to_vec(&runs).unwrap_or_else(|_| b"[]".to_vec());
             respond(&mut stream, 200, "application/json", &body)
         }

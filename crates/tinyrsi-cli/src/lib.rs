@@ -31,6 +31,7 @@ pub mod gate;
 pub mod keys;
 pub mod manifest;
 pub mod score;
+pub mod serve;
 pub mod step;
 pub mod store;
 pub mod subject;
