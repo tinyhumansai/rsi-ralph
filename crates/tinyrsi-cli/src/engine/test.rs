@@ -3,7 +3,7 @@
 use super::*;
 use crate::{manifest, subject::copy_tree};
 use std::fs;
-use tinyrsi_gateway::{CallMark, Refusal};
+use tinyrsi_gateway::{CallMark, Refusal, UpstreamCalls};
 
 /// What a seat writes in an epoch, as `path:content`, or nothing.
 type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;
