@@ -11,6 +11,7 @@ use std::{
 use tinyrsi_gateway::{Gateway, GatewayConfig, Price, UpstreamCalls};
 use tinyrsi_model::OpenRouterModel;
 use tinyrsi_score::{JudgeLimits, LlmJudge};
+use tinyrsi_trace::StopReason;
 
 use super::say;
 use crate::{
@@ -186,9 +187,6 @@ pub(super) fn run(
     for warning in &summary.warnings {
         say(out, &format!("warning: {warning}"))?;
     }
-    if let Some(error) = &summary.error {
-        say(out, &format!("error: {error}"))?;
-    }
     let spend = gateway.spend();
     say(
         out,
@@ -196,7 +194,13 @@ pub(super) fn run(
             "spend: ${:.2} this run, ${:.2} in total",
             spend.run_usd, spend.total_usd
         ),
-    )
+    )?;
+    // The run is stored and reported; the command still fails, so scripts
+    // see a provider that refused everything as the failure it is.
+    if summary.reason == StopReason::ProviderRefused {
+        return Err(Error::ProviderRefused(summary.error.unwrap_or_default()));
+    }
+    Ok(())
 }
 
 /// `tinyrsi score`.

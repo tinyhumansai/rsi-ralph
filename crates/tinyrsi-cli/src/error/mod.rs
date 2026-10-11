@@ -104,6 +104,11 @@ pub enum Error {
     /// The proposer (the hive) failed.
     #[error("proposer: {0}")]
     Proposer(String),
+    /// The model provider refused every call of an epoch, so the run
+    /// stopped on `provider_refused`. Holds the run's error line, such as
+    /// `provider refused 2 of 2 model calls (403: Key limit exceeded)`.
+    #[error("{0}")]
+    ProviderRefused(String),
     /// Scoring evidence could not be compared.
     #[error(transparent)]
     Score(#[from] tinyrsi_score::Error),
