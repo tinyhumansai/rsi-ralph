@@ -34,3 +34,7 @@ path = "upgrade_file/main.rs"
 [[example]]
 name = "hive_goal"
 path = "hive_goal/main.rs"
+
+[[example]]
+name = "graph_coloring"
+path = "graph_coloring/main.rs"
