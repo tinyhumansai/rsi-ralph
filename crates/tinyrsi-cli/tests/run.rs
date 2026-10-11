@@ -335,3 +335,64 @@ fn the_binary_reports_success_and_input_errors_by_exit_code() {
     assert_eq!(missing.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&missing.stderr).contains("missing keys: OPENROUTER_API_KEY"));
 }
+
+#[test]
+fn a_provider_refusing_every_call_fails_the_run_with_its_message() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let tmp = tempfile::tempdir().unwrap();
+    let loop_dir = tmp.path().join("graph-coloring");
+    copy(&root.join("loops/graph-coloring"), &loop_dir);
+    let home = tmp.path().join("home");
+
+    // A key over its daily limit: OpenRouter answers every call with 403.
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = runtime.block_on(async {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(403).set_body_json(json!({"error": {
+                "message": "Key limit exceeded (daily limit).", "code": 403}})))
+            .mount(&server)
+            .await;
+        server
+    });
+    let env: Arc<BTreeMap<&str, String>> = Arc::new(BTreeMap::from([
+        ("OPENROUTER_API_KEY", KEY.to_owned()),
+        ("TINYRSI_UPSTREAM", server.uri()),
+        ("PATH", std::env::var("PATH").unwrap()),
+        ("HOME", std::env::var("HOME").unwrap()),
+    ]));
+    let lookup = move |name: &str| env.get(name).cloned();
+    let cli = Cli::parse_from([
+        "tinyrsi",
+        "--home",
+        home.to_str().unwrap(),
+        "run",
+        loop_dir.to_str().unwrap(),
+        "--run",
+        "refused",
+        "--epochs",
+        "3",
+        "--port",
+        "0",
+    ]);
+    let mut out = Vec::new();
+    let result = execute(cli, &lookup, &mut out);
+    let printed = String::from_utf8(out).unwrap();
+    assert_eq!(exit_code(&result), 1, "{result:?}\n{printed}");
+    let message = result.unwrap_err().to_string();
+    assert!(
+        message.starts_with("provider refused ")
+            && message.contains("model calls (403: Key limit exceeded (daily limit).)"),
+        "{message}"
+    );
+    assert!(printed.contains("stopped: provider_refused"), "{printed}");
+
+    let record: Value = serde_json::from_str(
+        &std::fs::read_to_string(home.join("runs/graph-coloring/refused/run.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(record["status"], "failed");
+    assert_eq!(record["stop_reason"], "provider_refused");
+    assert_eq!(record["epochs"], 1);
+    assert_eq!(record["error"].as_str().unwrap(), message);
+}
