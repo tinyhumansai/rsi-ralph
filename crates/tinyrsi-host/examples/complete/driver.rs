@@ -10,13 +10,13 @@ use tinyhivemind_hives::{Destination, SendMessage};
 use tinyrsi_host::{
     Archive, AttemptEvidence, AttemptStatus, Budget, BudgetedModel, CandidateState,
     ControlledRunnerFactory, CoordinatorEvaluator, CoordinatorHost, DeploymentStore, Dossier,
-    DurableRetreatMemory, Epoch, EpochJournal, Error, EvalDecision, EvalPolicy, ExperimentAblation,
+    DurableRetreatMemory, Epoch, EpochJournal, Error, EvalPolicy, ExperimentAblation,
     ExperimentArm, ExperimentExecutor, ExperimentProtocol, ExperimentReport, GenerationBudget,
     GenerationMode, HEpoch, HostVerifier, JsonlTrace, LoopEvent, MemoryHealth, MemoryLimits,
     ModelPort, NodeStatus, PatchClass, PreparedRetreatEpoch, PrivateSuites, PrivateTask,
-    ReasonCode, Result, RetreatEpochInput, RetreatEpochOutcome, ScoreDecision, SnapshotMemoryStore,
-    StopReason, TraceSink, TrialEvidence, TrialRequest, VerifierOutcome, evaluate_retreat_epoch,
-    prepare_retreat_epoch, run_experiment,
+    ReasonCode, Result, RetreatEpochInput, RetreatEpochOutcome, SnapshotMemoryStore, StopReason,
+    TraceSink, TrialEvidence, TrialRequest, VerifierOutcome, evaluate_retreat_epoch,
+    prepare_retreat_epoch, record_ideated, record_outcome, run_experiment,
 };
 pub(super) const ORIGINAL: &str = "Repair the shared context so the solver can solve assigned tasks. Propose a typed context patch with normalized_h prediction and public dossier references.";
 pub(super) const EVOLVED: &str = "Repair only context/method.md stable item method. Replace the instruction to return UNKNOWN with a short general instruction to solve each task and emit exactly its requested artifact, no markdown. Use operation=context,path=context/method.md,item=method,before exactly the public item body including trailing newline,after ending newline. Class=context. Never change manifests, evaluators or private tasks. Ground transcript_refs and prediction.nodes in the public dossier. Predict metric=normalized_h and minimum_gain=0.1. Prefer one atomic operation.";
@@ -140,14 +140,6 @@ pub(super) struct Trials {
     /// Loop trace at `<root>/events.jsonl`; one trial is one trace epoch.
     pub trace: JsonlTrace,
 }
-/// Maps a hive comparison decision onto the loop-trace vocabulary.
-fn decision(d: &EvalDecision) -> ScoreDecision {
-    match d {
-        EvalDecision::Accept { .. } => ScoreDecision::Accept,
-        EvalDecision::Reject { .. } => ScoreDecision::Reject,
-        EvalDecision::Inconclusive { .. } => ScoreDecision::Inconclusive,
-    }
-}
 impl ExperimentExecutor for Trials {
     /// The scoring crate's port carries only its own errors; a host failure in
     /// this example is reported as one.
@@ -205,7 +197,7 @@ impl Trials {
         )?;
         let (prepared, outcome) =
             self.propose(&dir, &mut archive, memory, &mut evaluator, request, &cap)?;
-        self.trace_outcome(&archive, &baseline, &outcome)?;
+        record_outcome(&mut self.trace, self.index, &archive, &baseline, &outcome)?;
         let selected = archive.head().ok_or(Error::InvalidRecord)?;
         let state = CandidateState {
             package: archive
@@ -280,67 +272,6 @@ impl Trials {
             incumbent_metric: None,
         })?;
         Ok(result?)
-    }
-    /// Emits measured/scored/improved per evaluated candidate and the epoch end.
-    /// Hive candidates have no per-seed script metric, so `executed` is not
-    /// emitted; `measured.mean` is the candidate's H estimate.
-    fn trace_outcome(
-        &mut self,
-        archive: &Archive,
-        baseline: &str,
-        outcome: &RetreatEpochOutcome,
-    ) -> Result<()> {
-        let epoch = self.index;
-        for c in &outcome.candidates {
-            let candidate = c
-                .candidate_id
-                .clone()
-                .unwrap_or_else(|| format!("t{epoch:02}-{}", c.proposal_index));
-            let evaluation = archive
-                .normalized_evaluations()
-                .into_iter()
-                .rev()
-                .find(|e| e.candidate_id == candidate);
-            if let Some(e) = evaluation {
-                self.trace.record(LoopEvent::Measured {
-                    epoch,
-                    candidate: candidate.clone(),
-                    mean: Some(e.comparison.candidate.value),
-                    failures: 0,
-                    seeds: u32::try_from(e.candidate.len()).unwrap_or(u32::MAX),
-                })?;
-            }
-            let accepted = c.reason == ReasonCode::Accepted;
-            self.trace.record(LoopEvent::Scored {
-                epoch,
-                candidate: candidate.clone(),
-                decision: match (accepted, evaluation) {
-                    (true, _) => ScoreDecision::Accept,
-                    (false, Some(e)) if c.reason == ReasonCode::Inconclusive => {
-                        decision(&e.comparison.decision)
-                    }
-                    _ => ScoreDecision::Reject,
-                },
-                estimate: evaluation.map_or(0.0, |e| e.comparison.delta),
-                lower: evaluation.map_or(0.0, |e| e.comparison.lower),
-                upper: evaluation.map_or(0.0, |e| e.comparison.upper),
-            })?;
-            if let (true, Some(e)) = (accepted, evaluation) {
-                self.trace.record(LoopEvent::Improved {
-                    epoch,
-                    from: baseline.to_owned(),
-                    to: candidate,
-                    metric: e.comparison.candidate.value,
-                })?;
-            }
-        }
-        Ok(self.trace.record(LoopEvent::EpochFinished {
-            epoch,
-            incumbent: archive
-                .head()
-                .map_or_else(|| baseline.to_owned(), |h| h.id.clone()),
-            incumbent_metric: None,
-        })?)
     }
     fn propose(
         &mut self,
@@ -418,17 +349,7 @@ impl Trials {
         {
             return Err(Error::InvalidEvaluation);
         }
-        for (i, proposal) in prepared.proposals.iter().enumerate() {
-            self.trace.record(LoopEvent::Ideated {
-                epoch: self.index,
-                proposal_id: format!("t{:02}-{i}", self.index),
-                parent: incumbent.clone(),
-                // Hive candidate ids exist only after formalization.
-                candidate: None,
-                rationale: proposal.mechanism.clone(),
-                hypothesis: proposal.title.clone(),
-            })?;
-        }
+        record_ideated(&mut self.trace, self.index, &prepared)?;
         let outcome = evaluate_retreat_epoch(
             &mut journal,
             archive,
