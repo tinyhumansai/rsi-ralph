@@ -106,7 +106,7 @@ pub use tinyrsi_score::{
 };
 pub use tinyrsi_score::{
     Assessment, BackroomsJudge, Composite, Decision, Goal, JudgeLimits, LlmJudge, MetricEvidence,
-    MetricScorer, Projected, Scorer, ScriptedScorer, decide,
+    MetricScorer, Projected, Scorer, ScriptedScorer, decide, dominates,
 };
 
 pub use archive::NormalizedApprovalEvent;

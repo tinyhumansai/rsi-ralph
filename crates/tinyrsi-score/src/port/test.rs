@@ -178,3 +178,53 @@ fn validates_eligible_evidence_whatever_the_primary_verdict() {
         );
     }
 }
+
+/// Eligible metric evidence with neutral qualities.
+fn measured(values: &[f64], direction: MetricDirection) -> Assessment {
+    Assessment {
+        qualities: vec![0.5; values.len()],
+        eligible: Some(vec![0.5; values.len()]),
+        metric: Some(MetricEvidence {
+            values: values.to_vec(),
+            direction,
+        }),
+        rationale: None,
+        tokens: 0,
+    }
+}
+
+#[test]
+fn dominance_is_no_loss_on_any_seed_and_a_gain_on_one() {
+    let min = MetricDirection::Minimize;
+    let max = MetricDirection::Maximize;
+    let incumbent = measured(&[14.0, 12.0, 13.0], min);
+    assert!(dominates(&incumbent, &measured(&[6.0, 6.0, 13.0], min)));
+    assert!(!dominates(&incumbent, &measured(&[6.0, 6.0, 14.0], min)));
+    assert!(!dominates(&incumbent, &incumbent));
+    assert!(dominates(&measured(&[1.0, 2.0], max), &measured(&[1.0, 3.0], max)));
+    assert!(!dominates(&measured(&[1.0, 2.0], max), &measured(&[1.0, 1.0], max)));
+}
+
+#[test]
+fn dominance_needs_aligned_metric_and_eligible_evidence_on_both_sides() {
+    let min = MetricDirection::Minimize;
+    let incumbent = measured(&[11.0, 6.0, 6.0], min);
+    let better = measured(&[6.0, 6.0, 6.0], min);
+    let mut flipped = better.clone();
+    flipped.metric.as_mut().unwrap().direction = MetricDirection::Maximize;
+    assert!(!dominates(&incumbent, &flipped));
+    assert!(!dominates(&incumbent, &measured(&[6.0, 6.0], min)));
+    let mut unmeasured = better.clone();
+    unmeasured.metric = None;
+    assert!(!dominates(&incumbent, &unmeasured));
+    let mut ineligible = better.clone();
+    ineligible.eligible = None;
+    assert!(!dominates(&incumbent, &ineligible));
+    let mut short = better.clone();
+    short.eligible = Some(vec![0.5; 2]);
+    assert!(!dominates(&incumbent, &short));
+    // An eligible quality that drops on any seed vetoes the metric's verdict.
+    let mut vetoed = better;
+    vetoed.eligible = Some(vec![0.5, 0.4, 0.5]);
+    assert!(!dominates(&incumbent, &vetoed));
+}
