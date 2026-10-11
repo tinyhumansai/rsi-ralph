@@ -2,7 +2,9 @@
 
 Terms used across the code, the module READMEs and `docs/rsi/`. Each entry
 names the type or function that defines it; paths are relative to
-`crates/tinyrsi/src/` unless they start with `crates/`. Read
+`crates/tinyrsi/src/` unless they start with `crates/`, except `host/`,
+`suites/`, `epoch_driver/` and `evidence_journal/`, which are relative to
+`crates/tinyrsi-host/src/`. Read
 [architecture.md](architecture.md) first for how the pieces fit together.
 
 ## The loop

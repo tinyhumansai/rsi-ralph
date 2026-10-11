@@ -3,7 +3,8 @@
 This page follows a single epoch through the live example and lists every file
 it leaves behind. Read [architecture.md](../architecture.md) for the overview
 and the [glossary](../glossary.md) for terms. Source paths are relative to
-`crates/tinyrsi/`.
+`crates/tinyrsi-host/` (the example and the host runtime), or to
+`crates/tinyrsi/` for the loop library's modules.
 
 The traced path is `examples/complete_openrouter.rs`, function `worked`, plus
 the helpers in `examples/complete/driver.rs`. Deployment and rollback are
@@ -18,7 +19,7 @@ TINYRSI_LIVE_OPENROUTER=1 \
 OPENROUTER_API_KEY=... \
 TINYRSI_LEAN=/path/to/lean \
 TINYRSI_COMPLETE_DIR=target/rsi-complete-live \
-cargo run -p tinyrsi --features host --example complete_openrouter
+cargo run -p tinyrsi-host --example complete_openrouter
 ```
 
 Without `TINYRSI_LIVE_OPENROUTER=1` the example prints a hint and exits. It
@@ -163,7 +164,7 @@ through `<file>.next` like `DeploymentStore`.
 
 ## Reading the evidence afterwards
 
-- `cargo run -p tinyrsi --features host --example proposal_metrics -- <journal> <archive> <epoch> <k>`
+- `cargo run -p tinyrsi-host --example proposal_metrics -- <journal> <archive> <epoch> <k>`
   projects a quiescent journal and archive into a selection-only report with
   precision at `k`. It opens both files, so stop the host first.
 - `Archive::open` replays and validates the whole history, so opening an

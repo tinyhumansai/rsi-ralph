@@ -29,6 +29,9 @@ crates/
 ├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
 ├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
+├── tinyrsi-host/       # hive runtime: coordinators, suites, epochs, deployment
+│   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
+│   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
 └── tinyrsi/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
@@ -38,11 +41,7 @@ crates/
     │   ├── observation/      # read-only coordinator snapshots and dossiers
     │   ├── orchestrator/     # proposal funnel: run_proposal, run_proposal_h
     │   ├── memory/           # immutable hive-memory snapshot store
-    │   ├── script_loop/      # improvement loop over a plain script
-    │   ├── epoch_driver/     # [host] durable generation + evaluation per epoch
-    │   ├── evidence_journal/ # [host] measured turn callbacks and epoch receipts
-    │   ├── host/             # [host] DeploymentStore, CoordinatorHost
-    │   └── suites/           # [host] private suites and CoordinatorEvaluator
+    │   └── script_loop/      # improvement loop over a plain script
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
@@ -51,8 +50,10 @@ apps/rsi-viz/           # read-only Next.js loop visualizer
 docs/                   # see docs/README.md for what lives where
 ```
 
-Modules marked `[host]` compile only with the `host` Cargo feature, which adds
-SQLite coordinator storage and Tokio. Each module directory follows the
+`crates/tinyrsi-host` holds what needs a live coordinator (host runtime,
+private suites, durable epochs, evidence journal) and adds SQLite coordinator
+storage and Tokio; it replaced the former `host` Cargo feature. Each module
+directory follows the
 `mod.rs` / `types.rs` / `test.rs` layout below, and most carry a `README.md`.
 
 ### Adding a crate
@@ -106,9 +107,9 @@ Supporting commands:
 - `cargo test <filter>` — run a focused subset while iterating.
 - `cargo test -p tinyrsi` — run one crate's suite.
 - `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
-- `cargo run -p tinyrsi --features host --example observe_epochs` — offline
+- `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
-- `cargo run -p tinyrsi --features host --example complete_openrouter` — the
+- `cargo run -p tinyrsi-host --example complete_openrouter` — the
   full live loop; does nothing unless `TINYRSI_LIVE_OPENROUTER=1` and needs
   `OPENROUTER_API_KEY` and `TINYRSI_LEAN` (see `docs/rsi/complete-live.md`).
 - `cargo doc --no-deps --all-features` — build the rustdoc CI also builds with
