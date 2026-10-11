@@ -213,7 +213,7 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     )
     .unwrap();
 
-    eprintln!("DEBUG {outcome:?} {events:#?} {:?}", server_runtime.block_on(server.received_requests()).unwrap().iter().map(|r| (r.method.to_string(), r.url.path().to_owned(), String::from_utf8_lossy(&r.body).chars().rev().take(1500).collect::<String>().chars().rev().collect::<String>())).collect::<Vec<_>>());
+    for r in server_runtime.block_on(server.received_requests()).unwrap() { if let Ok(v) = serde_json::from_slice::<Value>(&r.body) { for m in v["messages"].as_array().unwrap() { if m["role"] == "tool" { eprintln!("DEBUGTOOL {}", m["content"]); } } } }
     assert_eq!(outcome.stop, StopReason::Idle);
     assert_eq!(outcome.failed, 0);
     assert_eq!(
