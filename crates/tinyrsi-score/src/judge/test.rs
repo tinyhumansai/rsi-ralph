@@ -97,7 +97,11 @@ fn the_llm_judge_takes_the_median_of_independent_raters_per_seed() {
     assert!(a.eligible.is_none(), "uncalibrated judges are not eligible");
     let seen = port.seen.lock().unwrap();
     let seeds: Vec<u64> = seen.iter().map(|(_, s, _)| *s).collect();
-    assert_eq!(seeds, vec![768, 769, 770, 1024, 1025, 1026]);
+    let expected: Vec<u64> = [3_u64, 4]
+        .iter()
+        .flat_map(|seed| (0..3).map(move |rater| rater_seed(*seed, rater)))
+        .collect();
+    assert_eq!(seeds, expected);
     assert!(seen[0].0.contains("proof text") && seen[0].0.contains("every step"));
     assert!(format!("{judge:?}").contains("raters: 3"));
 }
@@ -249,4 +253,23 @@ fn the_backrooms_judge_skips_failed_raters_and_reports_a_dead_panel() {
         Err(Error::InvalidEvaluation)
     );
     assert!(BackroomsJudge::new(backend(|_| Ok(json!({}))), 0).is_err());
+}
+
+#[test]
+fn rater_seeds_stay_distinct_for_seeds_that_differ_only_in_high_bits() {
+    let port = Scripted::grades(&[5.0, 5.0, 5.0, 5.0]);
+    let judge = LlmJudge::new(port.clone(), 2, JudgeLimits::default()).unwrap();
+    judge.assess("s", &goal(), &[0, 1 << 56]).unwrap();
+    let seeds: std::collections::BTreeSet<u64> = port
+        .seen
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|(_, s, _)| *s)
+        .collect();
+    assert_eq!(
+        seeds.len(),
+        4,
+        "every (seed, rater) pair gets its own model seed"
+    );
 }
