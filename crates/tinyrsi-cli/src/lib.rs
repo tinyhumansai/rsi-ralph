@@ -26,6 +26,7 @@
 
 mod error;
 pub mod brief;
+pub mod engine;
 pub mod gate;
 pub mod keys;
 pub mod manifest;

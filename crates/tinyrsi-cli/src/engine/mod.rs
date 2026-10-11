@@ -424,7 +424,6 @@ impl Engine<'_> {
         state: &mut State,
         dir: &Path,
     ) -> Result<Option<usize>> {
-        let manifest = &self.parsed.manifest;
         let mut record = CandidateRecord {
             id: checkout.label.clone(),
             epoch,
@@ -449,13 +448,7 @@ impl Engine<'_> {
             && record
                 .verdict
                 .as_ref()
-                .is_some_and(|v| v.decision == ScoreDecision::Accept)
-            && record
-                .scorecard
-                .as_ref()
-                .and_then(|c| c.headline)
-                .zip(state.card.headline)
-                .is_some_and(|(c, i)| manifest.score.decide.test == DecideTest::Sign || score::better(&manifest.score, c, i));
+                .is_some_and(|v| v.decision == ScoreDecision::Accept);
         state.ledger.candidates.push(record);
         Ok(accepted.then(|| state.ledger.candidates.len() - 1))
     }
