@@ -75,7 +75,10 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
-cargo test -p <each crate>
+for crate in tinyrsi-types tinyrsi-model tinyrsi-trace tinyrsi-langfuse \
+    tinyrsi-score tinyrsi-verify tinyrsi-evolve tinyrsi tinyrsi-host; do
+  cargo test -p "$crate"
+done
 cargo tree -p tinyrsi-score   # no tinyrsi, no tinyhivemind-hives
 .github/scripts/check-file-coverage.sh
 ```
