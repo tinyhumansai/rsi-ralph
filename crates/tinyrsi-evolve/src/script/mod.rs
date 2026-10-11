@@ -32,7 +32,11 @@ impl ScriptProposal {
     /// model call and its code may still be good.
     #[must_use]
     pub fn approach_label(&self) -> Option<String> {
-        let label = self.approach.split_whitespace().collect::<Vec<_>>().join(" ");
+        let label = self
+            .approach
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
         if label.is_empty() {
             return None;
         }

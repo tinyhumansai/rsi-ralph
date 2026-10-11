@@ -276,7 +276,9 @@ fn the_brief_temperature_reaches_the_model_request() {
         ..brief()
     };
     assert_eq!(
-        supervisor.propose(&invalid, &goal, &context(1)).unwrap_err(),
+        supervisor
+            .propose(&invalid, &goal, &context(1))
+            .unwrap_err(),
         Error::Model(tinyrsi_model::Error::InvalidRequest)
     );
 }

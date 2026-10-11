@@ -56,7 +56,11 @@ pub(super) fn summarize(
     let metric = MetricScorer::new(direction);
     let mut groups: Vec<(String, Approach)> = vec![];
     for (index, row) in ledger.candidates.iter().enumerate() {
-        let Some(label) = row.approach.as_deref().filter(|_| row.proposal_id.is_some()) else {
+        let Some(label) = row
+            .approach
+            .as_deref()
+            .filter(|_| row.proposal_id.is_some())
+        else {
             continue;
         };
         let key = normalize(label);
@@ -103,12 +107,7 @@ fn verdict(row: &LedgerCandidate) -> String {
         .find_map(|r| r.error.as_deref())
         .map(|e| format!("error: {e}"))
         .or_else(|| row.note.clone())
-        .or_else(|| {
-            row.runs
-                .iter()
-                .find_map(|r| r.diagnostics.last())
-                .cloned()
-        })
+        .or_else(|| row.runs.iter().find_map(|r| r.diagnostics.last()).cloned())
         .unwrap_or_else(|| "no diagnostics".to_owned());
     one_line(&text, VERDICT_CHARS)
 }

@@ -158,9 +158,7 @@ fn validate_policy(policy: &LoopPolicy, run: &RunLocation) -> Result<()> {
         || run.id.chars().any(char::is_control)
         || policy.slots.iter().any(|slot| {
             slot.instruction.trim().is_empty()
-                || slot
-                    .temperature
-                    .is_some_and(|t| !(0.0..=2.0).contains(&t))
+                || slot.temperature.is_some_and(|t| !(0.0..=2.0).contains(&t))
         })
     {
         return Err(Error::InvalidScriptSubject);

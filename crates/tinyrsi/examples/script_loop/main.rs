@@ -61,8 +61,15 @@ impl ModelPort for Canned {
     }
 }
 
-fn proposal(rationale: &str, hypothesis: &str, path: &str, content: &str) -> String {
+fn proposal(
+    approach: &str,
+    rationale: &str,
+    hypothesis: &str,
+    path: &str,
+    content: &str,
+) -> String {
     serde_json::json!({
+        "approach": approach,
         "rationale": rationale,
         "hypothesis": hypothesis,
         "files": [{"path": path, "content": content}],
@@ -73,24 +80,28 @@ fn proposal(rationale: &str, hypothesis: &str, path: &str, content: &str) -> Str
 fn canned() -> Canned {
     Canned(Mutex::new(VecDeque::from([
         proposal(
+            "cubic least squares",
             "The straight line is undertrained and cannot bend with the signal.",
             "An exact cubic least-squares fit lowers held-out RMSE.",
             "model.py",
             CUBIC,
         ),
         proposal(
+            "constant predictor",
             "Noise dominates; a constant is the most robust predictor.",
             "Predicting the training peak lowers RMSE.",
             "model.py",
             CONSTANT,
         ),
         proposal(
+            "evaluate on training data",
             "Change the harness to evaluate on training points instead.",
             "Scoring on training data lowers RMSE.",
             "../curve_fit.py",
             HARNESS,
         ),
         proposal(
+            "damped sinusoid fit",
             "The residuals oscillate with a decaying envelope: fit that family.",
             "A damped sinusoid fit reaches the noise floor of about 0.05.",
             "model.py",

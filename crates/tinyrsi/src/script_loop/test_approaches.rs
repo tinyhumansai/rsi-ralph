@@ -72,7 +72,12 @@ fn ledger_of(candidates: Vec<LedgerCandidate>) -> ScriptLedger {
 
 #[test]
 fn normalizes_case_whitespace_and_punctuation() {
-    for label in ["Tabu-Search", "tabu search", " TABU  search! ", "tabu_search"] {
+    for label in [
+        "Tabu-Search",
+        "tabu search",
+        " TABU  search! ",
+        "tabu_search",
+    ] {
         assert_eq!(normalize(label), "tabu search", "{label}");
     }
     assert_eq!(normalize("DSATUR (v2)"), "dsatur v2");
@@ -192,11 +197,21 @@ fn decision_names_match_the_ledger_spelling() {
 
 #[test]
 fn renders_the_tried_section_with_its_resubmission_rule() {
-    let mut retried = row(2, Some("Kempe chains"), Some(0.4), CandidateDecision::Reject);
+    let mut retried = row(
+        2,
+        Some("Kempe chains"),
+        Some(0.4),
+        CandidateDecision::Reject,
+    );
     retried.differs_from_previous = Some("swap  two\ncolours, not one".into());
     retried.runs = vec![seed(None, &["After Kempe: 0 moves"])];
     let ledger = ledger_of(vec![
-        row(1, Some("Kempe chains"), Some(0.45), CandidateDecision::Reject),
+        row(
+            1,
+            Some("Kempe chains"),
+            Some(0.45),
+            CandidateDecision::Reject,
+        ),
         retried,
         row(2, Some("DSATUR"), None, CandidateDecision::Reject),
     ]);
@@ -211,11 +226,7 @@ fn renders_the_tried_section_with_its_resubmission_rule() {
          `differs_from_previous` states concretely what is different this time.\n\n"
     );
     assert_eq!(render_tried(&ledger, MetricDirection::Minimize, 0), "");
-    let unlabelled = render_tried(
-        &ledger_of(vec![]),
-        MetricDirection::Minimize,
-        12,
-    );
+    let unlabelled = render_tried(&ledger_of(vec![]), MetricDirection::Minimize, 12);
     assert!(unlabelled.contains("None labelled yet.\nDo not resubmit"));
 }
 
@@ -372,7 +383,11 @@ fn later_slots_see_earlier_slots_and_sample_at_their_own_temperature() {
     );
     assert!(seen[1].0.contains("\"Cheaper loss\": 1 attempt"));
     assert!(seen[1].0.trim_end().ends_with("second"));
-    assert!(seen[2].0.contains("\"cheaper-loss!\": 2 attempts, best mean 0.315"));
+    assert!(
+        seen[2]
+            .0
+            .contains("\"cheaper-loss!\": 2 attempts, best mean 0.315")
+    );
     assert!(seen[2].0.trim_end().ends_with("first"));
     assert_eq!(*port.temperatures.lock().unwrap(), [0.0, 0.8, 0.0]);
 

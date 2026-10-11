@@ -5,8 +5,7 @@
 //! The loop renders it because the ledger is the loop's; the supervisor in
 //! `tinyrsi-evolve` only sends it.
 use super::{
-    LedgerCandidate, LoopPolicy, ScriptLedger, ScriptSubject, SeedRun, approaches,
-    execute::Sources,
+    LedgerCandidate, LoopPolicy, ScriptLedger, ScriptSubject, SeedRun, approaches, execute::Sources,
 };
 use std::fmt::Write as _;
 
