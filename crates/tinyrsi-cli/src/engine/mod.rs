@@ -378,12 +378,24 @@ impl Engine<'_> {
 
         let mut accepted: Vec<usize> = Vec::new();
         for (seat, checkout) in &candidates {
-            let index = self.consider(epoch, seat, checkout, subject, state, &dir)?;
-            if let Some(i) = index {
+            if let Some(i) = self.consider(epoch, seat, checkout, subject, state, &dir) {
                 accepted.push(i);
             }
             self.save(state)?;
         }
+        self.promote_best(epoch, subject, state, &candidates, accepted)
+    }
+
+    /// Promote the best accepted candidate, if any; returns whether one was.
+    fn promote_best(
+        &self,
+        epoch: u32,
+        subject: &Subject,
+        state: &mut State,
+        candidates: &BTreeMap<String, Checkout>,
+        accepted: Vec<usize>,
+    ) -> Result<bool> {
+        let manifest = &self.parsed.manifest;
         let best = accepted.into_iter().reduce(|a, b| {
             let score = |i: usize| {
                 state.ledger.candidates[i]
@@ -434,7 +446,7 @@ impl Engine<'_> {
         subject: &Subject,
         state: &mut State,
         dir: &Path,
-    ) -> Result<Option<usize>> {
+    ) -> Option<usize> {
         let mut record = CandidateRecord {
             id: checkout.label.clone(),
             epoch,
@@ -461,7 +473,7 @@ impl Engine<'_> {
                 .as_ref()
                 .is_some_and(|v| v.decision == ScoreDecision::Accept);
         state.ledger.candidates.push(record);
-        Ok(accepted.then(|| state.ledger.candidates.len() - 1))
+        accepted.then(|| state.ledger.candidates.len() - 1)
     }
 
     fn judge(

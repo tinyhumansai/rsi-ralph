@@ -236,7 +236,11 @@ fn show(store: &Store, run: &str, out: &mut dyn Write) -> Result<()> {
     say(out, &format!("epochs    {}", r.epochs))?;
     say(
         out,
-        &format!("incumbent {} ({})", r.incumbent, score_text(r.incumbent_score)),
+        &format!(
+            "incumbent {} ({})",
+            r.incumbent,
+            score_text(r.incumbent_score)
+        ),
     )?;
     say(out, &format!("spend     ${:.2}", r.spend_usd))?;
     if let Some(error) = r.error {
