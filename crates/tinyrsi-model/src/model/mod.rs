@@ -155,9 +155,34 @@ impl OpenRouterModel {
         if model.trim().is_empty() || model.chars().any(char::is_control) {
             return Err(Error::InvalidRequest);
         }
-        Ok(Self { model })
+        Ok(Self {
+            model,
+            base_url: None,
+        })
     }
+
+    /// Constructs an adapter that calls an OpenAI-compatible `base_url`
+    /// which supplies credentials itself, such as a local spend gateway.
+    /// No key is read; the request carries a fixed placeholder token.
+    ///
+    /// # Errors
+    /// Rejects an invalid model identifier, or a base URL that is not
+    /// `http(s)://` or contains quotes, backslashes or control characters.
+    pub fn via(model: String, base_url: &str) -> Result<Self> {
+        let base = base_url.trim_end_matches('/');
+        let scheme = base.starts_with("http://") || base.starts_with("https://");
+        if !scheme || base.contains(['"', '\\']) || base.chars().any(char::is_control) {
+            return Err(Error::InvalidRequest);
+        }
+        let mut adapter = Self::new(model)?;
+        adapter.base_url = Some(base.to_owned());
+        Ok(adapter)
+    }
+
     fn call(&self, request: &ModelRequest) -> Result<ModelReply> {
+        if let Some(base) = &self.base_url {
+            return self.call_with_key(request, "gateway", &format!("{base}/chat/completions"));
+        }
         let key = std::env::var("OPENROUTER_API_KEY").map_err(|_| Error::CallFailed)?;
         self.call_with_key(
             request,

@@ -61,6 +61,9 @@ pub struct ModelReply {
 #[derive(Clone, Debug)]
 pub struct OpenRouterModel {
     pub(super) model: String,
+    /// An OpenAI-compatible base URL that injects credentials itself, such
+    /// as a spend gateway; `None` calls `OpenRouter` directly.
+    pub(super) base_url: Option<String>,
 }
 /// Whole-generation accounting, including failed and refused calls.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
