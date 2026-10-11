@@ -12,6 +12,7 @@ use tinyrsi_types::Goal;
 struct Scripted {
     replies: Mutex<VecDeque<String>>,
     seen: Mutex<Vec<(String, u64)>>,
+    temperatures: Mutex<Vec<f64>>,
 }
 
 impl Scripted {
@@ -19,6 +20,7 @@ impl Scripted {
         Arc::new(Self {
             replies: Mutex::new(replies.into()),
             seen: Mutex::new(vec![]),
+            temperatures: Mutex::new(vec![]),
         })
     }
 }
@@ -29,6 +31,10 @@ impl ModelPort for Scripted {
             .lock()
             .unwrap()
             .push((request.prompt().to_owned(), request.seed()));
+        self.temperatures
+            .lock()
+            .unwrap()
+            .push(request.temperature());
         let next = self.replies.lock().unwrap().pop_front();
         Box::pin(async move {
             let content = next.ok_or(tinyrsi_model::Error::CallFailed)?.into_bytes();
@@ -54,6 +60,7 @@ fn brief() -> ScriptBrief {
     ScriptBrief {
         prompt: "the rendered prompt".into(),
         editable: vec!["run.sh".into()],
+        temperature: None,
     }
 }
 
@@ -67,6 +74,8 @@ fn context(seed: u64) -> EvolveContext {
 
 fn proposal(paths: &[&str]) -> ScriptProposal {
     ScriptProposal {
+        approach: String::new(),
+        differs_from_previous: None,
         rationale: "r".into(),
         hypothesis: "h".into(),
         files: paths
@@ -197,6 +206,79 @@ fn the_tool_schema_limits_paths_to_the_editable_set() {
     let paths = &schema["properties"]["files"]["items"]["properties"]["path"]["enum"];
     assert_eq!(paths, &serde_json::json!(["run.sh", "lib/m.py"]));
     assert_eq!(schema["additionalProperties"], false);
+    assert_eq!(
+        schema["required"],
+        serde_json::json!(["approach", "rationale", "hypothesis", "files"])
+    );
+    assert_eq!(schema["properties"]["approach"]["maxLength"], 60);
+    assert_eq!(
+        schema["properties"]["differs_from_previous"]["type"],
+        serde_json::json!(["string", "null"])
+    );
+}
+
+#[test]
+fn pins_the_proposal_wire_shape_with_and_without_an_approach() {
+    let mut labelled = proposal(&["run.sh"]);
+    labelled.approach = "tabu search".into();
+    labelled.differs_from_previous = Some("longer tenure".into());
+    let text = r#"{"approach":"tabu search","differs_from_previous":"longer tenure","rationale":"r","hypothesis":"h","files":[{"path":"run.sh","content":"x"}]}"#;
+    assert_eq!(serde_json::to_string(&labelled).unwrap(), text);
+    assert_eq!(
+        serde_json::from_str::<ScriptProposal>(text).unwrap(),
+        labelled
+    );
+    // A reply written before approaches existed still decodes, unlabelled.
+    let legacy = r#"{"rationale":"r","hypothesis":"h","files":[{"path":"run.sh","content":"x"}]}"#;
+    let decoded = serde_json::from_str::<ScriptProposal>(legacy).unwrap();
+    assert_eq!(decoded, proposal(&["run.sh"]));
+    assert_eq!(decoded.approach_label(), None);
+    let null = r#"{"approach":"x","differs_from_previous":null,"rationale":"r","hypothesis":"h","files":[]}"#;
+    assert_eq!(
+        serde_json::from_str::<ScriptProposal>(null)
+            .unwrap()
+            .differs_from_previous,
+        None
+    );
+}
+
+#[test]
+fn approach_labels_are_collapsed_and_bounded() {
+    let mut p = proposal(&["run.sh"]);
+    for blank in ["", "  ", "\n\t"] {
+        p.approach = blank.into();
+        assert_eq!(p.approach_label(), None, "{blank:?}");
+    }
+    p.approach = "  Tabu \n  search ".into();
+    assert_eq!(p.approach_label().as_deref(), Some("Tabu search"));
+    p.approach = "é".repeat(APPROACH_CHARS);
+    assert_eq!(p.approach_label(), Some("é".repeat(APPROACH_CHARS)));
+    p.approach = "é".repeat(APPROACH_CHARS + 5);
+    let cut = p.approach_label().unwrap();
+    assert_eq!(cut.chars().count(), APPROACH_CHARS);
+    assert!(cut.ends_with('…'));
+}
+
+#[test]
+fn the_brief_temperature_reaches_the_model_request() {
+    let port = Scripted::new(vec![reply("run.sh"), reply("run.sh")]);
+    let supervisor = ScriptSupervisor::new(port.clone(), SupervisorLimits::default()).unwrap();
+    let goal = Goal::new("minimize the loss");
+    supervisor.propose(&brief(), &goal, &context(1)).unwrap();
+    let hot = ScriptBrief {
+        temperature: Some(0.8),
+        ..brief()
+    };
+    supervisor.propose(&hot, &goal, &context(1)).unwrap();
+    assert_eq!(*port.temperatures.lock().unwrap(), [0.0, 0.8]);
+    let invalid = ScriptBrief {
+        temperature: Some(3.0),
+        ..brief()
+    };
+    assert_eq!(
+        supervisor.propose(&invalid, &goal, &context(1)).unwrap_err(),
+        Error::Model(tinyrsi_model::Error::InvalidRequest)
+    );
 }
 
 #[test]
