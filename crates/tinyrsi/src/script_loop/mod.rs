@@ -28,7 +28,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tinyrsi_evolve::{EvolveContext, Evolver, ScriptBrief, ScriptProposal};
-use tinyrsi_score::{Assessment, MetricScorer, Scorer, decide};
+use tinyrsi_score::{Assessment, MetricScorer, Scorer, decide, dominates};
 use tinyrsi_types::Goal;
 pub use types::*;
 
@@ -191,13 +191,19 @@ struct LoopState<'a> {
 }
 
 /// A candidate's decision, its `(estimate, lower, upper)` interval and their
-/// units, and its assessment when it was scored.
+/// units, its assessment when it was scored, and whether the decision is an
+/// `Accept` by per-seed dominance over an inconclusive interval.
 type Judged = (
     ScoreDecision,
     (f64, f64, f64),
     IntervalUnits,
     Option<Assessment>,
+    bool,
 );
+
+/// The ledger note on a candidate accepted by per-seed dominance.
+pub(super) const DOMINANCE_NOTE: &str =
+    "accepted by per-seed dominance: no worse on any seed, better on at least one";
 
 /// What one evaluated candidate produced.
 struct Measured {
@@ -418,7 +424,7 @@ impl LoopState<'_> {
         let judged = self.judge(&sources, &measured);
         row.runs = measured.runs;
         row.mean = measured.mean;
-        let (decision, interval, units, assessment) = match judged {
+        let (decision, interval, units, assessment, dominant) = match judged {
             Ok(judged) => judged,
             Err(error) => {
                 // The candidate ran: keep its measurements before the
@@ -439,6 +445,9 @@ impl LoopState<'_> {
         };
         (row.estimate, row.lower, row.upper) =
             (Some(interval.0), Some(interval.1), Some(interval.2));
+        if dominant {
+            row.note = Some(DOMINANCE_NOTE.into());
+        }
         self.ledger.candidates.push(row);
         self.save()?;
         Ok(match (decision, assessment) {
@@ -535,13 +544,24 @@ impl LoopState<'_> {
             } else {
                 IntervalUnits::Quality
             };
-            self.incumbent.assessment = Some(incumbent);
             let d = decided?;
+            // Few seeds cannot resolve an uneven gain; a candidate no worse
+            // on any seed and better on one is exact evidence on those seeds.
+            let dominant = d.decision == ScoreDecision::Inconclusive
+                && self.policy.accept_dominant
+                && dominates(&incumbent, &candidate);
+            self.incumbent.assessment = Some(incumbent);
+            let decision = if dominant {
+                ScoreDecision::Accept
+            } else {
+                d.decision
+            };
             return Ok((
-                d.decision,
+                decision,
                 (d.estimate, d.lower, d.upper),
                 units,
                 Some(candidate),
+                dominant,
             ));
         }
         let base: Vec<Option<f64>> = self.incumbent.metrics.iter().copied().map(Some).collect();
@@ -552,6 +572,7 @@ impl LoopState<'_> {
             score::failed_interval(&base, &cand, direction, multiplier),
             IntervalUnits::Metric,
             None,
+            false,
         ))
     }
 
