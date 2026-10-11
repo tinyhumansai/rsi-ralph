@@ -8,6 +8,8 @@ recorded separately.
 
 - [Framework](specs/rsi-framework.md): epoch, ownership and phase boundaries.
 - [Phase status](phases.md): implemented P1–P6 mechanisms and experimental limits.
+- [Remaining work audit](remaining-work.md): issue acceptance gaps after the
+  merged host and scoring work, with the next implementation boundary.
 - [Host runtime](../specs/host-runtime.md): durable deployment, compensation,
   exact memory restoration and the supported runner boundary.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.

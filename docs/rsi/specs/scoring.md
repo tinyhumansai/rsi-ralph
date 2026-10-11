@@ -146,7 +146,10 @@ meaningful. Nonfinite arithmetic invalidates the measurement.
 The intended secondary diagnostic is the weighted geometric mean of `H_f`, using
 exponents `w_f/sum(w)`. Zero produces zero; a negative family score makes that
 diagnostic undefined and must be reported without clipping or an epsilon. IQM
-remains the selection aggregate. This diagnostic is not implemented today.
+remains the selection aggregate. `geometric_family_mean` implements this
+diagnostic from a score's `per_family` map and its frozen `ScoringPolicy`;
+`None` reports the undefined negative-family case. It does not apply health
+penalties, change selection decisions, or add fields to persisted score reports.
 
 Host telemetry defines false claims as failed claimed completions divided by
 observed claims, and tamper rate as rejected protected-surface attempts divided
