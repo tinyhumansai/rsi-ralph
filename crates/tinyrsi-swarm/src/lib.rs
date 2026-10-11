@@ -76,5 +76,8 @@ pub use error::{Error, Result};
 pub use event::{SeatInfo, StopReason, SwarmEvent, ToolPhase};
 pub use package::{CANDIDATE_DIR, editing_seats, load_package};
 pub use prompt::HIVE_RULES;
-pub use swarm::{ModelUrl, RUNTIME_SEAT, SeatUsage, SwarmOutcome, SwarmRequest, run_swarm};
+pub use swarm::{
+    EVENTS_FILE, HIVE_DB, ModelUrl, RUNTIME_DIR, RUNTIME_SEAT, SeatUsage, SwarmOutcome, SwarmRequest,
+    run_swarm,
+};
 pub use tools::{SEARCH_PROVIDERS, SEARCH_TOOLS, ToolKey, WEB_SEARCH};

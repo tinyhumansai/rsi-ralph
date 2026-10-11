@@ -15,6 +15,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError, mpsc};
 
+pub use run::{EVENTS_FILE, HIVE_DB, RUNTIME_DIR};
 pub use types::{ModelUrl, SeatUsage, SwarmOutcome, SwarmRequest};
 
 use crate::event::SwarmEvent;
