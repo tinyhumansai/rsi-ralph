@@ -116,6 +116,7 @@ Supporting commands:
 - `cargo run -p tinyrsi-examples --example math_problem` (or `upgrade_file`,
   `graph_coloring`, `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
   trace under `target/rsi-examples/` and fails if it misses its goal.
+- `cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
 - `cargo run -p tinyrsi-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
 - `cargo run -p tinyrsi-host --example complete_openrouter` — the

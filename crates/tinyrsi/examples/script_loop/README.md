@@ -12,6 +12,10 @@ evaluation.
 cargo run -p tinyrsi --example script_loop
 ```
 
+The supervisor's brief is `brief.txt`. The `curve_fit` benchmark in
+`tinyrsi-examples` (`cargo run -p tinyrsi-examples --example benchmarks`)
+embeds these same fixtures and brief.
+
 ## Offline (default)
 
 A canned supervisor replays four proposals, two per epoch:

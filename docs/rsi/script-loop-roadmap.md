@@ -92,6 +92,11 @@ earlier slots of the same epoch, and a slot may set a temperature
 
 ### 6. Benchmark harness for the loop itself
 
+**Implemented:** [loop benchmarks spec](../specs/loop-benchmarks.md),
+`cargo run -p tinyrsi-examples --example benchmarks`. The repetition share is
+a proxy (identical content or normalized hypothesis of an earlier ruled-out
+proposal) until item 1 adds an `approach` label.
+
 - **Change:** a runner that executes every benchmark × model × N repeats and
   writes one comparison table: goal rate, epochs and tokens to goal, and the
   repetition share. This turns the single-run anecdotes above into measured

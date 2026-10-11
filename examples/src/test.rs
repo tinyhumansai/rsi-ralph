@@ -45,6 +45,13 @@ fn proposals_and_run_locations_have_the_documented_shape() {
 }
 
 #[test]
+fn live_models_are_built_from_an_explicit_id() {
+    assert!(live_model("anthropic/claude-sonnet-4.5").is_ok());
+    assert!(live_model(" ").is_err());
+    assert_ne!(default_live_model(), "");
+}
+
+#[test]
 fn with_approach_labels_a_proposal_and_leaves_other_text_alone() {
     let labelled = with_approach("DSATUR", proposal("r", "h", "a.py", "x"));
     let p: serde_json::Value = serde_json::from_str(&labelled).unwrap();
