@@ -9,7 +9,7 @@ coordinator, and an accepted design is not deployed until the host calls
 | File | Responsibility |
 | --- | --- |
 | `mod.rs` | Raw-quality funnel `run_proposal`, shared prefilter and patch preparation, `apply_at` |
-| `types.rs` | `Proposal`, `Prediction`, `Epoch`, `EvalStage`, `CandidateState`, `EvalPair`, `Evaluator`, `ApprovalGate`, `ReasonCode`, `ApplyAt`, `CandidateOutcome` |
+| `types.rs` | `Epoch`, `EvalPair`, `Evaluator`, `ApprovalGate`, `ApplyAt`, `CandidateOutcome` (`Proposal`, `Prediction`, `EvalStage`, `CandidateState` and `ReasonCode` live in `crates/tinyrsi-types`) |
 | `normalized/` | Normalized-H funnel `run_proposal_h` with `HEpoch`, `HEvaluator`, `HApprovalGate`; see [its README](normalized/README.md) |
 | `test.rs`, `test_funnel.rs` | Rejection reasons, promotion, deduplication |
 
