@@ -7,12 +7,12 @@ use serde_json::json;
 use super::{Budgets, Ledger, LedgerState};
 use crate::error::Error;
 
-/// A throwaway directory; `.0` is its path, kept as `Scratch::new(..).0`
+/// A throwaway directory: `.0` is its path, `.1` keeps it alive.
 /// reads in the tests below.
 struct Scratch(std::path::PathBuf, tempfile::TempDir);
 
 impl Scratch {
-    fn new(_name: &str) -> Self {
+    fn new() -> Self {
         let dir = tempfile::tempdir().unwrap();
         Self(dir.path().to_path_buf(), dir)
     }
@@ -43,7 +43,7 @@ fn pins_the_stored_ledger_shape() {
 
 #[test]
 fn rejects_invalid_limits() {
-    let scratch = Scratch::new("invalid");
+    let scratch = Scratch::new();
     for limit in [0.0, -1.0, f64::NAN, f64::INFINITY] {
         let error = Ledger::open(&scratch.0.join("x.json"), limit).unwrap_err();
         assert!(matches!(error, Error::InvalidLimit(_)), "{limit}");
@@ -52,7 +52,7 @@ fn rejects_invalid_limits() {
 
 #[test]
 fn settles_to_the_reported_cost() {
-    let scratch = Scratch::new("settle");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(5.0, 50.0);
     let reservation = budgets.reserve(0.2).unwrap();
     assert!((budgets.states().0.in_flight_usd - 0.2).abs() < 1e-12);
@@ -66,7 +66,7 @@ fn settles_to_the_reported_cost() {
 
 #[test]
 fn unknown_costs_keep_the_whole_reservation() {
-    let scratch = Scratch::new("unknown");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(5.0, 50.0);
     let reservation = budgets.reserve(0.3).unwrap();
     assert!((reservation.amount() - 0.3).abs() < 1e-12);
@@ -79,7 +79,7 @@ fn unknown_costs_keep_the_whole_reservation() {
 
 #[test]
 fn refuses_a_call_that_does_not_fit_the_run_cap() {
-    let scratch = Scratch::new("run-cap");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(1.0, 50.0);
     let held = budgets.reserve(0.9).unwrap();
     let error = budgets.reserve(0.2).unwrap_err();
@@ -95,7 +95,7 @@ fn refuses_a_call_that_does_not_fit_the_run_cap() {
 
 #[test]
 fn refuses_a_call_that_does_not_fit_the_total_cap() {
-    let scratch = Scratch::new("total-cap");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(5.0, 0.5);
     let error = budgets.reserve(0.6).unwrap_err();
     assert!(
@@ -112,7 +112,7 @@ fn refuses_a_call_that_does_not_fit_the_total_cap() {
 
 #[test]
 fn a_breached_bound_halts_all_spending() {
-    let scratch = Scratch::new("breach");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(5.0, 50.0);
     let reservation = budgets.reserve(0.01).unwrap();
     budgets.settle(reservation, Some(0.02)).unwrap();
@@ -125,7 +125,7 @@ fn a_breached_bound_halts_all_spending() {
 
 #[test]
 fn non_finite_reservations_never_fit() {
-    let scratch = Scratch::new("nonfinite");
+    let scratch = Scratch::new();
     let mut budgets = scratch.budgets(5.0, 50.0);
     assert!(matches!(
         budgets.reserve(f64::NAN).unwrap_err(),
@@ -135,7 +135,7 @@ fn non_finite_reservations_never_fit() {
 
 #[test]
 fn reopening_carries_spend_and_makes_in_flight_uncertain() {
-    let scratch = Scratch::new("reopen");
+    let scratch = Scratch::new();
     {
         let mut budgets = scratch.budgets(5.0, 50.0);
         let reservation = budgets.reserve(0.1).unwrap();
@@ -151,7 +151,7 @@ fn reopening_carries_spend_and_makes_in_flight_uncertain() {
 
 #[test]
 fn the_limit_of_an_existing_ledger_cannot_change() {
-    let scratch = Scratch::new("limit");
+    let scratch = Scratch::new();
     let path = scratch.0.join("total.json");
     Ledger::open(&path, 50.0).unwrap();
     let error = Ledger::open(&path, 60.0).unwrap_err();
@@ -160,7 +160,7 @@ fn the_limit_of_an_existing_ledger_cannot_change() {
 
 #[test]
 fn rejects_a_corrupt_ledger() {
-    let scratch = Scratch::new("corrupt");
+    let scratch = Scratch::new();
     let path = scratch.0.join("total.json");
     std::fs::write(&path, "not json").unwrap();
     assert!(matches!(
@@ -171,7 +171,7 @@ fn rejects_a_corrupt_ledger() {
 
 #[test]
 fn reports_unreadable_ledgers() {
-    let scratch = Scratch::new("unreadable");
+    let scratch = Scratch::new();
     let error = Ledger::open(&scratch.0, 50.0).unwrap_err();
     assert!(matches!(error, Error::Io { .. }), "{error}");
 }
