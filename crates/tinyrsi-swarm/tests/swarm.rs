@@ -174,6 +174,33 @@ fn files(dir: &Path) -> Vec<PathBuf> {
     found
 }
 
+fn assert_no_file_contains(dir: &Path, secret: &str) {
+    for file in files(dir) {
+        let bytes = std::fs::read(&file).unwrap();
+        assert!(
+            !String::from_utf8_lossy(&bytes).contains(secret),
+            "{} carries a secret",
+            file.display()
+        );
+    }
+}
+
+/// The tool names offered in the first chat request to `seat`.
+fn offered(requests: &[Request], seat: &str) -> Vec<String> {
+    let path = format!("/{seat}/v1/chat/completions");
+    let body: Value = requests
+        .iter()
+        .find(|request| request.url.path() == path)
+        .map(|request| serde_json::from_slice(&request.body).unwrap())
+        .unwrap();
+    body["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["function"]["name"].as_str().map(str::to_owned))
+        .collect()
+}
+
 #[test]
 fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
