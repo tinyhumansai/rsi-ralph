@@ -1,4 +1,4 @@
-//! Upstream call outcomes, tallied in memory as calls finish.
+//! Upstream call outcomes, tallied in memory as calls are sent and answered.
 //!
 //! The meter writes every call to `meter.jsonl` for later analysis. The
 //! tally answers the question a loop asks while it runs: how many calls
