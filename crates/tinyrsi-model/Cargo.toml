@@ -1,0 +1,24 @@
+[package]
+name = "tinyrsi-model"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bounded, metered model calls for the TinyRSI scoring and evolution crates."
+readme = "../../README.md"
+keywords = ["rsi", "llm", "openrouter", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tinybackrooms = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lints]
+workspace = true

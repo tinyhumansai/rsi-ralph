@@ -9,7 +9,7 @@ coordinator, and an accepted design is not deployed until the host calls
 | File | Responsibility |
 | --- | --- |
 | `mod.rs` | Raw-quality funnel `run_proposal`, shared prefilter and patch preparation, `apply_at` |
-| `types.rs` | `Proposal`, `Prediction`, `Epoch`, `EvalStage`, `CandidateState`, `EvalPair`, `Evaluator`, `ApprovalGate`, `ReasonCode`, `ApplyAt`, `CandidateOutcome` |
+| `types.rs` | `Epoch`, `EvalPair`, `Evaluator`, `ApprovalGate`, `ApplyAt`, `CandidateOutcome` (`Proposal`, `Prediction`, `EvalStage`, `CandidateState` and `ReasonCode` live in `crates/tinyrsi-types`) |
 | `normalized/` | Normalized-H funnel `run_proposal_h` with `HEpoch`, `HEvaluator`, `HApprovalGate`; see [its README](normalized/README.md) |
 | `test.rs`, `test_funnel.rs` | Rejection reasons, promotion, deduplication |
 
@@ -61,7 +61,7 @@ A screen result of inconclusive continues to selection; only reject stops.
   `Topology`/`Policy`/`Goal` → `BetweenSessions`.
 - Host ports: `Evaluator` (`pin_memory`, `evaluate`), `HEvaluator`
   (`evaluate_h`), `ApprovalGate` (`approve`), `HApprovalGate` (`approve_h`).
-  `CoordinatorEvaluator` in `src/suites/` implements both evaluator traits.
+  `CoordinatorEvaluator` in `crates/tinyrsi-host/src/suites/` implements both evaluator traits.
 
 Both outcomes carry the `ReasonCode`, the candidate ID when one was formed,
 the last comparison, and `apply_at` only for approved designs.

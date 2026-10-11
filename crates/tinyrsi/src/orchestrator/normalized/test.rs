@@ -2,7 +2,7 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixture outcomes")]
 use super::super::test::{baseline, epoch, proposal};
 use super::*;
-use crate::scoring::ScoringPolicySpec;
+use crate::ScoringPolicySpec;
 use crate::{
     Archive, Budget, CandidateState, EvalDecision, EvalPair, EvalRun, EvalStage, Evaluator,
     FamilyAnchor, Patch, Proposal, ReasonCode, Result, ScoreComparison, ScoreHealth,

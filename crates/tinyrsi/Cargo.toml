@@ -13,6 +13,12 @@ categories = ["development-tools"]
 publish = false
 
 [dependencies]
+tinyrsi-types = { workspace = true }
+tinyrsi-model = { workspace = true }
+tinyrsi-trace = { workspace = true }
+tinyrsi-score = { workspace = true }
+tinyrsi-verify = { workspace = true }
+tinyrsi-evolve = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -23,39 +29,13 @@ fs2 = { workspace = true }
 sha2 = { workspace = true }
 jsonschema = { workspace = true }
 tempfile = { workspace = true }
-tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
 tempfile = { workspace = true }
 
-[features]
-default = []
-# Durable coordinator storage for the executable host workflow.
-host = ["tinyhivemind-hives/sqlite", "dep:tokio"]
-
 [lints]
 workspace = true
-
-[[example]]
-name = "complete_openrouter"
-required-features = ["host"]
-
-[[example]]
-name = "observe_epochs"
-required-features = ["host"]
-
-[[example]]
-name = "private_benchmark"
-required-features = ["host"]
-
-[[example]]
-name = "proposal_metrics"
-required-features = ["host"]
-
-[[example]]
-name = "verify_lean_slice"
-required-features = ["host"]
 
 # A directory example: `main.rs` plus the Python harness, starting model and
 # canned proposals it embeds. Runs offline by default, so it needs no feature.

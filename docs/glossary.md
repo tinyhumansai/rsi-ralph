@@ -2,7 +2,9 @@
 
 Terms used across the code, the module READMEs and `docs/rsi/`. Each entry
 names the type or function that defines it; paths are relative to
-`crates/tinyrsi/src/` unless they start with `crates/`. Read
+`crates/tinyrsi/src/` unless they start with `crates/`, except `host/`,
+`suites/`, `epoch_driver/` and `evidence_journal/`, which are relative to
+`crates/tinyrsi-host/src/`. Read
 [architecture.md](architecture.md) first for how the pieces fit together.
 
 ## The loop
@@ -21,13 +23,13 @@ policy and the three suite fingerprints. Not to be confused with
 identities, roster, policies, goals). Re-exported as `tinyrsi::Package`.
 
 **Proposal.** A model's suggested change, as `Proposal`
-(`orchestrator/types.rs`): a title, one typed `Patch`, a mechanism, a
+(`crates/tinyrsi-types/src/proposal/types.rs`): a title, one typed `Patch`, a mechanism, a
 `Prediction` (`metric`, `minimum_gain`, the failure `nodes` it addresses),
 public `transcript_refs`, risk and effort. Proposals are data; they never
 apply themselves.
 
 **Candidate.** The design that results from applying a proposal's patch to the
-incumbent: `CandidateState` (`orchestrator/types.rs`) holds the new package
+incumbent: `CandidateState` (`crates/tinyrsi-types/src/candidate/types.rs`) holds the new package
 and its pinned memory watermarks. It is identified by its *content ID*.
 
 **Content ID.** `sha256:` followed by 64 lowercase hex digits, computed by
@@ -66,10 +68,10 @@ variation inside the retreat Engine.
 
 **Retreat.** The tinybackrooms creative "critic-pair" Engine used to
 generate proposals (`GenerationMode::Retreat` in `epoch_driver/types.rs`;
-request contract in `retreat/`). `RetreatWithoutMemory` disables recall;
+request contract in `crates/tinyrsi-evolve/src/retreat/`). `RetreatWithoutMemory` disables recall;
 `Direct` skips the Engine and makes one structured model call.
 
-**Retreat memory.** `DurableRetreatMemory` (`retreat_memory/`): a bounded,
+**Retreat memory.** `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`): a bounded,
 locked recall cache of discovery text and approved/rejected outcomes that the
 retreat Engine reads. Not an audit log.
 
@@ -108,7 +110,7 @@ private content leaking into public text fails closed.
 
 ## Evaluating
 
-**Stage.** `EvalStage` (`orchestrator/types.rs`): `Screen` (small replay and
+**Stage.** `EvalStage` (`crates/tinyrsi-types/src/candidate/types.rs`): `Screen` (small replay and
 regression check), `Selection` (the full selection suite) and `Confirmation`
 (fresh private tasks and seeds that may not overlap earlier stages). Each has
 its own frozen suite fingerprint in `HEpoch::suite_ids`.
@@ -122,7 +124,7 @@ them.
 task and seed, returned as `EvalPair` / `HEvalPair`. Each arm gets fresh
 coordinator storage in `CoordinatorEvaluator`.
 
-**Trial (experiment), arm, ablation.** In `experiment/`, a *trial* is one
+**Trial (experiment), arm, ablation.** In `crates/tinyrsi-score/src/experiment/`, a *trial* is one
 `TrialRequest`: an *arm* (`ExperimentArm::Original` or `Evolved`
 orchestrator configuration) crossed with an *ablation*
 (`ExperimentAblation::Full`, `MemoryOff`, `RetreatOff`) and a seed draw.
@@ -130,19 +132,19 @@ orchestrator configuration) crossed with an *ablation*
 `ExperimentExecutor`.
 
 **H score.** The normalized hive score from `score` and `compare_h`
-(`scoring/mod.rs`): each family's mean quality is normalized against its
+(`crates/tinyrsi-score/src/scoring/mod.rs`): each family's mean quality is normalized against its
 anchor, combined by an interquartile mean, then penalized for false claims,
 tampering and excess cost. `compare_h` adds a paired cluster-bootstrap
 interval and returns `Accept`, `Reject` or `Inconclusive`. Full formula in
-`scoring/README.md`.
+`crates/tinyrsi-score/src/scoring/README.md`.
 
-**Anchor.** `FamilyAnchor` (`scoring/types.rs`): a frozen `baseline` and
+**Anchor.** `FamilyAnchor` (`crates/tinyrsi-score/src/scoring/types.rs`): a frozen `baseline` and
 `reference` quality for one task family, used to normalize H. Separately,
 `AnchorLedger` monitors anchor-suite scores across epochs, and the
 experiment's *anchor suite* is a held-out draw measured before and after
 each trial.
 
-**Reason code.** `ReasonCode` (`orchestrator/types.rs`): why a proposal
+**Reason code.** `ReasonCode` (`crates/tinyrsi-types/src/proposal/types.rs`): why a proposal
 stopped or was accepted, from `Untestable` and `Ungrounded` through `NoGain`,
 `NotReplicated` and `ApprovalDenied` to `Accepted`. `HostFailure` means the
 evaluator or approval service failed, not the proposal.
@@ -166,18 +168,18 @@ for prompts, `ManageRoster` for roster, `BetweenSessions` for topology,
 policy and goals. The host does not act on it yet; `CoordinatorHost` always
 rebuilds.
 
-**Blueprint.** `Blueprint` (`blueprint/`): a dependency DAG of
+**Blueprint.** `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`): a dependency DAG of
 `BlueprintNode`s, each with a `Verifier` kind. Nodes become verified only
 through the host's `report`. The host's per-node checker results
 (`VerifierOutcome` with a `NodeStatus`) become the dossier's `failed_nodes` /
 `open_nodes`, which proposals must cite in `Prediction::nodes`.
 
-**Verifier.** `VerifierKind` (`blueprint/types.rs`) ranks evidence from
+**Verifier.** `VerifierKind` (`crates/tinyrsi-verify/src/blueprint/types.rs`) ranks evidence from
 `Proof` down to `Rubric` and `Preference` (the last two are weak).
-`HostVerifier` (`verification/types.rs`) is the concrete check: `Process`,
+`HostVerifier` (`crates/tinyrsi-verify/src/verification/types.rs`) is the concrete check: `Process`,
 `Golden`, `Schema`, `Lean` (a restricted proof block checked directly) or
 `Lake` (a frozen project built with a pinned Lean toolchain; see
-`verification/lake/README.md`).
+`crates/tinyrsi-verify/src/verification/lake/README.md`).
 
 **Approval gate.** `HApprovalGate::approve_h`
 (`orchestrator/normalized/types.rs`): the only path from a confirmed

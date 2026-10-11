@@ -20,15 +20,16 @@ same epoch traced through the files it writes, read the
 
 An *epoch* is one pass from live work to a possible deployment. Every arrow
 below is a direct function call made by the host; there is no scheduler inside
-the library. Paths are relative to `crates/tinyrsi/src/`. Steps 1, 2 and 6 need
-the `host` Cargo feature.
+the library. Paths are relative to `crates/tinyrsi/src/`, except `host/`,
+`suites/`, `epoch_driver/` and `evidence_journal/`, which live in
+`crates/tinyrsi-host/src/`. Steps 1, 2 and 6 use the `tinyrsi-host` crate.
 
 ```mermaid
 flowchart TD
     E["1 Execute<br/>CoordinatorHost (host/runtime.rs)<br/>Coordinator::send_as_host + run_until_idle (tinyhivemind)"]
     O["2 Observe<br/>DeploymentStore::observe (host/mod.rs)<br/>Observer::snapshot, Dossier::build (observation/mod.rs)"]
-    I["3 Ideate<br/>prepare_retreat_epoch (epoch_driver/generation.rs)<br/>tinybackrooms Engine via ModelConversant (model/mod.rs)"]
-    S["4 Evaluate and score<br/>evaluate_retreat_epoch (epoch_driver/mod.rs)<br/>run_proposal_h (orchestrator/normalized/mod.rs)<br/>CoordinatorEvaluator::evaluate_h (suites/mod.rs), compare_h (scoring/mod.rs)"]
+    I["3 Ideate<br/>prepare_retreat_epoch (epoch_driver/generation.rs)<br/>tinybackrooms Engine via ModelConversant (crates/tinyrsi-model)"]
+    S["4 Evaluate and score<br/>evaluate_retreat_epoch (epoch_driver/mod.rs)<br/>run_proposal_h (orchestrator/normalized/mod.rs)<br/>CoordinatorEvaluator::evaluate_h (suites/mod.rs), compare_h (crates/tinyrsi-score)"]
     A["5 Approve<br/>HApprovalGate::approve_h (orchestrator/normalized/types.rs)<br/>Archive::conclude (archive/mod.rs)"]
     D["6 Deploy<br/>DeploymentStore::activate (host/mod.rs)<br/>ActivationBackend::apply on CoordinatorHost"]
     R["Undo / restart<br/>DeploymentStore::rollback, DeploymentStore::recover (host/mod.rs)"]
@@ -82,9 +83,9 @@ flowchart TD
 | --- | --- | --- |
 | Coordinator, seats, transcripts | tinyhivemind (`tinyhivemind-hives`) | adapted by `host/` and `observation/` |
 | Hive package format, patches, content IDs | tinyhivemind (`tinyhivemind-lang`) | re-exported; never redefined |
-| Retreat generation engine | tinybackrooms | driven by `epoch_driver/`, `retreat/` |
+| Retreat generation engine | tinybackrooms | driven by `epoch_driver/`, `crates/tinyrsi-evolve/src/retreat/` |
 | Private tasks and checkers | the host | frozen and fingerprinted by `suites/` |
-| Model credentials and provider | the host | `model/` reads `OPENROUTER_API_KEY` at call time |
+| Model credentials and provider | the host | `tinyrsi-model` reads `OPENROUTER_API_KEY` at call time |
 | Human approval | the host | only a trait (`HApprovalGate`) |
 | Selection history | this crate | `archive/` |
 | Deployment state | this crate | `host/` (`DeploymentStore`) |
@@ -134,7 +135,7 @@ exists yet, and nothing in this document depends on them.
 - [Glossary](glossary.md) for every term above.
 - [Loop walkthrough](rsi/loop-walkthrough.md) for the on-disk evidence.
 - Module READMEs under `crates/tinyrsi/src/<module>/README.md` for design and
-  constraints of each piece; [`host/README.md`](../crates/tinyrsi/src/host/README.md)
+  constraints of each piece; [`host/README.md`](../crates/tinyrsi-host/src/host/README.md)
   covers the host lifecycle in order.
 - [Host runtime spec](specs/host-runtime.md) and
   [RSI framework](rsi/specs/rsi-framework.md) for the contracts.

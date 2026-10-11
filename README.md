@@ -16,7 +16,7 @@ language `Record` and `Package` values, prepared snapshots, declarations, paired
 runs, recomputed comparisons, explicit decisions and final outcomes. Selection
 and live deployment remain separate durable facts.
 
-The optional `host` feature supplies `CoordinatorHost` over real tinyhivemind
+The `tinyrsi-host` crate supplies `CoordinatorHost` over real tinyhivemind
 storage, including SQLite, and `DeploymentStore` for activation, compensation,
 restart and parent rollback. `SnapshotMemoryStore` provides immutable local
 memory images. `VerifiedRunner` settles work only through immutable host checks;
@@ -28,14 +28,14 @@ prevents completed generation/evaluation from repeating after restart.
 observed checker evidence, then atomically consumes them into a redacted epoch
 receipt. Duplicate callbacks and repeated epoch reads do not recount work after
 restart; interrupted calls with missing usage remain explicitly unknown. Run
-`cargo run -p tinyrsi --features host --example observe_epochs` for the offline
+`cargo run -p tinyrsi-host --example observe_epochs` for the offline
 two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
 
 `EpochJournal::proposal_dataset` links typed formatter occurrences and committed
 predictions to selection-only labels, preserving missing and censored outcomes.
 Optional probabilities are frozen before evaluation; Brier, tied-rank Spearman
 and precision-at-k report their denominators without using confirmation or anchor
-measurements. See the [dataset contract](crates/tinyrsi/src/epoch_driver/dataset/README.md)
+measurements. See the [dataset contract](crates/tinyrsi-host/src/epoch_driver/dataset/README.md)
 and the `proposal_metrics` example for reporting an existing private host run.
 
 The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
@@ -59,23 +59,29 @@ and [the experiment protocol](docs/specs/ignition.md).
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 crates/
+├── tinyrsi-types/      # proposal and candidate data shared by every crate
+├── tinyrsi-model/      # bounded, metered model calls
+├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
+├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── tinyrsi-score/      # Scorer port, LLM/backrooms judges, decide, statistics
+├── tinyrsi-verify/     # host checkers, blueprints, pinned Lean, process runner
+├── tinyrsi-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
+├── tinyrsi-host/       # hive runtime: coordinators, suites, durable epochs, deployment
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
     │   ├── error/      # crate-wide `Error` and `Result<T>`
     │   ├── lineage/    # small in-memory ledger of graded candidates
     │   ├── archive/    # replay-validated proposals and evaluation evidence
-    │   ├── observation/, evaluation/, orchestrator/  # epoch and approval funnel
-    │   ├── scoring/, verification/  # normalized scores and real host checks
-    │   ├── memory/, retreat_memory/ # immutable snapshots and durable discovery
-    │   ├── epoch_driver/, retreat/  # actual generation and durable attempts
-    │   ├── host/, model/, suites/   # deployment and isolated model evaluation
-    │   ├── script_loop/, process/, trace/  # plain-script loop and its trace
-    │   └── experiment/ # preregistered paired trial ledger
+    │   ├── observation/, orchestrator/  # epoch and approval funnel
+    │   ├── memory/     # immutable snapshots
+    │   └── script_loop/  # plain-script loop
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
 vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
 vendor/tinybackrooms/   # pinned creative-retreat engine
+vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
+examples/               # end-to-end examples: math_problem, upgrade_file, hive_goal
 docs/
 ├── rsi/                # RSI research notes and the working framework spec
 ├── specs/              # behavior and architecture specifications
@@ -123,6 +129,11 @@ runs under `target/` and follows a loop's `events.jsonl` live: current stage,
 metric by epoch, proposals with their decisions, and the incumbent lineage.
 `cd apps/rsi-viz && npm ci && npm run dev`.
 
+To see the same runs in Langfuse, add a `tinyrsi_langfuse::LangfuseTrace` to the
+loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It sends
+OTLP spans through OpenHuman's own Langfuse client and reads the same
+`LANGFUSE_*` variables; see `.env.example`.
+
 ## Live OpenRouter smoke test
 
 With an existing `OPENROUTER_API_KEY` in your environment:
@@ -149,7 +160,7 @@ controlled path below exercises normalized confirmation, approval and deployment
 
 ```sh
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi --features host --example complete_openrouter
+  cargo run -p tinyrsi-host --example complete_openrouter
 ```
 
 It requires inherited `OPENROUTER_API_KEY` and an actual stock Lean executable.
@@ -158,6 +169,19 @@ host-private directory (default `target/rsi-complete-live`); existing directorie
 are refused to preserve preregistration. The example spends real API tokens.
 It writes protocol and aggregate experiment reports without publishing private
 suite contents. A negative or inconclusive report is a valid result.
+
+## End-to-end examples
+
+[`examples/`](examples/README.md) runs the whole loop (evolve, score, keep
+what is better) on three problems, offline by default:
+
+- `math_problem`: compute π to 12 digits.
+- `upgrade_file`: bring a file up to a written coding standard.
+- `hive_goal`: improve a hive of agents until they solve private tasks.
+
+Run `cargo run -p tinyrsi-examples --example math_problem` (or
+`upgrade_file`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
+`RSI_RUN_ROOT=../../target/rsi-examples`.
 
 ## Improving a plain script
 
@@ -185,7 +209,7 @@ context repair outside the preregistered comparison:
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_CONTROLLED_ONLY=1 \
   TINYRSI_COMPLETE_DIR=target/rsi-controlled-live \
   TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi --all-features --example complete_openrouter
+  cargo run -p tinyrsi-host --example complete_openrouter
 ```
 
 It checks all three normalized evaluation stages, both sandbox gate decisions,

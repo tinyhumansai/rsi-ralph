@@ -18,7 +18,11 @@
 //! # Layout
 //!
 //! - `src/error/` holds the crate-wide [`Error`] enum and the [`Result`] alias
-//!   returned by every fallible public function.
+//!   returned by every fallible function defined in this crate. Items
+//!   re-exported from lower crates keep their own error type:
+//!   [`ModelRequest::new`] and the other model APIs return [`ModelError`].
+//!   Every such error converts into [`Error`] with `?`, landing on the variant
+//!   this crate always reported.
 //! - Each feature area lives in its own module directory with a `mod.rs`
 //!   module root, an optional `types.rs`, and a `test.rs` holding its unit
 //!   tests.
@@ -39,79 +43,69 @@
 //! ```
 
 mod archive;
-mod blueprint;
-#[cfg(feature = "host")]
-mod epoch_driver;
 mod error;
-mod evaluation;
-#[cfg(feature = "host")]
-mod evidence_journal;
-mod experiment;
-#[cfg(feature = "host")]
-mod host;
 mod lineage;
 mod memory;
-mod model;
 mod observation;
 mod orchestrator;
-mod process;
-mod retreat;
-mod retreat_memory;
-mod scoring;
 mod script_loop;
-#[cfg(feature = "host")]
-mod suites;
-mod trace;
-mod verification;
 
 pub use error::{Error, Result};
-#[cfg(feature = "host")]
-pub use evidence_journal::{EvidenceEpoch, EvidenceJournal, RecordedTurn, RecordedTurnStatus};
 pub use lineage::{GradeEntry, Lineage, Verdict};
 
 pub use archive::{
     Archive, DuplicateDisposition, EvaluationEvent, ProposalDeclaration, ProposalDispositionReport,
-    ProposalDispositionRow, ProposalEvent,
-};
-pub use blueprint::*;
-pub use evaluation::{
-    Budget, Comparison, EvalDecision, EvalPolicy, EvalRun, JudgeCalibration, QualityRubric,
-    VerifierTier, compare, ensure_independent,
+    ProposalDispositionRow,
 };
 pub use observation::*;
 pub use orchestrator::*;
 pub use tinyhivemind_lang;
-// The language's own definitions, re-exported so hosts name one crate.
-pub use tinyhivemind_lang::Package;
-pub use tinyhivemind_lang::lineage::{Record, VersionMetadata};
-pub use tinyhivemind_lang::patch::{Operation, Patch, PatchClass};
-
-pub use retreat::{
-    RetreatOutput, RetreatTransport, build_retreat_request, decode_retreat_response,
-    generate_retreat,
+// Shared proposal data and the language's own definitions, re-exported so
+// hosts name one crate.
+pub use tinyrsi_types::{
+    CandidateState, EvalStage, Operation, Package, Patch, PatchClass, Prediction, Proposal,
+    ProposalEvent, ReasonCode, Record, VersionMetadata,
 };
-
-pub use scoring::{
-    AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
-    ScorePenalties, ScoringPolicy, compare_h, geometric_family_mean, score,
-};
-
-pub use retreat::{generate_retreat_with_engine, typed_retreat_request};
 
 pub use archive::NormalizedEvaluationEvent;
-#[cfg(feature = "host")]
-pub use host::*;
-pub use retreat_memory::*;
-pub use scoring::ScoringPolicySpec;
-pub use verification::*;
+// Evolution: the Evolver port, the script supervisor, retreat and its memory.
+pub use tinyrsi_evolve::{
+    DurableRetreatMemory, Error as EvolveError, EvolveContext, Evolver, MemoryLimits, Proposed,
+    ProposedFile, RetreatBrief, RetreatDossier, RetreatEvolver, RetreatMemoryOutcome,
+    RetreatOutcomeStatus, RetreatOutput, RetreatTransport, ScriptBrief, ScriptProposal,
+    ScriptSupervisor, ScriptedEvolver, SupervisorLimits, build_retreat_request,
+    decode_retreat_response, generate_retreat, generate_retreat_with_engine, typed_retreat_request,
+};
+// Checkers: blueprints, verifier registry, verified completion.
+pub use tinyrsi_verify::{
+    ArtifactFuture, ArtifactProducer, ArtifactSubmission, Blueprint, BlueprintNode, CommandSpec,
+    Error as VerifyError, HostVerifier, NodeStatus, VerificationBinding, VerificationEvidence,
+    VerificationObserver, VerifiedRunner, Verifier, VerifierDeclaration, VerifierKind,
+    VerifierRegistry, VerifierScorer,
+};
 
-#[cfg(feature = "host")]
-pub use epoch_driver::*;
-pub use experiment::*;
+// Scoring: paired comparison, normalized H, experiments.
 pub use memory::SnapshotMemoryStore;
-pub use model::*;
-#[cfg(feature = "host")]
-pub use suites::*;
+pub use tinyrsi_model::{
+    BudgetedModel, Error as ModelError, GenerationMeter, ModelConversant, ModelFuture,
+    ModelIdentity, ModelPort, ModelReply, ModelRequest, OpenRouterModel, block_on,
+};
+pub use tinyrsi_score::{
+    AblationEstimate, AttemptEvidence, AttemptStatus, EvidenceSource, ExperimentAblation,
+    ExperimentArm, ExperimentExecutor, ExperimentProtocol, ExperimentProtocolSpec,
+    ExperimentReport, ExperimentUncertainty, ExperimentVerdict, SuiteFingerprints, TrialEvidence,
+    TrialFailure, TrialRequest, TrialSeeds, TrialSummary, run_experiment,
+};
+pub use tinyrsi_score::{
+    AnchorLedger, AnchorSignal, Budget, Comparison, Error as ScoreError, EvalDecision, EvalPolicy,
+    EvalRun, FamilyAnchor, JudgeCalibration, QualityRubric, ScoreComparison, ScoreEstimate,
+    ScoreHealth, ScorePenalties, ScoringPolicy, ScoringPolicySpec, VerifierTier, compare,
+    compare_h, ensure_independent, geometric_family_mean, score,
+};
+pub use tinyrsi_score::{
+    Assessment, BackroomsJudge, Composite, Decision, Goal, JudgeLimits, LlmJudge, MetricEvidence,
+    MetricScorer, Projected, Scorer, ScriptedScorer, decide,
+};
 
 pub use archive::NormalizedApprovalEvent;
 
@@ -120,10 +114,11 @@ pub use archive::NormalizedDeclarationEvent;
 // The plain-script improvement loop and the append-only trace it emits.
 pub use script_loop::{
     CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
-    ProposedFile, RunLocation, ScriptCommand, ScriptLedger, ScriptProposal, ScriptSubject, SeedRun,
-    Supervisor, SupervisorLimits, parse_metric, run_script_loop,
+    RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
+    parse_metric, run_script_loop, run_script_loop_with,
 };
-pub use trace::{
-    Clock, JsonlTrace, LoopEvent, ManualClock, MetricDirection, MonotonicClock, NullTrace, RunGoal,
-    ScoreDecision, StopReason, TraceRecord, TraceSink, VecTrace,
+pub use tinyrsi_trace::{
+    Clock, Error as TraceError, FanoutTrace, IntervalUnits, JsonlTrace, LoopEvent, ManualClock,
+    MetricDirection, MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord,
+    TraceSink, TracingTrace, VecTrace,
 };

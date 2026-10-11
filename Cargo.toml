@@ -1,12 +1,13 @@
 [workspace]
 resolver = "3"
 # Every crate in this repository lives under `crates/`, one directory per
-# package, each directory named for the package it holds. There is no root
+# package, each directory named for the package it holds; `examples/` is the
+# one exception, a package of runnable end-to-end examples. There is no root
 # package: the library a host depends on is `crates/tinyrsi`, the same as any
 # other member. Keeping the root virtual is what makes that uniform — a root
 # package would make one crate structurally different from the rest for no
 # reason other than history.
-members = ["crates/*"]
+members = ["crates/*", "examples"]
 # `vendor/` holds the pinned tinyhivemind and tinybackrooms submodules, each
 # its own workspace with its own lockfile. `worktrees/` holds `git worktree`
 # checkouts of this same repository; each contains a full copy of this manifest
@@ -25,6 +26,26 @@ license = "GPL-3.0-only"
 repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 
 [workspace.dependencies]
+# Shared proposal and candidate data. No `version` requirement on purpose: the
+# workspace version moves on every release, and nothing here is published, so
+# the path is the whole address.
+tinyrsi-types = { path = "crates/tinyrsi-types" }
+# The loop library the host runtime builds on.
+tinyrsi = { path = "crates/tinyrsi" }
+# The hive host runtime, which the examples package drives end to end.
+tinyrsi-host = { path = "crates/tinyrsi-host" }
+# Paired comparison, normalized scoring, experiments and the `Scorer` port.
+tinyrsi-score = { path = "crates/tinyrsi-score" }
+# Host checkers, blueprints and the bounded process runner.
+tinyrsi-verify = { path = "crates/tinyrsi-verify" }
+# The Evolver port, the script supervisor and tinybackrooms retreat.
+tinyrsi-evolve = { path = "crates/tinyrsi-evolve" }
+# The loop trace written for the visualizer and mirrored into `tracing`.
+tinyrsi-trace = { path = "crates/tinyrsi-trace" }
+# Langfuse export of the loop trace, through OpenHuman's existing client.
+tinyrsi-langfuse = { path = "crates/tinyrsi-langfuse" }
+# Bounded, metered model calls shared by scoring, evolution and the loops.
+tinyrsi-model = { path = "crates/tinyrsi-model" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
@@ -50,6 +71,17 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 # The `host` runtime drives the tinyhivemind coordinator, and async tests use
 # the same runtime.
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+# `TracingTrace` mirrors loop events as spans for whatever subscriber the host
+# installs; no default features because nothing here needs `log` interop.
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+# Tests capture mirrored spans and events with a registry layer.
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
+
+# OpenHuman's embedding facade, used only for its `observe::langfuse` client so
+# loop traces reach Langfuse through the same transport OpenHuman agents use.
+# Default features off: only the `langfuse` export is needed, not the agent
+# runtime's optional domains.
+openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse"] }
 
 # Lints apply to every member that opts in with `[lints] workspace = true`, and
 # to every target of that member. CI runs clippy with `-D warnings`, so anything
@@ -87,3 +119,40 @@ private_intra_doc_links = "warn"
 lto = "thin"
 codegen-units = 1
 strip = "debuginfo"
+
+# OpenHuman resolves several of its own git dependencies onto vendored copies
+# with `[patch]` tables, and patches only apply at the workspace root. These
+# mirror `vendor/openhuman/Cargo.toml` with paths rebased, so `openhuman-embed`
+# links exactly one `tinytools`, one `tinyinference-*` and one
+# `libsqlite3-sys`. Update them together with the `vendor/openhuman` gitlink.
+[patch."https://github.com/tinyhumansai/tinytools"]
+# tinymcp's `tools` feature names tinytools by git rev so it can be built on its
+# own. Redirect it to the copy tinyagents vendors — the one the harness and
+# every host tool link — so there is exactly one `tinytools` package and one
+# `Tool` trait. Without this, MCP tools would not satisfy the harness's trait.
+tinytools = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
+tinytools-agent = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
+
+[patch."https://github.com/tinyhumansai/tinystoragedrivers"]
+# tinyflows names the storage crates by git tag so it can build on its own.
+# Redirect them to the copy tinyagents vendors — the one the session store and
+# the core `storage` domain link — so there is exactly one `DocumentStore`
+# trait and one `libsqlite3-sys` (`links = "sqlite3"`) in the graph.
+tinystoragedrivers-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-core" }
+tinystoragedrivers-sqlite = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-sqlite" }
+
+[patch."https://github.com/tinyhumansai/tinyinference"]
+tinyinference-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
+tinyinference-embeddings = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
+tinyinference-llm = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
+tinyinference-local = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local" }
+tinyinference-providers = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-providers" }
+tinyinference-voice = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
+
+[patch.crates-io]
+tinyinference-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
+tinyinference-embeddings = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
+tinyinference-llm = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
+tinyinference-local = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local" }
+tinyinference-providers = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-providers" }
+tinyinference-voice = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
