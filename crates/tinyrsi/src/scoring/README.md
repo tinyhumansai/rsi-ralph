@@ -80,9 +80,13 @@ class freeze, contamination cleanup, or live activation is performed.
 The module implements issue #2's H formula, paired uncertainty, hard gates,
 and basic anchor monitoring. Bradley-Terry proposal ranking, learned priors,
 sequential alpha spending, canary ownership, calibrated health-rate uncertainty,
-and the worked experiment with at least twenty real proposals remain host or
-future work. Family references and health-rate definitions must be curated
-before real progress claims are made.
+and automatic monitoring/cleanup remain host or future work. The
+[recorded worked example](../../../../docs/rsi/scoring-worked-example.md) now
+supplies fifty real typed proposal occurrences and paired normalized evidence;
+it does not establish learned ranking or progress on a curated benchmark.
+Family references and health-rate definitions must be curated before real
+progress claims are made. The [acceptance map](../../../../docs/rsi/scoring-acceptance.md)
+links current regression coverage and test obligations for remaining mechanisms.
 
 `ScoringPolicy::spec()` exports frozen settings as `ScoringPolicySpec` for exact
 archive replay. The serializable specification is trusted host configuration;

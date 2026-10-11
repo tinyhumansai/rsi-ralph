@@ -13,6 +13,10 @@ recorded separately.
 - [Host implementation map](../plans/host-runtime.md): source and regression tests.
 - [Verified decomposition](specs/way-of-working.md): blueprint and verification model.
 - [Scoring](specs/scoring.md): checkpoints, normalization, uncertainty and anchors.
+- [Scoring acceptance map](scoring-acceptance.md): reject/decision test coverage
+  and explicit remaining implementation obligations.
+- [Recorded scoring example](scoring-worked-example.md): fifty retreat proposals,
+  actual incumbent/candidate H intervals and the resulting rejection.
 - [Implementation contract](specs/orchestrator.md): lineage and proposal gates.
 - [Bounded experiment](../specs/ignition.md): preregistration, ablations and verdicts.
 - [Experiment implementation](../plans/ignition.md).
