@@ -19,7 +19,7 @@ use crate::event::{Redactor, SeatInfo, StopReason, SwarmEvent};
 use crate::hooks::SwarmHooks;
 use crate::mirror::Mirror;
 use crate::package::Hive;
-use crate::relay::{MAX_RELAYS, relay_message, stranded_reply};
+use crate::relay::{MAX_RELAYS, relay_message, stall};
 use crate::trace::Trace;
 use crate::{Error, Result};
 
@@ -152,9 +152,10 @@ async fn open_desks(coordinator: &Coordinator, lowered: &LoweredHive) -> Result<
 
 /// Runs the coordinator until idle or `wall`, mirroring its transcript.
 ///
-/// Each time it goes idle on a seat's unread reply to `lead`
-/// ([`stranded_reply`]), the reply is relayed to the lead and the run goes on,
-/// at most [`MAX_RELAYS`] times.
+/// Each time it goes idle with a seat's work hanging ([`stall`]: an unread
+/// reply to `lead`, or a message whose turn ended unanswered), the host hands
+/// the message back to that seat and the run goes on, at most [`MAX_RELAYS`]
+/// times.
 async fn drain(
     coordinator: &Coordinator,
     trace: &Arc<Trace>,
@@ -188,10 +189,10 @@ async fn drain(
             break StopReason::Idle;
         }
         let transcript = coordinator.read_transcript(None)?;
-        let Some(reply) = stranded_reply(&transcript, lead) else {
+        let Some(stalled) = stall(&transcript, lead) else {
             break StopReason::Idle;
         };
-        coordinator.send_as_host(relay_message(reply, lead)).await?;
+        coordinator.send_as_host(relay_message(&stalled)).await?;
         relays += 1;
     };
     watcher.abort();
