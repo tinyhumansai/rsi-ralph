@@ -162,7 +162,7 @@ pub(super) async fn run(
 }
 
 /// The brief, followed by each candidate's checkout.
-fn kickoff(request: &SwarmRequest) -> String {
+pub(super) fn kickoff(request: &SwarmRequest) -> String {
     let mut body = request.brief.clone();
     for (seat, path) in &request.candidates {
         body.push_str(&format!(
@@ -176,7 +176,7 @@ fn kickoff(request: &SwarmRequest) -> String {
 /// The base config every seat's agent is built from: nothing that reaches
 /// out or spawns on its own. Seats carry no memory engine, so the memory
 /// lifecycle (a recall before and a log after every turn) is off.
-fn runtime_config() -> RuntimeConfig {
+pub(super) fn runtime_config() -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
     config.agent.tool_dispatcher = "native".into();
     config.local_ai.runtime_enabled = false;
