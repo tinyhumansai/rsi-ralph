@@ -424,3 +424,69 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
         "{error:?}"
     );
 }
+
+/// The pair script with shell calls: the read-only lead lists its incumbent,
+/// then assigns; the implementer writes a file through the shell.
+async fn shell_model() -> MockServer {
+    let server = MockServer::start().await;
+    let assign = json!({"agent_id": "implementer-a", "message_id": "assign-1",
+        "body": "Write SHELL.md in your candidate checkout."});
+    mount(
+        &server,
+        "lead",
+        vec![
+            tool_call("call-lead-1", "shell", &json!({"command": "ls"})),
+            tool_call("call-lead-2", "hivemind_send_agent", &assign),
+            text("Assigned implementer-a; ending my turn."),
+        ],
+        Duration::ZERO,
+    )
+    .await;
+    let write = json!({"command": "printf 'written by shell\\n' > SHELL.md"});
+    mount(
+        &server,
+        "implementer-a",
+        vec![
+            tool_call("call-impl-1", "shell", &write),
+            text("Wrote SHELL.md."),
+        ],
+        Duration::ZERO,
+    )
+    .await;
+    mount(&server, "runtime", vec![text("ok")], Duration::ZERO).await;
+    server
+}
+
+#[test]
+fn seat_shell_calls_run_under_the_seats_access() {
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(shell_model());
+    let dirs = dirs();
+    let mut request = request(&dirs, &server.uri(), Duration::from_secs(120));
+    let hive = request.package.get_mut("hive.json").unwrap();
+    *hive = hive
+        .replace(r#"["file_read"]"#, r#"["file_read", "shell"]"#)
+        .replace(
+            r#"["file_read", "file_write"]"#,
+            r#"["file_read", "file_write", "shell"]"#,
+        );
+    let mut events = Vec::new();
+    let outcome = run_swarm(request, &mut |event| events.push(event)).unwrap();
+
+    // A shell call that cannot be authorized used to fail the whole turn
+    // ("tool authorization preparation failed"), so no seat ran a command.
+    assert_eq!(outcome.failed, 0, "{events:?}");
+    for seat in ["lead", "implementer-a"] {
+        assert!(
+            events.iter().any(|event| matches!(event,
+                SwarmEvent::ToolCall { seat: s, tool, phase: ToolPhase::Completed, success: Some(true), .. }
+                    if s == seat && tool == "shell")),
+            "{seat}'s shell call did not run: {events:?}"
+        );
+    }
+    assert_eq!(
+        std::fs::read_to_string(dirs.candidate.join("SHELL.md")).unwrap(),
+        "written by shell\n"
+    );
+    assert!(!dirs.incumbent.join("SHELL.md").exists());
+}
