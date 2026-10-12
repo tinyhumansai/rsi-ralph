@@ -318,6 +318,42 @@ async fn status(State(proxy): Shared) -> Response {
     axum::Json(json!({ "run": run, "total": total })).into_response()
 }
 
+/// Maximum retries for failures during connection establishment.
+const FRESH_RETRIES: usize = 2;
+
+/// Posts `body` to `url` with the upstream key.
+///
+/// Only connection-establishment failures prove the POST was not delivered.
+/// Those failures get up to [`FRESH_RETRIES`] attempts on fresh connections.
+/// Request errors after connecting are ambiguous and must not replay a paid
+/// request, even when no response headers arrived.
+async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest::Response> {
+    let post = |client: &reqwest::Client| {
+        client
+            .post(url)
+            .bearer_auth(&proxy.config.api_key)
+            .json(body)
+            .send()
+    };
+    let mut sent = post(&proxy.client).await;
+    for _ in 0..FRESH_RETRIES {
+        if !sent.as_ref().is_err_and(before_delivery) {
+            break;
+        }
+        let Ok(fresh) = reqwest::Client::builder().pool_max_idle_per_host(0).build() else {
+            break;
+        };
+        sent = post(&fresh).await;
+    }
+    sent
+}
+
+/// Whether connection establishment failed before the POST could be sent.
+/// General request errors and timeouts do not prove non-delivery.
+fn before_delivery(error: &reqwest::Error) -> bool {
+    error.is_connect() && !error.is_timeout()
+}
+
 /// Runs a forward on its own task and waits for it.
 ///
 /// axum drops a handler's future when the client disconnects. A forward
@@ -438,13 +474,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         endpoint.path()
     );
     let call = proxy.calls.dispatched();
-    let sent = proxy
-        .client
-        .post(url)
-        .bearer_auth(&proxy.config.api_key)
-        .json(&prepared.body)
-        .send()
-        .await;
+    let sent = send(&proxy, &url, &prepared.body).await;
     let response = match sent {
         Ok(response) => response,
         Err(error) => {

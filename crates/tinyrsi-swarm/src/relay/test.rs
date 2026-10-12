@@ -54,10 +54,9 @@ fn a_message_its_recipient_never_answered_is_an_unanswered_turn() {
         message(0, HOST_ID, "lead"),
         message(1, "lead", "implementer-a"),
     ];
-    let stalled = stall(&assignment, "lead").unwrap();
     assert_eq!(
-        (stalled.seat(), stalled.message().sequence),
-        ("implementer-a", 1)
+        stall(&assignment, "lead").map(|s| (s.seat(), s.message().sequence)),
+        Some(("implementer-a", 1))
     );
 }
 
