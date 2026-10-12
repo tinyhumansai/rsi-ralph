@@ -12,15 +12,17 @@ categories = ["development-tools"]
 publish = false
 
 [features]
-# Web search for seats holding a `web_search` tool key. OpenHuman serves
-# search from its TinySearch module, which needs the harness's module loader;
-# without this feature such a key is refused as unsupported.
+# Web search for seats holding a `web_search` tool key, served by OpenHuman's
+# TinySearch module; without this feature such a key is refused as
+# unsupported. The module loader itself is always on (see below).
 web-search = ["openhuman-embed/modules"]
 
 [dependencies]
 # The agent harness every seat runs on: runtime, agent specs, providers and
-# turn progress.
-openhuman-embed = { workspace = true }
+# turn progress. `modules` is required, not optional: OpenHuman authorizes
+# every `shell` call from TinyBox's command analysis, served by its module
+# loader. Without it each seat's first shell call fails its whole turn.
+openhuman-embed = { workspace = true, features = ["modules"] }
 # The swarm's `events.jsonl` and outcome derive their stored JSON form.
 serde = { workspace = true }
 serde_json = { workspace = true }

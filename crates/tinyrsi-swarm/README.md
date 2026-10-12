@@ -63,10 +63,18 @@ directory: a tool key is applied only to its seats' in-memory agent config.
 Text a model chooses to write into its own transcript is outside this
 guarantee.
 
+## Shell and OpenHuman modules
+
+The swarm always builds OpenHuman with its module loader (`openhuman-embed`
+feature `modules`). OpenHuman authorizes every `shell` call from TinyBox's
+command analysis, which the loader serves; the seat's access then decides
+the call (editing seats run under `Access::full`, read-only seats only
+Read-class commands). The first shell call in a process loads the TinyBox
+release OpenHuman pins (from the user cache, downloading it once if absent).
+
 ## Tool keys
 
-The one capability is `web_search` (Cargo feature `web-search`, which turns
-on OpenHuman's module loader): providers `brave`, `exa`, `gemini`,
+The one capability is `web_search` (Cargo feature `web-search`): providers `brave`, `exa`, `gemini`,
 `parallel`, `querit`, `tavily`, `tinyfish`. A key is pinned in memory on each of its
 seats' agent config (`SearchConfig::pin_host_credential`, OpenHuman #7460),
 which puts its provider on the direct route, and `web_search_tool`,

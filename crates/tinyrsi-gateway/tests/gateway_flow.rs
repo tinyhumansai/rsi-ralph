@@ -100,6 +100,16 @@ async fn mock_embeddings(Json(_body): Json<Value>) -> Response {
         .into_response()
 }
 
+/// An upstream model listing, as an OpenAI-compatible router serves it: the
+/// gateway's allowed model with its window and price, and one it does not
+/// allow.
+async fn mock_models() -> Json<Value> {
+    Json(json!({"object": "list", "data": [
+        {"id": GLM_FLASH, "object": "model", "context_length": 262_144, "pricing": {"prompt": "9"}},
+        {"id": "not-allowed/model", "object": "model", "context_length": 8},
+    ]}))
+}
+
 /// A mock upstream on its own thread and runtime, so a test blocking on
 /// the gateway's shutdown never starves it.
 struct Upstream {
@@ -118,6 +128,7 @@ impl Upstream {
         let app = axum::Router::new()
             .route("/v1/chat/completions", post(mock_chat))
             .route("/v1/embeddings", post(mock_embeddings))
+            .route("/v1/models", axum::routing::get(mock_models))
             .with_state(seen.clone());
         let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
         let thread = std::thread::spawn(move || {
@@ -867,4 +878,31 @@ async fn connections_dropped_before_any_response_are_retried_on_fresh_ones() {
     let calls = gateway.upstream_calls();
     assert_eq!(calls.refused, 0);
     gateway.shutdown().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_model_listing_carries_the_upstreams_context_window() {
+    let h = Harness::start(5.0, 50.0);
+    let tagged = format!("{}/__tag/evolve/builder/v1", h.base());
+    for models_url in [
+        format!("{}/v1/models", h.base()),
+        format!("{tagged}/models"),
+    ] {
+        let models: Value = h
+            .client
+            .get(models_url)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let entries = models["data"].as_array().unwrap();
+        // Still only what the price table allows...
+        assert!(entries.iter().all(|m| m["id"] != "not-allowed/model"));
+        // ...but now sized, so a harness can tell how much history fits.
+        let flash = entries.iter().find(|m| m["id"] == GLM_FLASH).unwrap();
+        assert_eq!(flash["context_length"], 262_144);
+        assert!(flash.get("pricing").is_none());
+    }
 }
