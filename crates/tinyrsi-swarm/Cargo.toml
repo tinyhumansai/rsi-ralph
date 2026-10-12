@@ -19,8 +19,10 @@ web-search = ["openhuman-embed/modules"]
 
 [dependencies]
 # The agent harness every seat runs on: runtime, agent specs, providers and
-# turn progress.
-openhuman-embed = { workspace = true }
+# turn progress. `modules` is required, not optional: OpenHuman authorizes
+# every `shell` call from TinyBox's command analysis, served by its module
+# loader. Without it each seat's first shell call fails its whole turn.
+openhuman-embed = { workspace = true, features = ["modules"] }
 # The swarm's `events.jsonl` and outcome derive their stored JSON form.
 serde = { workspace = true }
 serde_json = { workspace = true }
