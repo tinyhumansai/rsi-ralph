@@ -12,9 +12,9 @@ categories = ["development-tools"]
 publish = false
 
 [features]
-# Web search for seats holding a `web_search` tool key. OpenHuman serves
-# search from its TinySearch module, which needs the harness's module loader;
-# without this feature such a key is refused as unsupported.
+# Web search for seats holding a `web_search` tool key, served by OpenHuman's
+# TinySearch module; without this feature such a key is refused as
+# unsupported. The module loader itself is always on (see below).
 web-search = ["openhuman-embed/modules"]
 
 [dependencies]
