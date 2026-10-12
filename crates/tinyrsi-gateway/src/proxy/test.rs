@@ -95,3 +95,20 @@ fn debug_output_hides_the_key() {
     assert!(!debug.contains("sk-secret"), "{debug}");
     assert!(debug.contains("[redacted]"));
 }
+
+/// A refused connection is eligible, while an invalid request is not.
+#[tokio::test]
+async fn retries_only_connection_establishment_errors() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    drop(listener);
+    let client = reqwest::Client::builder().no_proxy().build().unwrap();
+    let refused = client
+        .post(format!("http://{address}/"))
+        .send()
+        .await
+        .unwrap_err();
+    assert!(super::before_delivery(&refused));
+    let invalid = client.post("not a url").send().await.unwrap_err();
+    assert!(!super::before_delivery(&invalid));
+}

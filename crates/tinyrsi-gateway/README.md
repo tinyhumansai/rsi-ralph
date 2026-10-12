@@ -71,7 +71,10 @@ reached. Upstream statuses and bodies otherwise pass through.
    ceiling, plus `max_tokens` at the completion ceiling — against both
    ledgers. Either one short: HTTP 402, nothing is sent upstream.
 3. **Forward** with the real key. Streams pass through as they arrive while
-   the usage event is scanned out of them.
+   the usage event is scanned out of them. Connection-establishment failures
+   are retried up to twice using fresh connections. Request errors after
+   connecting, including a disconnect before response headers, are ambiguous
+   and are not replayed; settlement retains their reservation as uncertain.
 4. **Settle** to the reported cost; to the token counts priced at the ceiling
    if no cost is reported; to zero if the upstream rejected the request with a
    4xx; and to the whole reservation if nothing is known (crash, unreachable

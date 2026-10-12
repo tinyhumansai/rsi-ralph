@@ -318,16 +318,15 @@ async fn status(State(proxy): Shared) -> Response {
     axum::Json(json!({ "run": run, "total": total })).into_response()
 }
 
-/// How often a call that was never answered is sent again on a fresh
-/// connection.
+/// Maximum retries for failures during connection establishment.
 const FRESH_RETRIES: usize = 2;
 
 /// Posts `body` to `url` with the upstream key.
 ///
-/// A pooled keep-alive connection the upstream has already closed fails
-/// before any response, and the pool may hold several. The upstream never
-/// saw such a request, so it is sent again on a connection opened for it
-/// alone, up to [`FRESH_RETRIES`] times.
+/// Only connection-establishment failures prove the POST was not delivered.
+/// Those failures get up to [`FRESH_RETRIES`] attempts on fresh connections.
+/// Request errors after connecting are ambiguous and must not replay a paid
+/// request, even when no response headers arrived.
 async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest::Response> {
     let post = |client: &reqwest::Client| {
         client
@@ -338,7 +337,7 @@ async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest
     };
     let mut sent = post(&proxy.client).await;
     for _ in 0..FRESH_RETRIES {
-        if !sent.as_ref().is_err_and(never_answered) {
+        if !sent.as_ref().is_err_and(before_delivery) {
             break;
         }
         let Ok(fresh) = reqwest::Client::builder().pool_max_idle_per_host(0).build() else {
@@ -349,10 +348,10 @@ async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest
     sent
 }
 
-/// Whether `error` failed the request before any response arrived: a refused
-/// or reset connection, not a timeout and not an answer the client rejected.
-fn never_answered(error: &reqwest::Error) -> bool {
-    (error.is_connect() || error.is_request()) && !error.is_timeout()
+/// Whether connection establishment failed before the POST could be sent.
+/// General request errors and timeouts do not prove non-delivery.
+fn before_delivery(error: &reqwest::Error) -> bool {
+    error.is_connect() && !error.is_timeout()
 }
 
 /// Runs a forward on its own task and waits for it.

@@ -801,62 +801,60 @@ fn drop_stops_the_gateway_and_releases_the_ledger() {
     assert!((again.spend().total_limit_usd - 3.0).abs() < 1e-12);
 }
 
-/// An upstream that closes its first `dropped` connections without answering
-/// (as a server does to pooled keep-alive connections it has already closed),
-/// then answers the next one with a priced chat completion.
-fn drops_first_connections(dropped: usize) -> (String, std::thread::JoinHandle<()>) {
-    use std::io::{Read, Write};
+/// A fully delivered POST must not be replayed when response headers never arrive.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_delivered_post_without_a_response_is_not_retried() {
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
-    let handle = std::thread::spawn(move || {
-        for _ in 0..dropped {
-            let (stale, _) = listener.accept().unwrap();
-            drop(stale);
-        }
-        let (mut second, _) = listener.accept().unwrap();
-        let mut request = Vec::new();
-        let mut chunk = [0_u8; 4096];
-        loop {
-            let read = second.read(&mut chunk).unwrap();
-            request.extend_from_slice(&chunk[..read]);
-            let text = String::from_utf8_lossy(&request);
-            if let Some(end) = text.find("\r\n\r\n") {
-                let length = text[..end]
-                    .lines()
-                    .find_map(|l| {
-                        l.to_ascii_lowercase()
-                            .strip_prefix("content-length:")
-                            .map(|v| v.trim().parse::<usize>().unwrap())
-                    })
-                    .unwrap_or(0);
-                if request.len() >= end + 4 + length {
+    listener.set_nonblocking(true).unwrap();
+    let received = Arc::new(AtomicUsize::new(0));
+    let stop = Arc::new(AtomicBool::new(false));
+    let server_received = received.clone();
+    let server_stop = stop.clone();
+    let server = std::thread::spawn(move || {
+        while !server_stop.load(Ordering::SeqCst) {
+            let (mut stream, _) = match listener.accept() {
+                Ok(connection) => connection,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(Duration::from_millis(1));
+                    continue;
+                }
+                Err(error) => panic!("accept failed: {error}"),
+            };
+            stream
+                .set_read_timeout(Some(Duration::from_secs(5)))
+                .unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0_u8; 4096];
+            loop {
+                let read = stream.read(&mut chunk).unwrap();
+                request.extend_from_slice(&chunk[..read]);
+                let text = String::from_utf8_lossy(&request);
+                if let Some(end) = text.find("\r\n\r\n") {
+                    let length = text[..end]
+                        .lines()
+                        .find_map(|l| {
+                            l.to_ascii_lowercase()
+                                .strip_prefix("content-length:")
+                                .map(|v| v.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    if request.len() >= end + 4 + length {
+                        break;
+                    }
+                }
+                if read == 0 {
                     break;
                 }
             }
-            if read == 0 {
-                break;
-            }
+            server_received.fetch_add(1, Ordering::SeqCst);
+            // Processing could have incurred a charge; close without headers.
+            drop(stream);
         }
-        let body = json!({
-            "id": "x", "object": "chat.completion", "model": GLM_FLASH,
-            "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 3, "completion_tokens": 1, "total_tokens": 4, "cost": 0.000_001}
-        })
-        .to_string();
-        write!(
-            second,
-            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
-            body.len()
-        )
-        .unwrap();
     });
-    (format!("http://{addr}/v1"), handle)
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn connections_dropped_before_any_response_are_retried_on_fresh_ones() {
     let dir = tempfile::tempdir().unwrap();
-    let (upstream, server) = drops_first_connections(2);
     let mut config = GatewayConfig::new(
         KEY,
         dir.path().join("run"),
@@ -864,19 +862,34 @@ async fn connections_dropped_before_any_response_are_retried_on_fresh_ones() {
         5.0,
         50.0,
     );
-    config.upstream = upstream;
+    config.upstream = format!("http://{addr}/v1");
     let gateway = Gateway::start(config).unwrap();
-    let client = reqwest::Client::builder().no_proxy().build().unwrap();
-    let response = client
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
         .post(format!("{}/v1/chat/completions", gateway.base_url()))
         .json(&json!({"model": GLM_FLASH, "messages": [{"role": "user", "content": "hi"}]}))
         .send()
         .await
         .unwrap();
-    assert_eq!(response.status().as_u16(), 200);
+    stop.store(true, Ordering::SeqCst);
     server.join().unwrap();
+    assert_eq!(response.status().as_u16(), 502);
+    assert_eq!(
+        received.load(Ordering::SeqCst),
+        1,
+        "delivered POST was replayed"
+    );
     let calls = gateway.upstream_calls();
-    assert_eq!(calls.refused, 0);
+    assert_eq!((calls.sent, calls.refused), (1, 1));
+    let status: Value = reqwest::get(format!("{}/status", gateway.base_url()))
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(status["run"]["uncertain_usd"].as_f64().unwrap() > 0.0);
     gateway.shutdown().unwrap();
 }
 
