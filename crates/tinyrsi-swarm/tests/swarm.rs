@@ -426,7 +426,8 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
 }
 
 /// The pair script with shell calls: the read-only lead lists its incumbent,
-/// then assigns; the implementer writes a file through the shell.
+/// tries (and is refused) a write, then assigns; the implementer writes a
+/// file through the shell.
 async fn shell_model() -> MockServer {
     let server = MockServer::start().await;
     let assign = json!({"agent_id": "implementer-a", "message_id": "assign-1",
@@ -436,7 +437,8 @@ async fn shell_model() -> MockServer {
         "lead",
         vec![
             tool_call("call-lead-1", "shell", &json!({"command": "ls"})),
-            tool_call("call-lead-2", "hivemind_send_agent", &assign),
+            tool_call("call-lead-2", "shell", &json!({"command": "touch LEAD.md"})),
+            tool_call("call-lead-3", "hivemind_send_agent", &assign),
             text("Assigned implementer-a; ending my turn."),
         ],
         Duration::ZERO,
@@ -489,4 +491,12 @@ fn seat_shell_calls_run_under_the_seats_access() {
         "written by shell\n"
     );
     assert!(!dirs.incumbent.join("SHELL.md").exists());
+    // The read-only lead may run Read-class commands only.
+    assert!(
+        events.iter().any(|event| matches!(event,
+            SwarmEvent::ToolCall { seat, tool, phase: ToolPhase::Completed, success: Some(false), .. }
+                if seat == "lead" && tool == "shell")),
+        "the read-only lead's write was not refused: {events:?}"
+    );
+    assert!(!dirs.incumbent.join("LEAD.md").exists());
 }
