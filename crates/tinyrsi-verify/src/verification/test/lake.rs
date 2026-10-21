@@ -11,6 +11,8 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
     std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
     let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
     let root = std::fs::canonicalize(dir.path()).unwrap();
+    let bin = root.join("bin");
+    std::fs::create_dir(&bin).unwrap();
     for (name, source) in [
         (
             "lean",
@@ -24,7 +26,7 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
             format!("#!/usr/bin/python3\nimport sys\nprint({output:?})\nsys.exit({exit})\n"),
         ),
     ] {
-        let path = root.join(name);
+        let path = bin.join(name);
         std::fs::write(&path, source).unwrap();
         #[cfg(unix)]
         {
@@ -33,7 +35,7 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
         }
     }
     let command = CommandSpec {
-        program: root.join("lake").to_string_lossy().into_owned(),
+        program: bin.join("lake").to_string_lossy().into_owned(),
         args: vec!["build".into()],
         workspace_root: root.join("workspaces"),
         timeout_ms: 5000,
@@ -120,6 +122,13 @@ fn lake_configuration_and_compiler_bytes_are_frozen_into_identity() {
 #[test]
 fn lake_staging_pins_both_lake_and_compiler_bytes() {
     let (_dir, command) = fixture("4.34.1", "", 0);
+    let toolchain_root = std::path::Path::new(&command.program)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    std::fs::create_dir_all(toolchain_root.join("lib/lean")).unwrap();
+    std::fs::write(toolchain_root.join("lib/lean/Std.olean"), b"library bytes").unwrap();
     let identity = crate::verification::lake::identity(&command).unwrap();
     let staged = crate::verification::lake::stage(&command).unwrap();
     std::fs::write(&command.program, b"replaced lake").unwrap();
@@ -141,6 +150,19 @@ fn lake_staging_pins_both_lake_and_compiler_bytes() {
             .unwrap()
             .contains("Lean (version 4.34.1, fixture)")
     );
+    assert_eq!(
+        std::fs::read(
+            staged
+                .lake
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("lib/lean/Std.olean")
+        )
+        .unwrap(),
+        b"library bytes"
+    );
 }
 
 #[test]
@@ -149,10 +171,12 @@ fn lake_identity_rejects_a_special_file_compiler() {
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
 
     let directory = tempfile::tempdir().unwrap();
-    let lake = directory.path().join("lake");
+    let bin = directory.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let lake = bin.join("lake");
     std::fs::write(&lake, "#!/bin/sh\nexit 0\n").unwrap();
     std::fs::set_permissions(&lake, std::fs::Permissions::from_mode(0o700)).unwrap();
-    let lean = directory.path().join("lean");
+    let lean = bin.join("lean");
     let _listener = UnixListener::bind(&lean).unwrap();
     let command = CommandSpec {
         program: lake.to_string_lossy().into_owned(),
