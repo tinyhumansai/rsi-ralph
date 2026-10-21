@@ -68,7 +68,7 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
 /// Immutable registry of authorized node checkers.
 pub struct VerifierRegistry {
     declarations: BTreeMap<String, VerifierDeclaration>,
-    checker_identities: BTreeMap<String, String>,
+    checker_identities: BTreeMap<String, Option<String>>,
 }
 impl VerifierRegistry {
     /// Freezes checker declarations and rejects ambiguous or unsafe settings.
@@ -108,7 +108,11 @@ impl VerifierRegistry {
                 HostVerifier::Golden { .. } => {}
             }
             let node_id = d.node_id.clone();
-            let identity = checker_identity(&d.verifier)?;
+            let identity = match checker_identity(&d.verifier) {
+                Ok(identity) => Some(identity),
+                Err(Error::HostFailed) => None,
+                Err(error) => return Err(error),
+            };
             if map.insert(node_id.clone(), d).is_some() {
                 return Err(Error::InvalidBlueprint);
             }
@@ -133,9 +137,12 @@ impl VerifierRegistry {
     ) -> Result<VerificationEvidence> {
         let verifier = self.authorize(expected, artifact)?;
         let checker_identity = checker_identity(verifier)?;
-        if self
+        let frozen = self
             .checker_identities
             .get(&expected.node_id)
+            .ok_or(Error::InvalidBlueprint)?;
+        if frozen
+            .as_ref()
             .is_none_or(|frozen| frozen != &checker_identity)
         {
             return Err(Error::InvalidBlueprint);
