@@ -68,6 +68,7 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
 /// Immutable registry of authorized node checkers.
 pub struct VerifierRegistry {
     declarations: BTreeMap<String, VerifierDeclaration>,
+    checker_identities: BTreeMap<String, String>,
 }
 impl VerifierRegistry {
     /// Freezes checker declarations and rejects ambiguous or unsafe settings.
@@ -78,6 +79,7 @@ impl VerifierRegistry {
             return Err(Error::InvalidBlueprint);
         }
         let mut map = BTreeMap::new();
+        let mut identities = BTreeMap::new();
         for d in declarations {
             if d.node_id.trim().is_empty() || d.owner_seat.trim().is_empty() {
                 return Err(Error::InvalidBlueprint);
@@ -105,11 +107,17 @@ impl VerifierRegistry {
                 }
                 HostVerifier::Golden { .. } => {}
             }
-            if map.insert(d.node_id.clone(), d).is_some() {
+            let node_id = d.node_id.clone();
+            let identity = checker_identity(&d.verifier)?;
+            if map.insert(node_id.clone(), d).is_some() {
                 return Err(Error::InvalidBlueprint);
             }
+            identities.insert(node_id, identity);
         }
-        Ok(Self { declarations: map })
+        Ok(Self {
+            declarations: map,
+            checker_identities: identities,
+        })
     }
     /// Frozen declarations, in deterministic node order.
     pub fn declarations(&self) -> impl Iterator<Item = &VerifierDeclaration> {
@@ -125,6 +133,13 @@ impl VerifierRegistry {
     ) -> Result<VerificationEvidence> {
         let verifier = self.authorize(expected, artifact)?;
         let checker_identity = checker_identity(verifier)?;
+        if self
+            .checker_identities
+            .get(&expected.node_id)
+            .is_none_or(|frozen| frozen != &checker_identity)
+        {
+            return Err(Error::InvalidBlueprint);
+        }
         let (passed, exit_code) = match verifier {
             HostVerifier::Golden { expected } => (artifact.content == *expected, None),
             HostVerifier::Schema { schema } => {

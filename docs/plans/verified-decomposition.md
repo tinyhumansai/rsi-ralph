@@ -9,6 +9,11 @@ or replace the current Blueprint and VerifiedRunner APIs without a failing
 acceptance test. The pinned Lake adapter and finite agent-authored Lean slice
 already exist; extend them only where a task below requires it.
 
+The command identity evidence requirement is implemented: `VerifierRegistry`
+freezes checker configuration and executable bytes, and each new evidence
+record carries that digest with its observed exit status. The tasks below cover
+the remaining host and evaluation integrations.
+
 ## Assumptions and boundaries
 
 - Work in `crates/tinyrsi-verify` and `crates/tinyrsi-host`; do not edit vendored

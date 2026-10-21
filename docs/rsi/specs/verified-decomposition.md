@@ -57,7 +57,9 @@ returns verified descendants to an unverified state.
 
 ### Checker execution and evidence
 
-Only a host-owned registry may select the checker. The host stages the exact
+Only a host-owned registry may select the checker. The registry freezes a
+digest of the checker configuration and executable bytes; changed command
+settings or executable bytes reject verification. The host stages the exact
 artifact in its configured workspace and executes the declared check directly,
 with frozen arguments, time and output bounds, and a cleared child environment.
 Shell interpolation is never used. Executing generated code requires a

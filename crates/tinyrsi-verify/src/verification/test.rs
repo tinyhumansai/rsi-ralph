@@ -69,6 +69,37 @@ fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
     );
 }
 #[test]
+fn verifier_registry_rejects_an_executable_changed_after_freezing() {
+    let directory = tempfile::tempdir().unwrap();
+    let program = directory.path().join("checker");
+    std::fs::write(&program, "#!/bin/sh\nexit 0\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let registry = registry(HostVerifier::Process(CommandSpec {
+        program: program.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    }));
+    std::fs::write(&program, "#!/bin/sh\nexit 1\n").unwrap();
+    let binding = binding();
+    assert!(
+        registry
+            .verify(
+                &binding,
+                &ArtifactSubmission {
+                    binding: binding.clone(),
+                    content: b"candidate".to_vec(),
+                },
+            )
+            .is_err()
+    );
+}
+#[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
         schema: serde_json::json!({"type":"integer"}),
