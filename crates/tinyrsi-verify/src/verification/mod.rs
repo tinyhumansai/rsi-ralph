@@ -35,12 +35,13 @@ pub use types::*;
 /// Returns invalid blueprint if the checker configuration cannot be
 /// serialized or a pinned Lake identity cannot be read.
 pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
-    checker_identity_with_executable(verifier, None)
+    checker_identity_with_executable(verifier, None, None)
 }
 
 fn checker_identity_with_executable(
     verifier: &HostVerifier,
     executable_override: Option<&Path>,
+    compiler_override: Option<&Path>,
 ) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
         let executable = match executable_override {
@@ -82,7 +83,7 @@ fn checker_identity_with_executable(
             toolchain,
         } => serde_json::json!({
             "lake": command(spec)?,
-            "project": lake::identity(spec)?,
+            "project": lake::identity_with_compiler(spec, compiler_override)?,
             "theorem": theorem,
             "toolchain": toolchain
         }),
@@ -191,8 +192,16 @@ impl VerifierRegistry {
             }
             _ => None,
         };
-        let executable = staged.as_ref().map(|(path, _)| path.as_path());
-        let checker_identity = checker_identity_with_executable(verifier, executable)?;
+        let staged_lake = match verifier {
+            HostVerifier::Lake { command, .. } => Some(lake::stage(command)?),
+            _ => None,
+        };
+        let executable = staged
+            .as_ref()
+            .map(|(path, _)| path.as_path())
+            .or_else(|| staged_lake.as_ref().map(|stage| stage.lake.as_path()));
+        let compiler = staged_lake.as_ref().map(|stage| stage.lean.as_path());
+        let checker_identity = checker_identity_with_executable(verifier, executable, compiler)?;
         let frozen = self
             .checker_identities
             .get(&expected.node_id)
@@ -208,6 +217,11 @@ impl VerifierRegistry {
                 }
                 _ => {}
             }
+        }
+        if let (Some(stage), HostVerifier::Lake { command, .. }) =
+            (&staged_lake, &mut execution_verifier)
+        {
+            command.program = stage.lake.to_string_lossy().into_owned();
         }
         let (passed, exit_code) = match &execution_verifier {
             HostVerifier::Golden { expected } => (artifact.content == *expected, None),
