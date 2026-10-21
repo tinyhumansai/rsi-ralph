@@ -64,7 +64,8 @@ Shell interpolation is never used. Executing generated code requires a
 host-provided sandbox wrapper; the process runner alone is not a sandbox.
 
 An accepted report records the episode, authorized seat, frozen node, exact
-artifact digest, actual checker command identity and observed exit status, plus
+artifact digest, SHA-256 checker identity over frozen configuration and
+executable bytes, observed exit status, plus
 the transcript sequence references visible to that seat. Evidence excludes
 private expected values, proof source and raw checker output. A seat's claim,
 forged binding, missing checker run, nonzero exit, timeout, output-limit failure,
@@ -142,7 +143,10 @@ proofs, expected values or diagnostics.
 
 `tinyrsi-verify` currently implements the validated runtime DAG, immutable
 verifier registry, real process/schema/golden/Lean/Lake checks, identity-bound
-evidence and `VerifiedRunner`. `tinyrsi-host` journals checker observations;
+evidence and `VerifiedRunner`. `VerificationEvidence` includes a checker
+identity digest. The durable journal rejects new callbacks without that digest
+while retaining historical records written before the field existed.
+`tinyrsi-host` journals checker observations;
 coordinator tests cover multi-seat dependencies and the completion gate. The
 private Lean example runs 12 agent-authored finite tasks through genuine pinned
 Lake builds. These are adapter checks, not independent model-performance
