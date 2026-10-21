@@ -285,8 +285,10 @@ fn live_pinned_lake_builds_the_actual_kernel_proof_and_rejects_wrong_or_native_p
 fn lake_verifier_requires_a_frozen_project_and_stock_kernel_report() {
     std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
     let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
-    let lake = dir.path().join("lake");
-    let lean = dir.path().join("lean");
+    let bin = dir.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let lake = bin.join("lake");
+    let lean = bin.join("lean");
     std::fs::write(&lean, b"#!/bin/sh\necho 'Lean (version 4.34.1, fixture)'\n").unwrap();
     std::fs::write(&lake, b"#!/bin/sh\ntest \"$1\" = build || exit 2\ntest -f lakefile.toml || exit 3\ntest -f lean-toolchain || exit 4\ntest -f Rsi.lean || exit 5\ngrep -F 'defaultTargets' lakefile.toml >/dev/null || exit 6\necho \"info: Rsi.lean:3:0: 'rsi_goal' does not depend on any axioms\"\n").unwrap();
     #[cfg(unix)]
