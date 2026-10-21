@@ -115,14 +115,15 @@ fn conflicting_usage_checker_bindings_and_unknown_turns_are_rejected() {
     journal.record_usage(id, 12, 3).unwrap();
     assert_eq!(journal.record_usage(id, 13, 3), Err(Error::InvalidEvidence));
     assert_eq!(journal.record_usage(99, 1, 1), Err(Error::InvalidEvidence));
-    for field in 0..5 {
+    for field in 0..6 {
         let mut bad = evidence();
         match field {
             0 => bad.binding.seat_id = "mallory".into(),
             1 => bad.binding.episode_id = "other".into(),
             2 => bad.quality = 0.0,
             3 => bad.artifact_digest = "not-a-digest".into(),
-            _ => bad.binding.transcript_refs = vec![2, 1],
+            4 => bad.binding.transcript_refs = vec![2, 1],
+            _ => bad.checker_identity = None,
         }
         assert_eq!(
             journal.record_verification(id, bad),

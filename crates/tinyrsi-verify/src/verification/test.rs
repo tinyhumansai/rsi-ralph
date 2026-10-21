@@ -62,9 +62,10 @@ fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
     assert_eq!(report.exit_code, Some(0));
     let mut changed = command;
     changed.args.push("changed".into());
+    let changed_identity = checker_identity(&HostVerifier::Process(changed)).unwrap();
     assert_ne!(
-        report.checker_identity,
-        checker_identity(&HostVerifier::Process(changed)).unwrap()
+        report.checker_identity.as_deref(),
+        Some(changed_identity.as_str())
     );
 }
 #[test]
