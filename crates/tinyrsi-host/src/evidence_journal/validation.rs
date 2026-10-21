@@ -39,6 +39,22 @@ pub(super) fn validate_checker(
     }
     Ok(())
 }
+
+/// Ensures legacy markers refer only to evidence that lacks an identity.
+fn validate_legacy_checker_nodes(state: &State) -> Result<()> {
+    for (id, nodes) in &state.legacy_checker_nodes {
+        let turn = state.turns.get(id).ok_or(Error::InvalidEvidence)?;
+        if nodes.iter().any(|node| {
+            !turn.verification.iter().any(|evidence| {
+                evidence.binding.node_id == *node && evidence.checker_identity.is_none()
+            })
+        }) {
+            return Err(Error::InvalidEvidence);
+        }
+    }
+    Ok(())
+}
+
 /// Recomputes receipts and verifies contiguous IDs and exactly-once consumption.
 pub(super) fn validate(state: &State) -> Result<()> {
     let check = || -> Result<()> {
@@ -79,16 +95,7 @@ pub(super) fn validate(state: &State) -> Result<()> {
                 return Err(Error::InvalidEvidence);
             }
         }
-        for (id, nodes) in &state.legacy_checker_nodes {
-            let turn = state.turns.get(id).ok_or(Error::InvalidEvidence)?;
-            if nodes.iter().any(|node| {
-                !turn.verification.iter().any(|evidence| {
-                    evidence.binding.node_id == *node && evidence.checker_identity.is_none()
-                })
-            }) {
-                return Err(Error::InvalidEvidence);
-            }
-        }
+        validate_legacy_checker_nodes(state)?;
         let mut consumed = BTreeSet::new();
         let mut expected_epoch = 1;
         let mut cursor = None;
