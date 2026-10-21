@@ -2,6 +2,8 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use crate::{HostVerifier, VerifierDeclaration};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 fn binding() -> VerificationBinding {
     VerificationBinding {
@@ -70,7 +72,6 @@ fn a_checker_that_cannot_run_is_a_host_failure() {
     let workspace = tempfile::tempdir().unwrap();
     let program = workspace.path().join("missing-interpreter-checker");
     std::fs::write(&program, "#!/tinyrsi-missing-interpreter\n").unwrap();
-    use std::os::unix::fs::PermissionsExt;
     std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
     let registry = VerifierRegistry::new(vec![VerifierDeclaration {
         node_id: "answer".into(),
