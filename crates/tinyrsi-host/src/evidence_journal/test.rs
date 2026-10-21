@@ -16,6 +16,7 @@ fn evidence() -> VerificationEvidence {
             transcript_refs: vec![],
         },
         artifact_digest: "a".repeat(64),
+        checker_identity: format!("sha256:{}", "b".repeat(64)),
         passed: true,
         quality: 1.0,
         exit_code: None,

@@ -36,6 +36,35 @@ fn golden_is_exact_and_forged_bindings_are_rejected() {
     assert!(r.verify(&b, &a).is_err());
 }
 #[test]
+fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
+    let command = CommandSpec {
+        program: "/usr/bin/python3".into(),
+        args: vec!["-c".into(), "import sys; sys.exit(0)".into()],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    let registry = registry(HostVerifier::Process(command.clone()));
+    let binding = binding();
+    let report = registry
+        .verify(
+            &binding,
+            &ArtifactSubmission {
+                binding: binding.clone(),
+                content: b"candidate".to_vec(),
+            },
+        )
+        .unwrap();
+    assert_eq!(report.checker_identity, checker_identity(&HostVerifier::Process(command.clone())).unwrap());
+    assert_eq!(report.exit_code, Some(0));
+    let mut changed = command;
+    changed.args.push("changed".into());
+    assert_ne!(
+        report.checker_identity,
+        checker_identity(&HostVerifier::Process(changed)).unwrap()
+    );
+}
+#[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
         schema: serde_json::json!({"type":"integer"}),
