@@ -63,14 +63,61 @@ fn version(toolchain: &str) -> Result<&str> {
 /// build, and [`Error::HostFailed`] when the compiler or template cannot be
 /// read.
 pub fn identity(command: &CommandSpec) -> Result<serde_json::Value> {
+    identity_with_compiler(command, None)
+}
+
+pub(crate) fn identity_with_compiler(
+    command: &CommandSpec,
+    compiler_override: Option<&Path>,
+) -> Result<serde_json::Value> {
     let lean = compiler(command)?;
-    let mut file = File::open(&lean).map_err(|_| Error::HostFailed)?;
+    let compiler = compiler_override.unwrap_or(&lean);
+    let metadata = std::fs::metadata(compiler).map_err(|_| Error::InvalidBlueprint)?;
+    if !metadata.is_file() || !super::is_executable(&metadata) {
+        return Err(Error::InvalidBlueprint);
+    }
+    let mut file = File::open(compiler).map_err(|_| Error::InvalidBlueprint)?;
     let mut hash = Sha256::new();
     io::copy(&mut file, &mut hash).map_err(|_| Error::HostFailed)?;
     Ok(
         serde_json::json!({"compiler": lean, "compiler_sha256": format!("{:x}", hash.finalize()),
         "project": PROJECT}),
     )
+}
+
+pub(crate) struct StagedToolchain {
+    pub lake: PathBuf,
+    pub lean: PathBuf,
+    _directory: tempfile::TempDir,
+}
+
+/// Copies the adjacent Lake and Lean executables into a private directory.
+pub(crate) fn stage(command: &CommandSpec) -> Result<StagedToolchain> {
+    let lake = std::fs::canonicalize(&command.program).map_err(|_| Error::InvalidBlueprint)?;
+    let lean = compiler(command)?;
+    let lake_metadata = std::fs::metadata(&lake).map_err(|_| Error::InvalidBlueprint)?;
+    let lean_metadata = std::fs::metadata(&lean).map_err(|_| Error::InvalidBlueprint)?;
+    if !lake_metadata.is_file()
+        || !super::is_executable(&lake_metadata)
+        || !lean_metadata.is_file()
+        || !super::is_executable(&lean_metadata)
+    {
+        return Err(Error::InvalidBlueprint);
+    }
+    let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
+    let staged_lake = directory.path().join("lake");
+    let staged_lean = directory.path().join("lean");
+    std::fs::copy(&lake, &staged_lake).map_err(|_| Error::HostFailed)?;
+    std::fs::set_permissions(&staged_lake, lake_metadata.permissions())
+        .map_err(|_| Error::HostFailed)?;
+    std::fs::copy(&lean, &staged_lean).map_err(|_| Error::HostFailed)?;
+    std::fs::set_permissions(&staged_lean, lean_metadata.permissions())
+        .map_err(|_| Error::HostFailed)?;
+    Ok(StagedToolchain {
+        lake: staged_lake,
+        lean: staged_lean,
+        _directory: directory,
+    })
 }
 
 /// Observe the pinned version, then build under the remaining aggregate limits.
