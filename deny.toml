@@ -6,8 +6,20 @@ all-features = true
 
 [advisories]
 # Fail on any crate with a security advisory or an unmaintained warning.
-# Add an entry here only with a comment explaining the exposure and the plan.
-ignore = []
+# These dependencies are pinned in vendored OpenHuman and need an upstream
+# dependency change before this workspace can remove the exceptions.
+# `unsafe-libyaml` is used through OpenHuman's vendored `tinyskills` YAML
+# support. Replace that parser upstream, then remove this exception.
+# The zip advisories affect archive-wide extraction APIs. OpenHuman's runtime
+# updater reads one named executable entry with `by_name`; archive-wide
+# extraction is only used by a bundled-asset test. Upgrade OpenHuman's zip
+# dependency to a fixed major version upstream, then remove these exceptions.
+ignore = [
+    "RUSTSEC-2024-0449",
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+]
 
 [licenses]
 # Licenses accepted for this crate and its dependencies. Keep GPL-3.0-only for
