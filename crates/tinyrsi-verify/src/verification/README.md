@@ -4,7 +4,9 @@
 checks. `verify` requires exact equality with an independently constructed
 `VerificationBinding`; a model-supplied binding alone is not authorization.
 Evidence contains identity, transcript sequence references, artifact SHA-256,
-finite zero/one verified credit and subprocess exit status. Golden values,
+checker configuration and executable SHA-256, finite zero/one verified credit
+and subprocess exit status. Historical journal evidence written before checker
+identity was added retains a missing identity; new callbacks require it. Golden values,
 schemas, artifact bodies and command output remain private to the host.
 
 `Process` runs a direct executable with frozen arguments. `{artifact}` and `{workspace}`

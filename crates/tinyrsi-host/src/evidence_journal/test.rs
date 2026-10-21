@@ -284,6 +284,13 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
         assert_eq!(validate(&state), Err(Error::ArchiveCorrupt));
     }
     let turn = original.turns[&id].clone();
+    let mut legacy = evidence();
+    legacy.checker_identity = None;
+    assert!(validate_checker(&turn, &legacy, true).is_ok());
+    assert_eq!(
+        validate_checker(&turn, &legacy, false),
+        Err(Error::InvalidEvidence)
+    );
     for field in 0..4 {
         let mut bad = evidence();
         match field {
@@ -292,7 +299,10 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
             2 => bad.artifact_digest = "A".repeat(64),
             _ => bad.quality = f64::NAN,
         }
-        assert_eq!(validate_checker(&turn, &bad, false), Err(Error::InvalidEvidence));
+        assert_eq!(
+            validate_checker(&turn, &bad, false),
+            Err(Error::InvalidEvidence)
+        );
     }
 }
 

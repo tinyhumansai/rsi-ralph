@@ -24,11 +24,13 @@ pub(super) fn validate_checker(
             .bytes()
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
         || match &evidence.checker_identity {
-            Some(identity) => identity.len() != 71
-                || !identity.starts_with("sha256:")
-                || !identity[7..]
-                    .bytes()
-                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
+            Some(identity) => {
+                identity.len() != 71
+                    || !identity.starts_with("sha256:")
+                    || !identity[7..]
+                        .bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            }
             None => !allow_legacy,
         }
     {

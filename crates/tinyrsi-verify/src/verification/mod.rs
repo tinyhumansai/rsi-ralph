@@ -40,12 +40,21 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     };
     let definition = match verifier {
         HostVerifier::Process(spec) => serde_json::json!({"process": command(spec)?}),
-        HostVerifier::Golden { expected } => serde_json::json!({"golden_sha256": format!("{:x}", Sha256::digest(expected))}),
+        HostVerifier::Golden { expected } => {
+            serde_json::json!({"golden_sha256": format!("{:x}", Sha256::digest(expected))})
+        }
         HostVerifier::Schema { schema } => serde_json::json!({"schema": schema}),
-        HostVerifier::Lean { command: spec, theorem } => {
+        HostVerifier::Lean {
+            command: spec,
+            theorem,
+        } => {
             serde_json::json!({"lean": command(spec)?, "theorem": theorem})
         }
-        HostVerifier::Lake { command: spec, theorem, toolchain } => serde_json::json!({
+        HostVerifier::Lake {
+            command: spec,
+            theorem,
+            toolchain,
+        } => serde_json::json!({
             "lake": command(spec)?,
             "project": lake::identity(spec)?,
             "theorem": theorem,
