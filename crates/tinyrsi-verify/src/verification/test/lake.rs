@@ -170,8 +170,10 @@ fn flat_lake_staging_does_not_link_binaries_onto_their_copy_targets() {
     let dir = tempfile::tempdir().unwrap();
     let lake = dir.path().join("lake");
     let lean = dir.path().join("lean");
+    let library = dir.path().join("library");
     std::fs::write(&lake, b"lake bytes").unwrap();
     std::fs::write(&lean, b"lean bytes").unwrap();
+    std::fs::write(&library, b"library bytes").unwrap();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -193,6 +195,7 @@ fn flat_lake_staging_does_not_link_binaries_onto_their_copy_targets() {
     assert_eq!(std::fs::read(&lean).unwrap(), b"lean bytes");
     assert_eq!(std::fs::read(staged.lake).unwrap(), b"lake bytes");
     assert_eq!(std::fs::read(staged.lean).unwrap(), b"lean bytes");
+    assert_eq!(std::fs::read(staged._directory.path().join("library")).unwrap(), b"library bytes");
 }
 
 #[test]
