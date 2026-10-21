@@ -44,6 +44,10 @@ fn checker_identity_with_executable(
     compiler_override: Option<&Path>,
 ) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
+        let workspace = command
+            .workspace_root
+            .to_str()
+            .ok_or(Error::InvalidBlueprint)?;
         let executable = match executable_override {
             Some(path) => path.to_path_buf(),
             None => resolve_executable(&command.program)?,
@@ -60,7 +64,7 @@ fn checker_identity_with_executable(
             "program": command.program,
             "executable": executable,
             "args": command.args,
-            "workspace": command.workspace_root,
+            "workspace": workspace,
             "timeout_ms": command.timeout_ms,
             "max_output_bytes": command.max_output_bytes
         }))
