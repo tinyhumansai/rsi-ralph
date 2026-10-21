@@ -246,6 +246,15 @@ fn staging_preserves_checker_name_and_relative_siblings() {
         b"resource bytes"
     );
 }
+
+#[test]
+fn staging_places_a_root_level_checker_in_the_private_directory() {
+    let directory = tempfile::tempdir().unwrap();
+
+    let staged_parent = staged_parent(directory.path(), Path::new("/")).unwrap();
+
+    assert_eq!(staged_parent, directory.path());
+}
 #[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
