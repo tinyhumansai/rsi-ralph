@@ -55,6 +55,39 @@ fn validate_legacy_checker_nodes(state: &State) -> Result<()> {
     Ok(())
 }
 
+/// Validates invocation IDs, evidence identities and measured usage.
+fn validate_turn_records(state: &State) -> Result<()> {
+    for (expected_turn, (id, turn)) in (1..).zip(&state.turns) {
+        if *id != expected_turn
+            || turn.id != *id
+            || turn.seat_id.trim().is_empty()
+            || turn.episode_id.trim().is_empty()
+        {
+            return Err(Error::InvalidEvidence);
+        }
+        let mut nodes = BTreeSet::new();
+        for evidence in &turn.verification {
+            let legacy = state
+                .legacy_checker_nodes
+                .get(id)
+                .is_some_and(|nodes| nodes.contains(&evidence.binding.node_id));
+            validate_checker(turn, evidence, legacy)?;
+            if !nodes.insert(&evidence.binding.node_id) {
+                return Err(Error::InvalidEvidence);
+            }
+        }
+        if let Some(usage) = &turn.usage
+            && (usage.seat_id != turn.seat_id
+                || usage.wasted
+                    != (turn.status == RecordedTurnStatus::Interrupted
+                        || turn.verification.iter().any(|v| !v.passed)))
+        {
+            return Err(Error::InvalidEvidence);
+        }
+    }
+    validate_legacy_checker_nodes(state)
+}
+
 /// Recomputes receipts and verifies contiguous IDs and exactly-once consumption.
 pub(super) fn validate(state: &State) -> Result<()> {
     let check = || -> Result<()> {
@@ -67,35 +100,7 @@ pub(super) fn validate(state: &State) -> Result<()> {
         {
             return Err(Error::InvalidEvidence);
         }
-        for (expected_turn, (id, turn)) in (1..).zip(&state.turns) {
-            if *id != expected_turn
-                || turn.id != *id
-                || turn.seat_id.trim().is_empty()
-                || turn.episode_id.trim().is_empty()
-            {
-                return Err(Error::InvalidEvidence);
-            }
-            let mut nodes = BTreeSet::new();
-            for evidence in &turn.verification {
-                let legacy = state
-                    .legacy_checker_nodes
-                    .get(id)
-                    .is_some_and(|nodes| nodes.contains(&evidence.binding.node_id));
-                validate_checker(turn, evidence, legacy)?;
-                if !nodes.insert(&evidence.binding.node_id) {
-                    return Err(Error::InvalidEvidence);
-                }
-            }
-            if let Some(usage) = &turn.usage
-                && (usage.seat_id != turn.seat_id
-                    || usage.wasted
-                        != (turn.status == RecordedTurnStatus::Interrupted
-                            || turn.verification.iter().any(|v| !v.passed)))
-            {
-                return Err(Error::InvalidEvidence);
-            }
-        }
-        validate_legacy_checker_nodes(state)?;
+        validate_turn_records(state)?;
         let mut consumed = BTreeSet::new();
         let mut expected_epoch = 1;
         let mut cursor = None;
