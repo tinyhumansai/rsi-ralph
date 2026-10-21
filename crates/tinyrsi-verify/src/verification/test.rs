@@ -273,15 +273,17 @@ fn staging_preserves_siblings_for_a_root_level_checker() {
     let (staged, _directory) = stage_executable(&command).unwrap();
 
     assert!(staged.starts_with(workspace_root.path()));
-    assert!(process(
-        &CommandSpec {
-            program: staged.to_string_lossy().into_owned(),
-            ..command
-        },
-        b""
-    )
-    .unwrap()
-    .0);
+    assert!(
+        process(
+            &CommandSpec {
+                program: staged.to_string_lossy().into_owned(),
+                ..command
+            },
+            b""
+        )
+        .unwrap()
+        .0
+    );
 }
 
 #[test]
