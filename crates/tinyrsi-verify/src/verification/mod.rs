@@ -157,7 +157,7 @@ impl VerifierRegistry {
         Ok(VerificationEvidence {
             binding: expected.clone(),
             artifact_digest,
-            checker_identity,
+            checker_identity: Some(checker_identity),
             passed,
             quality: if passed { 1.0 } else { 0.0 },
             exit_code,

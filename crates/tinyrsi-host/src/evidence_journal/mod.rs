@@ -101,7 +101,7 @@ impl EvidenceJournal {
         let mut store = self.lock()?;
         let mut next = store.state.clone();
         let turn = next.turns.get_mut(&id).ok_or(Error::InvalidEvidence)?;
-        validate_checker(turn, &evidence)?;
+        validate_checker(turn, &evidence, false)?;
         if let Some(old) = turn
             .verification
             .iter()

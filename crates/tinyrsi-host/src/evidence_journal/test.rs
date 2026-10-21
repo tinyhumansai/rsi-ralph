@@ -16,7 +16,7 @@ fn evidence() -> VerificationEvidence {
             transcript_refs: vec![],
         },
         artifact_digest: "a".repeat(64),
-        checker_identity: format!("sha256:{}", "b".repeat(64)),
+        checker_identity: Some(format!("sha256:{}", "b".repeat(64))),
         passed: true,
         quality: 1.0,
         exit_code: None,
@@ -291,7 +291,7 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
             2 => bad.artifact_digest = "A".repeat(64),
             _ => bad.quality = f64::NAN,
         }
-        assert_eq!(validate_checker(&turn, &bad), Err(Error::InvalidEvidence));
+        assert_eq!(validate_checker(&turn, &bad, false), Err(Error::InvalidEvidence));
     }
 }
 

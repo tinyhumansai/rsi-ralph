@@ -55,7 +55,10 @@ fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
             },
         )
         .unwrap();
-    assert_eq!(report.checker_identity, checker_identity(&HostVerifier::Process(command.clone())).unwrap());
+    assert_eq!(
+        report.checker_identity,
+        Some(checker_identity(&HostVerifier::Process(command.clone())).unwrap())
+    );
     assert_eq!(report.exit_code, Some(0));
     let mut changed = command;
     changed.args.push("changed".into());

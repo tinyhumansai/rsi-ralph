@@ -3,7 +3,11 @@ use super::{RecordedTurn, RecordedTurnStatus, State, build_epoch};
 use crate::{Error, Result, VerificationEvidence};
 use std::collections::BTreeSet;
 /// Checks invocation identity, ordered references and binary deterministic results.
-pub(super) fn validate_checker(turn: &RecordedTurn, evidence: &VerificationEvidence) -> Result<()> {
+pub(super) fn validate_checker(
+    turn: &RecordedTurn,
+    evidence: &VerificationEvidence,
+    allow_legacy: bool,
+) -> Result<()> {
     let binding = &evidence.binding;
     if binding.seat_id != turn.seat_id
         || binding.episode_id != turn.episode_id
@@ -19,11 +23,14 @@ pub(super) fn validate_checker(turn: &RecordedTurn, evidence: &VerificationEvide
             .artifact_digest
             .bytes()
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
-        || evidence.checker_identity.len() != 71
-        || !evidence.checker_identity.starts_with("sha256:")
-        || !evidence.checker_identity[7..]
-            .bytes()
-            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        || match &evidence.checker_identity {
+            Some(identity) => identity.len() != 71
+                || !identity.starts_with("sha256:")
+                || !identity[7..]
+                    .bytes()
+                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
+            None => !allow_legacy,
+        }
     {
         return Err(Error::InvalidEvidence);
     }
@@ -51,7 +58,7 @@ pub(super) fn validate(state: &State) -> Result<()> {
             }
             let mut nodes = BTreeSet::new();
             for evidence in &turn.verification {
-                validate_checker(turn, evidence)?;
+                validate_checker(turn, evidence, true)?;
                 if !nodes.insert(&evidence.binding.node_id) {
                     return Err(Error::InvalidEvidence);
                 }
