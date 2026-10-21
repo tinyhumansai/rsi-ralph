@@ -208,7 +208,7 @@ fn verification_executes_the_staged_checker_after_source_replacement() {
         timeout_ms: 1000,
         max_output_bytes: 1024,
     };
-    let (staged, _directory) = stage_executable(&command).unwrap();
+    let (staged, directory) = stage_executable(&command).unwrap();
     std::fs::write(&program, "#!/bin/sh\nexit 1\n").unwrap();
     command.program = staged.to_string_lossy().into_owned();
     assert!(process(&command, b"").unwrap().0);
