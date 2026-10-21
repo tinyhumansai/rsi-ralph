@@ -213,6 +213,39 @@ fn verification_executes_the_staged_checker_after_source_replacement() {
     command.program = staged.to_string_lossy().into_owned();
     assert!(process(&command, b"").unwrap().0);
 }
+
+#[test]
+fn staging_preserves_checker_name_and_relative_siblings() {
+    let directory = tempfile::tempdir().unwrap();
+    let bin = directory.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    std::fs::create_dir(directory.path().join("lib")).unwrap();
+    let executable = bin.join("relative-checker");
+    std::fs::write(&executable, b"checker bytes").unwrap();
+    std::fs::write(directory.path().join("lib/data"), b"resource bytes").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let command = CommandSpec {
+        program: executable.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: directory.path().to_path_buf(),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let (staged, directory) = stage_executable(&command).unwrap();
+
+    assert_eq!(staged.file_name().unwrap(), "relative-checker");
+    assert_eq!(staged.parent().unwrap().file_name().unwrap(), "bin");
+    assert_eq!(std::fs::read(staged).unwrap(), b"checker bytes");
+    assert_eq!(
+        std::fs::read(directory.path().join("lib/data")).unwrap(),
+        b"resource bytes"
+    );
+}
 #[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
