@@ -309,33 +309,19 @@ fn stage_executable(command: &CommandSpec) -> Result<(PathBuf, tempfile::TempDir
     }
     let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
     let source_parent = source.parent().ok_or(Error::InvalidBlueprint)?;
-    let in_bin_directory = source_parent.file_name().is_some_and(|name| name == "bin");
-    let source_root = if in_bin_directory {
-        source_parent.parent().ok_or(Error::InvalidBlueprint)?
-    } else {
-        source_parent
-    };
-    if in_bin_directory {
-        for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
-            let entry = entry.map_err(|_| Error::HostFailed)?;
-            if entry.file_name() == "bin" {
-                continue;
-            }
-            stage_link(&entry.path(), &directory.path().join(entry.file_name()))
-                .map_err(|_| Error::HostFailed)?;
+    let source_root = source_parent.parent().ok_or(Error::InvalidBlueprint)?;
+    for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
+        let entry = entry.map_err(|_| Error::HostFailed)?;
+        if entry.path() == source_parent {
+            continue;
         }
+        stage_link(&entry.path(), &directory.path().join(entry.file_name()))
+            .map_err(|_| Error::HostFailed)?;
     }
-    let staged_parent = if in_bin_directory {
-        let bin = directory.path().join("bin");
-        std::fs::create_dir(&bin).map_err(|_| Error::HostFailed)?;
-        bin
-    } else {
-        let parent = directory
-            .path()
-            .join(source_parent.file_name().ok_or(Error::InvalidBlueprint)?);
-        std::fs::create_dir(&parent).map_err(|_| Error::HostFailed)?;
-        parent
-    };
+    let staged_parent = directory
+        .path()
+        .join(source_parent.file_name().ok_or(Error::InvalidBlueprint)?);
+    std::fs::create_dir(&staged_parent).map_err(|_| Error::HostFailed)?;
     for entry in std::fs::read_dir(source_parent).map_err(|_| Error::HostFailed)? {
         let entry = entry.map_err(|_| Error::HostFailed)?;
         if entry.path() == source {
