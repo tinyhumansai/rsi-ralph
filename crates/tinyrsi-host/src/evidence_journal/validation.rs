@@ -42,7 +42,7 @@ pub(super) fn validate_checker(
 /// Recomputes receipts and verifies contiguous IDs and exactly-once consumption.
 pub(super) fn validate(state: &State) -> Result<()> {
     let check = || -> Result<()> {
-        if state.version != 1
+        if state.version != 2
             || state.next_turn
                 != u64::try_from(state.turns.len())
                     .ok()
@@ -61,7 +61,11 @@ pub(super) fn validate(state: &State) -> Result<()> {
             }
             let mut nodes = BTreeSet::new();
             for evidence in &turn.verification {
-                validate_checker(turn, evidence, true)?;
+                let legacy = state
+                    .legacy_checker_nodes
+                    .get(id)
+                    .is_some_and(|nodes| nodes.contains(&evidence.binding.node_id));
+                validate_checker(turn, evidence, legacy)?;
                 if !nodes.insert(&evidence.binding.node_id) {
                     return Err(Error::InvalidEvidence);
                 }
@@ -72,6 +76,16 @@ pub(super) fn validate(state: &State) -> Result<()> {
                         != (turn.status == RecordedTurnStatus::Interrupted
                             || turn.verification.iter().any(|v| !v.passed)))
             {
+                return Err(Error::InvalidEvidence);
+            }
+        }
+        for (id, nodes) in &state.legacy_checker_nodes {
+            let turn = state.turns.get(id).ok_or(Error::InvalidEvidence)?;
+            if nodes.iter().any(|node| {
+                !turn.verification.iter().any(|evidence| {
+                    evidence.binding.node_id == *node && evidence.checker_identity.is_none()
+                })
+            }) {
                 return Err(Error::InvalidEvidence);
             }
         }

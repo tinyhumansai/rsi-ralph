@@ -35,8 +35,18 @@ pub use types::*;
 /// Returns invalid blueprint if the checker configuration cannot be
 /// serialized or a pinned Lake identity cannot be read.
 pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
+    checker_identity_with_executable(verifier, None)
+}
+
+fn checker_identity_with_executable(
+    verifier: &HostVerifier,
+    executable_override: Option<&Path>,
+) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
-        let executable = resolve_executable(&command.program)?;
+        let executable = match executable_override {
+            Some(path) => path.to_path_buf(),
+            None => resolve_executable(&command.program)?,
+        };
         let metadata = std::fs::metadata(&executable).map_err(|_| Error::InvalidBlueprint)?;
         if !metadata.is_file() || !is_executable(&metadata) {
             return Err(Error::InvalidBlueprint);
@@ -175,7 +185,14 @@ impl VerifierRegistry {
         artifact: &ArtifactSubmission,
     ) -> Result<VerificationEvidence> {
         let verifier = self.authorize(expected, artifact)?;
-        let checker_identity = checker_identity(verifier)?;
+        let staged = match verifier {
+            HostVerifier::Process(command) | HostVerifier::Lean { command, .. } => {
+                Some(stage_executable(command)?)
+            }
+            _ => None,
+        };
+        let executable = staged.as_ref().map(|(path, _)| path.as_path());
+        let checker_identity = checker_identity_with_executable(verifier, executable)?;
         let frozen = self
             .checker_identities
             .get(&expected.node_id)
@@ -183,7 +200,16 @@ impl VerifierRegistry {
         if frozen != &checker_identity {
             return Err(Error::InvalidBlueprint);
         }
-        let (passed, exit_code) = match verifier {
+        let mut execution_verifier = verifier.clone();
+        if let Some((path, _)) = &staged {
+            match &mut execution_verifier {
+                HostVerifier::Process(command) | HostVerifier::Lean { command, .. } => {
+                    command.program = path.to_string_lossy().into_owned();
+                }
+                _ => {}
+            }
+        }
+        let (passed, exit_code) = match &execution_verifier {
             HostVerifier::Golden { expected } => (artifact.content == *expected, None),
             HostVerifier::Schema { schema } => {
                 let validator =
@@ -253,6 +279,21 @@ impl VerifierRegistry {
         }
         Ok(&d.verifier)
     }
+}
+
+/// Copies the resolved checker into a private directory so the bytes hashed
+/// for evidence are the same file passed to the child process.
+fn stage_executable(command: &CommandSpec) -> Result<(PathBuf, tempfile::TempDir)> {
+    let source = resolve_executable(&command.program)?;
+    let metadata = std::fs::metadata(&source).map_err(|_| Error::InvalidBlueprint)?;
+    if !metadata.is_file() || !is_executable(&metadata) {
+        return Err(Error::InvalidBlueprint);
+    }
+    let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
+    let staged = directory.path().join("checker");
+    std::fs::copy(&source, &staged).map_err(|_| Error::HostFailed)?;
+    std::fs::set_permissions(&staged, metadata.permissions()).map_err(|_| Error::HostFailed)?;
+    Ok((staged, directory))
 }
 fn validate_command(c: &CommandSpec) -> Result<()> {
     if c.program.trim().is_empty() || c.timeout_ms == 0 || c.max_output_bytes == 0 {
