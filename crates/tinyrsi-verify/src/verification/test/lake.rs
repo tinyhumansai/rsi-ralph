@@ -166,6 +166,36 @@ fn lake_staging_pins_both_lake_and_compiler_bytes() {
 }
 
 #[test]
+fn flat_lake_staging_does_not_link_binaries_onto_their_copy_targets() {
+    let dir = tempfile::tempdir().unwrap();
+    let lake = dir.path().join("lake");
+    let lean = dir.path().join("lean");
+    std::fs::write(&lake, b"lake bytes").unwrap();
+    std::fs::write(&lean, b"lean bytes").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        for path in [&lake, &lean] {
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        }
+    }
+    let command = CommandSpec {
+        program: lake.to_string_lossy().into_owned(),
+        args: vec!["build".into()],
+        workspace_root: dir.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let staged = crate::verification::lake::stage(&command).unwrap();
+
+    assert_eq!(std::fs::read(&lake).unwrap(), b"lake bytes");
+    assert_eq!(std::fs::read(&lean).unwrap(), b"lean bytes");
+    assert_eq!(std::fs::read(staged.lake).unwrap(), b"lake bytes");
+    assert_eq!(std::fs::read(staged.lean).unwrap(), b"lean bytes");
+}
+
+#[test]
 #[cfg(unix)]
 fn lake_identity_rejects_a_special_file_compiler() {
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
