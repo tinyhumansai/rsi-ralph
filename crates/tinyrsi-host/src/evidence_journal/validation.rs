@@ -19,6 +19,11 @@ pub(super) fn validate_checker(turn: &RecordedTurn, evidence: &VerificationEvide
             .artifact_digest
             .bytes()
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        || evidence.checker_identity.len() != 71
+        || !evidence.checker_identity.starts_with("sha256:")
+        || !evidence.checker_identity[7..]
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
     {
         return Err(Error::InvalidEvidence);
     }

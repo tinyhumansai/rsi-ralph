@@ -17,6 +17,45 @@ pub use runner::*;
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, time::Duration};
 pub use types::*;
+
+/// Computes the identity of a frozen verifier without exposing private inputs.
+///
+/// Process identities include executable bytes, path, arguments and limits.
+/// Golden values and schemas contribute only through the returned digest.
+///
+/// # Errors
+/// Returns a host failure if an executable cannot be read, or invalid blueprint
+/// if the checker configuration cannot be serialized.
+pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
+    let command = |command: &CommandSpec| -> Result<serde_json::Value> {
+        let bytes = std::fs::read(&command.program).map_err(|_| Error::HostFailed)?;
+        Ok(serde_json::json!({
+            "program": command.program,
+            "executable": format!("{:x}", Sha256::digest(bytes)),
+            "args": command.args,
+            "workspace": command.workspace_root,
+            "timeout_ms": command.timeout_ms,
+            "max_output_bytes": command.max_output_bytes
+        }))
+    };
+    let definition = match verifier {
+        HostVerifier::Process(spec) => serde_json::json!({"process": command(spec)?}),
+        HostVerifier::Golden { expected } => serde_json::json!({"golden_sha256": format!("{:x}", Sha256::digest(expected))}),
+        HostVerifier::Schema { schema } => serde_json::json!({"schema": schema}),
+        HostVerifier::Lean { command: spec, theorem } => {
+            serde_json::json!({"lean": command(spec)?, "theorem": theorem})
+        }
+        HostVerifier::Lake { command: spec, theorem, toolchain } => serde_json::json!({
+            "lake": command(spec)?,
+            "project": lake::identity(spec)?,
+            "theorem": theorem,
+            "toolchain": toolchain
+        }),
+    };
+    let bytes = serde_json::to_vec(&definition).map_err(|_| Error::InvalidBlueprint)?;
+    Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
 /// Immutable registry of authorized node checkers.
 pub struct VerifierRegistry {
     declarations: BTreeMap<String, VerifierDeclaration>,
@@ -75,7 +114,9 @@ impl VerifierRegistry {
         expected: &VerificationBinding,
         artifact: &ArtifactSubmission,
     ) -> Result<VerificationEvidence> {
-        let (passed, exit_code) = match self.authorize(expected, artifact)? {
+        let verifier = self.authorize(expected, artifact)?;
+        let checker_identity = checker_identity(verifier)?;
+        let (passed, exit_code) = match verifier {
             HostVerifier::Golden { expected } => (artifact.content == *expected, None),
             HostVerifier::Schema { schema } => {
                 let validator =
@@ -116,6 +157,7 @@ impl VerifierRegistry {
         Ok(VerificationEvidence {
             binding: expected.clone(),
             artifact_digest,
+            checker_identity,
             passed,
             quality: if passed { 1.0 } else { 0.0 },
             exit_code,

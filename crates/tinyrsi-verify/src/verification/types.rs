@@ -87,6 +87,8 @@ pub struct VerificationEvidence {
     pub binding: VerificationBinding,
     /// SHA-256 of the exact submitted artifact bytes.
     pub artifact_digest: String,
+    /// SHA-256 identity of the frozen checker configuration and executable.
+    pub checker_identity: String,
     /// Strong checker result.
     pub passed: bool,
     /// Finite verified credit, exactly zero or one.
