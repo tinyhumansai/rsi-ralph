@@ -80,7 +80,10 @@ fn verification_evidence_serialization_preserves_checker_identity_and_legacy_rec
         exit_code: Some(0),
     };
     let value = serde_json::to_value(&evidence).unwrap();
-    assert_eq!(value["checker_identity"], format!("sha256:{}", "b".repeat(64)));
+    assert_eq!(
+        value["checker_identity"],
+        format!("sha256:{}", "b".repeat(64))
+    );
     assert_eq!(
         serde_json::from_value::<VerificationEvidence>(value.clone()).unwrap(),
         evidence

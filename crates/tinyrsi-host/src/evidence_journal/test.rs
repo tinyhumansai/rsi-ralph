@@ -291,13 +291,14 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
         validate_checker(&turn, &legacy, false),
         Err(Error::InvalidEvidence)
     );
-    for field in 0..4 {
+    for field in 0..5 {
         let mut bad = evidence();
         match field {
             0 => bad.binding.node_id.clear(),
             1 => bad.binding.artifact_id.clear(),
             2 => bad.artifact_digest = "A".repeat(64),
-            _ => bad.quality = f64::NAN,
+            3 => bad.quality = f64::NAN,
+            _ => bad.checker_identity = Some(format!("sha256:{}", "g".repeat(64))),
         }
         assert_eq!(
             validate_checker(&turn, &bad, false),
