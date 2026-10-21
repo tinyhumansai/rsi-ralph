@@ -266,6 +266,38 @@ fn journal_migration_limits_missing_checker_identities_to_legacy_records() {
     ));
 }
 
+#[test]
+/// Keeps a persisted legacy checker callback idempotent after migration and reopen.
+fn migrated_legacy_verification_callbacks_remain_idempotent_after_reopen() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("evidence");
+    let journal = EvidenceJournal::open(&path).unwrap();
+    let id = journal.begin_turn("alice", "episode").unwrap();
+    let mut legacy_evidence = evidence();
+    journal
+        .record_verification(id, legacy_evidence.clone())
+        .unwrap();
+
+    let mut legacy = journal.store.lock().unwrap().state.clone();
+    legacy.version = 1;
+    legacy_evidence.checker_identity = None;
+    legacy.turns.get_mut(&id).unwrap().verification[0] = legacy_evidence.clone();
+    let mut legacy_value = serde_json::to_value(&legacy).unwrap();
+    legacy_value
+        .as_object_mut()
+        .unwrap()
+        .remove("legacy_checker_nodes");
+    std::fs::write(&path, serde_json::to_vec(&legacy_value).unwrap()).unwrap();
+    drop(journal);
+
+    let migrated = EvidenceJournal::open(&path).unwrap();
+
+    assert_eq!(
+        migrated.record_verification(id, legacy_evidence),
+        Ok(false)
+    );
+}
+
 #[tokio::test]
 /// Replays derived dossier and cursor invariants against targeted snapshot mutations.
 async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries() {
