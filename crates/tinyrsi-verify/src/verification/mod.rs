@@ -37,6 +37,10 @@ pub use types::*;
 pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
         let executable = resolve_executable(&command.program)?;
+        let metadata = std::fs::metadata(&executable).map_err(|_| Error::InvalidBlueprint)?;
+        if !metadata.is_file() || !is_executable(&metadata) {
+            return Err(Error::InvalidBlueprint);
+        }
         let mut file = File::open(executable).map_err(|_| Error::InvalidBlueprint)?;
         let mut hash = Sha256::new();
         io::copy(&mut file, &mut hash).map_err(|_| Error::InvalidBlueprint)?;
@@ -75,6 +79,17 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     };
     let bytes = serde_json::to_vec(&definition).map_err(|_| Error::InvalidBlueprint)?;
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+#[cfg(unix)]
+fn is_executable(metadata: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    metadata.permissions().mode() & 0o111 != 0
+}
+
+#[cfg(not(unix))]
+fn is_executable(_: &std::fs::Metadata) -> bool {
+    true
 }
 
 /// Resolves the executable using the same fixed PATH provided to child checks.

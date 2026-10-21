@@ -127,6 +127,21 @@ fn checker_identity_resolves_path_executables_and_rejects_missing_ones() {
     missing.program = "tinyrsi-no-such-checker".into();
     assert!(checker_identity(&HostVerifier::Process(missing)).is_err());
 }
+
+#[test]
+#[cfg(unix)]
+fn checker_identity_rejects_non_executable_and_special_files() {
+    for program in ["/etc/passwd", "/dev/zero"] {
+        let command = CommandSpec {
+            program: program.into(),
+            args: vec![],
+            workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+            timeout_ms: 1000,
+            max_output_bytes: 1024,
+        };
+        assert!(checker_identity(&HostVerifier::Process(command)).is_err());
+    }
+}
 #[test]
 #[cfg(unix)]
 fn verifier_registry_rejects_an_executable_changed_after_freezing() {

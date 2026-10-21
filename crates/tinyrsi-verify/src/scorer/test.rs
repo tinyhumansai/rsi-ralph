@@ -65,13 +65,18 @@ fn refuses_no_seeds_and_an_unauthorized_binding() {
 }
 
 #[test]
+#[cfg(unix)]
 fn a_checker_that_cannot_run_is_a_host_failure() {
     let workspace = tempfile::tempdir().unwrap();
+    let program = workspace.path().join("missing-interpreter-checker");
+    std::fs::write(&program, "#!/tinyrsi-missing-interpreter\n").unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
     let registry = VerifierRegistry::new(vec![VerifierDeclaration {
         node_id: "answer".into(),
         owner_seat: "seat".into(),
         verifier: HostVerifier::Process(crate::CommandSpec {
-            program: "/etc/passwd".into(),
+            program: program.to_string_lossy().into_owned(),
             args: vec![],
             workspace_root: workspace.path().to_path_buf(),
             timeout_ms: 1000,
