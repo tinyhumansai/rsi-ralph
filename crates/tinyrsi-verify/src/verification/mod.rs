@@ -307,7 +307,8 @@ fn stage_executable(command: &CommandSpec) -> Result<(PathBuf, tempfile::TempDir
     if !metadata.is_file() || !is_executable(&metadata) {
         return Err(Error::InvalidBlueprint);
     }
-    let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
+    std::fs::create_dir_all(&command.workspace_root).map_err(|_| Error::HostFailed)?;
+    let directory = tempfile::tempdir_in(&command.workspace_root).map_err(|_| Error::HostFailed)?;
     let source_parent = source.parent().ok_or(Error::InvalidBlueprint)?;
     if let Some(source_root) = source_parent.parent() {
         for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
@@ -322,14 +323,14 @@ fn stage_executable(command: &CommandSpec) -> Result<(PathBuf, tempfile::TempDir
     let staged_parent = staged_parent(directory.path(), source_parent)?;
     if source_parent != Path::new("/") {
         std::fs::create_dir(&staged_parent).map_err(|_| Error::HostFailed)?;
-        for entry in std::fs::read_dir(source_parent).map_err(|_| Error::HostFailed)? {
-            let entry = entry.map_err(|_| Error::HostFailed)?;
-            if entry.path() == source {
-                continue;
-            }
-            stage_link(&entry.path(), &staged_parent.join(entry.file_name()))
-                .map_err(|_| Error::HostFailed)?;
+    }
+    for entry in std::fs::read_dir(source_parent).map_err(|_| Error::HostFailed)? {
+        let entry = entry.map_err(|_| Error::HostFailed)?;
+        if entry.path() == source {
+            continue;
         }
+        stage_link(&entry.path(), &staged_parent.join(entry.file_name()))
+            .map_err(|_| Error::HostFailed)?;
     }
     let staged = staged_parent.join(source.file_name().ok_or(Error::InvalidBlueprint)?);
     std::fs::copy(&source, &staged).map_err(|_| Error::HostFailed)?;

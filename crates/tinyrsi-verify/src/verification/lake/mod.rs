@@ -112,7 +112,8 @@ pub(crate) fn stage(command: &CommandSpec) -> Result<StagedToolchain> {
     } else {
         source_bin
     };
-    let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
+    std::fs::create_dir_all(&command.workspace_root).map_err(|_| Error::HostFailed)?;
+    let directory = tempfile::tempdir_in(&command.workspace_root).map_err(|_| Error::HostFailed)?;
     if in_bin_directory {
         for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
             let entry = entry.map_err(|_| Error::HostFailed)?;

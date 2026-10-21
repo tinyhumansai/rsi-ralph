@@ -248,6 +248,43 @@ fn staging_preserves_checker_name_and_relative_siblings() {
 }
 
 #[test]
+#[cfg(unix)]
+fn staging_preserves_siblings_for_a_root_level_checker() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let source_root = tempfile::tempdir().unwrap();
+    let workspace_root = tempfile::tempdir().unwrap();
+    let executable = source_root.path().join("checker");
+    std::fs::write(
+        &executable,
+        "#!/bin/sh\n[ \"$(cat \"$(dirname \"$0\")/fixture\")\" = resource ]\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::fs::write(source_root.path().join("fixture"), "resource").unwrap();
+    let command = CommandSpec {
+        program: executable.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: workspace_root.path().into(),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let (staged, _directory) = stage_executable(&command).unwrap();
+
+    assert!(staged.starts_with(workspace_root.path()));
+    assert!(process(
+        &CommandSpec {
+            program: staged.to_string_lossy().into_owned(),
+            ..command
+        },
+        b""
+    )
+    .unwrap()
+    .0);
+}
+
+#[test]
 fn staging_places_a_root_level_checker_in_the_private_directory() {
     let directory = tempfile::tempdir().unwrap();
 
