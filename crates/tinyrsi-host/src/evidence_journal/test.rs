@@ -228,11 +228,22 @@ fn journal_migration_limits_missing_checker_identities_to_legacy_records() {
     let mut legacy = journal.store.lock().unwrap().state.clone();
     legacy.version = 1;
     legacy.turns.get_mut(&id).unwrap().verification[0].checker_identity = None;
-    std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    let mut legacy_value = serde_json::to_value(&legacy).unwrap();
+    legacy_value
+        .as_object_mut()
+        .unwrap()
+        .remove("legacy_checker_nodes");
+    std::fs::write(&path, serde_json::to_vec(&legacy_value).unwrap()).unwrap();
     drop(journal);
 
     let migrated = EvidenceJournal::open(&path).unwrap();
     assert_eq!(migrated.store.lock().unwrap().state.version, 2);
+    let migrated_value: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(
+        migrated_value["legacy_checker_nodes"],
+        serde_json::json!({id.to_string(): ["artifact"]})
+    );
     let current_id = migrated.begin_turn("alice", "next episode").unwrap();
     let mut current_evidence = evidence();
     current_evidence.binding.episode_id = "next episode".into();
