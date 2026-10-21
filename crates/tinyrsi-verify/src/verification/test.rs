@@ -68,6 +68,49 @@ fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
         Some(changed_identity.as_str())
     );
 }
+
+#[test]
+fn verification_evidence_serialization_preserves_checker_identity_and_legacy_records() {
+    let evidence = VerificationEvidence {
+        binding: binding(),
+        artifact_digest: "a".repeat(64),
+        checker_identity: Some(format!("sha256:{}", "b".repeat(64))),
+        passed: true,
+        quality: 1.0,
+        exit_code: Some(0),
+    };
+    let value = serde_json::to_value(&evidence).unwrap();
+    assert_eq!(value["checker_identity"], format!("sha256:{}", "b".repeat(64)));
+    assert_eq!(
+        serde_json::from_value::<VerificationEvidence>(value.clone()).unwrap(),
+        evidence
+    );
+
+    let mut legacy = value;
+    legacy.as_object_mut().unwrap().remove("checker_identity");
+    assert_eq!(
+        serde_json::from_value::<VerificationEvidence>(legacy)
+            .unwrap()
+            .checker_identity,
+        None
+    );
+}
+
+#[test]
+fn checker_identity_resolves_path_executables_and_rejects_missing_ones() {
+    let command = CommandSpec {
+        program: "python3".into(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(checker_identity(&HostVerifier::Process(command.clone())).is_ok());
+
+    let mut missing = command;
+    missing.program = "tinyrsi-no-such-checker".into();
+    assert!(checker_identity(&HostVerifier::Process(missing)).is_err());
+}
 #[test]
 #[cfg(unix)]
 fn verifier_registry_rejects_an_executable_changed_after_freezing() {

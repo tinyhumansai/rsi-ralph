@@ -27,8 +27,9 @@ pub(super) fn validate_checker(
             Some(identity) => {
                 identity.len() != 71
                     || !identity.starts_with("sha256:")
-                    || !identity[7..]
-                        .bytes()
+                    || !identity.as_bytes()[7..]
+                        .iter()
+                        .copied()
                         .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
             }
             None => !allow_legacy,

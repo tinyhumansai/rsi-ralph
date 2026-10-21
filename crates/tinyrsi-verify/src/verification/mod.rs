@@ -15,7 +15,13 @@ use crate::process::Exit;
 use crate::{Error, Result};
 pub use runner::*;
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, time::Duration};
+use std::{
+    collections::BTreeMap,
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 pub use types::*;
 
 /// Computes the identity of a frozen verifier without exposing private inputs.
@@ -30,9 +36,11 @@ pub use types::*;
 /// serialized or a pinned Lake identity cannot be read.
 pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
-        let executable = std::fs::read(&command.program)
-            .ok()
-            .map(|bytes| format!("{:x}", Sha256::digest(bytes)));
+        let executable = resolve_executable(&command.program)?;
+        let mut file = File::open(executable).map_err(|_| Error::InvalidBlueprint)?;
+        let mut hash = Sha256::new();
+        io::copy(&mut file, &mut hash).map_err(|_| Error::InvalidBlueprint)?;
+        let executable = format!("{:x}", hash.finalize());
         Ok(serde_json::json!({
             "program": command.program,
             "executable": executable,
@@ -67,6 +75,22 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     };
     let bytes = serde_json::to_vec(&definition).map_err(|_| Error::InvalidBlueprint)?;
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+/// Resolves the executable using the same fixed PATH provided to child checks.
+fn resolve_executable(program: &str) -> Result<PathBuf> {
+    let path = Path::new(program);
+    if path.is_absolute() {
+        return Ok(path.to_path_buf());
+    }
+    if path.components().count() > 1 {
+        return Err(Error::InvalidBlueprint);
+    }
+    ["/usr/bin", "/bin"]
+        .into_iter()
+        .map(|directory| Path::new(directory).join(path))
+        .find(|candidate| candidate.is_file())
+        .ok_or(Error::InvalidBlueprint)
 }
 
 /// Immutable registry of authorized node checkers.

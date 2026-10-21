@@ -2,6 +2,8 @@
 use crate::{CommandSpec, Error, Result};
 use sha2::{Digest, Sha256};
 use std::{
+    fs::File,
+    io,
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -62,9 +64,11 @@ fn version(toolchain: &str) -> Result<&str> {
 /// read.
 pub fn identity(command: &CommandSpec) -> Result<serde_json::Value> {
     let lean = compiler(command)?;
-    let bytes = std::fs::read(&lean).map_err(|_| Error::HostFailed)?;
+    let mut file = File::open(&lean).map_err(|_| Error::HostFailed)?;
+    let mut hash = Sha256::new();
+    io::copy(&mut file, &mut hash).map_err(|_| Error::HostFailed)?;
     Ok(
-        serde_json::json!({"compiler": lean, "compiler_sha256": format!("{:x}", Sha256::digest(bytes)),
+        serde_json::json!({"compiler": lean, "compiler_sha256": format!("{:x}", hash.finalize()),
         "project": PROJECT}),
     )
 }
