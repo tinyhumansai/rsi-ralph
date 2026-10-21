@@ -33,3 +33,5 @@ this repository.
 - [`hive-penalties.md`](hive-penalties.md) — four stacked penalty changes.
 - [`loop-benchmarks.md`](loop-benchmarks.md) — shared benchmarks, measurement,
   runner.
+- [`verified-decomposition.md`](verified-decomposition.md) — checker, sandbox,
+  typed declaration and restart integration for P3.
