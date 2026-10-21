@@ -81,8 +81,21 @@ fn verification_evidence_serialization_preserves_checker_identity_and_legacy_rec
     };
     let value = serde_json::to_value(&evidence).unwrap();
     assert_eq!(
-        value["checker_identity"],
-        format!("sha256:{}", "b".repeat(64))
+        value,
+        serde_json::json!({
+            "binding": {
+                "episode_id": "ep",
+                "seat_id": "seat",
+                "node_id": "node",
+                "artifact_id": "a",
+                "transcript_refs": [1]
+            },
+            "artifact_digest": "a".repeat(64),
+            "checker_identity": format!("sha256:{}", "b".repeat(64)),
+            "passed": true,
+            "quality": 1.0,
+            "exit_code": 0
+        })
     );
     assert_eq!(
         serde_json::from_value::<VerificationEvidence>(value.clone()).unwrap(),
