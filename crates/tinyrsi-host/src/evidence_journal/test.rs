@@ -234,8 +234,10 @@ fn journal_migration_limits_missing_checker_identities_to_legacy_records() {
     let migrated = EvidenceJournal::open(&path).unwrap();
     assert_eq!(migrated.store.lock().unwrap().state.version, 2);
     let current_id = migrated.begin_turn("alice", "next episode").unwrap();
+    let mut current_evidence = evidence();
+    current_evidence.binding.episode_id = "next episode".into();
     migrated
-        .record_verification(current_id, evidence())
+        .record_verification(current_id, current_evidence)
         .unwrap();
     migrated.finish_turn(current_id).unwrap();
     drop(migrated);

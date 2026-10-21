@@ -174,6 +174,28 @@ fn verifier_registry_rejects_an_executable_changed_after_freezing() {
             .is_err()
     );
 }
+
+#[test]
+#[cfg(unix)]
+fn verification_executes_the_staged_checker_after_source_replacement() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let directory = tempfile::tempdir().unwrap();
+    let program = directory.path().join("checker");
+    std::fs::write(&program, "#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = CommandSpec {
+        program: program.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: directory.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    let (staged, _directory) = stage_executable(&command).unwrap();
+    std::fs::write(&program, "#!/bin/sh\nexit 1\n").unwrap();
+    command.program = staged.to_string_lossy().into_owned();
+    assert!(process(&command, b"").unwrap().0);
+}
 #[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
