@@ -118,6 +118,53 @@ fn lake_configuration_and_compiler_bytes_are_frozen_into_identity() {
 }
 
 #[test]
+fn lake_staging_pins_both_lake_and_compiler_bytes() {
+    let (_dir, command) = fixture("4.34.1", "", 0);
+    let identity = crate::verification::lake::identity(&command).unwrap();
+    let staged = crate::verification::lake::stage(&command).unwrap();
+    std::fs::write(&command.program, b"replaced lake").unwrap();
+    std::fs::write(
+        std::path::Path::new(&command.program).with_file_name("lean"),
+        b"replaced lean",
+    )
+    .unwrap();
+    assert_eq!(
+        crate::verification::lake::identity_with_compiler(&command, Some(&staged.lean)).unwrap(),
+        identity
+    );
+    assert_eq!(
+        std::fs::read(&staged.lake).unwrap(),
+        b"#!/usr/bin/python3\nimport sys\nprint(\"\")\nsys.exit(0)\n"
+    );
+    assert!(
+        String::from_utf8(std::fs::read(&staged.lean).unwrap())
+            .unwrap()
+            .contains("Lean (version 4.34.1, fixture)")
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn lake_identity_rejects_a_special_file_compiler() {
+    use std::os::unix::{fs::PermissionsExt, net::UnixListener};
+
+    let directory = tempfile::tempdir().unwrap();
+    let lake = directory.path().join("lake");
+    std::fs::write(&lake, "#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&lake, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let lean = directory.path().join("lean");
+    let _listener = UnixListener::bind(&lean).unwrap();
+    let command = CommandSpec {
+        program: lake.to_string_lossy().into_owned(),
+        args: vec!["build".into()],
+        workspace_root: directory.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(crate::verification::lake::identity(&command).is_err());
+}
+
+#[test]
 fn lake_reports_require_the_root_file_and_one_allowed_kernel_report() {
     for output in [
         b"info: Rsi.lean:3:0: 'rsi_goal' does not depend on any axioms\n".as_slice(),
