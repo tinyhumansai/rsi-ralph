@@ -113,16 +113,15 @@ pub(crate) fn stage(command: &CommandSpec) -> Result<StagedToolchain> {
         source_bin
     };
     let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
-    for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
-        let entry = entry.map_err(|_| Error::HostFailed)?;
-        if (in_bin_directory && entry.file_name() == "bin")
-            || entry.path() == lake
-            || entry.path() == lean
-        {
-            continue;
+    if in_bin_directory {
+        for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
+            let entry = entry.map_err(|_| Error::HostFailed)?;
+            if entry.file_name() == "bin" {
+                continue;
+            }
+            link_path(&entry.path(), &directory.path().join(entry.file_name()))
+                .map_err(|_| Error::HostFailed)?;
         }
-        link_path(&entry.path(), &directory.path().join(entry.file_name()))
-            .map_err(|_| Error::HostFailed)?;
     }
     let staged_bin = if in_bin_directory {
         let bin = directory.path().join("bin");
