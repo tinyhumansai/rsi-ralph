@@ -292,10 +292,7 @@ fn migrated_legacy_verification_callbacks_remain_idempotent_after_reopen() {
 
     let migrated = EvidenceJournal::open(&path).unwrap();
 
-    assert_eq!(
-        migrated.record_verification(id, legacy_evidence),
-        Ok(false)
-    );
+    assert_eq!(migrated.record_verification(id, legacy_evidence), Ok(false));
 }
 
 #[tokio::test]
