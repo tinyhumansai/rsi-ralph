@@ -130,6 +130,23 @@ fn checker_identity_resolves_path_executables_and_rejects_missing_ones() {
 
 #[test]
 #[cfg(unix)]
+fn checker_identity_rejects_non_utf8_workspace_paths_without_panicking() {
+    use std::os::unix::ffi::OsStringExt;
+
+    let command = CommandSpec {
+        program: "/usr/bin/true".into(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from(std::ffi::OsString::from_vec(vec![
+            b'/', b't', b'm', b'p', 0xff,
+        ])),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(checker_identity(&HostVerifier::Process(command)).is_err());
+}
+
+#[test]
+#[cfg(unix)]
 fn checker_identity_rejects_non_executable_and_special_files() {
     for program in ["/etc/passwd", "/dev/zero"] {
         let command = CommandSpec {
