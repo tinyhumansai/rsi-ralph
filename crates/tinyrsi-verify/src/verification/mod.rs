@@ -20,18 +20,22 @@ pub use types::*;
 
 /// Computes the identity of a frozen verifier without exposing private inputs.
 ///
-/// Process identities include executable bytes, path, arguments and limits.
+/// Process identities include available executable bytes, path, arguments and
+/// limits. A missing executable has a distinct unavailable identity and cannot
+/// produce a successful check.
 /// Golden values and schemas contribute only through the returned digest.
 ///
 /// # Errors
-/// Returns a host failure if an executable cannot be read, or invalid blueprint
-/// if the checker configuration cannot be serialized.
+/// Returns invalid blueprint if the checker configuration cannot be
+/// serialized or a pinned Lake identity cannot be read.
 pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
     let command = |command: &CommandSpec| -> Result<serde_json::Value> {
-        let bytes = std::fs::read(&command.program).map_err(|_| Error::HostFailed)?;
+        let executable = std::fs::read(&command.program)
+            .ok()
+            .map(|bytes| format!("{:x}", Sha256::digest(bytes)));
         Ok(serde_json::json!({
             "program": command.program,
-            "executable": format!("{:x}", Sha256::digest(bytes)),
+            "executable": executable,
             "args": command.args,
             "workspace": command.workspace_root,
             "timeout_ms": command.timeout_ms,
@@ -68,7 +72,7 @@ pub fn checker_identity(verifier: &HostVerifier) -> Result<String> {
 /// Immutable registry of authorized node checkers.
 pub struct VerifierRegistry {
     declarations: BTreeMap<String, VerifierDeclaration>,
-    checker_identities: BTreeMap<String, Option<String>>,
+    checker_identities: BTreeMap<String, String>,
 }
 impl VerifierRegistry {
     /// Freezes checker declarations and rejects ambiguous or unsafe settings.
@@ -108,11 +112,7 @@ impl VerifierRegistry {
                 HostVerifier::Golden { .. } => {}
             }
             let node_id = d.node_id.clone();
-            let identity = match checker_identity(&d.verifier) {
-                Ok(identity) => Some(identity),
-                Err(Error::HostFailed) => None,
-                Err(error) => return Err(error),
-            };
+            let identity = checker_identity(&d.verifier)?;
             if map.insert(node_id.clone(), d).is_some() {
                 return Err(Error::InvalidBlueprint);
             }
@@ -141,10 +141,7 @@ impl VerifierRegistry {
             .checker_identities
             .get(&expected.node_id)
             .ok_or(Error::InvalidBlueprint)?;
-        if frozen
-            .as_ref()
-            .is_none_or(|frozen| frozen != &checker_identity)
-        {
+        if frozen != &checker_identity {
             return Err(Error::InvalidBlueprint);
         }
         let (passed, exit_code) = match verifier {

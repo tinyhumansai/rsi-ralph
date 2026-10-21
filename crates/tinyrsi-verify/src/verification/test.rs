@@ -69,6 +69,7 @@ fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
     );
 }
 #[test]
+#[cfg(unix)]
 fn verifier_registry_rejects_an_executable_changed_after_freezing() {
     let directory = tempfile::tempdir().unwrap();
     let program = directory.path().join("checker");
