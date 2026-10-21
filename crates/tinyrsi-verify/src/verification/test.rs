@@ -566,6 +566,7 @@ fn rejects_schema_configuration_and_observes_process_host_failures() {
         .is_err()
     );
     let mut invalid = missing.clone();
+    invalid.program = "python3".into();
     invalid.workspace_root = "/dev/null/workspace".into();
     assert!(
         registry(HostVerifier::Process(invalid))
