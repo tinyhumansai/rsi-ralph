@@ -242,7 +242,10 @@ fn journal_migration_limits_missing_checker_identities_to_legacy_records() {
         .unwrap()
         .remove("checker_identity");
     std::fs::write(&path, serde_json::to_vec(&current).unwrap()).unwrap();
-    assert!(matches!(EvidenceJournal::open(&path), Err(Error::ArchiveCorrupt)));
+    assert!(matches!(
+        EvidenceJournal::open(&path),
+        Err(Error::ArchiveCorrupt)
+    ));
 }
 
 #[tokio::test]
