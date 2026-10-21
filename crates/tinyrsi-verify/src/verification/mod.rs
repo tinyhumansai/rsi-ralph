@@ -308,10 +308,58 @@ fn stage_executable(command: &CommandSpec) -> Result<(PathBuf, tempfile::TempDir
         return Err(Error::InvalidBlueprint);
     }
     let directory = tempfile::tempdir().map_err(|_| Error::HostFailed)?;
-    let staged = directory.path().join("checker");
+    let source_parent = source.parent().ok_or(Error::InvalidBlueprint)?;
+    let in_bin_directory = source_parent.file_name().is_some_and(|name| name == "bin");
+    let source_root = if in_bin_directory {
+        source_parent.parent().ok_or(Error::InvalidBlueprint)?
+    } else {
+        source_parent
+    };
+    if in_bin_directory {
+        for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
+            let entry = entry.map_err(|_| Error::HostFailed)?;
+            if entry.file_name() == "bin" {
+                continue;
+            }
+            stage_link(&entry.path(), &directory.path().join(entry.file_name()))
+                .map_err(|_| Error::HostFailed)?;
+        }
+    }
+    let staged_parent = if in_bin_directory {
+        let bin = directory.path().join("bin");
+        std::fs::create_dir(&bin).map_err(|_| Error::HostFailed)?;
+        bin
+    } else {
+        let parent = directory
+            .path()
+            .join(source_parent.file_name().ok_or(Error::InvalidBlueprint)?);
+        std::fs::create_dir(&parent).map_err(|_| Error::HostFailed)?;
+        parent
+    };
+    for entry in std::fs::read_dir(source_parent).map_err(|_| Error::HostFailed)? {
+        let entry = entry.map_err(|_| Error::HostFailed)?;
+        if entry.path() == source {
+            continue;
+        }
+        stage_link(&entry.path(), &staged_parent.join(entry.file_name()))
+            .map_err(|_| Error::HostFailed)?;
+    }
+    let staged = staged_parent.join(source.file_name().ok_or(Error::InvalidBlueprint)?);
     std::fs::copy(&source, &staged).map_err(|_| Error::HostFailed)?;
     std::fs::set_permissions(&staged, metadata.permissions()).map_err(|_| Error::HostFailed)?;
     Ok((staged, directory))
+}
+#[cfg(unix)]
+fn stage_link(source: &Path, target: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(source, target)
+}
+#[cfg(windows)]
+fn stage_link(source: &Path, target: &Path) -> std::io::Result<()> {
+    if source.is_dir() {
+        std::os::windows::fs::symlink_dir(source, target)
+    } else {
+        std::os::windows::fs::symlink_file(source, target)
+    }
 }
 fn validate_command(c: &CommandSpec) -> Result<()> {
     if c.program.trim().is_empty() || c.timeout_ms == 0 || c.max_output_bytes == 0 {
