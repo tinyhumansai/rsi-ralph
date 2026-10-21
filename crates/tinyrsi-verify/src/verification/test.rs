@@ -412,7 +412,7 @@ async fn actual_coordinator_parks_failed_forged_or_unpersisted_and_completes_ver
 #[test]
 fn lean_rejects_generated_axioms_sorry_and_declarations_before_execution() {
     let command = CommandSpec {
-        program: "missing".into(),
+        program: "python3".into(),
         args: vec!["{artifact}".into()],
         workspace_root: "target/rsi-workspaces".into(),
         timeout_ms: 10,
@@ -528,15 +528,12 @@ fn rejects_schema_configuration_and_observes_process_host_failures() {
         max_output_bytes: 100,
     };
     assert!(
-        registry(HostVerifier::Process(missing.clone()))
-            .verify(
-                &b,
-                &ArtifactSubmission {
-                    binding: b.clone(),
-                    content: vec![]
-                }
-            )
-            .is_err()
+        VerifierRegistry::new(vec![VerifierDeclaration {
+            node_id: "node".into(),
+            owner_seat: "seat".into(),
+            verifier: HostVerifier::Process(missing.clone()),
+        }])
+        .is_err()
     );
     let mut invalid = missing.clone();
     invalid.timeout_ms = 0;

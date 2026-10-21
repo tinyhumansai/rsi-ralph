@@ -71,7 +71,7 @@ fn a_checker_that_cannot_run_is_a_host_failure() {
         node_id: "answer".into(),
         owner_seat: "seat".into(),
         verifier: HostVerifier::Process(crate::CommandSpec {
-            program: "/nonexistent/checker".into(),
+            program: "/etc/passwd".into(),
             args: vec![],
             workspace_root: workspace.path().to_path_buf(),
             timeout_ms: 1000,
@@ -92,7 +92,7 @@ fn lean_scorer(binding: VerificationBinding) -> VerifierScorer {
         owner_seat: "seat".into(),
         verifier: HostVerifier::Lean {
             command: crate::CommandSpec {
-                program: "/nonexistent/lean".into(),
+                program: "/usr/bin/python3".into(),
                 args: vec!["{artifact}".into()],
                 workspace_root: workspace.path().to_path_buf(),
                 timeout_ms: 1000,
