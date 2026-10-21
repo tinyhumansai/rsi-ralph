@@ -217,10 +217,10 @@ fn verification_executes_the_staged_checker_after_source_replacement() {
 #[test]
 fn staging_preserves_checker_name_and_relative_siblings() {
     let directory = tempfile::tempdir().unwrap();
-    let bin = directory.path().join("bin");
-    std::fs::create_dir(&bin).unwrap();
+    let tools = directory.path().join("tools");
+    std::fs::create_dir(&tools).unwrap();
     std::fs::create_dir(directory.path().join("lib")).unwrap();
-    let executable = bin.join("relative-checker");
+    let executable = tools.join("relative-checker");
     std::fs::write(&executable, b"checker bytes").unwrap();
     std::fs::write(directory.path().join("lib/data"), b"resource bytes").unwrap();
     #[cfg(unix)]
@@ -239,7 +239,7 @@ fn staging_preserves_checker_name_and_relative_siblings() {
     let (staged, directory) = stage_executable(&command).unwrap();
 
     assert_eq!(staged.file_name().unwrap(), "relative-checker");
-    assert_eq!(staged.parent().unwrap().file_name().unwrap(), "bin");
+    assert_eq!(staged.parent().unwrap().file_name().unwrap(), "tools");
     assert_eq!(std::fs::read(staged).unwrap(), b"checker bytes");
     assert_eq!(
         std::fs::read(directory.path().join("lib/data")).unwrap(),
