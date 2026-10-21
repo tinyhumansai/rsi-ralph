@@ -193,9 +193,12 @@ fn flat_lake_staging_does_not_link_binaries_onto_their_copy_targets() {
 
     assert_eq!(std::fs::read(&lake).unwrap(), b"lake bytes");
     assert_eq!(std::fs::read(&lean).unwrap(), b"lean bytes");
-    assert_eq!(std::fs::read(staged.lake).unwrap(), b"lake bytes");
-    assert_eq!(std::fs::read(staged.lean).unwrap(), b"lean bytes");
-    assert_eq!(std::fs::read(staged._directory.path().join("library")).unwrap(), b"library bytes");
+    assert_eq!(std::fs::read(&staged.lake).unwrap(), b"lake bytes");
+    assert_eq!(std::fs::read(&staged.lean).unwrap(), b"lean bytes");
+    assert_eq!(
+        std::fs::read(staged.lake.parent().unwrap().join("library")).unwrap(),
+        b"library bytes"
+    );
 }
 
 #[test]
