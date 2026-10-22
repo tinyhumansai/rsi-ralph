@@ -4,13 +4,17 @@
 checks. `verify` requires exact equality with an independently constructed
 `VerificationBinding`; a model-supplied binding alone is not authorization.
 Evidence contains identity, transcript sequence references, artifact SHA-256,
-finite zero/one verified credit and subprocess exit status. Golden values,
+checker configuration and executable SHA-256, finite zero/one verified credit
+and subprocess exit status. Historical journal evidence written before checker
+identity was added retains a missing identity; new callbacks require it. Golden values,
 schemas, artifact bodies and command output remain private to the host.
 
 `Process` runs a direct executable with frozen arguments. `{artifact}` and `{workspace}`
 argument placeholders name the staged file and directory; expansion occurs
 inside direct argv strings, never through a shell. Sources and compiler outputs live beneath the
 host's `CommandSpec.workspace_root`, which should be under checkout `target/`.
+Checker executables are staged beneath that same host-selected directory so
+they can run on hosts where the system temporary mount is marked `noexec`.
 The child receives a cleared environment and a basic system PATH. Time and
 combined stdout/stderr limits cause failure, with output never entering public
 evidence. This is a checker port, not an operating-system sandbox: host commands

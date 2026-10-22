@@ -11,6 +11,8 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
     std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
     let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
     let root = std::fs::canonicalize(dir.path()).unwrap();
+    let bin = root.join("bin");
+    std::fs::create_dir(&bin).unwrap();
     for (name, source) in [
         (
             "lean",
@@ -24,7 +26,7 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
             format!("#!/usr/bin/python3\nimport sys\nprint({output:?})\nsys.exit({exit})\n"),
         ),
     ] {
-        let path = root.join(name);
+        let path = bin.join(name);
         std::fs::write(&path, source).unwrap();
         #[cfg(unix)]
         {
@@ -33,7 +35,7 @@ fn fixture(version: &str, output: &str, exit: i32) -> (tempfile::TempDir, Comman
         }
     }
     let command = CommandSpec {
-        program: root.join("lake").to_string_lossy().into_owned(),
+        program: bin.join("lake").to_string_lossy().into_owned(),
         args: vec!["build".into()],
         workspace_root: root.join("workspaces"),
         timeout_ms: 5000,
@@ -115,6 +117,111 @@ fn lake_configuration_and_compiler_bytes_are_frozen_into_identity() {
     assert!(VerifierRegistry::new(vec![altered]).is_err());
     std::fs::remove_file(compiler).unwrap();
     assert!(VerifierRegistry::new(vec![declaration(command)]).is_err());
+}
+
+#[test]
+fn lake_staging_pins_both_lake_and_compiler_bytes() {
+    let (_dir, command) = fixture("4.34.1", "", 0);
+    let toolchain_root = std::path::Path::new(&command.program)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    std::fs::create_dir_all(toolchain_root.join("lib/lean")).unwrap();
+    std::fs::write(toolchain_root.join("lib/lean/Std.olean"), b"library bytes").unwrap();
+    let identity = crate::verification::lake::identity(&command).unwrap();
+    let staged = crate::verification::lake::stage(&command).unwrap();
+    std::fs::write(&command.program, b"replaced lake").unwrap();
+    std::fs::write(
+        std::path::Path::new(&command.program).with_file_name("lean"),
+        b"replaced lean",
+    )
+    .unwrap();
+    assert_eq!(
+        crate::verification::lake::identity_with_compiler(&command, Some(&staged.lean)).unwrap(),
+        identity
+    );
+    assert_eq!(
+        std::fs::read(&staged.lake).unwrap(),
+        b"#!/usr/bin/python3\nimport sys\nprint(\"\")\nsys.exit(0)\n"
+    );
+    assert!(
+        String::from_utf8(std::fs::read(&staged.lean).unwrap())
+            .unwrap()
+            .contains("Lean (version 4.34.1, fixture)")
+    );
+    assert_eq!(
+        std::fs::read(
+            staged
+                .lake
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("lib/lean/Std.olean")
+        )
+        .unwrap(),
+        b"library bytes"
+    );
+}
+
+#[test]
+fn flat_lake_staging_does_not_link_binaries_onto_their_copy_targets() {
+    let dir = tempfile::tempdir().unwrap();
+    let lake = dir.path().join("lake");
+    let lean = dir.path().join("lean");
+    let library = dir.path().join("library");
+    std::fs::write(&lake, b"lake bytes").unwrap();
+    std::fs::write(&lean, b"lean bytes").unwrap();
+    std::fs::write(&library, b"library bytes").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        for path in [&lake, &lean] {
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        }
+    }
+    let command = CommandSpec {
+        program: lake.to_string_lossy().into_owned(),
+        args: vec!["build".into()],
+        workspace_root: dir.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let staged = crate::verification::lake::stage(&command).unwrap();
+
+    assert_eq!(std::fs::read(&lake).unwrap(), b"lake bytes");
+    assert_eq!(std::fs::read(&lean).unwrap(), b"lean bytes");
+    assert_eq!(std::fs::read(&staged.lake).unwrap(), b"lake bytes");
+    assert_eq!(std::fs::read(&staged.lean).unwrap(), b"lean bytes");
+    assert_eq!(
+        std::fs::read(staged.lake.parent().unwrap().join("library")).unwrap(),
+        b"library bytes"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn lake_identity_rejects_a_special_file_compiler() {
+    use std::os::unix::{fs::PermissionsExt, net::UnixListener};
+
+    let directory = tempfile::tempdir().unwrap();
+    let bin = directory.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let lake = bin.join("lake");
+    std::fs::write(&lake, "#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&lake, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let lean = bin.join("lean");
+    let _listener = UnixListener::bind(&lean).unwrap();
+    let command = CommandSpec {
+        program: lake.to_string_lossy().into_owned(),
+        args: vec!["build".into()],
+        workspace_root: directory.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(crate::verification::lake::identity(&command).is_err());
 }
 
 #[test]
@@ -214,8 +321,10 @@ fn live_pinned_lake_builds_the_actual_kernel_proof_and_rejects_wrong_or_native_p
 fn lake_verifier_requires_a_frozen_project_and_stock_kernel_report() {
     std::fs::create_dir_all(checkout_target("lake-fixtures")).unwrap();
     let dir = tempfile::tempdir_in(checkout_target("lake-fixtures")).unwrap();
-    let lake = dir.path().join("lake");
-    let lean = dir.path().join("lean");
+    let bin = dir.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let lake = bin.join("lake");
+    let lean = bin.join("lean");
     std::fs::write(&lean, b"#!/bin/sh\necho 'Lean (version 4.34.1, fixture)'\n").unwrap();
     std::fs::write(&lake, b"#!/bin/sh\ntest \"$1\" = build || exit 2\ntest -f lakefile.toml || exit 3\ntest -f lean-toolchain || exit 4\ntest -f Rsi.lean || exit 5\ngrep -F 'defaultTargets' lakefile.toml >/dev/null || exit 6\necho \"info: Rsi.lean:3:0: 'rsi_goal' does not depend on any axioms\"\n").unwrap();
     #[cfg(unix)]

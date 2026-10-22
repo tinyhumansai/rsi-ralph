@@ -49,13 +49,32 @@ impl Store {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(_) => return Err(Error::ArchiveIo),
         }
-        let state = match fs::read(&path) {
+        let mut state = match fs::read(&path) {
             Ok(bytes) => serde_json::from_slice(&bytes).map_err(|_| Error::ArchiveCorrupt)?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => State::default(),
             Err(_) => return Err(Error::ArchiveIo),
         };
+        let migrated = state.version == 1;
+        if migrated {
+            for (id, turn) in &state.turns {
+                for evidence in &turn.verification {
+                    if evidence.checker_identity.is_none() {
+                        state
+                            .legacy_checker_nodes
+                            .entry(*id)
+                            .or_default()
+                            .insert(evidence.binding.node_id.clone());
+                    }
+                }
+            }
+            state.version = 2;
+        }
         validate(&state)?;
-        Ok(Self { state, path, lock })
+        let mut store = Self { state, path, lock };
+        if migrated {
+            store.save(store.state.clone())?;
+        }
+        Ok(store)
     }
     /// Validates and atomically replaces the snapshot before publishing in-memory state.
     pub(super) fn save(&mut self, next: State) -> Result<()> {

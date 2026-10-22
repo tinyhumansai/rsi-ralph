@@ -52,6 +52,9 @@ pub struct EvidenceEpoch {
 #[serde(deny_unknown_fields)]
 pub(super) struct State {
     pub version: u32,
+    /// Evidence records migrated from snapshots written before checker identities.
+    #[serde(default)]
+    pub legacy_checker_nodes: BTreeMap<u64, BTreeSet<String>>,
     pub next_turn: u64,
     pub turns: BTreeMap<u64, RecordedTurn>,
     pub epochs: BTreeMap<u64, EvidenceEpoch>,
@@ -60,10 +63,11 @@ pub(super) struct State {
     pub settled: BTreeSet<String>,
 }
 impl Default for State {
-    /// Starts format version one with the first invocation ID and no consumed turns.
+    /// Starts format version two with the first invocation ID and no consumed turns.
     fn default() -> Self {
         Self {
-            version: 1,
+            version: 2,
+            legacy_checker_nodes: BTreeMap::new(),
             next_turn: 1,
             turns: BTreeMap::new(),
             epochs: BTreeMap::new(),

@@ -38,3 +38,5 @@ See [`host-runtime.md`](host-runtime.md) or
   the strike ledger, cooldown, revocation and generator feedback.
 - [`loop-benchmarks.md`](loop-benchmarks.md) — benchmark × model × repeat
   runner and comparison table for the script loop.
+- [`../rsi/specs/verified-decomposition.md`](../rsi/specs/verified-decomposition.md)
+  — frozen host checkpoints, observed verifier evidence and completion.

@@ -16,6 +16,7 @@ fn evidence() -> VerificationEvidence {
             transcript_refs: vec![],
         },
         artifact_digest: "a".repeat(64),
+        checker_identity: Some(format!("sha256:{}", "b".repeat(64))),
         passed: true,
         quality: 1.0,
         exit_code: None,
@@ -114,14 +115,15 @@ fn conflicting_usage_checker_bindings_and_unknown_turns_are_rejected() {
     journal.record_usage(id, 12, 3).unwrap();
     assert_eq!(journal.record_usage(id, 13, 3), Err(Error::InvalidEvidence));
     assert_eq!(journal.record_usage(99, 1, 1), Err(Error::InvalidEvidence));
-    for field in 0..5 {
+    for field in 0..6 {
         let mut bad = evidence();
         match field {
             0 => bad.binding.seat_id = "mallory".into(),
             1 => bad.binding.episode_id = "other".into(),
             2 => bad.quality = 0.0,
             3 => bad.artifact_digest = "not-a-digest".into(),
-            _ => bad.binding.transcript_refs = vec![2, 1],
+            4 => bad.binding.transcript_refs = vec![2, 1],
+            _ => bad.checker_identity = None,
         }
         assert_eq!(
             journal.record_verification(id, bad),
@@ -214,6 +216,85 @@ fn writer_lock_corrupt_snapshots_and_private_payloads_fail_closed() {
     }
 }
 
+#[test]
+/// Migrates old snapshots once and rejects missing identities in current snapshots.
+fn journal_migration_limits_missing_checker_identities_to_legacy_records() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("evidence");
+    let journal = EvidenceJournal::open(&path).unwrap();
+    let id = journal.begin_turn("alice", "episode").unwrap();
+    journal.record_verification(id, evidence()).unwrap();
+    journal.finish_turn(id).unwrap();
+    let mut legacy = journal.store.lock().unwrap().state.clone();
+    legacy.version = 1;
+    legacy.turns.get_mut(&id).unwrap().verification[0].checker_identity = None;
+    let mut legacy_value = serde_json::to_value(&legacy).unwrap();
+    legacy_value
+        .as_object_mut()
+        .unwrap()
+        .remove("legacy_checker_nodes");
+    std::fs::write(&path, serde_json::to_vec(&legacy_value).unwrap()).unwrap();
+    drop(journal);
+
+    let migrated = EvidenceJournal::open(&path).unwrap();
+    assert_eq!(migrated.store.lock().unwrap().state.version, 2);
+    let migrated_value: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(
+        migrated_value["legacy_checker_nodes"],
+        serde_json::json!({id.to_string(): ["artifact"]})
+    );
+    let current_id = migrated.begin_turn("alice", "next episode").unwrap();
+    let mut current_evidence = evidence();
+    current_evidence.binding.episode_id = "next episode".into();
+    migrated
+        .record_verification(current_id, current_evidence)
+        .unwrap();
+    migrated.finish_turn(current_id).unwrap();
+    drop(migrated);
+
+    let mut current: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    current["turns"][current_id.to_string()]["verification"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("checker_identity");
+    std::fs::write(&path, serde_json::to_vec(&current).unwrap()).unwrap();
+    assert!(matches!(
+        EvidenceJournal::open(&path),
+        Err(Error::ArchiveCorrupt)
+    ));
+}
+
+#[test]
+/// Keeps a persisted legacy checker callback idempotent after migration and reopen.
+fn migrated_legacy_verification_callbacks_remain_idempotent_after_reopen() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("evidence");
+    let journal = EvidenceJournal::open(&path).unwrap();
+    let id = journal.begin_turn("alice", "episode").unwrap();
+    let mut legacy_evidence = evidence();
+    journal
+        .record_verification(id, legacy_evidence.clone())
+        .unwrap();
+
+    let mut legacy = journal.store.lock().unwrap().state.clone();
+    legacy.version = 1;
+    legacy_evidence.checker_identity = None;
+    legacy.turns.get_mut(&id).unwrap().verification[0] = legacy_evidence.clone();
+    let mut legacy_value = serde_json::to_value(&legacy).unwrap();
+    legacy_value
+        .as_object_mut()
+        .unwrap()
+        .remove("legacy_checker_nodes");
+    std::fs::write(&path, serde_json::to_vec(&legacy_value).unwrap()).unwrap();
+    drop(journal);
+
+    let migrated = EvidenceJournal::open(&path).unwrap();
+
+    assert_eq!(migrated.record_verification(id, legacy_evidence), Ok(false));
+}
+
 #[tokio::test]
 /// Replays derived dossier and cursor invariants against targeted snapshot mutations.
 async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries() {
@@ -282,15 +363,26 @@ async fn replay_rejects_rewritten_identities_dossiers_and_consumption_boundaries
         assert_eq!(validate(&state), Err(Error::ArchiveCorrupt));
     }
     let turn = original.turns[&id].clone();
-    for field in 0..4 {
+    let mut legacy = evidence();
+    legacy.checker_identity = None;
+    assert!(validate_checker(&turn, &legacy, true).is_ok());
+    assert_eq!(
+        validate_checker(&turn, &legacy, false),
+        Err(Error::InvalidEvidence)
+    );
+    for field in 0..5 {
         let mut bad = evidence();
         match field {
             0 => bad.binding.node_id.clear(),
             1 => bad.binding.artifact_id.clear(),
             2 => bad.artifact_digest = "A".repeat(64),
-            _ => bad.quality = f64::NAN,
+            3 => bad.quality = f64::NAN,
+            _ => bad.checker_identity = Some(format!("sha256:{}", "g".repeat(64))),
         }
-        assert_eq!(validate_checker(&turn, &bad), Err(Error::InvalidEvidence));
+        assert_eq!(
+            validate_checker(&turn, &bad, false),
+            Err(Error::InvalidEvidence)
+        );
     }
 }
 

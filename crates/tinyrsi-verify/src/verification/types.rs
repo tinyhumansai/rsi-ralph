@@ -87,6 +87,11 @@ pub struct VerificationEvidence {
     pub binding: VerificationBinding,
     /// SHA-256 of the exact submitted artifact bytes.
     pub artifact_digest: String,
+    /// SHA-256 identity of the frozen checker configuration and executable.
+    /// `None` is retained only when reading evidence written before this field
+    /// existed; new journal callbacks require an identity.
+    #[serde(default)]
+    pub checker_identity: Option<String>,
     /// Strong checker result.
     pub passed: bool,
     /// Finite verified credit, exactly zero or one.

@@ -36,6 +36,265 @@ fn golden_is_exact_and_forged_bindings_are_rejected() {
     assert!(r.verify(&b, &a).is_err());
 }
 #[test]
+fn evidence_binds_the_frozen_checker_identity_and_observed_exit_status() {
+    let command = CommandSpec {
+        program: "/usr/bin/python3".into(),
+        args: vec!["-c".into(), "import sys; sys.exit(0)".into()],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    let registry = registry(HostVerifier::Process(command.clone()));
+    let binding = binding();
+    let report = registry
+        .verify(
+            &binding,
+            &ArtifactSubmission {
+                binding: binding.clone(),
+                content: b"candidate".to_vec(),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        report.checker_identity,
+        Some(checker_identity(&HostVerifier::Process(command.clone())).unwrap())
+    );
+    assert_eq!(report.exit_code, Some(0));
+    let mut changed = command;
+    changed.args.push("changed".into());
+    let changed_identity = checker_identity(&HostVerifier::Process(changed)).unwrap();
+    assert_ne!(
+        report.checker_identity.as_deref(),
+        Some(changed_identity.as_str())
+    );
+}
+
+#[test]
+fn verification_evidence_serialization_preserves_checker_identity_and_legacy_records() {
+    let evidence = VerificationEvidence {
+        binding: binding(),
+        artifact_digest: "a".repeat(64),
+        checker_identity: Some(format!("sha256:{}", "b".repeat(64))),
+        passed: true,
+        quality: 1.0,
+        exit_code: Some(0),
+    };
+    let value = serde_json::to_value(&evidence).unwrap();
+    assert_eq!(
+        value,
+        serde_json::json!({
+            "binding": {
+                "episode_id": "ep",
+                "seat_id": "seat",
+                "node_id": "node",
+                "artifact_id": "a",
+                "transcript_refs": [1]
+            },
+            "artifact_digest": "a".repeat(64),
+            "checker_identity": format!("sha256:{}", "b".repeat(64)),
+            "passed": true,
+            "quality": 1.0,
+            "exit_code": 0
+        })
+    );
+    assert_eq!(
+        serde_json::from_value::<VerificationEvidence>(value.clone()).unwrap(),
+        evidence
+    );
+
+    let mut legacy = value;
+    legacy.as_object_mut().unwrap().remove("checker_identity");
+    assert_eq!(
+        serde_json::from_value::<VerificationEvidence>(legacy)
+            .unwrap()
+            .checker_identity,
+        None
+    );
+}
+
+#[test]
+fn checker_identity_resolves_path_executables_and_rejects_missing_ones() {
+    let command = CommandSpec {
+        program: "python3".into(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(checker_identity(&HostVerifier::Process(command.clone())).is_ok());
+
+    let mut missing = command;
+    missing.program = "tinyrsi-no-such-checker".into();
+    assert!(checker_identity(&HostVerifier::Process(missing)).is_err());
+}
+
+#[test]
+#[cfg(unix)]
+fn checker_identity_rejects_non_utf8_workspace_paths_without_panicking() {
+    use std::os::unix::ffi::OsStringExt;
+
+    let command = CommandSpec {
+        program: "/usr/bin/true".into(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from(std::ffi::OsString::from_vec(vec![
+            b'/', b't', b'm', b'p', 0xff,
+        ])),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    assert!(checker_identity(&HostVerifier::Process(command)).is_err());
+}
+
+#[test]
+#[cfg(unix)]
+fn checker_identity_rejects_non_executable_and_special_files() {
+    for program in ["/etc/passwd", "/dev/zero"] {
+        let command = CommandSpec {
+            program: program.into(),
+            args: vec![],
+            workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+            timeout_ms: 1000,
+            max_output_bytes: 1024,
+        };
+        assert!(checker_identity(&HostVerifier::Process(command)).is_err());
+    }
+}
+#[test]
+#[cfg(unix)]
+fn verifier_registry_rejects_an_executable_changed_after_freezing() {
+    let directory = tempfile::tempdir().unwrap();
+    let program = directory.path().join("checker");
+    std::fs::write(&program, "#!/bin/sh\nexit 0\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let registry = registry(HostVerifier::Process(CommandSpec {
+        program: program.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: std::path::PathBuf::from("target/rsi-workspaces"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    }));
+    std::fs::write(&program, "#!/bin/sh\nexit 1\n").unwrap();
+    let binding = binding();
+    assert!(
+        registry
+            .verify(
+                &binding,
+                &ArtifactSubmission {
+                    binding: binding.clone(),
+                    content: b"candidate".to_vec(),
+                },
+            )
+            .is_err()
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn verification_executes_the_staged_checker_after_source_replacement() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let directory = tempfile::tempdir().unwrap();
+    let program = directory.path().join("checker");
+    std::fs::write(&program, "#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = CommandSpec {
+        program: program.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: directory.path().join("workspace"),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+    let (staged, _directory) = stage_executable(&command).unwrap();
+    std::fs::write(&program, "#!/bin/sh\nexit 1\n").unwrap();
+    command.program = staged.to_string_lossy().into_owned();
+    assert!(process(&command, b"").unwrap().0);
+}
+
+#[test]
+fn staging_preserves_checker_name_and_relative_siblings() {
+    let directory = tempfile::tempdir().unwrap();
+    let tools = directory.path().join("tools");
+    std::fs::create_dir(&tools).unwrap();
+    std::fs::create_dir(directory.path().join("lib")).unwrap();
+    let executable = tools.join("relative-checker");
+    std::fs::write(&executable, b"checker bytes").unwrap();
+    std::fs::write(directory.path().join("lib/data"), b"resource bytes").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let command = CommandSpec {
+        program: executable.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: directory.path().to_path_buf(),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let (staged, directory) = stage_executable(&command).unwrap();
+
+    assert_eq!(staged.file_name().unwrap(), "relative-checker");
+    assert_eq!(staged.parent().unwrap().file_name().unwrap(), "tools");
+    assert_eq!(std::fs::read(staged).unwrap(), b"checker bytes");
+    assert_eq!(
+        std::fs::read(directory.path().join("lib/data")).unwrap(),
+        b"resource bytes"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn staging_preserves_siblings_for_a_root_level_checker() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let source_root = tempfile::tempdir().unwrap();
+    let workspace_root = tempfile::tempdir().unwrap();
+    let executable = source_root.path().join("checker");
+    std::fs::write(
+        &executable,
+        "#!/bin/sh\n[ \"$(cat \"$(dirname \"$0\")/fixture\")\" = resource ]\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::fs::write(source_root.path().join("fixture"), "resource").unwrap();
+    let command = CommandSpec {
+        program: executable.to_string_lossy().into_owned(),
+        args: vec![],
+        workspace_root: workspace_root.path().into(),
+        timeout_ms: 1000,
+        max_output_bytes: 1024,
+    };
+
+    let (staged, _directory) = stage_executable(&command).unwrap();
+
+    assert!(staged.starts_with(workspace_root.path()));
+    assert!(
+        process(
+            &CommandSpec {
+                program: staged.to_string_lossy().into_owned(),
+                ..command
+            },
+            b""
+        )
+        .unwrap()
+        .0
+    );
+}
+
+#[test]
+fn staging_places_a_root_level_checker_in_the_private_directory() {
+    let directory = tempfile::tempdir().unwrap();
+
+    let staged_parent = staged_parent(directory.path(), Path::new("/")).unwrap();
+
+    assert_eq!(staged_parent, directory.path());
+}
+#[test]
 fn validates_json_schema_and_rejects_invalid_registry() {
     let r = registry(HostVerifier::Schema {
         schema: serde_json::json!({"type":"integer"}),
@@ -301,7 +560,7 @@ async fn actual_coordinator_parks_failed_forged_or_unpersisted_and_completes_ver
 #[test]
 fn lean_rejects_generated_axioms_sorry_and_declarations_before_execution() {
     let command = CommandSpec {
-        program: "missing".into(),
+        program: "python3".into(),
         args: vec!["{artifact}".into()],
         workspace_root: "target/rsi-workspaces".into(),
         timeout_ms: 10,
@@ -417,15 +676,12 @@ fn rejects_schema_configuration_and_observes_process_host_failures() {
         max_output_bytes: 100,
     };
     assert!(
-        registry(HostVerifier::Process(missing.clone()))
-            .verify(
-                &b,
-                &ArtifactSubmission {
-                    binding: b.clone(),
-                    content: vec![]
-                }
-            )
-            .is_err()
+        VerifierRegistry::new(vec![VerifierDeclaration {
+            node_id: "node".into(),
+            owner_seat: "seat".into(),
+            verifier: HostVerifier::Process(missing.clone()),
+        }])
+        .is_err()
     );
     let mut invalid = missing.clone();
     invalid.timeout_ms = 0;
@@ -458,6 +714,7 @@ fn rejects_schema_configuration_and_observes_process_host_failures() {
         .is_err()
     );
     let mut invalid = missing.clone();
+    invalid.program = "python3".into();
     invalid.workspace_root = "/dev/null/workspace".into();
     assert!(
         registry(HostVerifier::Process(invalid))

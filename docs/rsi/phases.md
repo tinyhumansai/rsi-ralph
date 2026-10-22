@@ -15,6 +15,10 @@ Implemented mechanisms and experimental efficacy are separate claims.
 | P5 — Structural edits | Durable selected/deployed separation, coordinator rebuild, fencing, compensation and exact parent rollback | Supplied factory is single-seat and rejects unsupported capabilities; custom factories own broader support |
 | P6 — Ignition | Immutable preregistered original/evolved trial harness, matched caps, ablations and aggregate uncertainty | 24 live attempts, inconclusive; no accepted learned orchestrator or ignition claim |
 
+The P3 contract and remaining integration sequence are documented in the
+[verified decomposition specification](specs/verified-decomposition.md) and
+[implementation plan](../plans/verified-decomposition.md).
+
 ## P1 — Durable observations and evidence
 
 `DeploymentStore::observe` persists redacted transcript references and episode

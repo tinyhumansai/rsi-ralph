@@ -101,17 +101,16 @@ impl EvidenceJournal {
         let mut store = self.lock()?;
         let mut next = store.state.clone();
         let turn = next.turns.get_mut(&id).ok_or(Error::InvalidEvidence)?;
-        validate_checker(turn, &evidence)?;
-        if let Some(old) = turn
+        let old = turn
             .verification
             .iter()
-            .find(|v| v.binding.node_id == evidence.binding.node_id)
-        {
-            return if *old == evidence {
-                Ok(false)
-            } else {
-                Err(Error::InvalidEvidence)
-            };
+            .find(|v| v.binding.node_id == evidence.binding.node_id);
+        if old.is_some_and(|old| *old == evidence) {
+            return Ok(false);
+        }
+        validate_checker(turn, &evidence, false)?;
+        if old.is_some() {
+            return Err(Error::InvalidEvidence);
         }
         if turn.status != RecordedTurnStatus::Open {
             return Err(Error::InvalidEvidence);

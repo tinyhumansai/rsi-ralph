@@ -2,6 +2,8 @@
 use crate::{CommandSpec, Error, Result};
 use sha2::{Digest, Sha256};
 use std::{
+    fs::File,
+    io,
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -61,12 +63,111 @@ fn version(toolchain: &str) -> Result<&str> {
 /// build, and [`Error::HostFailed`] when the compiler or template cannot be
 /// read.
 pub fn identity(command: &CommandSpec) -> Result<serde_json::Value> {
+    identity_with_compiler(command, None)
+}
+
+pub(crate) fn identity_with_compiler(
+    command: &CommandSpec,
+    compiler_override: Option<&Path>,
+) -> Result<serde_json::Value> {
     let lean = compiler(command)?;
-    let bytes = std::fs::read(&lean).map_err(|_| Error::HostFailed)?;
+    let compiler = compiler_override.unwrap_or(&lean);
+    let compiler_identity = lean.to_str().ok_or(Error::InvalidBlueprint)?;
+    let metadata = std::fs::metadata(compiler).map_err(|_| Error::InvalidBlueprint)?;
+    if !metadata.is_file() || !super::is_executable(&metadata) {
+        return Err(Error::InvalidBlueprint);
+    }
+    let mut file = File::open(compiler).map_err(|_| Error::InvalidBlueprint)?;
+    let mut hash = Sha256::new();
+    io::copy(&mut file, &mut hash).map_err(|_| Error::HostFailed)?;
     Ok(
-        serde_json::json!({"compiler": lean, "compiler_sha256": format!("{:x}", Sha256::digest(bytes)),
+        serde_json::json!({"compiler": compiler_identity, "compiler_sha256": format!("{:x}", hash.finalize()),
         "project": PROJECT}),
     )
+}
+
+pub(crate) struct StagedToolchain {
+    pub lake: PathBuf,
+    pub lean: PathBuf,
+    _directory: tempfile::TempDir,
+}
+
+/// Stages Lake and Lean while preserving the installed toolchain layout.
+pub(crate) fn stage(command: &CommandSpec) -> Result<StagedToolchain> {
+    let lake = std::fs::canonicalize(&command.program).map_err(|_| Error::InvalidBlueprint)?;
+    let lean = compiler(command)?;
+    let lake_metadata = std::fs::metadata(&lake).map_err(|_| Error::InvalidBlueprint)?;
+    let lean_metadata = std::fs::metadata(&lean).map_err(|_| Error::InvalidBlueprint)?;
+    if !lake_metadata.is_file()
+        || !super::is_executable(&lake_metadata)
+        || !lean_metadata.is_file()
+        || !super::is_executable(&lean_metadata)
+    {
+        return Err(Error::InvalidBlueprint);
+    }
+    let source_bin = lake.parent().ok_or(Error::InvalidBlueprint)?;
+    let in_bin_directory = source_bin.file_name().is_some_and(|name| name == "bin");
+    let source_root = if in_bin_directory {
+        source_bin.parent().ok_or(Error::InvalidBlueprint)?
+    } else {
+        source_bin
+    };
+    std::fs::create_dir_all(&command.workspace_root).map_err(|_| Error::HostFailed)?;
+    let directory = tempfile::tempdir_in(&command.workspace_root).map_err(|_| Error::HostFailed)?;
+    if in_bin_directory {
+        for entry in std::fs::read_dir(source_root).map_err(|_| Error::HostFailed)? {
+            let entry = entry.map_err(|_| Error::HostFailed)?;
+            if entry.file_name() == "bin" {
+                continue;
+            }
+            link_path(&entry.path(), &directory.path().join(entry.file_name()))
+                .map_err(|_| Error::HostFailed)?;
+        }
+    }
+    let staged_bin = if in_bin_directory {
+        let bin = directory.path().join("bin");
+        std::fs::create_dir(&bin).map_err(|_| Error::HostFailed)?;
+        bin
+    } else {
+        directory.path().to_path_buf()
+    };
+    for entry in std::fs::read_dir(source_bin).map_err(|_| Error::HostFailed)? {
+        let entry = entry.map_err(|_| Error::HostFailed)?;
+        let source = entry.path();
+        let target = staged_bin.join(entry.file_name());
+        if source == lake {
+            std::fs::copy(&source, &target).map_err(|_| Error::HostFailed)?;
+            std::fs::set_permissions(&target, lake_metadata.permissions())
+                .map_err(|_| Error::HostFailed)?;
+        } else if source == lean {
+            std::fs::copy(&source, &target).map_err(|_| Error::HostFailed)?;
+            std::fs::set_permissions(&target, lean_metadata.permissions())
+                .map_err(|_| Error::HostFailed)?;
+        } else {
+            link_path(&source, &target).map_err(|_| Error::HostFailed)?;
+        }
+    }
+    let staged_lake = staged_bin.join(lake.file_name().ok_or(Error::InvalidBlueprint)?);
+    let staged_lean = staged_bin.join(lean.file_name().ok_or(Error::InvalidBlueprint)?);
+    Ok(StagedToolchain {
+        lake: staged_lake,
+        lean: staged_lean,
+        _directory: directory,
+    })
+}
+
+#[cfg(unix)]
+fn link_path(source: &Path, target: &Path) -> io::Result<()> {
+    std::os::unix::fs::symlink(source, target)
+}
+
+#[cfg(windows)]
+fn link_path(source: &Path, target: &Path) -> io::Result<()> {
+    if source.is_dir() {
+        std::os::windows::fs::symlink_dir(source, target)
+    } else {
+        std::os::windows::fs::symlink_file(source, target)
+    }
 }
 
 /// Observe the pinned version, then build under the remaining aggregate limits.
