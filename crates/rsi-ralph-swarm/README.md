@@ -84,6 +84,22 @@ serialized and prints redacted; OpenHuman's search proxy uses a pinned
 config as given and reconfigures its one module per caller, so seats with
 different keys never share one.
 
+## Executable tools
+
+A package's `hive.json` `tools` (tinyhivemind's executable tools: a program
+plus an argument schema, `docs/specs/executable-tools.md` there) reach the
+seats whose toolpacks name them. `programs/` builds one host tool source for
+the run: on each turn of such a seat it adds a `tinyhivemind_exec::ProgramTool`
+per program, made visible and added to the seat's allow list. A call runs in
+the seat's working directory (its candidate checkout, or the incumbent) with
+the convention's cleared environment; `env` references resolve from this
+process's environment, and `THM_PACKAGE_ROOT` is the run directory.
+
+The swarm receives the package as text, so a program that is itself a package
+file (`tools/…`) is refused before the run (`Error::PackageProgram`). Name a
+program on `PATH` or by an absolute path. MCP servers declared in the package
+are not attached yet.
+
 ## Pin requirement
 
 Read-only seats message through the `hivemind_*` tools, so those tools must
@@ -116,6 +132,7 @@ need it.
 | `event/` | `SwarmEvent` and secret scrubbing |
 | `trace/` | the `events.jsonl` sink |
 | `tools/` | tool keys and web-search wiring |
+| `programs/` | a seat's executable tools (`hive.json` `tools`) as native turn tools |
 | `error/` | the crate `Error` |
 
 Tests: unit tests beside each module; `tests/swarm.rs` runs whole swarms

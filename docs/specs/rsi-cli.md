@@ -111,6 +111,12 @@ many reach the brief, default 5), `mode` (`backrooms`, `brainstorm` or
 `temperature`, and `memory` (default on: earlier ideas and whether their epoch
 promoted a candidate are fed back as prior ideas to move away from).
 
+**Executable tools.** A hive package may declare executable tools in
+`hive.json` `tools` and hand them to seats through `toolpacks`. Each one a
+seat holds is offered to it as a tool, running in that seat's working
+directory. Its program must be on `PATH` or named by an absolute path; a
+package file (`tools/…`) is refused before the run.
+
 **`keys`.** A map from capability to the *name* of an environment variable.
 Values never appear in files, the run store, traces or prompts.
 `openrouter` (default `OPENROUTER_API_KEY`) is read by the gateway only.
