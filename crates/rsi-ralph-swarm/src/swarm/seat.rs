@@ -75,12 +75,10 @@ pub(crate) fn spec(
     if let Some(temperature) = seat.config["temperature"].as_f64().or(request.temperature) {
         definition = definition.temperature(temperature);
     }
-    let model = seat
-        .integration
-        .model
-        .as_ref()
-        .map(|model| model.model.name.clone())
-        .unwrap_or_else(|| request.default_model.clone());
+    let model = seat.integration.model.as_ref().map_or_else(
+        || request.default_model.clone(),
+        |model| model.model.name.clone(),
+    );
     let provider = Provider::openai_compatible(
         (request.model_base_url)(&seat.id),
         request.model_api_key.clone(),
