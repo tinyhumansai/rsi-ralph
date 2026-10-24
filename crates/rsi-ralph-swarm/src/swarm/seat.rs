@@ -76,8 +76,10 @@ pub(crate) fn spec(
         definition = definition.temperature(temperature);
     }
     let model = seat
+        .integration
         .model
-        .clone()
+        .as_ref()
+        .map(|model| model.model.name.clone())
         .unwrap_or_else(|| request.default_model.clone());
     let provider = Provider::openai_compatible(
         (request.model_base_url)(&seat.id),
