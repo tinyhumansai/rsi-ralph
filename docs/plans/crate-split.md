@@ -5,7 +5,7 @@ Specification: [`../specs/crate-split.md`](../specs/crate-split.md).
 Each task is one pull request, merged in order. Each starts from a freshly
 fast-forwarded `main` and leaves the four contract commands green. Moves are
 `git mv` of whole module directories, so history follows the files. Path fixes
-are mechanical (`crate::X` → `tinyrsi_<crate>::X`). Behavior changes land in
+are mechanical (`crate::X` → `rsi_ralph_<crate>::X`). Behavior changes land in
 separate commits from moves.
 
 ## Tasks
