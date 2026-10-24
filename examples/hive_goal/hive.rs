@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
 use tinyhivemind_lang::{Goal, Role, Seat};
-use tinyrsi_host::{
+use rsi_ralph_host::{
     Archive, Error, EvalDecision, FamilyAnchor, HApprovalGate, HostVerifier, Package, Patch,
     PatchClass, PrivateSuites, PrivateTask, Proposal, Result, ScoreComparison, ScorePenalties,
     ScoringPolicySpec,

@@ -6,7 +6,7 @@ use crate::benchmarks::Benchmark;
 use crate::python;
 use std::path::Path;
 use std::sync::Mutex;
-use tinyrsi::StopReason;
+use rsi_ralph::StopReason;
 
 #[test]
 fn the_plan_nests_benchmark_model_repeat_with_one_directory_each() {

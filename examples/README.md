@@ -14,10 +14,10 @@ need no network or credentials and run in CI.
 | [`hive_goal`](hive_goal/main.rs) | a tinyhivemind hive whose agents must solve private tasks | proposals of typed hive patches | paired private-suite evaluation (normalized H) + an approval gate |
 
 ```sh
-cargo run -p tinyrsi-examples --example math_problem
-cargo run -p tinyrsi-examples --example upgrade_file
-cargo run -p tinyrsi-examples --example graph_coloring
-cargo run -p tinyrsi-examples --example hive_goal
+cargo run -p rsi-ralph-examples --example math_problem
+cargo run -p rsi-ralph-examples --example upgrade_file
+cargo run -p rsi-ralph-examples --example graph_coloring
+cargo run -p rsi-ralph-examples --example hive_goal
 ```
 
 ## What each run shows
@@ -31,7 +31,7 @@ cargo run -p tinyrsi-examples --example hive_goal
 - **Behavior as a hard gate.** `check_standard.py` runs behavior tests before
   it counts violations. A candidate that changes behavior fails its seeds and
   is rejected, however tidy it looks.
-- **Hives.** `hive_goal` runs the hive path in `tinyrsi-host`: an observed
+- **Hives.** `hive_goal` runs the hive path in `rsi-ralph-host`: an observed
   dossier, a typed context patch, paired evaluation on frozen private suites,
   and human-style approval.
   Its limits are deliberate. The hive has one seat on one desk, because the
@@ -55,9 +55,9 @@ epochs to goal, median tokens, median final metric, mean repetition share and
 median wall time.
 
 ```sh
-cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2
+cargo run -p rsi-ralph-examples --example benchmarks -- --repeats 2
 TINYRSI_LIVE_OPENROUTER=1 OPENROUTER_API_KEY=... \
-  cargo run -p tinyrsi-examples --example benchmarks -- \
+  cargo run -p rsi-ralph-examples --example benchmarks -- \
   --models anthropic/claude-sonnet-4.5,openai/gpt-4.1-mini --repeats 5 --jobs 2
 ```
 

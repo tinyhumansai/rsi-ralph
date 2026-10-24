@@ -3575,17 +3575,17 @@ dependencies = [
  "tinybackrooms",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
- "tinyrsi-evolve",
- "tinyrsi-model",
- "tinyrsi-score",
- "tinyrsi-trace",
- "tinyrsi-types",
- "tinyrsi-verify",
+ "rsi-ralph-evolve",
+ "rsi-ralph-model",
+ "rsi-ralph-score",
+ "rsi-ralph-trace",
+ "rsi-ralph-types",
+ "rsi-ralph-verify",
  "tokio",
 ]
 
 [[package]]
-name = "tinyrsi-cli"
+name = "rsi-ralph-cli"
 version = "0.2.1"
 dependencies = [
  "clap",
@@ -3596,18 +3596,18 @@ dependencies = [
  "thiserror",
  "tinybackrooms",
  "tinyhivemind-lang",
- "tinyrsi-gateway",
- "tinyrsi-model",
- "tinyrsi-score",
- "tinyrsi-swarm",
- "tinyrsi-trace",
- "tinyrsi-verify",
+ "rsi-ralph-gateway",
+ "rsi-ralph-model",
+ "rsi-ralph-score",
+ "rsi-ralph-swarm",
+ "rsi-ralph-trace",
+ "rsi-ralph-verify",
  "tokio",
  "wiremock",
 ]
 
 [[package]]
-name = "tinyrsi-evolve"
+name = "rsi-ralph-evolve"
 version = "0.2.1"
 dependencies = [
  "fs2",
@@ -3617,13 +3617,13 @@ dependencies = [
  "thiserror",
  "tinybackrooms",
  "tinyhivemind-lang",
- "tinyrsi-model",
- "tinyrsi-types",
+ "rsi-ralph-model",
+ "rsi-ralph-types",
  "tokio",
 ]
 
 [[package]]
-name = "tinyrsi-examples"
+name = "rsi-ralph-examples"
 version = "0.2.1"
 dependencies = [
  "serde",
@@ -3632,12 +3632,12 @@ dependencies = [
  "tinyhivemind-hives",
  "tinyhivemind-lang",
  "tinyrsi",
- "tinyrsi-host",
+ "rsi-ralph-host",
  "tokio",
 ]
 
 [[package]]
-name = "tinyrsi-gateway"
+name = "rsi-ralph-gateway"
 version = "0.2.1"
 dependencies = [
  "axum",
@@ -3652,7 +3652,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyrsi-host"
+name = "rsi-ralph-host"
 version = "0.2.1"
 dependencies = [
  "fs2",
@@ -3665,23 +3665,23 @@ dependencies = [
  "tinyhivemind-hives",
  "tinyhivemind-lang",
  "tinyrsi",
- "tinyrsi-verify",
+ "rsi-ralph-verify",
  "tokio",
 ]
 
 [[package]]
-name = "tinyrsi-langfuse"
+name = "rsi-ralph-langfuse"
 version = "0.2.1"
 dependencies = [
  "openhuman-embed",
  "serde_json",
  "thiserror",
- "tinyrsi-trace",
+ "rsi-ralph-trace",
  "tokio",
 ]
 
 [[package]]
-name = "tinyrsi-model"
+name = "rsi-ralph-model"
 version = "0.2.1"
 dependencies = [
  "serde",
@@ -3692,7 +3692,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyrsi-score"
+name = "rsi-ralph-score"
 version = "0.2.1"
 dependencies = [
  "serde",
@@ -3700,13 +3700,13 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror",
  "tinybackrooms",
- "tinyrsi-model",
- "tinyrsi-trace",
- "tinyrsi-types",
+ "rsi-ralph-model",
+ "rsi-ralph-trace",
+ "rsi-ralph-types",
 ]
 
 [[package]]
-name = "tinyrsi-swarm"
+name = "rsi-ralph-swarm"
 version = "0.2.1"
 dependencies = [
  "openhuman-embed",
@@ -3722,7 +3722,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyrsi-trace"
+name = "rsi-ralph-trace"
 version = "0.2.1"
 dependencies = [
  "serde",
@@ -3734,7 +3734,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyrsi-types"
+name = "rsi-ralph-types"
 version = "0.2.1"
 dependencies = [
  "serde",
@@ -3743,7 +3743,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyrsi-verify"
+name = "rsi-ralph-verify"
 version = "0.2.1"
 dependencies = [
  "jsonschema",
@@ -3753,8 +3753,8 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tinyhivemind-hives",
- "tinyrsi-score",
- "tinyrsi-types",
+ "rsi-ralph-score",
+ "rsi-ralph-types",
  "tokio",
 ]
 

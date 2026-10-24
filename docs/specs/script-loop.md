@@ -66,7 +66,7 @@ language model, if the library could run that cycle end to end.
   decision is `compare`'s, with one exception: when it is `inconclusive` and
   `LoopPolicy::accept_dominant` is set (the default), a candidate that is no
   worse than the incumbent on any seed and strictly better on at least one,
-  by metric and by eligible quality (`tinyrsi_score::dominates`), is
+  by metric and by eligible quality (`rsi_ralph_score::dominates`), is
   accepted, and its ledger row's `note` says so. Scripts are deterministic
   per seed, so dominance is exact on the measured seeds; with three seeds the
   paired interval cannot resolve a gain on one seed and ties on the others
@@ -77,7 +77,7 @@ language model, if the library could run that cycle end to end.
   the ledger row says so with `units: "quality"` (omitted for metric units).
 - **Improve:** among the epoch's accepted candidates the one with the best mean
   metric becomes the incumbent and later proposals build on it.
-- **Ideate:** `Supervisor` (now `tinyrsi_evolve::ScriptSupervisor`) wraps a `ModelPort` and makes one forced native
+- **Ideate:** `Supervisor` (now `rsi_ralph_evolve::ScriptSupervisor`) wraps a `ModelPort` and makes one forced native
   tool call `propose_script` whose JSON schema is `ScriptProposal { approach,
   differs_from_previous?, rationale, hypothesis, files: [{path, content}] }`.
   Its prompt holds the goal and target, the incumbent's editable sources, the

@@ -1,0 +1,32 @@
+[package]
+name = "rsi-ralph-gateway"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Spend-capped OpenAI-compatible loopback proxy to OpenRouter for TinyRSI runs."
+readme = "README.md"
+keywords = ["rsi", "openrouter", "budget", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# `net` binds the loopback listener and `sync` carries the stop signal and
+# the streamed body; the workspace entry supplies the multi-thread runtime.
+tokio = { workspace = true, features = ["net", "sync"] }
+axum = { workspace = true }
+reqwest = { workspace = true }
+futures-util = { workspace = true }
+# Capture and meter write failures are reported, not fatal.
+tracing = { workspace = true }
+
+[dev-dependencies]
+# Ledgers, meters and run directories live in throwaway directories.
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

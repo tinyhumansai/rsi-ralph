@@ -18,10 +18,10 @@
 //! `events.jsonl` lands under `target/rsi-examples/graph_coloring/`.
 //!
 //! The subject, scorer, policy and canned replies are defined once in
-//! `tinyrsi_examples::benchmarks`, which the `benchmarks` runner shares.
+//! `rsi_ralph_examples::benchmarks`, which the `benchmarks` runner shares.
 use std::{error::Error, sync::Arc};
-use tinyrsi::{ModelPort, StopReason};
-use tinyrsi_examples::{
+use rsi_ralph::{ModelPort, StopReason};
+use rsi_ralph_examples::{
     benchmarks::{Benchmark, Models},
     live_or, python, run_location,
 };
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     println!("trace: {}", run.dir.join("events.jsonl").display());
     // Offline, the canned run must reach its goal; CI runs this example.
-    if !tinyrsi_examples::live() && report.reason != StopReason::GoalReached {
+    if !rsi_ralph_examples::live() && report.reason != StopReason::GoalReached {
         return Err(format!(
             "expected the goal to be reached, stopped: {:?}",
             report.reason

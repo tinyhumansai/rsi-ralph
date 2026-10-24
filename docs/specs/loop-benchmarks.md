@@ -47,7 +47,7 @@ binary, so nothing can run them in a matrix.
 | `math_problem` | `pi.py` behind `check_pi.py` | `digits` ↑ | 12 | 4 × 1, 3 | 70% metric + 30% judge |
 | `upgrade_file` | `slug.py` behind `check_standard.py` | `violations` ↓ | 0 | 4 × 1, 3 | 60% metric + 40% judge |
 
-Each is the existing example, unchanged. `tinyrsi_examples::benchmarks`
+Each is the existing example, unchanged. `rsi_ralph_examples::benchmarks`
 holds them as a `Benchmark` enum; the Python fixtures stay where they are and
 are embedded with `include_str!`. The curve-fit fixtures stay in
 `crates/tinyrsi/examples/script_loop/`, which keeps its own self-contained
@@ -63,7 +63,7 @@ benchmark with a judge needs a judge port; omitting it is an error
 ## Command line
 
 ```sh
-cargo run -p tinyrsi-examples --example benchmarks -- \
+cargo run -p rsi-ralph-examples --example benchmarks -- \
   [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR]
 ```
 
@@ -84,7 +84,7 @@ label `offline`. `--models` is ignored with a printed note.
 
 **Live** (`TINYRSI_LIVE_OPENROUTER=1`, `OPENROUTER_API_KEY` set): each run
 builds a fresh `OpenRouterModel` from the model id
-(`tinyrsi_examples::live_model`), used as both supervisor and judge. The
+(`rsi_ralph_examples::live_model`), used as both supervisor and judge. The
 environment is never mutated to select a model.
 
 Runs are independent: each gets fresh model ports, a fresh canned queue and
@@ -187,7 +187,7 @@ runner prints the table on completion.
 
 ## Acceptance criteria
 
-- `cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2` runs 8
+- `cargo run -p rsi-ralph-examples --example benchmarks -- --repeats 2` runs 8
   offline runs, prints a table with goal rate `2/2` for every benchmark, and
   writes `summary.json`, `summary.md` and one run directory per run.
 - Unit tests cover argument parsing errors, record extraction, the

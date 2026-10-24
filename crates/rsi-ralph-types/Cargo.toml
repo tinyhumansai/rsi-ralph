@@ -1,0 +1,22 @@
+[package]
+name = "rsi-ralph-types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Proposal and candidate data shared by the TinyRSI scoring, evolution and loop crates."
+readme = "../../README.md"
+keywords = ["rsi", "self-improvement", "agents", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

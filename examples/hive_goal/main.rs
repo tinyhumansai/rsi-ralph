@@ -51,8 +51,8 @@ mod models;
 
 use std::{collections::BTreeMap, error::Error, path::Path, sync::Arc};
 use tinyhivemind_hives::{Destination, SendMessage};
-use tinyrsi_examples::{live, live_or, run_location};
-use tinyrsi_host::{
+use rsi_ralph_examples::{live, live_or, run_location};
+use rsi_ralph_host::{
     Archive, Budget, ControlledRunnerFactory, CoordinatorEvaluator, CoordinatorHost,
     DeploymentStore, Dossier, DurableRetreatMemory, Epoch, EpochJournal, EvalPolicy,
     GenerationBudget, GenerationMode, HEpoch, JsonlTrace, LoopEvent, MemoryHealth, MemoryLimits,
@@ -413,7 +413,7 @@ fn h_epoch(dossier: &Dossier, evaluator: &CoordinatorEvaluator) -> HEpoch {
             transcript_refs: dossier.transcript_sequences.clone(),
             failure_nodes: nodes,
             budget: Budget { max_tokens: 16_384 },
-            penalty: tinyrsi_host::PenaltyPolicy::default(),
+            penalty: rsi_ralph_host::PenaltyPolicy::default(),
             policy: EvalPolicy::default(),
         },
         policy: hive::policy(),

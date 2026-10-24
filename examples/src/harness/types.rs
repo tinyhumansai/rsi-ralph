@@ -1,7 +1,7 @@
 //! The records and summary the benchmark runner writes.
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tinyrsi::StopReason;
+use rsi_ralph::StopReason;
 
 /// Which cell of the matrix a run belongs to.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,0 +1,25 @@
+[package]
+name = "rsi-ralph-score"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Decides whether a candidate is closer to the goal than the incumbent, from metrics, checkers or judges."
+readme = "../../README.md"
+keywords = ["rsi", "evaluation", "llm-as-judge", "tinyrsi"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+rsi-ralph-types = { workspace = true }
+rsi-ralph-model = { workspace = true }
+rsi-ralph-trace = { workspace = true }
+tinybackrooms = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

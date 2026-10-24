@@ -82,7 +82,7 @@ fn the_math_problem_reaches_its_goal_offline() {
             Benchmark::MathProblem.offline_models(),
         )
         .unwrap();
-    assert_eq!(report.reason, tinyrsi::StopReason::GoalReached);
+    assert_eq!(report.reason, rsi_ralph::StopReason::GoalReached);
     assert_eq!(
         (report.epochs, report.promotions, report.rejected),
         (3, 2, 1)
@@ -105,7 +105,7 @@ fn the_file_upgrade_reaches_its_goal_offline() {
             Benchmark::UpgradeFile.offline_models(),
         )
         .unwrap();
-    assert_eq!(report.reason, tinyrsi::StopReason::GoalReached);
+    assert_eq!(report.reason, rsi_ralph::StopReason::GoalReached);
     assert_eq!(report.incumbent_metric, 0.0);
     assert_eq!((report.promotions, report.rejected), (2, 1));
 }

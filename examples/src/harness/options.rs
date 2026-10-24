@@ -7,7 +7,7 @@
 //! # Example
 //!
 //! ```
-//! use tinyrsi_examples::harness::options::Options;
+//! use rsi_ralph_examples::harness::options::Options;
 //! let options = Options::parse(["--repeats", "3", "--benchmarks", "math_problem"].map(String::from))?;
 //! assert_eq!(options.repeats, 3);
 //! assert_eq!(options.benchmarks.len(), 1);

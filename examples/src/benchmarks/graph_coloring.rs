@@ -2,7 +2,7 @@
 //! few colours as possible. Fixtures live in `examples/graph_coloring/`.
 use super::{Definition, metric};
 use crate::{Replies, proposal, with_approach};
-use tinyrsi::{LoopPolicy, MetricDirection};
+use rsi_ralph::{LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../graph_coloring/check_coloring.py");
 const START: &str = include_str!("../../graph_coloring/coloring.py");

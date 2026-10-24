@@ -1,5 +1,5 @@
 [package]
-name = "tinyrsi-examples"
+name = "rsi-ralph-examples"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ publish = false
 
 [dependencies]
 tinyrsi = { workspace = true }
-tinyrsi-host = { workspace = true }
+rsi-ralph-host = { workspace = true }
 # The benchmark runner's `summary.json` records and rows.
 serde = { workspace = true }
 serde_json = { workspace = true }

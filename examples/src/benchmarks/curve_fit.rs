@@ -7,7 +7,7 @@
 //! harness (invalid) and a damped-sinusoid fit (reaches the target).
 use super::{Definition, metric};
 use crate::{Replies, proposal};
-use tinyrsi::{LoopPolicy, MetricDirection};
+use rsi_ralph::{LoopPolicy, MetricDirection};
 
 const HARNESS: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/curve_fit.py");
 const MODEL: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/model.py");

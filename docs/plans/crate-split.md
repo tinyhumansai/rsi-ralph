@@ -11,7 +11,7 @@ separate commits from moves.
 ## Tasks
 
 1. **Drop the bus and the module.**
-   - Delete `crates/tinyrsi-bus`, `src/tinybus_module/`, the `verify_module`
+   - Delete `crates/rsi-ralph-bus`, `src/tinybus_module/`, the `verify_module`
      and `verify_github_release` examples, `MODULE.md` and the
      `vendor/tinybus` submodule.
    - Delete the `tinybus` and `tinybus-module` workspace dependencies.
@@ -24,19 +24,19 @@ separate commits from moves.
    - Update `AGENTS.md`, `README.md`, `ROADMAP.md`, `docs/architecture.md`,
      `docs/README.md` and the root manifest comments.
    - Mark the `tinybus-module-release` spec and plan superseded.
-2. **`tinyrsi-types` and `tinyrsi-model`.**
+2. **`rsi-ralph-types` and `rsi-ralph-model`.**
    - Move `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`,
      `EvalStage` and `ProposalEvent` with their serde tests.
    - Move `model/` and the script supervisor's `block_on`.
    - Archive replay tests must pass unchanged.
-3. **`tinyrsi-trace`.** Move `trace/`, then add `TracingTrace` (test: a
+3. **`rsi-ralph-trace`.** Move `trace/`, then add `TracingTrace` (test: a
    subscriber captures one event per `LoopEvent`) and `FanoutTrace`. The
    `example.jsonl` byte pins and `apps/rsi-viz` `npm test` stay green.
-   Then add **`tinyrsi-langfuse`**: the `vendor/openhuman` submodule, the
+   Then add **`rsi-ralph-langfuse`**: the `vendor/openhuman` submodule, the
    OpenHuman `[patch]` tables at the root, and `LangfuseTrace` over
    `openhuman_embed::observe::langfuse::LangfuseClient`, tested against a
    loopback HTTP listener.
-4. **`tinyrsi-score`.**
+4. **`rsi-ralph-score`.**
    - Move `evaluation/`, `scoring/` and `experiment/`.
    - Extract `script_loop/score.rs` as `MetricScorer` plus `decide`.
    - Test first: `MetricScorer` monotonicity, `decide` parity with the old
@@ -44,9 +44,9 @@ separate commits from moves.
      malformed reply, the uncalibrated judge never accepting, the eligibility
      gate inside a `Composite`, `BackroomsJudge` with `ScriptedConversant`, and
      `Composite` weights.
-5. **`tinyrsi-verify`.** Move `process/`, `blueprint/` and `verification/`, then
+5. **`rsi-ralph-verify`.** Move `process/`, `blueprint/` and `verification/`, then
    add `VerifierScorer` with pass and fail tests.
-6. **`tinyrsi-evolve`.**
+6. **`rsi-ralph-evolve`.**
    - Move `retreat/`, `retreat_memory/` and `script_loop/supervisor.rs` as
      `ScriptSupervisor`.
    - Add the `Evolver` port with its associated `Proposal` type,
@@ -56,7 +56,7 @@ separate commits from moves.
 7. **Core and host.**
    - Rewire `script_loop` onto `Scorer` and `Evolver`.
    - Move the `host`-gated modules (`host`, `suites`, `epoch_driver`,
-     `evidence_journal`) into `tinyrsi-host` and drop the feature. `memory` and
+     `evidence_journal`) into `rsi-ralph-host` and drop the feature. `memory` and
      `observation` stay in core; the `MemorySnapshot` implementation moves to
      the host crate.
    - Point the host examples and the CI coverage script at the new crate.
@@ -75,11 +75,11 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
-for crate in tinyrsi-types tinyrsi-model tinyrsi-trace tinyrsi-langfuse \
-    tinyrsi-score tinyrsi-verify tinyrsi-evolve tinyrsi tinyrsi-host; do
+for crate in rsi-ralph-types rsi-ralph-model rsi-ralph-trace rsi-ralph-langfuse \
+    rsi-ralph-score rsi-ralph-verify rsi-ralph-evolve tinyrsi rsi-ralph-host; do
   cargo test -p "$crate"
 done
-cargo tree -p tinyrsi-score   # no tinyrsi, no tinyhivemind-hives
+cargo tree -p rsi-ralph-score   # no tinyrsi, no tinyhivemind-hives
 .github/scripts/check-file-coverage.sh
 ```
 

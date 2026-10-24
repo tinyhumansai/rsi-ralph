@@ -7,7 +7,7 @@ write no Rust. The full contract is [`../specs/rsi-cli.md`](../specs/rsi-cli.md)
 this guide walks through [`loops/graph-coloring`](../../loops/graph-coloring).
 
 ```sh
-cargo install --path crates/tinyrsi-cli     # or: cargo run -p tinyrsi-cli --
+cargo install --path crates/rsi-ralph-cli     # or: cargo run -p rsi-ralph-cli --
 export OPENROUTER_API_KEY=...                # or put it in <loop>/.env
 tinyrsi check loops/graph-coloring
 tinyrsi run   loops/graph-coloring           # UI on http://127.0.0.1:8787

@@ -29,29 +29,29 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 # Shared proposal and candidate data. No `version` requirement on purpose: the
 # workspace version moves on every release, and nothing here is published, so
 # the path is the whole address.
-tinyrsi-types = { path = "crates/tinyrsi-types" }
+rsi-ralph-types = { path = "crates/rsi-ralph-types" }
 # The loop library the host runtime builds on.
 tinyrsi = { path = "crates/tinyrsi" }
 # The hive host runtime, which the examples package drives end to end.
-tinyrsi-host = { path = "crates/tinyrsi-host" }
+rsi-ralph-host = { path = "crates/rsi-ralph-host" }
 # Paired comparison, normalized scoring, experiments and the `Scorer` port.
-tinyrsi-score = { path = "crates/tinyrsi-score" }
+rsi-ralph-score = { path = "crates/rsi-ralph-score" }
 # Host checkers, blueprints and the bounded process runner.
-tinyrsi-verify = { path = "crates/tinyrsi-verify" }
+rsi-ralph-verify = { path = "crates/rsi-ralph-verify" }
 # The Evolver port, the script supervisor and tinybackrooms retreat.
-tinyrsi-evolve = { path = "crates/tinyrsi-evolve" }
+rsi-ralph-evolve = { path = "crates/rsi-ralph-evolve" }
 # The loop trace written for the visualizer and mirrored into `tracing`.
-tinyrsi-trace = { path = "crates/tinyrsi-trace" }
+rsi-ralph-trace = { path = "crates/rsi-ralph-trace" }
 # Langfuse export of the loop trace, through OpenHuman's existing client.
-tinyrsi-langfuse = { path = "crates/tinyrsi-langfuse" }
+rsi-ralph-langfuse = { path = "crates/rsi-ralph-langfuse" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
-tinyrsi-model = { path = "crates/tinyrsi-model" }
+rsi-ralph-model = { path = "crates/rsi-ralph-model" }
 # The `tinyrsi` binary that runs file-defined loops.
-tinyrsi-cli = { path = "crates/tinyrsi-cli" }
+rsi-ralph-cli = { path = "crates/rsi-ralph-cli" }
 # The hive of OpenHuman agents that writes candidates in a `tinyrsi` run.
-tinyrsi-swarm = { path = "crates/tinyrsi-swarm" }
+rsi-ralph-swarm = { path = "crates/rsi-ralph-swarm" }
 # The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
-tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
+rsi-ralph-gateway = { path = "crates/rsi-ralph-gateway" }
 # Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
@@ -82,20 +82,20 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 # Tests capture mirrored spans and events with a registry layer.
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
-# `tinyrsi-gateway` serves its OpenAI-compatible loopback surface with axum.
+# `rsi-ralph-gateway` serves its OpenAI-compatible loopback surface with axum.
 # Only HTTP/1 over Tokio with JSON bodies: no forms, queries or HTTP/2.
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
-# `tinyrsi-gateway` forwards admitted calls to OpenRouter. rustls rather than
+# `rsi-ralph-gateway` forwards admitted calls to OpenRouter. rustls rather than
 # native-tls so no system OpenSSL is linked; `stream` passes server-sent
 # events through as they arrive.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
-# `tinyrsi-gateway` drains the upstream event stream and re-wraps it as the
+# `rsi-ralph-gateway` drains the upstream event stream and re-wraps it as the
 # response body (`StreamExt`, `stream::unfold`).
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
 # Scripted OpenAI-compatible model servers in the swarm and CLI tests.
 wiremock = "0.6"
-# Command-line parsing for the `tinyrsi` binary in `crates/tinyrsi-cli`; derive
+# Command-line parsing for the `tinyrsi` binary in `crates/rsi-ralph-cli`; derive
 # only, no colour or terminal-width probing.
 clap = { version = "4", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 
@@ -105,9 +105,9 @@ clap = { version = "4", default-features = false, features = ["std", "derive", "
 # runtime's optional domains.
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse"] }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
-# coordinator, for `tinyrsi-swarm`. It names OpenHuman by git source; the
+# coordinator, for `rsi-ralph-swarm`. It names OpenHuman by git source; the
 # `[patch."https://github.com/tinyhumansai/openhuman"]` table below resolves
-# that onto `vendor/openhuman`, so the swarm and `tinyrsi-langfuse` link one
+# that onto `vendor/openhuman`, so the swarm and `rsi-ralph-langfuse` link one
 # OpenHuman. Its `offline` fixture feature is enabled only by the swarm's tests.
 tinyhivemind-openhuman = { path = "vendor/tinyhivemind/crates/tinyhivemind-openhuman" }
 

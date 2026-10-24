@@ -16,7 +16,7 @@
 //! penalizes.
 use crate::hive;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use tinyrsi_host::{
+use rsi_ralph_host::{
     ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, Operation, Patch, PatchClass,
     Prediction, Proposal,
 };

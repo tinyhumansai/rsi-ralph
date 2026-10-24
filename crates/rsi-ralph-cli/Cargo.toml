@@ -1,0 +1,50 @@
+[package]
+name = "rsi-ralph-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The `tinyrsi` binary: run improvement loops defined as folders of JSON, Markdown and step scripts."
+readme = "README.md"
+keywords = ["rsi", "cli", "tinyrsi"]
+categories = ["command-line-utilities", "development-tools"]
+publish = false
+
+[[bin]]
+name = "tinyrsi"
+path = "src/main.rs"
+# The binary shares its name with the `tinyrsi` library crate; documenting
+# both would write the same `target/doc/tinyrsi/` page. The binary's
+# behaviour is documented in `rsi_ralph_cli::cli`.
+doc = false
+
+[features]
+default = ["web-search"]
+# Web search for seats given a `web_search` key, through OpenHuman's
+# TinySearch module. On by default; turn it off to build without OpenHuman's
+# module loader when no loop uses search.
+web-search = ["rsi-ralph-swarm/web-search"]
+
+[dependencies]
+rsi-ralph-gateway = { workspace = true }
+rsi-ralph-model = { workspace = true }
+rsi-ralph-score = { workspace = true }
+rsi-ralph-swarm = { workspace = true }
+rsi-ralph-trace = { workspace = true }
+rsi-ralph-verify = { workspace = true }
+tinybackrooms = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,7 +1,7 @@
 # Verified decomposition implementation plan
 
 Contract: [verified decomposition](../rsi/specs/verified-decomposition.md).
-Related: [P3 issue #5](https://github.com/tinyhumansai/tinyrsi/issues/5).
+Related: [P3 issue #5](https://github.com/tinyhumansai/rsi-ralph/issues/5).
 
 This plan closes the missing P3 integration around the existing verifier and
 completion machinery. Do not duplicate tinyhivemind's generic completion gate
@@ -16,7 +16,7 @@ the remaining host and evaluation integrations.
 
 ## Assumptions and boundaries
 
-- Work in `crates/tinyrsi-verify` and `crates/tinyrsi-host`; do not edit vendored
+- Work in `crates/rsi-ralph-verify` and `crates/rsi-ralph-host`; do not edit vendored
   tinyhivemind. Integrate its typed immutable declaration after upstream #122
   lands, and raise any required language addition on the upstream issue.
 - Preserve current public evidence redaction and the existing coordinator
@@ -32,11 +32,11 @@ the remaining host and evaluation integrations.
 ### 1. Pin host verifier declarations to upstream typed goal identities
 
 1. Add failing integration tests in
-   `crates/tinyrsi-host/src/suites/test_private.rs` showing that two tasks with
+   `crates/rsi-ralph-host/src/suites/test_private.rs` showing that two tasks with
    different immutable goal-verifier identities cannot share a suite
    fingerprint, and that candidate package patches cannot alter the declaration.
 2. After tinyhivemind #122 lands, consume its typed record in
-   `crates/tinyrsi-host/src/suites/` and bind the stable declaration identity
+   `crates/rsi-ralph-host/src/suites/` and bind the stable declaration identity
    into `fingerprint.rs`. Reject missing, changed or mismatched identities.
 3. Add serialization and restart tests for the frozen declaration and ensure
    replay validation recomputes its identity.
@@ -46,7 +46,7 @@ the remaining host and evaluation integrations.
 
 ### 2. Add a pinned isolated code-suite fixture
 
-1. Add failing tests under `crates/tinyrsi-host/src/suites/` proving each run
+1. Add failing tests under `crates/rsi-ralph-host/src/suites/` proving each run
    receives a fresh workspace, only the declared candidate artifact is staged,
    and checker output or files from an earlier run cannot influence the result.
 2. Implement the smallest host suite adapter using the existing
@@ -75,12 +75,12 @@ the remaining host and evaluation integrations.
 
 ### 4. Expand independent proof validation
 
-1. Add failing identity tests in `crates/tinyrsi-host/src/suites/test_private.rs`
+1. Add failing identity tests in `crates/rsi-ralph-host/src/suites/test_private.rs`
    proving each private Lean task binds its exact statement, checker, toolchain
    and stage, and that altered values invalidate the frozen suite.
 2. Add a separately curated, held-out finite Lean slice and validate reference
    proofs with the genuine pinned Lake executable via the
-   `crates/tinyrsi-host/examples/verify_lean_slice/` path. Keep its task source
+   `crates/rsi-ralph-host/examples/verify_lean_slice/` path. Keep its task source
    and expected evidence private.
 3. Test wrong toolchain, changed theorem/checker identity, failed build and
    forbidden kernel axioms. Public receipts must contain only safe identities,
@@ -91,7 +91,7 @@ the remaining host and evaluation integrations.
 ### 5. Prove scoring checkpoints and restart safety end to end
 
 1. Add failing coordinator integration tests under
-   `crates/tinyrsi-host/src/suites/test.rs` for both hive and single-agent
+   `crates/rsi-ralph-host/src/suites/test.rs` for both hive and single-agent
    evaluation: candidate-authored nodes cannot change required checkpoints,
    denominator or per-node credit.
 2. Add or extend `test_journal.rs` cases to persist a checker pass, reopen the

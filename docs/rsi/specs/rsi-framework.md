@@ -1,7 +1,7 @@
 # TinyRSI hive orchestration
 
-Related: [umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1),
-[scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2).
+Related: [umbrella #1](https://github.com/tinyhumansai/rsi-ralph/issues/1),
+[scoring #2](https://github.com/tinyhumansai/rsi-ralph/issues/2).
 
 ## Improvement object
 

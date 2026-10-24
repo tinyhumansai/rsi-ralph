@@ -6,7 +6,7 @@
 ## Context
 
 The workspace started from a template whose shape was a TinyBus module: a
-payload contract crate (`tinyrsi-bus`) and a module crate built as a `cdylib`
+payload contract crate (`rsi-ralph-bus`) and a module crate built as a `cdylib`
 and released for 16 platforms. The improvement loop then grew inside the module
 crate until it held about 16k lines. The bus surface is a two-method lineage
 ledger, and no host consumes it. The loop is used as a Rust library.
@@ -27,11 +27,11 @@ other through a handful of shared data types. The phases are:
   submodule and the module release packaging.
 - Split the library into crates along the loop's phases, as the
   [crate-split specification](../specs/crate-split.md) describes:
-  - `tinyrsi-types`, `tinyrsi-model` and `tinyrsi-trace` (shared foundations);
-  - `tinyrsi-score` and `tinyrsi-verify` (scoring);
-  - `tinyrsi-evolve` (evolution);
+  - `rsi-ralph-types`, `rsi-ralph-model` and `rsi-ralph-trace` (shared foundations);
+  - `rsi-ralph-score` and `rsi-ralph-verify` (scoring);
+  - `rsi-ralph-evolve` (evolution);
   - `tinyrsi` (the loops);
-  - `tinyrsi-host` (the hive runtime, replacing the `host` feature).
+  - `rsi-ralph-host` (the hive runtime, replacing the `host` feature).
 - Scoring and evolution are synchronous traits (`Scorer`, `Evolver`) that the
   loop calls. A scorer produces qualities. The existing `compare` and
   `compare_h` remain the only decision rules.
@@ -45,7 +45,7 @@ other through a handful of shared data types. The phases are:
 - The bus items (`INTERFACE`, `METHODS`, `OBJECT_PATH`, `CONTRACT_VERSION`,
   `is_compatible`, the `Lineage*` request and response types) and the `host`
   feature are removed. Items that needed the `host` feature move to
-  `tinyrsi_host::` paths. This is a breaking change and needs a minor bump.
+  `rsi_ralph_host::` paths. This is a breaking change and needs a minor bump.
 - Releases no longer ship native module archives. A release is a tagged source
   version.
 - There are more manifests to maintain, and a change that spans phases touches

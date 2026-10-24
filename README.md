@@ -16,7 +16,7 @@ language `Record` and `Package` values, prepared snapshots, declarations, paired
 runs, recomputed comparisons, explicit decisions and final outcomes. Selection
 and live deployment remain separate durable facts.
 
-The `tinyrsi-host` crate supplies `CoordinatorHost` over real tinyhivemind
+The `rsi-ralph-host` crate supplies `CoordinatorHost` over real tinyhivemind
 storage, including SQLite, and `DeploymentStore` for activation, compensation,
 restart and parent rollback. `SnapshotMemoryStore` provides immutable local
 memory images. `VerifiedRunner` settles work only through immutable host checks;
@@ -28,14 +28,14 @@ prevents completed generation/evaluation from repeating after restart.
 observed checker evidence, then atomically consumes them into a redacted epoch
 receipt. Duplicate callbacks and repeated epoch reads do not recount work after
 restart; interrupted calls with missing usage remain explicitly unknown. Run
-`cargo run -p tinyrsi-host --example observe_epochs` for the offline
+`cargo run -p rsi-ralph-host --example observe_epochs` for the offline
 two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
 
 `EpochJournal::proposal_dataset` links typed formatter occurrences and committed
 predictions to selection-only labels, preserving missing and censored outcomes.
 Optional probabilities are frozen before evaluation; Brier, tied-rank Spearman
 and precision-at-k report their denominators without using confirmation or anchor
-measurements. See the [dataset contract](crates/tinyrsi-host/src/epoch_driver/dataset/README.md)
+measurements. See the [dataset contract](crates/rsi-ralph-host/src/epoch_driver/dataset/README.md)
 and the `proposal_metrics` example for reporting an existing private host run.
 
 The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
@@ -59,16 +59,16 @@ and [the experiment protocol](docs/specs/ignition.md).
 Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 crates/
-├── tinyrsi-types/      # proposal and candidate data shared by every crate
-├── tinyrsi-model/      # bounded, metered model calls
-├── tinyrsi-trace/      # live loop trace for rsi-viz and `tracing` subscribers
-├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
-├── tinyrsi-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
-├── tinyrsi-score/      # Scorer port, LLM/backrooms judges, decide, statistics
-├── tinyrsi-verify/     # host checkers, blueprints, pinned Lean, process runner
-├── tinyrsi-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
-├── tinyrsi-host/       # hive runtime: coordinators, suites, durable epochs, deployment
-├── tinyrsi-swarm/      # a hive package run as OpenHuman agents editing candidates
+├── rsi-ralph-types/      # proposal and candidate data shared by every crate
+├── rsi-ralph-model/      # bounded, metered model calls
+├── rsi-ralph-trace/      # live loop trace for rsi-viz and `tracing` subscribers
+├── rsi-ralph-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── rsi-ralph-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
+├── rsi-ralph-score/      # Scorer port, LLM/backrooms judges, decide, statistics
+├── rsi-ralph-verify/     # host checkers, blueprints, pinned Lean, process runner
+├── rsi-ralph-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
+├── rsi-ralph-host/       # hive runtime: coordinators, suites, durable epochs, deployment
+├── rsi-ralph-swarm/      # a hive package run as OpenHuman agents editing candidates
 └── tinyrsi/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
@@ -131,7 +131,7 @@ runs under `target/` and follows a loop's `events.jsonl` live: current stage,
 metric by epoch, proposals with their decisions, and the incumbent lineage.
 `cd apps/rsi-viz && npm ci && npm run dev`.
 
-To see the same runs in Langfuse, add a `tinyrsi_langfuse::LangfuseTrace` to the
+To see the same runs in Langfuse, add a `rsi_ralph_langfuse::LangfuseTrace` to the
 loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It sends
 OTLP spans through OpenHuman's own Langfuse client and reads the same
 `LANGFUSE_*` variables; see `.env.example`.
@@ -162,7 +162,7 @@ controlled path below exercises normalized confirmation, approval and deployment
 
 ```sh
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi-host --example complete_openrouter
+  cargo run -p rsi-ralph-host --example complete_openrouter
 ```
 
 It requires inherited `OPENROUTER_API_KEY` and an actual stock Lean executable.
@@ -182,7 +182,7 @@ what is better) on four problems, offline by default:
 - `graph_coloring`: colour random graphs with as few colours as possible.
 - `hive_goal`: improve a hive of agents until they solve private tasks.
 
-Run `cargo run -p tinyrsi-examples --example math_problem` (or
+Run `cargo run -p rsi-ralph-examples --example math_problem` (or
 `upgrade_file`, `graph_coloring`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
 `RSI_RUN_ROOT=../../target/rsi-examples`.
 
@@ -213,7 +213,7 @@ context repair outside the preregistered comparison:
 TINYRSI_LIVE_OPENROUTER=1 TINYRSI_CONTROLLED_ONLY=1 \
   TINYRSI_COMPLETE_DIR=target/rsi-controlled-live \
   TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p tinyrsi-host --example complete_openrouter
+  cargo run -p rsi-ralph-host --example complete_openrouter
 ```
 
 It checks all three normalized evaluation stages, both sandbox gate decisions,

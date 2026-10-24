@@ -18,7 +18,7 @@ TinyRSI; only the benchmark belongs to the user.
 
 ## Goals and non-goals
 
-- Goal: a `tinyrsi` binary (crate `tinyrsi-cli`) that runs a loop defined as a
+- Goal: a `tinyrsi` binary (crate `rsi-ralph-cli`) that runs a loop defined as a
   folder of JSON and Markdown plus small step scripts in any language.
 - Goal: the agents that write candidates are always a tinyhivemind hive,
   declared in the hive language inside the loop folder.
@@ -138,7 +138,7 @@ one of:
 **`score.decide`.** `on` names the deciding `run` scorer. `test` is:
 
 - `seeds`: every `run` scorer runs once per seed in `seeds` (at least two
-  distinct) and the paired `tinyrsi_score::decide` decides on the deciding
+  distinct) and the paired `rsi_ralph_score::decide` decides on the deciding
   scorer's per-seed scores, with `direction` (`maximize` default, or
   `minimize`), `margin` (in quality units, 0–1) and `target`. Judge grades are
   mixed into the per-seed qualities by weight; the incumbent counts as a

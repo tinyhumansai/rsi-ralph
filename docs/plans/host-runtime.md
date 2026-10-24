@@ -44,7 +44,7 @@ Hosts supply sandboxing and immutable process checker workspaces.
 
 ## 4. Evaluate private draws and install a concrete runner
 
-Source: `crates/tinyrsi-host/src/suites/{types,fingerprint,runner,mod,factory}.rs`.
+Source: `crates/rsi-ralph-host/src/suites/{types,fingerprint,runner,mod,factory}.rs`.
 Tests: `suites/test.rs`, `suites/test_private.rs`.
 
 `PrivateSuites::freeze` fingerprints four disjoint stages without secret Debug
@@ -62,7 +62,7 @@ capabilities. Deployment/evaluation use the same conservative scheduler cap map.
 
 ## 5. Make activation and observation durable
 
-Source: `crates/tinyrsi-host/src/host/{mod,types,runtime}.rs`.
+Source: `crates/rsi-ralph-host/src/host/{mod,types,runtime}.rs`.
 Tests: `host/test.rs`, `host/test_runtime.rs`, `host/test_store.rs`.
 
 `DeploymentStore` records selected/deployed separation and intent before mutation.
@@ -80,7 +80,7 @@ preserve deployment and do not consume observations.
 
 ## 6. Run durable Engine epochs and retain all attempts
 
-Source: `crates/tinyrsi-host/src/epoch_driver/{generation,journal,mod,types}.rs`,
+Source: `crates/rsi-ralph-host/src/epoch_driver/{generation,journal,mod,types}.rs`,
 `retreat_memory/` and `model/`.
 
 `prepare_retreat_epoch` validates persisted observations, freezes normalized
@@ -106,7 +106,7 @@ checks exact provenance, complete attempt ledgers, paired anchors and independen
 trial bootstrap. Full, MemoryOff and RetreatOff are explicit interventions.
 Missing/invalid evidence prevents positive claims; scripted runs are ProtocolOnly.
 
-`crates/tinyrsi-host/examples/complete_openrouter.rs` with `examples/complete/`
+`crates/rsi-ralph-host/examples/complete_openrouter.rs` with `examples/complete/`
 executes the worked retreat followed by 24 bounded live assignments; the separate
 controlled path validates accepted deployment. The [measured report](../rsi/complete-live.md)
 retains the inconclusive comparison. No result from this bounded harness is

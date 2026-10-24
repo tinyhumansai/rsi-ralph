@@ -1,8 +1,8 @@
 # Recorded scoring example
 
-This is issue [#2](https://github.com/tinyhumansai/tinyrsi/issues/2)'s worked
+This is issue [#2](https://github.com/tinyhumansai/rsi-ralph/issues/2)'s worked
 example, using the completed post-review OpenRouter run from merged
-[PR #10](https://github.com/tinyhumansai/tinyrsi/pull/10).
+[PR #10](https://github.com/tinyhumansai/rsi-ralph/pull/10).
 No new provider run, inferred proposal labels or synthetic task results are used.
 The [scoring specification](specs/scoring.md) defines the intended system;
 the [acceptance map](scoring-acceptance.md) identifies implementation limits.

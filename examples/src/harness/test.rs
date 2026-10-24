@@ -2,7 +2,7 @@
 //! `summary.json` shape.
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
-use tinyrsi::{
+use rsi_ralph::{
     CandidateDecision, IncumbentEntry, IntervalUnits, LedgerCandidate, MetricDirection, MetricSpec,
     ScriptLedger,
 };

@@ -2,7 +2,7 @@
 //! changing behavior. Fixtures live in `examples/upgrade_file/`.
 use super::{Definition, metric};
 use crate::{Grader, Replies, proposal, with_approach};
-use tinyrsi::{Goal, LoopPolicy, MetricDirection};
+use rsi_ralph::{Goal, LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../upgrade_file/check_standard.py");
 const START: &str = include_str!("../../upgrade_file/slug.py");

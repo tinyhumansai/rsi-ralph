@@ -3,7 +3,7 @@
 This page follows a single epoch through the live example and lists every file
 it leaves behind. Read [architecture.md](../architecture.md) for the overview
 and the [glossary](../glossary.md) for terms. Source paths are relative to
-`crates/tinyrsi-host/` (the example and the host runtime), or to
+`crates/rsi-ralph-host/` (the example and the host runtime), or to
 `crates/tinyrsi/` for the loop library's modules.
 
 The traced path is `examples/complete_openrouter.rs`, function `worked`, plus
@@ -19,7 +19,7 @@ TINYRSI_LIVE_OPENROUTER=1 \
 OPENROUTER_API_KEY=... \
 TINYRSI_LEAN=/path/to/lean \
 TINYRSI_COMPLETE_DIR=target/rsi-complete-live \
-cargo run -p tinyrsi-host --example complete_openrouter
+cargo run -p rsi-ralph-host --example complete_openrouter
 ```
 
 Without `TINYRSI_LIVE_OPENROUTER=1` the example prints a hint and exits. It
@@ -69,7 +69,7 @@ from `fixtures::policy` and the evaluator's three suite fingerprints.
 `EpochJournal::open("<root>/worked-epoch.json")`, then calls
 `prepare_retreat_epoch` in `GenerationMode::Retreat` with a 3,000,000-token
 generation cap and `select_top_k = 25`. Inside
-(`crates/tinyrsi-host/src/epoch_driver/generation.rs`):
+(`crates/rsi-ralph-host/src/epoch_driver/generation.rs`):
 
 1. The input is fingerprinted. If the journal already has this epoch with the
    same fingerprint and model, the stored proposals are returned with no
@@ -123,16 +123,16 @@ snapshot.
 | File under `<root>` | Writer | JSON shape | Lock and temp file |
 | --- | --- | --- | --- |
 | `worked-archive.json`, `approved-archive.json`, `trial-NN/archive.json` | `Archive` (`src/archive/`) | `{"version": 1 or 2, "events": [{"event": "candidate" \| "prepared" \| "activation" \| "proposal" \| "declaration" \| "evaluation" \| "normalized_declaration" \| "normalized_evaluation" \| "normalized_approval", ...}]}`; version 2 once any normalized event exists | `<file>.lock` created with `create_new` and deleted on drop (see caveat); temp `<file>.pending` |
-| `deployment.json`, `activation.json` | `DeploymentStore` (`crates/tinyrsi-host/src/host/mod.rs`) | `{"version": 1, "checkpoint": {"epoch", "observations": {"<epoch>": Observation}, "transcript_cursor", "settled_episodes", "deployed_id", "pending": DeploymentIntent \| null}}` | `fs2` exclusive lock on `<file>.lock`, non-blocking (`ArchiveLocked` if held); temp `<file>.next`, removed on open |
-| `worked-epoch.json`, `trial-NN/epoch.json` | `EpochJournal` (`crates/tinyrsi-host/src/epoch_driver/journal.rs`) | `{"version": 1, "entries": {"<epoch>": {"incumbent_id", "fingerprint", "prepared": PreparedRetreatEpoch, "meter", "invalid_items", "evaluating", "outcome": RetreatEpochOutcome, ...}}}` | `fs2` exclusive lock on `<stem>.epoch-lock` (extension replaced, e.g. `worked-epoch.epoch-lock`), non-blocking; random `tempfile` name |
-| `worked-epoch.json.generation-<epoch>.json` | receipt store (`crates/tinyrsi-host/src/epoch_driver/receipts.rs`) | `GenerationAudit`: `{"version": 1, "epoch", "fingerprint", "mode", "calls": [{"id", "status", "items": [disposition]}]}`; no prompts or bodies | written under the journal's lock; random `tempfile` name; copy together with the journal |
-| `retreat-memory.json`, `trial-NN/retreat-memory.json` | `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`) | `{"version", "namespace", "discovery": [text], "outcomes": [{"epoch", "candidate_id", "status"}]}` | `fs2` exclusive lock on `retreat-memory.lock` (extension replaced), non-blocking; random `tempfile` name |
+| `deployment.json`, `activation.json` | `DeploymentStore` (`crates/rsi-ralph-host/src/host/mod.rs`) | `{"version": 1, "checkpoint": {"epoch", "observations": {"<epoch>": Observation}, "transcript_cursor", "settled_episodes", "deployed_id", "pending": DeploymentIntent \| null}}` | `fs2` exclusive lock on `<file>.lock`, non-blocking (`ArchiveLocked` if held); temp `<file>.next`, removed on open |
+| `worked-epoch.json`, `trial-NN/epoch.json` | `EpochJournal` (`crates/rsi-ralph-host/src/epoch_driver/journal.rs`) | `{"version": 1, "entries": {"<epoch>": {"incumbent_id", "fingerprint", "prepared": PreparedRetreatEpoch, "meter", "invalid_items", "evaluating", "outcome": RetreatEpochOutcome, ...}}}` | `fs2` exclusive lock on `<stem>.epoch-lock` (extension replaced, e.g. `worked-epoch.epoch-lock`), non-blocking; random `tempfile` name |
+| `worked-epoch.json.generation-<epoch>.json` | receipt store (`crates/rsi-ralph-host/src/epoch_driver/receipts.rs`) | `GenerationAudit`: `{"version": 1, "epoch", "fingerprint", "mode", "calls": [{"id", "status", "items": [disposition]}]}`; no prompts or bodies | written under the journal's lock; random `tempfile` name; copy together with the journal |
+| `retreat-memory.json`, `trial-NN/retreat-memory.json` | `DurableRetreatMemory` (`crates/rsi-ralph-evolve/src/retreat_memory/`) | `{"version", "namespace", "discovery": [text], "outcomes": [{"epoch", "candidate_id", "status"}]}` | `fs2` exclusive lock on `retreat-memory.lock` (extension replaced), non-blocking; random `tempfile` name |
 | `hive-memory.json`, `trial-NN/hive-memory.json` | `SnapshotMemoryStore` (`src/memory/`) | `{"version": 1, "images": {key: {"namespace", "watermark", "entries"}}, "active": {identity: watermark}, "namespaces": {identity: namespace}}` | `fs2` lock on `<file>.lock` taken per transaction: shared for reads, exclusive for writes, **blocking**; random `tempfile` name |
 | `hives.sqlite`, `activation.sqlite` | upstream `SqliteStorage` via `CoordinatorHost` | SQLite coordinator state and transcripts | SQLite's own locking; a newly built coordinator fences older handles |
 | `preregistration.json`, `configuration-provenance.json`, `worked-report.json`, `controlled-report.json`, `experiment-report.json` | the example itself (`std::fs::write`) | pretty JSON reports | no lock, not atomic; written once |
 | `verifiers/` | `fixtures::suites` | checker workspace for Lean and process checks | host-owned; must not change during a run |
 
-`EvidenceJournal` (`crates/tinyrsi-host/src/evidence_journal/`) is not used by this example; the
+`EvidenceJournal` (`crates/rsi-ralph-host/src/evidence_journal/`) is not used by this example; the
 offline `observe_epochs` example uses it at `target/rsi-observe-epochs/evidence.json`.
 Its file is `{"version", "next_turn", "turns", "epochs", "consumed", "cursor",
 "settled"}`, guarded by an `fs2` exclusive lock on `<file>.lock` and written
@@ -164,7 +164,7 @@ through `<file>.next` like `DeploymentStore`.
 
 ## Reading the evidence afterwards
 
-- `cargo run -p tinyrsi-host --example proposal_metrics -- <journal> <archive> <epoch> <k>`
+- `cargo run -p rsi-ralph-host --example proposal_metrics -- <journal> <archive> <epoch> <k>`
   projects a quiescent journal and archive into a selection-only report with
   precision at `k`. It opens both files, so stop the host first.
 - `Archive::open` replays and validates the whole history, so opening an

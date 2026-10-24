@@ -14,22 +14,22 @@ Builds on the [script loop](script-loop.md) and the [loop trace](loop-trace.md).
 
 Each task starts with a failing test beside the code it changes.
 
-1. **Temperature on the model path** (`crates/tinyrsi-model/src/model/`).
+1. **Temperature on the model path** (`crates/rsi-ralph-model/src/model/`).
    Test that `ModelRequest` defaults to `0.0`, that `with_temperature` accepts
    `0` and `2` and refuses `-0.1`, `2.1`, `NaN` and infinity with
    `InvalidRequest`, and that `OpenRouterModel::body` sends the request's
    temperature. Add the field, the builder and the accessor; update the
    module README.
-2. **Proposal fields** (`crates/tinyrsi-evolve/src/script/`). Pin the serde
+2. **Proposal fields** (`crates/rsi-ralph-evolve/src/script/`). Pin the serde
    shape of `ScriptProposal` with `approach` and `differs_from_previous`, and
    decode a reply without either. Test `approach_label()` (blank, collapsed
    whitespace, 60-character cut). Require `approach` in the tool schema with
    `maxLength: 60`. Add `ScriptBrief::temperature` and test that the
    supervisor's request carries it, and carries `0.0` when unset. Mention the
    label and the resubmission rule in the system prompt.
-3. **Trace field** (`crates/tinyrsi-trace/src/trace/`). Pin `ideated` with and
+3. **Trace field** (`crates/rsi-ralph-trace/src/trace/`). Pin `ideated` with and
    without `approach`; the spec's example lines stay byte-identical. Add
-   `approach: None` to the hive trace in `tinyrsi-host`.
+   `approach: None` to the hive trace in `rsi-ralph-host`.
 4. **Policy and ledger types** (`crates/tinyrsi/src/script_loop/types.rs`).
    Add `SlotDirective`, `LoopPolicy::{slots, approach_context}` with the
    default directives, and the three optional `LedgerCandidate` fields with
@@ -45,7 +45,7 @@ Each task starts with a failing test beside the code it changes.
    fields and emits `approach` on `ideated`. End-to-end test: slot 1's prompt
    names slot 0's approach and decision; the requested temperature reaches the
    model; the ledger and trace carry the approach.
-7. **Examples.** `tinyrsi_examples::with_approach` adds a label to a canned
+7. **Examples.** `rsi_ralph_examples::with_approach` adds a label to a canned
    reply; every canned reply in `math_problem`, `upgrade_file`,
    `graph_coloring` and `crates/tinyrsi/examples/script_loop` names its
    approach. Each still reaches its goal.
@@ -66,7 +66,7 @@ cargo +1.99 build --all-targets --all-features
 cargo +1.99 test --all-features
 RUSTDOCFLAGS="-D warnings" cargo +1.99 doc --no-deps --all-features
 cargo +1.99 run -p tinyrsi --example script_loop
-cargo +1.99 run -p tinyrsi-examples --example math_problem   # and upgrade_file, graph_coloring, hive_goal
+cargo +1.99 run -p rsi-ralph-examples --example math_problem   # and upgrade_file, graph_coloring, hive_goal
 (cd apps/rsi-viz && npm ci && npm run lint && npm run typecheck && npm test && npm run build)
 ```
 
