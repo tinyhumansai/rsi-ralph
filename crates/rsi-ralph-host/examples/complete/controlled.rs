@@ -1,11 +1,11 @@
 //! Separate bounded validation of a model-authored repair and real deployment.
 use super::{driver, fixtures};
-use std::{collections::BTreeMap, path::Path, sync::Arc};
 use rsi_ralph_host::{
     Archive, Budget, ControlledRunnerFactory, CoordinatorEvaluator, CoordinatorHost,
     DeploymentStore, GenerationMode, HostVerifier, ModelPort, ModelRequest, PrivateTask, Proposal,
     ReasonCode, SnapshotMemoryStore, normalized_retreat_request, run_proposal_h,
 };
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 pub(super) fn run(
     root: &Path,
@@ -74,7 +74,9 @@ pub(super) fn run(
     );
     Ok(())
 }
-fn constrained_schema(dossier: &rsi_ralph_host::Dossier) -> rsi_ralph_host::Result<serde_json::Value> {
+fn constrained_schema(
+    dossier: &rsi_ralph_host::Dossier,
+) -> rsi_ralph_host::Result<serde_json::Value> {
     let mut schema = normalized_retreat_request(
         "controlled",
         dossier,

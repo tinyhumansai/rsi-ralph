@@ -3,11 +3,11 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use crate::{Assessment, Error, Scorer};
+use rsi_ralph_model::{ModelFuture, ModelPort, ModelReply, ModelRequest};
 use serde_json::json;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use tinybackrooms::ScriptedConversant;
-use rsi_ralph_model::{ModelFuture, ModelPort, ModelReply, ModelRequest};
 
 const SEEDS: [u64; 2] = [3, 4];
 
@@ -295,7 +295,8 @@ fn every_backrooms_rating_sends_a_distinct_model_request() {
     let rating = || Ok(json!({"goal_fit": 4}).to_string());
     let port = Scripted::with((0..4).map(|_| rating()).collect());
     let conversant =
-        rsi_ralph_model::ModelConversant::new(port.clone(), 7, 1 << 20, 1 << 16, 256, 1000).unwrap();
+        rsi_ralph_model::ModelConversant::new(port.clone(), 7, 1 << 20, 1 << 16, 256, 1000)
+            .unwrap();
     let judge = BackroomsJudge::new(Arc::new(conversant), 2).unwrap();
     judge.assess("s", &goal(), &SEEDS).unwrap();
     let requests: std::collections::BTreeSet<(String, u64)> = port

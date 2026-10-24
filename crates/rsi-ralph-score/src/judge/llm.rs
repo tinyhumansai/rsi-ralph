@@ -1,10 +1,10 @@
 //! A judge over a bounded model port.
 use super::{gate, prompt};
 use crate::{Assessment, Error, JudgeCalibration, Result, Scorer};
-use serde_json::{Value, json};
-use std::sync::Arc;
 use rsi_ralph_model::{ModelPort, ModelRequest, block_on};
 use rsi_ralph_types::Goal;
+use serde_json::{Value, json};
+use std::sync::Arc;
 
 /// Name of the forced grading tool.
 const TOOL: &str = "grade";

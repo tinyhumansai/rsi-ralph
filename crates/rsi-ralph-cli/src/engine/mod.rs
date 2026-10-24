@@ -17,9 +17,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use sha2::{Digest, Sha256};
 use rsi_ralph_score::ScoreDecision;
 use rsi_ralph_trace::{JsonlTrace, LoopEvent, MonotonicClock, RunGoal, StopReason, TraceSink};
+use sha2::{Digest, Sha256};
 
 use crate::{
     Error, Result,

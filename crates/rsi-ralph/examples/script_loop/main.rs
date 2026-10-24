@@ -4,6 +4,11 @@
 //! rewrites and one path-escape attempt, so the loop runs without a network or
 //! credentials. With `TINYRSI_LIVE_OPENROUTER=1` and `OPENROUTER_API_KEY` set,
 //! an `OpenRouter` model supervises instead. See this directory's `README.md`.
+use rsi_ralph::{
+    JsonlTrace, LoopPolicy, MetricDirection, MetricSpec, ModelFuture, ModelPort, ModelReply,
+    ModelRequest, MonotonicClock, OpenRouterModel, RunLocation, ScriptCommand, ScriptSubject,
+    ScriptSupervisor, SupervisorLimits, run_script_loop,
+};
 use std::{
     collections::VecDeque,
     error::Error,
@@ -11,11 +16,6 @@ use std::{
     process::Command,
     sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
-};
-use rsi_ralph::{
-    JsonlTrace, LoopPolicy, MetricDirection, MetricSpec, ModelFuture, ModelPort, ModelReply,
-    ModelRequest, MonotonicClock, OpenRouterModel, RunLocation, ScriptCommand, ScriptSubject,
-    ScriptSupervisor, SupervisorLimits, run_script_loop,
 };
 
 const HARNESS: &str = include_str!("curve_fit.py");

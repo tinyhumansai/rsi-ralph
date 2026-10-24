@@ -67,11 +67,11 @@ pub use experiment::*;
 pub use judge::{BackroomsJudge, JudgeLimits, LlmJudge};
 pub use metric::MetricScorer;
 pub use port::{Assessment, Decision, MetricEvidence, Scorer, decide, dominates};
+pub use rsi_ralph_trace::{MetricDirection, ScoreDecision};
+pub use rsi_ralph_types::Goal;
 pub use scoring::{
     AnchorLedger, AnchorSignal, FamilyAnchor, ScoreComparison, ScoreEstimate, ScoreHealth,
     ScorePenalties, ScoringPolicy, ScoringPolicySpec, compare_h, geometric_family_mean, score,
 };
 pub use scripted::ScriptedScorer;
 pub use sign::{SignTest, sign_test, sign_test_p};
-pub use rsi_ralph_trace::{MetricDirection, ScoreDecision};
-pub use rsi_ralph_types::Goal;

@@ -2,17 +2,17 @@
 //!
 //! Run `cargo run -p rsi-ralph-host --example observe_epochs`.
 //! Artifacts remain in `target/rsi-observe-epochs`; a completed run can reopen.
+use rsi_ralph_host::{
+    ActivationBackend, Budget, ControlledRunnerFactory, CoordinatorHost, Error, EvidenceJournal,
+    HostVerifier, MemoryHealth, ModelFuture, ModelPort, ModelReply, ModelRequest, Package,
+    PrivateTask, Result, SnapshotMemoryStore,
+};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
     sync::Arc,
 };
 use tinyhivemind_hives::{Destination, SendMessage};
-use rsi_ralph_host::{
-    ActivationBackend, Budget, ControlledRunnerFactory, CoordinatorHost, Error, EvidenceJournal,
-    HostVerifier, MemoryHealth, ModelFuture, ModelPort, ModelReply, ModelRequest, Package,
-    PrivateTask, Result, SnapshotMemoryStore,
-};
 
 struct OfflineProvider;
 impl ModelPort for OfflineProvider {

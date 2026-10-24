@@ -19,10 +19,10 @@ pub mod options;
 pub mod runner;
 mod types;
 
+use rsi_ralph::{CandidateDecision, LedgerCandidate, ScriptLedger, StopReason};
 use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::PathBuf;
-use rsi_ralph::{CandidateDecision, LedgerCandidate, ScriptLedger, StopReason};
 pub use types::{RunCell, RunRecord, Summary, SummaryRow};
 
 /// `model` with every character outside `[A-Za-z0-9._-]` replaced by `_`,

@@ -167,7 +167,8 @@ pub fn parse(files: &BTreeMap<String, String>) -> Result<Loop> {
 
 /// Whether the gateway will allow `model`: built in, or priced in `budget`.
 fn priced(budget: &Budget, model: &str) -> bool {
-    budget.prices.contains_key(model) || rsi_ralph_gateway::PriceTable::standard().get(model).is_ok()
+    budget.prices.contains_key(model)
+        || rsi_ralph_gateway::PriceTable::standard().get(model).is_ok()
 }
 
 fn file<'a>(files: &'a BTreeMap<String, String>, path: &str) -> Result<&'a String> {

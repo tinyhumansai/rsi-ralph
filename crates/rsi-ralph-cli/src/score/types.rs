@@ -2,9 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
 use rsi_ralph_score::{ScoreDecision, SignTest};
 use rsi_ralph_trace::IntervalUnits;
+use serde::{Deserialize, Serialize};
 
 use crate::step::ScoreResult;
 

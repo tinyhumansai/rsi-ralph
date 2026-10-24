@@ -1,10 +1,10 @@
 //! Freeze exact private task identities and expose only observed build dispositions.
 mod types;
-use std::collections::{BTreeMap, BTreeSet};
 use rsi_ralph_host::{
     ArtifactSubmission, CommandSpec, HostVerifier, PrivateSuites, PrivateTask, VerificationBinding,
     VerifierDeclaration, VerifierRegistry,
 };
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Validate the stable core-only slice without exposing parse payloads.
 fn decode(bytes: &[u8]) -> Result<types::Slice, Box<dyn std::error::Error>> {

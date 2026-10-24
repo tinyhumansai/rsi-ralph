@@ -12,11 +12,11 @@ use std::{
     sync::Arc,
 };
 
+use rsi_ralph_gateway::Gateway;
+use rsi_ralph_model::{ModelConversant, OpenRouterModel, block_on};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tinybackrooms::{Conversant, Engine, GenerateRequest};
-use rsi_ralph_gateway::Gateway;
-use rsi_ralph_model::{ModelConversant, OpenRouterModel, block_on};
 
 use crate::{
     Error, Result,

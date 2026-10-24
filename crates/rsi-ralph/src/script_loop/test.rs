@@ -3,13 +3,13 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic test fixtures")]
 use super::{prompt::*, score::*, *};
 use crate::{MetricDirection, ModelFuture, ModelPort, ModelReply, ModelRequest};
+use rsi_ralph_evolve::{ScriptSupervisor, SupervisorLimits};
 use std::{
     collections::VecDeque,
     fmt::Write as _,
     path::Path,
     sync::{Arc, Mutex},
 };
-use rsi_ralph_evolve::{ScriptSupervisor, SupervisorLimits};
 
 /// A model port that replays canned tool-call arguments, then fails.
 pub(super) struct Scripted {

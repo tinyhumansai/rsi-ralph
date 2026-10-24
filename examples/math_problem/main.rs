@@ -18,12 +18,12 @@
 //!
 //! The subject, scorer, policy and canned replies are defined once in
 //! `rsi_ralph_examples::benchmarks`, which the `benchmarks` runner shares.
-use std::{error::Error, sync::Arc};
 use rsi_ralph::{ModelPort, StopReason};
 use rsi_ralph_examples::{
     benchmarks::{Benchmark, Models},
     live_or, python, run_location,
 };
+use std::{error::Error, sync::Arc};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let benchmark = Benchmark::MathProblem;

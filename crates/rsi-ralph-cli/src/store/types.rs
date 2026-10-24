@@ -1,7 +1,7 @@
 //! `run.json`, the per-run status record. Field names are the stored form.
 
-use serde::{Deserialize, Serialize};
 use rsi_ralph_trace::StopReason;
+use serde::{Deserialize, Serialize};
 
 /// Lifecycle of a run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

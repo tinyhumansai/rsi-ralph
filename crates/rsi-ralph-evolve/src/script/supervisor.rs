@@ -3,10 +3,10 @@
 use super::{ScriptBrief, ScriptProposal, SupervisorLimits};
 use crate::{Error, Result};
 use crate::{EvolveContext, Evolver, Proposed};
-use serde_json::{Value, json};
-use std::{path::PathBuf, sync::Arc};
 use rsi_ralph_model::{ModelPort, ModelRequest, block_on};
 use rsi_ralph_types::Goal;
+use serde_json::{Value, json};
+use std::{path::PathBuf, sync::Arc};
 
 /// Name of the forced native tool.
 pub(crate) const TOOL: &str = "propose_script";

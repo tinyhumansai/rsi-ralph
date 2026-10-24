@@ -7,8 +7,8 @@
 //! specified in `docs/specs/hypothesis-ledger.md`.
 use super::{CandidateDecision, LedgerCandidate, ScriptLedger};
 use crate::MetricDirection;
-use std::fmt::Write as _;
 use rsi_ralph_score::MetricScorer;
+use std::fmt::Write as _;
 
 /// Longest verdict, in characters, shown for an approach.
 pub(super) const VERDICT_CHARS: usize = 160;

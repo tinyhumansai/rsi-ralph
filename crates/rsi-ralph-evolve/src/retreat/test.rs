@@ -1,9 +1,9 @@
 //! Wire contract, privacy and strict proposal decoding.
 #![expect(clippy::unwrap_used, reason = "assert test setup and outcomes")]
 use super::*;
+use rsi_ralph_types::{Operation, Patch, PatchClass, Prediction};
 use serde::Serialize;
 use std::collections::BTreeMap;
-use rsi_ralph_types::{Operation, Patch, PatchClass, Prediction};
 
 /// A dossier shaped like the core crate's: an epoch, references and the
 /// per-seat usage map whose keys redaction must cover.

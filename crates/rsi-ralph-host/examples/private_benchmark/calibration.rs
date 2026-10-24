@@ -1,10 +1,10 @@
 //! Observe exact-answer checker labels without exporting private sample artifacts.
 use super::types::Bank;
-use std::collections::{BTreeMap, BTreeSet};
 use rsi_ralph_host::{
     ArtifactSubmission, Error, HostVerifier, Result, VerificationBinding, VerifierDeclaration,
     VerifierRegistry,
 };
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Require two actual checker observations per task: correct and off-by-one.
 ///

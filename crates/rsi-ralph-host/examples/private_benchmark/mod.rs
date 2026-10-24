@@ -1,8 +1,8 @@
 //! Bind private numeric tasks to immutable golden checkers without exporting oracles.
 mod calibration;
 mod types;
-use std::collections::{BTreeMap, BTreeSet};
 use rsi_ralph_host::{Error, HostVerifier, PrivateSuites, PrivateTask, Result};
+use std::collections::{BTreeMap, BTreeSet};
 
 const FAMILIES: [&str; 4] = ["assignment", "euclid", "harshad", "idempotents"];
 const STAGES: [&str; 4] = ["anchor", "confirmation", "screen", "selection"];

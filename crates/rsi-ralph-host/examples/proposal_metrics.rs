@@ -1,6 +1,6 @@
 //! Project a quiescent private journal/archive into a safe selection-only report.
-use std::{env, error::Error};
 use rsi_ralph_host::{Archive, EpochJournal};
+use std::{env, error::Error};
 /// Reads persisted host evidence; no provider call or evaluation is repeated.
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = env::args().skip(1).collect();

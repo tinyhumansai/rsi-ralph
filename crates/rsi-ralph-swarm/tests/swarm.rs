@@ -12,11 +12,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use serde_json::{Value, json};
 use rsi_ralph_swarm::{
     EVENTS_FILE, HIVE_DB, StopReason, SwarmEvent, SwarmRequest, ToolPhase, editing_seats,
     load_package, run_swarm,
 };
+use serde_json::{Value, json};
 use wiremock::matchers::{method, path_regex};
 use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 

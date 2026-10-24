@@ -54,6 +54,7 @@ impl fmt::Display for PatchShape {
             tinyhivemind_lang::patch::PatchClass::Topology => "topology",
             tinyhivemind_lang::patch::PatchClass::Policy => "policy",
             tinyhivemind_lang::patch::PatchClass::Goal => "goal",
+            tinyhivemind_lang::patch::PatchClass::Integration => "integration",
         };
         write!(f, "{class}:")?;
         for (index, (tag, target)) in self.targets.iter().enumerate() {

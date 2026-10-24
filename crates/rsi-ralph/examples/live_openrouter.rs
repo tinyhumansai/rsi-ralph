@@ -2,18 +2,18 @@
 //! confirmation, human-gate rejection, persistence and restart.
 //!
 //! This deliberately weak baseline proves wiring, not general RSI performance.
+use rsi_ralph::tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
+use rsi_ralph::{
+    ApprovalGate, Archive, Budget, CandidateState, Comparison, Epoch, EvalPair, EvalPolicy,
+    EvalRun, EvalStage, Evaluator, Operation, Package, Patch, PatchClass, Proposal, ReasonCode,
+    Result, run_proposal,
+};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
     io::Write,
     path::PathBuf,
     process::{Command, Stdio},
-};
-use rsi_ralph::tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
-use rsi_ralph::{
-    ApprovalGate, Archive, Budget, CandidateState, Comparison, Epoch, EvalPair, EvalPolicy,
-    EvalRun, EvalStage, Evaluator, Operation, Package, Patch, PatchClass, Proposal, ReasonCode,
-    Result, run_proposal,
 };
 
 fn completion(

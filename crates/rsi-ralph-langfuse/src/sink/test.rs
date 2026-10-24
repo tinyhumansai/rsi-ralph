@@ -4,9 +4,9 @@
 use super::spans::SpanBuilder;
 use super::*;
 use openhuman_embed::observe::langfuse::{SpanKind, SpanStatus};
+use rsi_ralph_trace::{IntervalUnits, MetricDirection, RunGoal, ScoreDecision, StopReason};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use rsi_ralph_trace::{IntervalUnits, MetricDirection, RunGoal, ScoreDecision, StopReason};
 
 fn run(reason: StopReason) -> Vec<LoopEvent> {
     vec![

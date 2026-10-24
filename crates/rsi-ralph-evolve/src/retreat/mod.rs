@@ -7,9 +7,9 @@ mod evolver;
 mod types;
 use crate::{Error, Result};
 pub use evolver::{RetreatBrief, RetreatEvolver};
+use rsi_ralph_types::{Package, Proposal, ProposalEvent};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use rsi_ralph_types::{Package, Proposal, ProposalEvent};
 pub use types::{PriorIdea, PriorOutcome, RetreatDossier, RetreatOutput, RetreatTransport};
 
 impl PriorOutcome {

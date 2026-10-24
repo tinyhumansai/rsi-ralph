@@ -22,8 +22,8 @@ pub use backrooms::BackroomsJudge;
 #[cfg(test)]
 use llm::rater_seed;
 pub use llm::{JudgeLimits, LlmJudge};
-use std::fmt::Write as _;
 use rsi_ralph_types::Goal;
+use std::fmt::Write as _;
 
 /// The user message every judge reads: goal, criteria, then the subject.
 fn prompt(goal: &Goal, subject: &str) -> String {

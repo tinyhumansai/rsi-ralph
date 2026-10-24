@@ -8,9 +8,9 @@
 //! reports the improvement in the metric's own units.
 use crate::port::orientation;
 use crate::{Assessment, Error, MetricEvidence, Result, Scorer};
-use std::f64::consts::PI;
 use rsi_ralph_trace::MetricDirection;
 use rsi_ralph_types::Goal;
+use std::f64::consts::PI;
 
 /// Scores per-seed metric values; the subject is the slice of values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

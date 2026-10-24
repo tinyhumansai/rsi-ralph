@@ -114,13 +114,13 @@ pub use archive::NormalizedApprovalEvent;
 pub use archive::NormalizedDeclarationEvent;
 
 // The plain-script improvement loop and the append-only trace it emits.
-pub use script_loop::{
-    CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
-    RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
-    SlotDirective, parse_metric, run_script_loop, run_script_loop_with,
-};
 pub use rsi_ralph_trace::{
     Clock, Error as TraceError, FanoutTrace, IntervalUnits, JsonlTrace, LoopEvent, ManualClock,
     MetricDirection, MonotonicClock, NullTrace, RunGoal, ScoreDecision, StopReason, TraceRecord,
     TraceSink, TracingTrace, VecTrace,
+};
+pub use script_loop::{
+    CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
+    RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
+    SlotDirective, parse_metric, run_script_loop, run_script_loop_with,
 };

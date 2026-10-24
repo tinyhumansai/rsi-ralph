@@ -3,10 +3,10 @@
 use super::supervisor::{TOOL, schema};
 use super::*;
 use crate::{EvolveContext, Evolver};
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
 use rsi_ralph_model::{ModelFuture, ModelPort, ModelReply, ModelRequest};
 use rsi_ralph_types::Goal;
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
 /// Replays canned tool arguments, then fails; records prompts and seeds.
 struct Scripted {

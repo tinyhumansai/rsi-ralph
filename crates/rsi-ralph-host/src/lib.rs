@@ -45,8 +45,8 @@ mod suites;
 pub use epoch_driver::*;
 pub use evidence_journal::{EvidenceEpoch, EvidenceJournal, RecordedTurn, RecordedTurnStatus};
 pub use host::*;
-pub use suites::*;
 pub use rsi_ralph::*;
+pub use suites::*;
 
 /// A snapshot store restores the pinned memory images a deployment records.
 impl MemorySnapshot for SnapshotMemoryStore {

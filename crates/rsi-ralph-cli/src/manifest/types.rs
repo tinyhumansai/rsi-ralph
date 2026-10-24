@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
 use rsi_ralph_score::MetricDirection;
+use serde::{Deserialize, Serialize};
 
 /// The only accepted `$schema`.
 pub const SCHEMA: &str = "https://tinyhumans.ai/schemas/rsi/v1";

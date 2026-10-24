@@ -1,8 +1,8 @@
 //! Host transport boundary and counted decoding results.
 use crate::Result;
+use rsi_ralph_types::Proposal;
 use serde::Serialize;
 use serde_json::Value;
-use rsi_ralph_types::Proposal;
 
 /// The public failure evidence retreat reads: any serializable dossier that
 /// knows its epoch. The `rsi-ralph` crate implements it for its `Dossier`; the

@@ -21,13 +21,13 @@
 //! assert_eq!(replies.remaining(), 1);
 //! ```
 
+use rsi_ralph::{ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, RunLocation};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use rsi_ralph::{ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, RunLocation};
 
 pub mod benchmarks;
 pub mod harness;

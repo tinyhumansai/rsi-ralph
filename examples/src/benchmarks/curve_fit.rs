@@ -12,7 +12,8 @@ use rsi_ralph::{LoopPolicy, MetricDirection};
 const HARNESS: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/curve_fit.py");
 const MODEL: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/model.py");
 const BRIEF: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/brief.txt");
-const CUBIC: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/cubic.py");
+const CUBIC: &str =
+    include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/cubic.py");
 const CONSTANT: &str =
     include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/constant.py");
 const DAMPED: &str =

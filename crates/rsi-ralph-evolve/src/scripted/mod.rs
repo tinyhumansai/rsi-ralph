@@ -1,9 +1,9 @@
 //! An evolver that replays canned proposals, for tests and offline examples.
 use crate::{Error, EvolveContext, Evolver, Proposed, Result};
+use rsi_ralph_types::Goal;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::sync::Mutex;
-use rsi_ralph_types::Goal;
 
 /// Replays queued [`Proposed`] batches in order, then fails.
 ///

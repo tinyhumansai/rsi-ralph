@@ -2,8 +2,8 @@
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::*;
 use crate::{manifest, subject::copy_tree};
-use std::fs;
 use rsi_ralph_gateway::{CallMark, Refusal, UpstreamCalls};
+use std::fs;
 
 /// What a seat writes in an epoch, as `path:content`, or nothing.
 type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;

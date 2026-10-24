@@ -22,14 +22,14 @@ pub use execute::parse_metric;
 #[cfg(test)]
 use execute::{DIAG_CHARS, DIAG_LINES, parse_diagnostics};
 use execute::{Sources, apply, content_id, materialize, read_sources, run_seed, validate_subject};
+use rsi_ralph_evolve::{EvolveContext, Evolver, ScriptBrief, ScriptProposal};
+use rsi_ralph_score::{Assessment, MetricScorer, Scorer, decide, dominates};
+use rsi_ralph_types::Goal;
 use std::{
     fs::File,
     io::Write,
     path::{Path, PathBuf},
 };
-use rsi_ralph_evolve::{EvolveContext, Evolver, ScriptBrief, ScriptProposal};
-use rsi_ralph_score::{Assessment, MetricScorer, Scorer, decide, dominates};
-use rsi_ralph_types::Goal;
 pub use types::*;
 
 /// Runs the loop to a stop reason and returns its summary.

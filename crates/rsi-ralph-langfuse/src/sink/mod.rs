@@ -24,10 +24,10 @@ mod spans;
 
 use crate::{Error, Result};
 use openhuman_embed::observe::langfuse::{ExportBrand, LangfuseClient, otlp_requests};
+use rsi_ralph_trace::{LoopEvent, TraceSink};
 use serde_json::Value;
 use spans::SpanBuilder;
 use std::sync::mpsc;
-use rsi_ralph_trace::{LoopEvent, TraceSink};
 
 /// One OTLP request for the worker, and where to report how many of its
 /// spans Langfuse rejected.

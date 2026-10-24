@@ -460,7 +460,9 @@ pub fn apply_at(class: PatchClass) -> ApplyAt {
         PatchClass::Context | PatchClass::Memory => ApplyAt::NextTurn,
         PatchClass::Prompt => ApplyAt::ReplaceAgent,
         PatchClass::Roster => ApplyAt::ManageRoster,
-        PatchClass::Topology | PatchClass::Policy | PatchClass::Goal => ApplyAt::BetweenSessions,
+        PatchClass::Topology | PatchClass::Policy | PatchClass::Goal | PatchClass::Integration => {
+            ApplyAt::BetweenSessions
+        }
     }
 }
 #[cfg(test)]

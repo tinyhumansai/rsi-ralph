@@ -10,8 +10,8 @@ use std::{
 };
 
 use clap::Parser;
-use serde_json::{Value, json};
 use rsi_ralph_cli::cli::{Cli, execute, exit_code};
+use serde_json::{Value, json};
 use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate, matchers::method};
 
 const KEY: &str = "sk-or-fixture-key-0000";

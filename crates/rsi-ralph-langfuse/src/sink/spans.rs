@@ -8,9 +8,9 @@
 //! as output (including the final incumbent metric) and hands the finished
 //! spans over for export.
 use openhuman_embed::observe::langfuse::{SpanKind, SpanStatus, TraceSpan};
+use rsi_ralph_trace::{LoopEvent, StopReason};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use rsi_ralph_trace::{LoopEvent, StopReason};
 
 /// Milliseconds since the Unix epoch, or zero for a clock set before it.
 pub(super) fn now_ms() -> u64 {

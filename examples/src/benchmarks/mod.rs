@@ -23,13 +23,13 @@ mod math_problem;
 mod upgrade_file;
 
 use crate::{Grader, Replies};
-use std::{error::Error, path::Path, sync::Arc};
 use rsi_ralph::{
     Composite, JsonlTrace, JudgeLimits, LlmJudge, LoopPolicy, LoopReport, MetricDirection,
     MetricScorer, MetricSpec, ModelPort, MonotonicClock, Projected, RunLocation, Scorer,
     ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, SupervisorLimits,
     run_script_loop_with,
 };
+use std::{error::Error, path::Path, sync::Arc};
 
 /// One script-loop benchmark: a subject, its goal and its offline stand-ins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

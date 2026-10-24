@@ -1,12 +1,5 @@
 //! Actual observed epochs and model-driven experiment assignments.
 use super::fixtures;
-use sha2::Digest;
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-use tinyhivemind_hives::{Destination, SendMessage};
 use rsi_ralph_host::{
     Archive, AttemptEvidence, AttemptStatus, Budget, BudgetedModel, CandidateState,
     ControlledRunnerFactory, CoordinatorEvaluator, CoordinatorHost, DeploymentStore, Dossier,
@@ -18,6 +11,13 @@ use rsi_ralph_host::{
     TraceSink, TrialEvidence, TrialRequest, VerifierOutcome, evaluate_retreat_epoch,
     prepare_retreat_epoch, record_epoch, run_experiment,
 };
+use sha2::Digest;
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+use tinyhivemind_hives::{Destination, SendMessage};
 pub(super) const ORIGINAL: &str = "Repair the shared context so the solver can solve assigned tasks. Propose a typed context patch with normalized_h prediction and public dossier references.";
 pub(super) const EVOLVED: &str = "Repair only context/method.md stable item method. Replace the instruction to return UNKNOWN with a short general instruction to solve each task and emit exactly its requested artifact, no markdown. Use operation=context,path=context/method.md,item=method,before exactly the public item body including trailing newline,after ending newline. Class=context. Never change manifests, evaluators or private tasks. Ground transcript_refs and prediction.nodes in the public dossier. Predict metric=normalized_h and minimum_gain=0.1. Prefer one atomic operation.";
 // Identical public prior history is installed before every arm. Memory-off

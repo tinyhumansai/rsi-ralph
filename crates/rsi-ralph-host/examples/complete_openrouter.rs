@@ -5,8 +5,6 @@ mod controlled;
 mod driver;
 #[path = "complete/fixtures.rs"]
 mod fixtures;
-use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 use rsi_ralph_host::{
     Archive, Budget, BudgetedModel, CoordinatorEvaluator, DurableRetreatMemory, EpochJournal,
     EvidenceSource, ExperimentProtocol, ExperimentProtocolSpec, GenerationMode, JsonlTrace,
@@ -14,6 +12,8 @@ use rsi_ralph_host::{
     RetreatEpochInput, RunGoal, SnapshotMemoryStore, SuiteFingerprints, TraceSink, TrialSeeds,
     evaluate_retreat_epoch, prepare_retreat_epoch,
 };
+use sha2::{Digest, Sha256};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 fn fingerprint(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }

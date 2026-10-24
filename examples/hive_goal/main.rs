@@ -49,8 +49,6 @@
 mod hive;
 mod models;
 
-use std::{collections::BTreeMap, error::Error, path::Path, sync::Arc};
-use tinyhivemind_hives::{Destination, SendMessage};
 use rsi_ralph_examples::{live, live_or, run_location};
 use rsi_ralph_host::{
     Archive, Budget, ControlledRunnerFactory, CoordinatorEvaluator, CoordinatorHost,
@@ -60,6 +58,8 @@ use rsi_ralph_host::{
     RetreatEpochInput, RunGoal, SnapshotMemoryStore, StopReason, TraceSink, VerifierOutcome,
     evaluate_retreat_epoch, prepare_retreat_epoch, record_epoch,
 };
+use std::{collections::BTreeMap, error::Error, path::Path, sync::Arc};
+use tinyhivemind_hives::{Destination, SendMessage};
 
 /// Epochs before the run gives up; offline needs two.
 const MAX_EPOCHS: u64 = 3;

@@ -1,6 +1,8 @@
 //! Candidate materialization, bounded per-seed execution and metric parsing.
 use super::{ScriptSubject, SeedRun};
 use crate::{Error, Result};
+use rsi_ralph_evolve::{ScriptProposal, is_plain_relative};
+use rsi_ralph_verify::process::{self, Exit, ProcessSpec};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -8,8 +10,6 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
-use rsi_ralph_evolve::{ScriptProposal, is_plain_relative};
-use rsi_ralph_verify::process::{self, Exit, ProcessSpec};
 
 /// Editable file contents keyed by workspace-relative path.
 pub(super) type Sources = BTreeMap<PathBuf, String>;

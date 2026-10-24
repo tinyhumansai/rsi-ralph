@@ -1,11 +1,11 @@
 //! The tinybackrooms consensual-assessment judge, aimed at a goal.
 use super::{gate, prompt};
 use crate::{Assessment, Error, JudgeCalibration, Result, Scorer};
+use rsi_ralph_model::block_on;
+use rsi_ralph_types::Goal;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tinybackrooms::{Conversant, Message, Seat, StructuredRequest};
-use rsi_ralph_model::block_on;
-use rsi_ralph_types::Goal;
 
 /// Name of the forced rating tool.
 const TOOL: &str = "rate_subject";

@@ -437,7 +437,12 @@ fn each_patch_class_has_a_concrete_host_activation_boundary() {
     assert_eq!(apply_at(PatchClass::Memory), ApplyAt::NextTurn);
     assert_eq!(apply_at(PatchClass::Prompt), ApplyAt::ReplaceAgent);
     assert_eq!(apply_at(PatchClass::Roster), ApplyAt::ManageRoster);
-    for class in [PatchClass::Topology, PatchClass::Policy, PatchClass::Goal] {
+    for class in [
+        PatchClass::Topology,
+        PatchClass::Policy,
+        PatchClass::Goal,
+        PatchClass::Integration,
+    ] {
         assert_eq!(apply_at(class), ApplyAt::BetweenSessions);
     }
 }

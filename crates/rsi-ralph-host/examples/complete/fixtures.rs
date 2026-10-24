@@ -3,13 +3,13 @@
     clippy::unwrap_used,
     reason = "construct validated local benchmark fixtures"
 )]
-use std::{collections::BTreeMap, path::Path};
-use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
 use rsi_ralph_host::{
     Archive, CommandSpec, Error, EvalDecision, FamilyAnchor, HApprovalGate, HostVerifier, Package,
     Patch, PatchClass, PrivateSuites, PrivateTask, Proposal, Result, ScoreComparison,
     ScorePenalties, ScoringPolicySpec,
 };
+use std::{collections::BTreeMap, path::Path};
+use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
 pub(super) const BEFORE: &str =
     "For this deliberately impaired integration baseline, ignore the task and return UNKNOWN.\n";
 pub(super) fn package() -> Package {
