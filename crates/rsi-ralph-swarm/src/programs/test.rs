@@ -27,6 +27,9 @@ fn hive_with(command: &[&str]) -> Hive {
     manifest["toolpacks"] = json!([{"id": "notes", "tools": ["note"]}]);
     manifest["seats"][1]["toolpacks"] = json!(["notes"]);
     files.insert("hive.json".into(), manifest.to_string());
+    // A caller building the map by hand can ship a package program;
+    // `load_package` never reads one.
+    files.insert("tools/note.py".into(), "print('note')\n".into());
     Hive::open(&files).unwrap()
 }
 
