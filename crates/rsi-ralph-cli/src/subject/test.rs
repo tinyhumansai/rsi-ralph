@@ -232,3 +232,33 @@ fn verify_finds_missing_folders_repositories_and_branches() {
         .is_err()
     );
 }
+
+
+#[test]
+fn a_lean_build_folder_is_neither_copied_nor_a_change() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("loop/subject");
+    write(&source.join("lean/Main.lean"), "theorem t : True := trivial\n");
+    write(&source.join("lean/.lake/build/Main.olean"), "junk");
+    let spec = SubjectSpec {
+        kind: SubjectKind::Dir,
+        path: "subject".into(),
+        branch: None,
+        editable: vec!["lean/Main.lean".into()],
+        frozen: vec![],
+        require_test_change: false,
+    };
+    let subject = Subject::from_spec(&spec, &root.path().join("loop"));
+    let run = root.path().join("run");
+    let incumbent = subject.incumbent(&run).unwrap();
+    assert!(!incumbent.path.join("lean/.lake").exists());
+    let cand = subject
+        .candidate(&incumbent, "c1", "unused", &run.join("epoch-1/c1"))
+        .unwrap();
+    // A check in the candidate builds into `.lake`; that is not an edit.
+    write(&cand.path.join("lean/.lake/build/Main.olean"), "built");
+    assert_eq!(
+        subject.changes(&incumbent, &cand).unwrap(),
+        Vec::<String>::new()
+    );
+}
