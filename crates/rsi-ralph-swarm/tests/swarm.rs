@@ -21,7 +21,7 @@ use wiremock::matchers::{method, path_regex};
 use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 
 const MODEL_KEY: &str = "sk-fixture-model-key-1234";
-/// OpenHuman runs one harness per process, so the runs in this file take turns.
+/// `OpenHuman` runs one harness per process, so the runs in this file take turns.
 static ONE_SWARM_AT_A_TIME: Mutex<()> = Mutex::new(());
 
 fn one_swarm_at_a_time() -> MutexGuard<'static, ()> {
@@ -319,8 +319,8 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
 #[cfg(feature = "web-search")]
 #[test]
 fn a_search_key_reaches_only_its_seat_and_no_run_file() {
-    let _turn = one_swarm_at_a_time();
     const SEARCH_KEY: &str = "AIza-fixture-search-key-5678";
+    let _turn = one_swarm_at_a_time();
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
     let server = server_runtime.block_on(model(Duration::ZERO));
     let dirs = dirs();
