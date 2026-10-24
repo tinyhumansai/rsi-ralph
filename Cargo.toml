@@ -172,6 +172,12 @@ tinytools-agent = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed" }
 openhuman = { path = "vendor/openhuman/crates/openhuman-core" }
 
+[patch."https://github.com/tinyhumansai/tinyflows"]
+# tinyhivemind-openhuman names the tinyflows scheduler by git rev. Redirect it to
+# the copy OpenHuman vendors so the graph holds one `tinyflows-bus` and the
+# `Schedule` the adapter validates is the one OpenHuman's cron domain uses.
+tinyflows-schedule = { path = "vendor/openhuman/vendor/tinyflows/crates/tinyflows-schedule" }
+
 [patch."https://github.com/tinyhumansai/tinymemory"]
 # tinyhivemind-openhuman's hive memory names the memory contract by git rev.
 # Redirect it to the copy OpenHuman vendors — the one its memory domain links —
