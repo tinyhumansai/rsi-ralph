@@ -295,11 +295,15 @@ fn model_binding_and_executor_boundaries_fail_without_panicking() {
             .with_model_name("chosen".into())
             .unwrap();
     let mut candidate = state();
-    candidate.manifest.models.push(tinyhivemind_lang::Model {
-        id: "chosen".into(),
-        name: "chosen".into(),
-        ..Default::default()
-    });
+    candidate
+        .package
+        .manifest
+        .models
+        .push(tinyhivemind_lang::Model {
+            id: "chosen".into(),
+            name: "chosen".into(),
+            ..Default::default()
+        });
     candidate.package.manifest.seats[0].model = Some("chosen".into());
     assert!(
         evaluator
