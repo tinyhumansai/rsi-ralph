@@ -49,7 +49,11 @@ fn implementer(hive: &Hive) -> &crate::package::SeatPlan {
 fn a_seat_lists_the_programs_its_toolpack_gives_it() {
     let hive = hive_with(&["sh", "-c", "cat > note.json"]);
     assert_eq!(names(implementer(&hive)).collect::<Vec<_>>(), ["note"]);
-    let lead = hive.seats.iter().find(|plan| plan.seat.id == "lead").unwrap();
+    let lead = hive
+        .seats
+        .iter()
+        .find(|plan| plan.seat.id == "lead")
+        .unwrap();
     assert_eq!(names(lead).count(), 0);
 }
 
