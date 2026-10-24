@@ -233,12 +233,14 @@ fn verify_finds_missing_folders_repositories_and_branches() {
     );
 }
 
-
 #[test]
 fn a_lean_build_folder_is_neither_copied_nor_a_change() {
     let root = tempfile::tempdir().unwrap();
     let source = root.path().join("loop/subject");
-    write(&source.join("lean/Main.lean"), "theorem t : True := trivial\n");
+    write(
+        &source.join("lean/Main.lean"),
+        "theorem t : True := trivial\n",
+    );
     write(&source.join("lean/.lake/build/Main.olean"), "junk");
     let spec = SubjectSpec {
         kind: SubjectKind::Dir,
