@@ -31,6 +31,9 @@ thiserror = { workspace = true }
 tinyhivemind-hives = { workspace = true, features = ["sqlite"] }
 # Parse, validate and lower the hive package.
 tinyhivemind-lang = { workspace = true }
+# Runs a seat's executable tools (`hive.json` `tools`) as native tools of
+# its turns: `ProgramTool`, and `EnvSecrets` for their `env` references.
+tinyhivemind-exec = { workspace = true }
 # Attaches the permanent `hivemind_*` tools to each seat and runs its turns.
 tinyhivemind-openhuman = { workspace = true }
 # The swarm's own runtime; `sync` carries tool-call progress out of turns.

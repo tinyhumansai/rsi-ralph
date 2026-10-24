@@ -9,7 +9,7 @@ use super::SwarmRequest;
 use crate::event::SeatInfo;
 use crate::package::SeatPlan;
 use crate::prompt::{PromptParts, system_prompt};
-use crate::tools;
+use crate::{programs, tools};
 
 /// The permanent tools `tinyhivemind-openhuman` attaches to every seat. A
 /// seat with an explicit allow list must keep them, or it cannot talk.
@@ -30,6 +30,20 @@ pub(crate) const HIVEMIND_TOOLS: [&str; 9] = [
 /// the peer it waits for is never scheduled.
 pub(crate) const DENIED_TOOLS: [&str; 2] = ["wait", "wait_loop"];
 
+/// Where `plan`'s seat works: its candidate checkout when it edits one, the
+/// incumbent otherwise.
+pub(crate) fn action_dir<'a>(plan: &SeatPlan, request: &'a SwarmRequest) -> &'a Path {
+    if plan.editing {
+        // `check` guarantees every editing seat has a candidate.
+        request
+            .candidates
+            .get(&plan.seat.id)
+            .map_or(request.incumbent.as_path(), |path| path.as_path())
+    } else {
+        request.incumbent.as_path()
+    }
+}
+
 /// A seat's agent specification and its announcement.
 pub(crate) fn spec(
     plan: &SeatPlan,
@@ -37,15 +51,7 @@ pub(crate) fn spec(
     context: &BTreeMap<String, String>,
 ) -> (AgentSpec, SeatInfo) {
     let seat = &plan.seat;
-    let action_dir: &Path = if plan.editing {
-        // `check` guarantees every editing seat has a candidate.
-        request
-            .candidates
-            .get(&seat.id)
-            .map_or(request.incumbent.as_path(), |path| path.as_path())
-    } else {
-        request.incumbent.as_path()
-    };
+    let action_dir = action_dir(plan, request);
     let keys = tools::for_seat(&request.tools, &seat.id);
     let prompt = system_prompt(&PromptParts {
         seat: &seat.prompt,
@@ -60,6 +66,7 @@ pub(crate) fn spec(
         let mut allow = seat.integration.tools.allow.clone();
         allow.extend(HIVEMIND_TOOLS.iter().map(|tool| (*tool).to_owned()));
         allow.extend(tools::tool_names(&keys));
+        allow.extend(programs::names(plan));
         allow.sort();
         allow.dedup();
         definition = definition.tools(ToolScopeSpec::Named(allow));

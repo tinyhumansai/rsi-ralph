@@ -39,6 +39,15 @@ pub enum Error {
     /// A package seat uses an identifier the swarm reserves for itself.
     #[error("seat id {0} is reserved by the swarm")]
     ReservedSeat(String),
+    /// A seat's executable tool runs a package file (`tools/…`), which the
+    /// swarm cannot run: it is handed the package's text, not its directory.
+    #[error("seat {seat} declares tool {tool}, whose program is a package file")]
+    PackageProgram {
+        /// The seat declaring it.
+        seat: String,
+        /// The tool's id.
+        tool: String,
+    },
     /// A tool key is scoped to a seat the package does not declare.
     #[error("tool key for {capability} names unknown seat {seat}")]
     UnknownToolSeat {
