@@ -56,15 +56,15 @@ pub(crate) fn spec(
         context,
     });
     let mut definition = AgentDefinitionSpec::new().system_prompt(prompt);
-    if !seat.tools.allow.is_empty() {
-        let mut allow = seat.tools.allow.clone();
+    if !seat.integration.tools.allow.is_empty() {
+        let mut allow = seat.integration.tools.allow.clone();
         allow.extend(HIVEMIND_TOOLS.iter().map(|tool| (*tool).to_owned()));
         allow.extend(tools::tool_names(&keys));
         allow.sort();
         allow.dedup();
         definition = definition.tools(ToolScopeSpec::Named(allow));
     }
-    let mut deny = seat.tools.deny.clone();
+    let mut deny = seat.integration.tools.deny.clone();
     deny.extend(DENIED_TOOLS.iter().map(|tool| (*tool).to_owned()));
     deny.sort();
     deny.dedup();
