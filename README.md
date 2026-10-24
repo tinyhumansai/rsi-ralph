@@ -1,3 +1,5 @@
+![Ralph](https://github.com/tinyhumansai/rsi-ralph/blob/main/docs/ralph.jpeg?raw=true)
+
 # RSI Ralph
 
 RSI Ralph runs recursive Ralph loops over a hive. An OpenHuman agent edits the
