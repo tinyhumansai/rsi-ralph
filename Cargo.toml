@@ -102,7 +102,9 @@ clap = { version = "4", default-features = false, features = ["std", "derive", "
 # OpenHuman's embedding facade, used only for its `observe::langfuse` client so
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
 # Default features off: only the `langfuse` export is needed, not the agent
-# runtime's optional domains.
+# runtime's optional domains. `channels` is on because OpenHuman's agent bus
+# imports `channels::run_channel_turn` without gating it, so a build without the
+# feature does not compile.
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse", "channels"] }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
 # coordinator, for `rsi-ralph-swarm`. It names OpenHuman by git source; the
