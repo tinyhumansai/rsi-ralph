@@ -5,7 +5,8 @@ in this repository. `CLAUDE.md` is a symlink to this file, so every agent reads
 the same instructions.
 
 RSI Ralph is a host-driven improvement loop for tinyhivemind hives and plain
-scripts, shipped as a Rust library. Start with
+scripts, shipped as a Rust library. It runs recursive Ralph loops: OpenHuman
+re-edits a hive's language files until a goal is properly met. Start with
 [`docs/architecture.md`](docs/architecture.md) for the shape of one epoch and
 [`docs/glossary.md`](docs/glossary.md) for the vocabulary used throughout the
 code and docs.

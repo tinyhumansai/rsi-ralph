@@ -1,5 +1,12 @@
 # Architecture
 
+RSI Ralph runs recursive Ralph loops over a hive. An OpenHuman agent edits the
+hive's language files (seats, prompts, context, roster, policies, integrations)
+and the host checks the result against a goal. If the goal is not met, the same
+agent edits the files again, and the loop repeats until the goal is properly
+met or the budget runs out. The loop recurses because the thing being improved
+is the hive that does the improving.
+
 RSI Ralph is a Rust library that a host program uses to improve a
 [tinyhivemind](https://github.com/tinyhumansai/tinyhivemind) hive one reviewed
 change at a time. A hive is a typed package (seats, prompts, context, memory
