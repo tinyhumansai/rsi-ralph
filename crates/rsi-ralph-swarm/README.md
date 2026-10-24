@@ -1,7 +1,7 @@
 # rsi-ralph-swarm
 
 Runs a tinyhivemind hive package as a team of OpenHuman agents that edit
-candidate checkouts: the swarm step of one improvement epoch. The `tinyrsi`
+candidate checkouts: the swarm step of one improvement epoch. The `rsi-ralph`
 CLI calls it once per epoch; it is the library form of the standalone
 `ohrsi-swarm` binary from oh-bench-rsi.
 

@@ -1,6 +1,6 @@
 # Durable P1 epoch evidence
 
-Owns the evidence-pump requirement in tinyrsi #3. A host journals measured turn
+Owns the evidence-pump requirement in rsi-ralph #3. A host journals measured turn
 usage and observed verifier results before completing work. It checkpoints a
 redacted observation and deterministic dossier in the same transaction as the
 consumed turn identities and transcript cursor. It never edits a hive package.

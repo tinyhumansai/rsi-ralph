@@ -1,4 +1,4 @@
-# TinyRSI examples
+# RSI Ralph examples
 
 Four end-to-end runs of the improvement loop. Each one proposes changes
 (evolve), measures and judges them (score), and keeps only what is better
@@ -103,7 +103,7 @@ output cap. Read the safety note in the
   `live_model(id)`.
 - `src/benchmarks/`: each script-loop subject (fixtures, brief, scorer,
   policy, canned replies) defined once, for the examples and the runner. The
-  curve-fit fixtures are embedded from `crates/tinyrsi/examples/script_loop/`.
+  curve-fit fixtures are embedded from `crates/rsi-ralph/examples/script_loop/`.
 - `src/harness/`: the runner's command line, matrix execution, per-run
   records, repetition share, aggregation and table.
 - `<example>/main.rs`: the example. Python fixtures sit beside it: a fixed

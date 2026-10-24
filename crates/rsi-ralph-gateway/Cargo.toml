@@ -5,9 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Spend-capped OpenAI-compatible loopback proxy to OpenRouter for TinyRSI runs."
+description = "Spend-capped OpenAI-compatible loopback proxy to OpenRouter for RSI Ralph runs."
 readme = "README.md"
-keywords = ["rsi", "openrouter", "budget", "tinyrsi"]
+keywords = ["rsi", "openrouter", "budget", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

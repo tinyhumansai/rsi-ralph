@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use crate::error::{Error, Result};
 
-/// GLM 5.3 Flash, the default chat model of a `tinyrsi` run.
+/// GLM 5.3 Flash, the default chat model of a `rsi-ralph` run.
 pub const GLM_FLASH: &str = "z-ai/glm-5.3-flash";
 /// The default embedding model.
 pub const EMBEDDING: &str = "openai/text-embedding-3-small";

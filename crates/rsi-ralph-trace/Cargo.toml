@@ -5,9 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "The append-only loop trace TinyRSI writes for its visualizer and tracing exporters."
+description = "The append-only loop trace RSI Ralph writes for its visualizer and tracing exporters."
 readme = "../../README.md"
-keywords = ["rsi", "tracing", "observability", "tinyrsi"]
+keywords = ["rsi", "tracing", "observability", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

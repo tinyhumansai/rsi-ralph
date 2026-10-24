@@ -3,7 +3,7 @@ resolver = "3"
 # Every crate in this repository lives under `crates/`, one directory per
 # package, each directory named for the package it holds; `examples/` is the
 # one exception, a package of runnable end-to-end examples. There is no root
-# package: the library a host depends on is `crates/tinyrsi`, the same as any
+# package: the library a host depends on is `crates/rsi-ralph`, the same as any
 # other member. Keeping the root virtual is what makes that uniform — a root
 # package would make one crate structurally different from the rest for no
 # reason other than history.
@@ -23,7 +23,7 @@ version = "0.2.1"
 edition = "2024"
 rust-version = "1.96"
 license = "GPL-3.0-only"
-repository = "https://github.com/tinyhumansai/rust-tinyrsi"
+repository = "https://github.com/tinyhumansai/rsi-ralph"
 
 [workspace.dependencies]
 # Shared proposal and candidate data. No `version` requirement on purpose: the
@@ -31,7 +31,7 @@ repository = "https://github.com/tinyhumansai/rust-tinyrsi"
 # the path is the whole address.
 rsi-ralph-types = { path = "crates/rsi-ralph-types" }
 # The loop library the host runtime builds on.
-tinyrsi = { path = "crates/tinyrsi" }
+rsi-ralph = { path = "crates/rsi-ralph" }
 # The hive host runtime, which the examples package drives end to end.
 rsi-ralph-host = { path = "crates/rsi-ralph-host" }
 # Paired comparison, normalized scoring, experiments and the `Scorer` port.
@@ -46,13 +46,13 @@ rsi-ralph-trace = { path = "crates/rsi-ralph-trace" }
 rsi-ralph-langfuse = { path = "crates/rsi-ralph-langfuse" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
 rsi-ralph-model = { path = "crates/rsi-ralph-model" }
-# The `tinyrsi` binary that runs file-defined loops.
+# The `rsi-ralph` binary that runs file-defined loops.
 rsi-ralph-cli = { path = "crates/rsi-ralph-cli" }
-# The hive of OpenHuman agents that writes candidates in a `tinyrsi` run.
+# The hive of OpenHuman agents that writes candidates in a `rsi-ralph` run.
 rsi-ralph-swarm = { path = "crates/rsi-ralph-swarm" }
-# The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
+# The spend-capped OpenRouter proxy each `rsi-ralph` run starts in-process.
 rsi-ralph-gateway = { path = "crates/rsi-ralph-gateway" }
-# Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
+# Derive macros for the crate-wide error type in `crates/rsi-ralph/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
 thiserror = "2"
@@ -95,7 +95,7 @@ futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
 # Scripted OpenAI-compatible model servers in the swarm and CLI tests.
 wiremock = "0.6"
-# Command-line parsing for the `tinyrsi` binary in `crates/rsi-ralph-cli`; derive
+# Command-line parsing for the `rsi-ralph` binary in `crates/rsi-ralph-cli`; derive
 # only, no colour or terminal-width probing.
 clap = { version = "4", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 

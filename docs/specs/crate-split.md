@@ -1,13 +1,13 @@
 # Crate split
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 Plan: [`../plans/crate-split.md`](../plans/crate-split.md). Decision record:
 [ADR 0002](../adr/0002-split-crates-drop-bus.md).
 
 ## Problem
 
-`crates/tinyrsi` is one crate of roughly 16k non-test lines in 23 modules.
+`crates/rsi-ralph` is one crate of roughly 16k non-test lines in 23 modules.
 Several separate concerns share it:
 
 - the hive epoch path;
@@ -72,19 +72,19 @@ listed above it.
 | `rsi-ralph-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | types, model, trace, tinybackrooms |
 | `rsi-ralph-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
 | `rsi-ralph-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor` with what it reads and writes (`ScriptBrief`, `ScriptProposal`, `ProposedFile`, `SupervisorLimits`); `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
-| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
-| `rsi-ralph-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
+| `rsi-ralph` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
+| `rsi-ralph-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | rsi-ralph, tinyhivemind-hives (sqlite), tokio |
 | `rsi-ralph-examples` | three runnable examples, `publish = false` | rsi-ralph-host |
 | `rsi-ralph-swarm` | `run_swarm`, `load_package`, `editing_seats`: one epoch of a hive package run as `OpenHuman` agents editing candidate checkouts | tinyhivemind-openhuman, tinyhivemind-hives (sqlite), tinyhivemind-lang, openhuman-embed |
 
 `rsi-ralph-host` replaces the `host` Cargo feature: its modules are exactly the
 ones the feature gated. `memory` and `observation` compile without the feature
-today, so they stay in `tinyrsi` and keep their paths; only the
+today, so they stay in `rsi-ralph` and keep their paths; only the
 `MemorySnapshot` implementation for `SnapshotMemoryStore`, which already
 needed the feature, moves to `rsi-ralph-host` beside the trait.
 
 Each crate has its own `Error` and `Result`. Shared variants keep their names
-and messages, and the `tinyrsi` crate converts lower crates' errors into the
+and messages, and the `rsi-ralph` crate converts lower crates' errors into the
 variants its own functions always returned. So `run_script_loop`,
 `run_proposal_h` and the rest still fail with `rsi_ralph::Error::HostFailed`,
 `InvalidEvaluation`, and so on.
@@ -109,7 +109,7 @@ Implementations of the moved ports (`ModelPort`, `TraceSink`,
 `ExperimentExecutor`, `ArtifactProducer`, `VerificationObserver`,
 `RetreatTransport`) return their crate's `Result` for the same reason.
 
-`tinyrsi` re-exports every crate below it, so existing `rsi_ralph::Name` paths
+`rsi-ralph` re-exports every crate below it, so existing `rsi_ralph::Name` paths
 keep resolving for every retained item that was not behind the `host`
 feature. The exceptions are deliberate removals:
 
@@ -119,14 +119,14 @@ feature. The exceptions are deliberate removals:
 - the crate-root `append` and `head` wrappers;
 - `Supervisor`, renamed `ScriptSupervisor`.
 
-**Host-feature paths do break.** `tinyrsi` cannot re-export `rsi-ralph-host`,
+**Host-feature paths do break.** `rsi-ralph` cannot re-export `rsi-ralph-host`,
 because the host crate depends on it. Items that were reachable only with
 `--features host` therefore move to `rsi_ralph_host::Name`:
 `CoordinatorHost`, `DeploymentStore`, `MemorySnapshot`,
 `CoordinatorEvaluator`, `EvidenceJournal`, the `epoch_driver` items and the
-rest. A consumer replaces `tinyrsi = { features = ["host"] }` with a
+rest. A consumer replaces `rsi-ralph = { features = ["host"] }` with a
 dependency on `rsi-ralph-host` and changes those imports.
-`rsi-ralph-host` re-exports `tinyrsi`, so after that one change a single import
+`rsi-ralph-host` re-exports `rsi-ralph`, so after that one change a single import
 root covers both. The release notes for the version that drops the feature
 must list this migration.
 
@@ -337,7 +337,7 @@ removed; `Lineage::append` and `Lineage::head` remain.
 
 - `cargo test -p <crate>` passes alone for every crate in the table.
 - `cargo tree -p rsi-ralph-score`, `-p rsi-ralph-evolve` and `-p rsi-ralph-trace`
-  contain neither `tinyrsi` nor `tinyhivemind-hives`.
+  contain neither `rsi-ralph` nor `tinyhivemind-hives`.
 - The script loop runs on `Scorer` and `Evolver`. Its existing tests pass
   unchanged, apart from constructing a `ScriptSupervisor` where they built a
   `Supervisor`.

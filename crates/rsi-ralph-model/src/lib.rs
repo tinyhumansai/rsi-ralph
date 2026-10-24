@@ -1,6 +1,6 @@
 //! Bounded, metered model calls.
 //!
-//! Every model call in `tinyrsi` goes through [`ModelPort`]: a request
+//! Every model call in `rsi-ralph` goes through [`ModelPort`]: a request
 //! ([`ModelRequest`]) reserves a conservative token budget before it is sent,
 //! every call is metered ([`GenerationMeter`]), and credentials never leave the
 //! process. [`OpenRouterModel`] is the bundled provider, [`BudgetedModel`] caps

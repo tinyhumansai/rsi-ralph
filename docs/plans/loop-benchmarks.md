@@ -21,7 +21,7 @@ the new library modules still aim for 90% line coverage.
 
 ## 2. Shared benchmark definitions
 
-1. Move the curve-fit brief to `crates/tinyrsi/examples/script_loop/brief.txt`
+1. Move the curve-fit brief to `crates/rsi-ralph/examples/script_loop/brief.txt`
    and read it with `include_str!` in `main.rs`; output is unchanged.
 2. `examples/src/benchmarks/`:
    - `mod.rs`: the `Benchmark` enum (`ALL`, `name`, `from_name`,

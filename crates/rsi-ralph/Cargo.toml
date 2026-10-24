@@ -1,14 +1,14 @@
 [package]
-name = "tinyrsi"
+name = "rsi-ralph"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Host-driven improvement loops for tinyhivemind hives and plain scripts."
-documentation = "https://docs.rs/tinyrsi"
+documentation = "https://docs.rs/rsi-ralph"
 readme = "../../README.md"
-keywords = ["rsi", "self-improvement", "agents", "evaluation", "tinyrsi"]
+keywords = ["rsi", "self-improvement", "agents", "evaluation", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

@@ -30,7 +30,7 @@ other through a handful of shared data types. The phases are:
   - `rsi-ralph-types`, `rsi-ralph-model` and `rsi-ralph-trace` (shared foundations);
   - `rsi-ralph-score` and `rsi-ralph-verify` (scoring);
   - `rsi-ralph-evolve` (evolution);
-  - `tinyrsi` (the loops);
+  - `rsi-ralph` (the loops);
   - `rsi-ralph-host` (the hive runtime, replacing the `host` feature).
 - Scoring and evolution are synchronous traits (`Scorer`, `Evolver`) that the
   loop calls. A scorer produces qualities. The existing `compare` and

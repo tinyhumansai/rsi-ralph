@@ -1,6 +1,6 @@
 //! The hive host runtime: everything that needs a live coordinator.
 //!
-//! `tinyrsi` decides which hive design is better. This crate runs designs:
+//! `rsi-ralph` decides which hive design is better. This crate runs designs:
 //!
 //! - [`CoordinatorHost`] builds tinyhivemind coordinators over SQLite storage,
 //!   with runners from a [`RunnerFactory`].
@@ -11,12 +11,12 @@
 //! - `prepare_retreat_epoch` / `evaluate_retreat_epoch` drive one durable
 //!   improvement epoch through an [`EpochJournal`].
 //!
-//! It re-exports all of `tinyrsi`, so a host imports from one crate. It
-//! replaces the old `tinyrsi` `host` Cargo feature: depend on `rsi-ralph-host`
+//! It re-exports all of `rsi-ralph`, so a host imports from one crate. It
+//! replaces the old `rsi-ralph` `host` Cargo feature: depend on `rsi-ralph-host`
 //! and import `rsi_ralph_host::Name` where you imported `rsi_ralph::Name` with
 //! that feature enabled.
 //!
-//! Errors are `tinyrsi`'s own [`Error`]: the host runtime has always reported
+//! Errors are `rsi-ralph`'s own [`Error`]: the host runtime has always reported
 //! that crate's variants, and it still does.
 //!
 //! # Example
@@ -35,7 +35,7 @@
 //! # What this crate does not hold
 //!
 //! No decision rules and no proposal generation: scoring, evolution and the
-//! selection funnel stay in `tinyrsi` and the crates below it.
+//! selection funnel stay in `rsi-ralph` and the crates below it.
 
 mod epoch_driver;
 mod evidence_journal;

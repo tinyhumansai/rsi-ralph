@@ -79,7 +79,7 @@ fn serves_the_page_runs_and_files() {
     let (_home, server) = served();
     assert!(server.url().starts_with("http://127.0.0.1:"));
     let page = get(&server, "/", "GET");
-    assert!(page.starts_with("HTTP/1.1 200") && page.contains("<title>tinyrsi runs</title>"));
+    assert!(page.starts_with("HTTP/1.1 200") && page.contains("<title>rsi-ralph runs</title>"));
     let runs = get(&server, "/api/runs", "GET");
     assert!(runs.contains("\"incumbent_score\":1.5"));
     let record = get(&server, "/api/runs/demo/r1/files/run.json", "GET");

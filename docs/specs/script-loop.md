@@ -1,13 +1,13 @@
 # Script loop
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 Related: [loop trace](loop-trace.md), [guide](../guides/script-loop.md),
 [hypothesis ledger and slot directives](hypothesis-ledger.md).
 
 ## Problem
 
-TinyRSI improves tinyhivemind packages one epoch at a time and has no outer
+RSI Ralph improves tinyhivemind packages one epoch at a time and has no outer
 loop. Many improvement targets are not hives at all: a plain script with a
 measurable output (a curve fit, a solver, a benchmark) could be improved by the
 same observe, ideate, execute, measure, score, improve cycle, supervised by a
@@ -133,7 +133,7 @@ offline example uses canned proposals and never calls a model.
   a worse script: the better one is accepted and promoted, the worse one
   rejected, and the trace and ledger record both.
 - Every stop reason and every new error variant has a producing test.
-- `cargo run -p tinyrsi --example script_loop` runs offline and records at
+- `cargo run -p rsi-ralph --example script_loop` runs offline and records at
   least one promotion and one rejection.
 
 ## Open questions

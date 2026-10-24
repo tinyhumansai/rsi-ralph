@@ -1,10 +1,10 @@
 # rsi-ralph-gateway
 
-The single spend choke point for a `tinyrsi` run: an OpenAI-compatible
+The single spend choke point for a `rsi-ralph` run: an OpenAI-compatible
 loopback proxy to OpenRouter that refuses any call whose worst-case cost does
 not fit in **both** the run's budget and the campaign-wide budget.
 
-The `tinyrsi` CLI starts one gateway in-process per run and hands each client
+The `rsi-ralph` CLI starts one gateway in-process per run and hands each client
 (agents, judges, embedders) a tagged base URL instead of the real key.
 
 ## Usage

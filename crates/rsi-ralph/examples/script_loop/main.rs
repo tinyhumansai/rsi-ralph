@@ -1,4 +1,4 @@
-//! Improve a curve-fitting script with the `TinyRSI` script loop.
+//! Improve a curve-fitting script with the `RSI Ralph` script loop.
 //!
 //! Offline (the default) a canned supervisor replays three prepared model
 //! rewrites and one path-escape attempt, so the loop runs without a network or

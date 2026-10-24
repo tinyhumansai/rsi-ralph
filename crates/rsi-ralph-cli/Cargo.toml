@@ -5,17 +5,17 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "The `tinyrsi` binary: run improvement loops defined as folders of JSON, Markdown and step scripts."
+description = "The `rsi-ralph` binary: run improvement loops defined as folders of JSON, Markdown and step scripts."
 readme = "README.md"
-keywords = ["rsi", "cli", "tinyrsi"]
+keywords = ["rsi", "cli", "rsi-ralph"]
 categories = ["command-line-utilities", "development-tools"]
 publish = false
 
 [[bin]]
-name = "tinyrsi"
+name = "rsi-ralph"
 path = "src/main.rs"
-# The binary shares its name with the `tinyrsi` library crate; documenting
-# both would write the same `target/doc/tinyrsi/` page. The binary's
+# The binary shares its name with the `rsi-ralph` library crate; documenting
+# both would write the same `target/doc/rsi-ralph/` page. The binary's
 # behaviour is documented in `rsi_ralph_cli::cli`.
 doc = false
 

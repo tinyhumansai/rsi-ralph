@@ -1,6 +1,6 @@
 # Hypothesis ledger and diverse slots
 
-**Status:** Implemented. **Owner:** TinyRSI maintainers.
+**Status:** Implemented. **Owner:** RSI Ralph maintainers.
 
 Related: [script loop](script-loop.md), [loop trace](loop-trace.md),
 [roadmap items 1 and 2](../rsi/script-loop-roadmap.md),

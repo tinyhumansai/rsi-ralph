@@ -76,10 +76,10 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
 for crate in rsi-ralph-types rsi-ralph-model rsi-ralph-trace rsi-ralph-langfuse \
-    rsi-ralph-score rsi-ralph-verify rsi-ralph-evolve tinyrsi rsi-ralph-host; do
+    rsi-ralph-score rsi-ralph-verify rsi-ralph-evolve rsi-ralph rsi-ralph-host; do
   cargo test -p "$crate"
 done
-cargo tree -p rsi-ralph-score   # no tinyrsi, no tinyhivemind-hives
+cargo tree -p rsi-ralph-score   # no rsi-ralph, no tinyhivemind-hives
 .github/scripts/check-file-coverage.sh
 ```
 

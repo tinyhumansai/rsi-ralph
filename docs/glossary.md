@@ -2,7 +2,7 @@
 
 Terms used across the code, the module READMEs and `docs/rsi/`. Each entry
 names the type or function that defines it; paths are relative to
-`crates/tinyrsi/src/` unless they start with `crates/`, except `host/`,
+`crates/rsi-ralph/src/` unless they start with `crates/`, except `host/`,
 `suites/`, `epoch_driver/` and `evidence_journal/`, which are relative to
 `crates/rsi-ralph-host/src/`. Read
 [architecture.md](architecture.md) first for how the pieces fit together.
@@ -215,5 +215,5 @@ candidate to `Accepted`. `ApprovalGate` is the same boundary for the raw
 
 ## Lineage ledger
 
-**GradeEntry.** `crates/tinyrsi/src/lineage/types.rs`: step, snapshot
+**GradeEntry.** `crates/rsi-ralph/src/lineage/types.rs`: step, snapshot
 address, grade, verdict and rationale; one row of the `Lineage` ledger.

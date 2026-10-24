@@ -1,4 +1,4 @@
-//! The single spend choke point for a `tinyrsi` run.
+//! The single spend choke point for a `rsi-ralph` run.
 //!
 //! Every model call a run makes goes through this OpenAI-compatible
 //! loopback proxy to the openrouter.ai API, which:
@@ -18,7 +18,7 @@
 //!    from a hive that simply changed nothing.
 //!
 //! [`Gateway::start`] runs it in-process on its own background thread and
-//! Tokio runtime, so a synchronous caller such as the `tinyrsi` CLI can
+//! Tokio runtime, so a synchronous caller such as the `rsi-ralph` CLI can
 //! start one per run, hand [`Gateway::tagged_url`] to each client as its
 //! OpenAI-compatible base URL, read [`Gateway::spend`] and
 //! [`Gateway::upstream_calls_since`] between steps, and

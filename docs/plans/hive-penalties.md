@@ -18,7 +18,7 @@ fails for the expected reason.
    `CandidateFailure`, with serde pins. `ReasonCode::Harmful` pinned as
    `HARMFUL` in `proposal/test.rs`.
 2. `Error::CandidateFailed` in `crates/rsi-ralph-score/src/error/` and
-   `crates/tinyrsi/src/error/`, with the `From` mapping and message tests.
+   `crates/rsi-ralph/src/error/`, with the `From` mapping and message tests.
 3. Orchestrator tests first (`orchestrator/normalized/test.rs`,
    `orchestrator/test_funnel.rs`): a mock evaluator returning
    `CandidateFailed` must stop `Harmful` and leave a `CandidateFailureEvent`;
@@ -38,7 +38,7 @@ fails for the expected reason.
 
 ## 3. Ledger, cooldown and revocation
 
-1. `crates/tinyrsi/src/archive/penalty/`: `PatchShape`, `Strike`,
+1. `crates/rsi-ralph/src/archive/penalty/`: `PatchShape`, `Strike`,
    `StrikeKind`, `PenaltyReport`, `PenaltyPolicy`; tests for shape equality,
    each strike source, exclusions and window ageing.
 2. `ReasonCode::Cooldown` (`COOLDOWN`), non-terminal in dispositions.

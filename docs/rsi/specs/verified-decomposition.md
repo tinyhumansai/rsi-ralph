@@ -120,7 +120,7 @@ proofs, expected values or diagnostics.
 - The host supplies any OS sandbox; no isolation guarantee is inferred from
   bounded process execution alone.
 - Upstream typed goal-verifier declarations are integrated through their
-  canonical immutable language record, not reimplemented in TinyRSI.
+  canonical immutable language record, not reimplemented in RSI Ralph.
 
 ## Acceptance criteria
 
@@ -167,4 +167,4 @@ The generic upstream completion mechanism is not duplicated here.
 - Which independently curated proof tasks and reviewers will establish a
   private Lean slice beyond finite adapter certificates?
 - What exact public typed declaration lands in tinyhivemind #122, and how will
-  its stable identity be included in TinyRSI suite fingerprints?
+  its stable identity be included in RSI Ralph suite fingerprints?

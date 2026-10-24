@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 description = "Proposes the next change toward a goal: the Evolver port, the script supervisor and tinybackrooms retreat."
 readme = "../../README.md"
-keywords = ["rsi", "evolution", "llm", "tinyrsi"]
+keywords = ["rsi", "evolution", "llm", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

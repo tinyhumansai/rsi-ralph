@@ -26,7 +26,7 @@ and `final-model.py` (the last incumbent).
 | Seeds | 1, 2, 3 (paired; same seeds for incumbent and candidate) |
 | Supervisor | OpenRouter `openai/gpt-4.1-mini`, one forced tool call per proposal |
 | Policy | ≤ 8 epochs × 3 proposals, patience 3, 400k-token budget |
-| Command | `TINYRSI_LIVE_OPENROUTER=1 cargo run -p tinyrsi --example script_loop -- --epochs 8 --proposals 3` |
+| Command | `TINYRSI_LIVE_OPENROUTER=1 cargo run -p rsi-ralph --example script_loop -- --epochs 8 --proposals 3` |
 
 ## Trajectory
 

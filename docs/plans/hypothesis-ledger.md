@@ -30,12 +30,12 @@ Each task starts with a failing test beside the code it changes.
 3. **Trace field** (`crates/rsi-ralph-trace/src/trace/`). Pin `ideated` with and
    without `approach`; the spec's example lines stay byte-identical. Add
    `approach: None` to the hive trace in `rsi-ralph-host`.
-4. **Policy and ledger types** (`crates/tinyrsi/src/script_loop/types.rs`).
+4. **Policy and ledger types** (`crates/rsi-ralph/src/script_loop/types.rs`).
    Add `SlotDirective`, `LoopPolicy::{slots, approach_context}` with the
    default directives, and the three optional `LedgerCandidate` fields with
    `skip_serializing_if`. Pin a legacy ledger row and a full one. Test the
    policy refusals (blank instruction, bad temperature).
-5. **Approaches summary** (`crates/tinyrsi/src/script_loop/approaches.rs`,
+5. **Approaches summary** (`crates/rsi-ralph/src/script_loop/approaches.rs`,
    tests in `test_approaches.rs`). Normalization, grouping, best mean per
    direction, verdict precedence, recency order and the bound; render the
    section and the earlier-slot section.
@@ -47,7 +47,7 @@ Each task starts with a failing test beside the code it changes.
    model; the ledger and trace carry the approach.
 7. **Examples.** `rsi_ralph_examples::with_approach` adds a label to a canned
    reply; every canned reply in `math_problem`, `upgrade_file`,
-   `graph_coloring` and `crates/tinyrsi/examples/script_loop` names its
+   `graph_coloring` and `crates/rsi-ralph/examples/script_loop` names its
    approach. Each still reaches its goal.
 8. **Visualizer** (`apps/rsi-viz`). Validate the optional `ideated.approach`
    (string, `null` or absent), carry it in the reducer, show it in the
@@ -65,7 +65,7 @@ cargo +1.99 clippy --all-targets --all-features -- -D warnings
 cargo +1.99 build --all-targets --all-features
 cargo +1.99 test --all-features
 RUSTDOCFLAGS="-D warnings" cargo +1.99 doc --no-deps --all-features
-cargo +1.99 run -p tinyrsi --example script_loop
+cargo +1.99 run -p rsi-ralph --example script_loop
 cargo +1.99 run -p rsi-ralph-examples --example math_problem   # and upgrade_file, graph_coloring, hive_goal
 (cd apps/rsi-viz && npm ci && npm run lint && npm run typecheck && npm test && npm run build)
 ```

@@ -1,4 +1,4 @@
-//! Proposal and candidate data shared across the `tinyrsi` crates.
+//! Proposal and candidate data shared across the `rsi-ralph` crates.
 //!
 //! A *proposal* is what a proposer submits: a typed hive [`Patch`], the
 //! mechanism it claims, and a [`Prediction`] it commits to before anything is
@@ -8,7 +8,7 @@
 //! attempt that never became an evaluated record. A [`Goal`] states in words
 //! what "better" means, for the judges that score against it.
 //!
-//! These types sit below every other `tinyrsi` crate. Scoring, evolution, the
+//! These types sit below every other `rsi-ralph` crate. Scoring, evolution, the
 //! loops and the host runtime all name them, so they live here rather than in
 //! any one of those crates.
 //!

@@ -1,4 +1,4 @@
-//! `tinyrsi run` end to end, offline: the graph-colouring loop folder, the
+//! `rsi-ralph run` end to end, offline: the graph-colouring loop folder, the
 //! real gateway, swarm, scorer and engine, against a scripted
 //! OpenAI-compatible model standing in for `OpenRouter`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
@@ -240,7 +240,7 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
     let lookup = move |name: &str| env.get(name).cloned();
 
     let cli = Cli::parse_from([
-        "tinyrsi",
+        "rsi-ralph",
         "--home",
         home.to_str().unwrap(),
         "run",
@@ -302,7 +302,7 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
 
     // The stored run is listed and summarized.
     let mut out = Vec::new();
-    let cli = Cli::parse_from(["tinyrsi", "--home", home.to_str().unwrap(), "runs"]);
+    let cli = Cli::parse_from(["rsi-ralph", "--home", home.to_str().unwrap(), "runs"]);
     execute(cli, &lookup, &mut out).unwrap();
     assert!(
         String::from_utf8(out)
@@ -315,7 +315,7 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
 fn the_binary_reports_success_and_input_errors_by_exit_code() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let home = tempfile::tempdir().unwrap();
-    let tinyrsi = |args: &[&str], key: bool| {
+    let rsi-ralph = |args: &[&str], key: bool| {
         let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_rsi-ralph"));
         command
             .arg("--home")
@@ -328,10 +328,10 @@ fn the_binary_reports_success_and_input_errors_by_exit_code() {
         command.output().unwrap()
     };
     let loop_dir = root.join("loops/graph-coloring");
-    let ok = tinyrsi(&["check", loop_dir.to_str().unwrap()], true);
+    let ok = rsi-ralph(&["check", loop_dir.to_str().unwrap()], true);
     assert_eq!(ok.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&ok.stdout).starts_with("ok: graph-coloring"));
-    let missing = tinyrsi(&["check", loop_dir.to_str().unwrap()], false);
+    let missing = rsi-ralph(&["check", loop_dir.to_str().unwrap()], false);
     assert_eq!(missing.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&missing.stderr).contains("missing keys: OPENROUTER_API_KEY"));
 }
@@ -363,7 +363,7 @@ fn a_provider_refusing_every_call_fails_the_run_with_its_message() {
     ]));
     let lookup = move |name: &str| env.get(name).cloned();
     let cli = Cli::parse_from([
-        "tinyrsi",
+        "rsi-ralph",
         "--home",
         home.to_str().unwrap(),
         "run",

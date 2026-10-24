@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 description = "Runs a tinyhivemind hive package as a team of OpenHuman agents editing candidate checkouts."
 readme = "README.md"
-keywords = ["rsi", "hive", "agents", "tinyrsi"]
+keywords = ["rsi", "hive", "agents", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

@@ -11,8 +11,8 @@ The module ships as a native `cdylib` per platform, verified before release.
 
 - The module provides `ai.tinyhumans.tinyrsi.Lineage.Append` and
   `ai.tinyhumans.tinyrsi.Lineage.Head` at
-  `/ai/tinyhumans/tinyrsi/Lineage`.
-- The release archive `tinyrsi-<version>-<platform>.<extension>` contains only
+  `/ai/tinyhumans/rsi-ralph/Lineage`.
+- The release archive `rsi-ralph-<version>-<platform>.<extension>` contains only
   this module's artifacts and `MODULE.md`; `checksum.toml` is published
   separately.
 - The release verifier loads the x86_64 archive through TinyBus's GitHub

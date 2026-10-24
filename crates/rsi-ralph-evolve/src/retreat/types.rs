@@ -5,7 +5,7 @@ use serde_json::Value;
 use rsi_ralph_types::Proposal;
 
 /// The public failure evidence retreat reads: any serializable dossier that
-/// knows its epoch. The `tinyrsi` crate implements it for its `Dossier`; the
+/// knows its epoch. The `rsi-ralph` crate implements it for its `Dossier`; the
 /// request carries the dossier's JSON and seeds the engine with the epoch.
 pub trait RetreatDossier: Serialize {
     /// Host epoch the dossier describes.

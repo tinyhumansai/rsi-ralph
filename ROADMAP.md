@@ -13,7 +13,7 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**Improvement loop library** (paths under `crates/tinyrsi/src/`, or
+**Improvement loop library** (paths under `crates/rsi-ralph/src/`, or
 `crates/rsi-ralph-host/src/` for `host/`, `suites/`, `epoch_driver/` and
 `evidence_journal/`)
 
@@ -45,7 +45,7 @@ published 24-attempt experiment is inconclusive.
   `ModelConversant` with pre-dispatch token reservation (`crates/rsi-ralph-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls
   ([`docs/rsi/private-benchmarks.md`](docs/rsi/private-benchmarks.md)).
-- The `tinyrsi` binary (`crates/rsi-ralph-cli`): loops defined as folders of
+- The `rsi-ralph` binary (`crates/rsi-ralph-cli`): loops defined as folders of
   JSON, Markdown and step scripts, a hive of agents writing candidates, a
   spend-capped gateway (`crates/rsi-ralph-gateway`), a durable run store and a
   built-in UI ([`docs/specs/rsi-cli.md`](docs/specs/rsi-cli.md),
@@ -82,7 +82,7 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
 
 - A TinyBus or other plugin surface. The lineage module and its native
   release archives were removed
-  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); TinyRSI is a library.
+  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); RSI Ralph is a library.
 
 - Modifying vendored or upstream engines from this repository. OpenHuman,
   tinyhivemind language and coordinator, tinybackrooms and memory engines

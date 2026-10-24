@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Read-only live visualizer for TinyRSI loop traces and run snapshots",
+  "description": "Read-only live visualizer for RSI Ralph loop traces and run snapshots",
   "license": "GPL-3.0-only",
   "engines": {
     "node": ">=20.9.0"

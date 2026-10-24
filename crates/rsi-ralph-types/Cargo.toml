@@ -5,9 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Proposal and candidate data shared by the TinyRSI scoring, evolution and loop crates."
+description = "Proposal and candidate data shared by the RSI Ralph scoring, evolution and loop crates."
 readme = "../../README.md"
-keywords = ["rsi", "self-improvement", "agents", "tinyrsi"]
+keywords = ["rsi", "self-improvement", "agents", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

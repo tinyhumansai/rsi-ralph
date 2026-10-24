@@ -6,7 +6,7 @@ the [loop trace](loop-trace.md).
 ## Tasks
 
 1. **Shared process runner.** Move the body of `verification::process` into a
-   private `crates/tinyrsi/src/process/` module that takes program, arguments,
+   private `crates/rsi-ralph/src/process/` module that takes program, arguments,
    working directory, scratch directory, environment, timeout and cap, and
    reports `Exited`, `TimedOut` or `OutputExceeded` with separate stdout and
    stderr. Verification maps the result back to its old tuple; its existing
@@ -33,7 +33,7 @@ the [loop trace](loop-trace.md).
    `goal_reached`, `max_epochs`, `stalled`, `budget`, baseline failure
    (`error`), path escape and malformed replies recorded as invalid,
    duplicate content rejected.
-9. **Example.** `crates/tinyrsi/examples/script_loop/` with `main.rs`,
+9. **Example.** `crates/rsi-ralph/examples/script_loop/` with `main.rs`,
    `curve_fit.py`, `README.md`; offline scripted supervisor by default,
    `OpenRouterModel` when `TINYRSI_LIVE_OPENROUTER=1`.
 10. **Hive trace.** `examples/complete/driver.rs` and `complete_openrouter.rs`
@@ -50,7 +50,7 @@ cargo build --all-targets --all-features
 cargo test --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
 .github/scripts/check-file-coverage.sh 90 coverage.json
-cargo run -p tinyrsi --example script_loop
+cargo run -p rsi-ralph --example script_loop
 ```
 
 ## Checklist

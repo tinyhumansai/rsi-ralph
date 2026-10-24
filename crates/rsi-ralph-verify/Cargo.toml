@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 description = "Host-owned checkers: bounded processes, golden and schema checks, pinned Lean proofs."
 readme = "../../README.md"
-keywords = ["rsi", "verification", "lean", "tinyrsi"]
+keywords = ["rsi", "verification", "lean", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

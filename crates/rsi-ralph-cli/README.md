@@ -1,6 +1,6 @@
 # rsi-ralph-cli
 
-The `tinyrsi` binary. It runs improvement loops defined as folders of JSON,
+The `rsi-ralph` binary. It runs improvement loops defined as folders of JSON,
 Markdown and small scripts, so a loop needs no Rust. Users start with
 [`docs/guides/rsi-cli.md`](../../docs/guides/rsi-cli.md); the contract is
 [`docs/specs/rsi-cli.md`](../../docs/specs/rsi-cli.md).

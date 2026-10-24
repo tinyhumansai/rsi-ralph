@@ -17,7 +17,7 @@ fn env(with_key: bool) -> impl Fn(&str) -> Option<String> {
 }
 
 fn exec(args: &[&str], with_key: bool) -> (Result<()>, String) {
-    let cli = Cli::parse_from(std::iter::once("tinyrsi").chain(args.iter().copied()));
+    let cli = Cli::parse_from(std::iter::once("rsi-ralph").chain(args.iter().copied()));
     let mut out = Vec::new();
     let result = execute(cli, &env(with_key), &mut out);
     (result, String::from_utf8(out).unwrap())
@@ -204,7 +204,7 @@ fn serve_serves_the_store_until_stopped() {
     let h = home.path().to_str().unwrap().to_owned();
     let (sender, lines) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let cli = Cli::parse_from(["tinyrsi", "--home", &h, "serve", "--port", "0"]);
+        let cli = Cli::parse_from(["rsi-ralph", "--home", &h, "serve", "--port", "0"]);
         let _ = execute(cli, &env(true), &mut Lines(sender));
     });
     let line = lines.recv().unwrap();
@@ -364,7 +364,7 @@ fn score_passes_plain_keys_to_steps_under_their_own_name() {
         _ => None,
     };
     let cli = Cli::parse_from([
-        "tinyrsi",
+        "rsi-ralph",
         "--home",
         home.path().to_str().unwrap(),
         "score",

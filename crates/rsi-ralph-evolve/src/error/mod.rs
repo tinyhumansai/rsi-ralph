@@ -1,6 +1,6 @@
 //! Crate-wide error and result types.
 //!
-//! Variants shared with the `tinyrsi` crate keep their names and messages.
+//! Variants shared with the `rsi-ralph` crate keep their names and messages.
 //! The script loop writes a rejected proposal's message into its ledger, so
 //! those strings are part of the stored form.
 

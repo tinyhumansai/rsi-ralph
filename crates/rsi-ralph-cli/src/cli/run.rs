@@ -1,4 +1,4 @@
-//! `tinyrsi run` and `tinyrsi score`: wiring keys, the spend gateway, judges,
+//! `rsi-ralph run` and `rsi-ralph score`: wiring keys, the spend gateway, judges,
 //! the hive and the retreat into the engine.
 
 use std::{
@@ -131,7 +131,7 @@ fn judges(parsed: &Loop, gateway: &Gateway) -> Result<Judges> {
     Ok(judges)
 }
 
-/// `tinyrsi run`.
+/// `rsi-ralph run`.
 pub(super) fn run(
     files: &BTreeMap<String, String>,
     loop_dir: &Path,
@@ -207,7 +207,7 @@ pub(super) fn run(
     Ok(())
 }
 
-/// `tinyrsi score`.
+/// `rsi-ralph score`.
 pub(super) fn score(
     parsed: &Loop,
     loop_dir: &Path,

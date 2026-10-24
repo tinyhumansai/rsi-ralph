@@ -1,11 +1,11 @@
-//! The `tinyrsi` binary: improvement loops defined as folders of files.
+//! The `rsi-ralph` binary: improvement loops defined as folders of files.
 //!
 //! A loop is a folder holding `rsi.json`, a Markdown brief, a tinyhivemind
 //! hive package that writes candidates, and small score and gate scripts in
 //! any language. This crate parses that folder ([`manifest`]), runs epochs
 //! against it, stores every run under `$TINYRSI_HOME`, and serves the
 //! visualizer over the store. The contract is
-//! [`docs/specs/rsi-cli.md`](https://github.com/tinyhumansai/rust-tinyrsi/blob/main/docs/specs/rsi-cli.md).
+//! [`docs/specs/rsi-cli.md`](https://github.com/tinyhumansai/rsi-ralph/blob/main/docs/specs/rsi-cli.md).
 //!
 //! # Example
 //!

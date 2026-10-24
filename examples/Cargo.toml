@@ -5,12 +5,12 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Runnable end-to-end TinyRSI examples: a math problem, a file upgrade, graph colouring, a hive of agents, and a benchmark runner."
+description = "Runnable end-to-end RSI Ralph examples: a math problem, a file upgrade, graph colouring, a hive of agents, and a benchmark runner."
 readme = "README.md"
 publish = false
 
 [dependencies]
-tinyrsi = { workspace = true }
+rsi-ralph = { workspace = true }
 rsi-ralph-host = { workspace = true }
 # The benchmark runner's `summary.json` records and rows.
 serde = { workspace = true }

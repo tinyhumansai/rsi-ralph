@@ -3,7 +3,7 @@
 //! Like the tinyhivemind hive language, [`parse`] takes an in-memory map of
 //! relative path to text and opens no files; [`load_dir`] is the one place
 //! that reads a folder from disk. Parsing rejects unknown fields and validates
-//! every cross-reference, so a loop that passes `tinyrsi check` can only fail
+//! every cross-reference, so a loop that passes `rsi-ralph check` can only fail
 //! at run time for reasons outside the folder.
 
 use std::{

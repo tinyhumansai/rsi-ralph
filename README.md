@@ -1,9 +1,9 @@
-# TinyRSI
+# RSI Ralph
 
 A host-driven orchestrator for improving tinyhivemind hives through typed
 patches, private shadow evaluations and explicit human approval, plus a
 generic improvement loop for plain scripts. It is a Rust library,
-`crates/tinyrsi`, that a host program links; it has no daemon and no plugin
+`crates/rsi-ralph`, that a host program links; it has no daemon and no plugin
 surface of its own.
 
 ## What it does
@@ -69,7 +69,7 @@ crates/
 ├── rsi-ralph-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
 ├── rsi-ralph-host/       # hive runtime: coordinators, suites, durable epochs, deployment
 ├── rsi-ralph-swarm/      # a hive package run as OpenHuman agents editing candidates
-└── tinyrsi/            # the improvement-loop library
+└── rsi-ralph/            # the improvement-loop library
     ├── src/
     │   ├── lib.rs      # crate docs + the entire public surface
     │   ├── error/      # crate-wide `Error` and `Result<T>`
@@ -111,7 +111,7 @@ cargo fmt -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --all-targets --all-features
 cargo test --all-features
-cargo run -p tinyrsi --example basic
+cargo run -p rsi-ralph --example basic
 ```
 
 Those four checks are exactly what CI runs. Optional extras:
@@ -141,7 +141,7 @@ OTLP spans through OpenHuman's own Langfuse client and reads the same
 With an existing `OPENROUTER_API_KEY` in your environment:
 
 ```sh
-TINYRSI_LIVE_OPENROUTER=1 cargo run -p tinyrsi --example live_openrouter
+TINYRSI_LIVE_OPENROUTER=1 cargo run -p rsi-ralph --example live_openrouter
 ```
 
 Optional `OPENROUTER_MODEL` selects the model (default `openai/gpt-4.1-mini`).
@@ -192,7 +192,7 @@ Run `cargo run -p rsi-ralph-examples --example math_problem` (or
 over any script that prints `METRIC <name>=<value>` (plus optional
 `DIAG <text>` lines the supervisor reads), supervised by a language
 model, and streams every stage to `events.jsonl`. Try it offline on a
-curve-fitting script with `cargo run -p tinyrsi --example script_loop`; point
+curve-fitting script with `cargo run -p rsi-ralph --example script_loop`; point
 it at your own script with the [script loop guide](docs/guides/script-loop.md).
 Proposed code runs locally without a sandbox; read the guide's safety note
 before live runs.

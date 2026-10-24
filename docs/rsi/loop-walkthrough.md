@@ -4,7 +4,7 @@ This page follows a single epoch through the live example and lists every file
 it leaves behind. Read [architecture.md](../architecture.md) for the overview
 and the [glossary](../glossary.md) for terms. Source paths are relative to
 `crates/rsi-ralph-host/` (the example and the host runtime), or to
-`crates/tinyrsi/` for the loop library's modules.
+`crates/rsi-ralph/` for the loop library's modules.
 
 The traced path is `examples/complete_openrouter.rs`, function `worked`, plus
 the helpers in `examples/complete/driver.rs`. Deployment and rollback are

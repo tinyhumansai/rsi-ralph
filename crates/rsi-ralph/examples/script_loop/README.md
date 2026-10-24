@@ -9,7 +9,7 @@ Splitting harness and model keeps a proposal from changing the data or the
 evaluation.
 
 ```sh
-cargo run -p tinyrsi --example script_loop
+cargo run -p rsi-ralph --example script_loop
 ```
 
 The supervisor's brief is `brief.txt`. The `curve_fit` benchmark in
@@ -32,7 +32,7 @@ No network and no credentials are used, and token use is reported as 0.
 ```sh
 TINYRSI_LIVE_OPENROUTER=1 OPENROUTER_API_KEY=... \
   OPENROUTER_MODEL=openai/gpt-4.1-mini \
-  cargo run -p tinyrsi --example script_loop -- --epochs 8 --proposals 3
+  cargo run -p rsi-ralph --example script_loop -- --epochs 8 --proposals 3
 ```
 
 **The model writes Python that runs on your machine.** It runs on a copy of the

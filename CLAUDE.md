@@ -4,7 +4,7 @@ This file is the single source of truth for how humans and coding agents work
 in this repository. `CLAUDE.md` is a symlink to this file, so every agent reads
 the same instructions.
 
-TinyRSI is a host-driven improvement loop for tinyhivemind hives and plain
+RSI Ralph is a host-driven improvement loop for tinyhivemind hives and plain
 scripts, shipped as a Rust library. Start with
 [`docs/architecture.md`](docs/architecture.md) for the shape of one epoch and
 [`docs/glossary.md`](docs/glossary.md) for the vocabulary used throughout the
@@ -15,7 +15,7 @@ code and docs.
 This is a Rust 2024 cargo workspace rooted at a virtual `Cargo.toml`. Every
 crate lives under `crates/`, one directory per package, each directory named for
 the package it holds. There is no root package: the library hosts depend on is
-`crates/tinyrsi`, the same as any other member. The crates are split by loop
+`crates/rsi-ralph`, the same as any other member. The crates are split by loop
 phase; see [`docs/specs/crate-split.md`](docs/specs/crate-split.md).
 
 ```text
@@ -31,12 +31,12 @@ crates/
 ├── rsi-ralph-score/      # Scorer port, judges, decide, paired stats, experiments
 ├── rsi-ralph-verify/     # host checkers, blueprints, Lake, process runner
 ├── rsi-ralph-evolve/     # Evolver port, script supervisor, retreat and its memory
-├── rsi-ralph-cli/        # the `tinyrsi` binary: file-defined loops, run store, UI
+├── rsi-ralph-cli/        # the `rsi-ralph` binary: file-defined loops, run store, UI
 ├── rsi-ralph-host/       # hive runtime: coordinators, suites, epochs, deployment
 │   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
 │   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
 ├── rsi-ralph-swarm/      # a hive package run as OpenHuman agents editing candidates
-└── tinyrsi/            # the loop library, re-exporting the crates above
+└── rsi-ralph/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
     │   ├── error/            # crate-wide `Error` and `Result<T>`
@@ -50,7 +50,7 @@ crates/
     └── examples/       # runnable, compiled-in-CI usage examples
 examples/               # `rsi-ralph-examples`: math_problem, upgrade_file, graph_coloring,
                         # hive_goal
-loops/                  # example loop folders for the `tinyrsi` binary
+loops/                  # example loop folders for the `rsi-ralph` binary
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
@@ -95,7 +95,7 @@ broad ones.
 
 Keep public exports centralized in each crate's `src/lib.rs` so downstream users
 have one predictable surface. Put shared error variants in
-`crates/tinyrsi/src/error/mod.rs` and return the crate-wide `Result<T>` from
+`crates/rsi-ralph/src/error/mod.rs` and return the crate-wide `Result<T>` from
 fallible public APIs.
 
 ## Build And Test
@@ -115,13 +115,13 @@ Supporting commands:
 - `cargo fmt` — format before committing. Leave off `--all`: it also
   formats the vendored path dependencies, which are never edited here.
 - `cargo test <filter>` — run a focused subset while iterating.
-- `cargo test -p tinyrsi` — run one crate's suite.
-- `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
+- `cargo test -p rsi-ralph` — run one crate's suite.
+- `cargo run -p rsi-ralph --example basic` — run the minimal lineage example.
 - `cargo run -p rsi-ralph-examples --example math_problem` (or `upgrade_file`,
   `graph_coloring`, `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
   trace under `target/rsi-examples/` and fails if it misses its goal.
 - `cargo run -p rsi-ralph-cli -- check loops/graph-coloring` (or `run`, `runs`,
-  `show`, `serve`) — the `tinyrsi` binary over a loop folder; see
+  `show`, `serve`) — the `rsi-ralph` binary over a loop folder; see
   `docs/guides/rsi-cli.md`.
 - `cargo run -p rsi-ralph-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
 - `cargo run -p rsi-ralph-host --example observe_epochs` — offline

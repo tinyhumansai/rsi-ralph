@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 description = "Decides whether a candidate is closer to the goal than the incumbent, from metrics, checkers or judges."
 readme = "../../README.md"
-keywords = ["rsi", "evaluation", "llm-as-judge", "tinyrsi"]
+keywords = ["rsi", "evaluation", "llm-as-judge", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

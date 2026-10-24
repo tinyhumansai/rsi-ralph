@@ -26,7 +26,7 @@ mod run;
 
 /// Run improvement loops defined as folders of files.
 #[derive(Debug, Parser)]
-#[command(name = "tinyrsi", version, about)]
+#[command(name = "rsi-ralph", version, about)]
 pub struct Cli {
     /// Run store folder; defaults to `$TINYRSI_HOME`, then `~/.tinyrsi`.
     #[arg(long, global = true)]

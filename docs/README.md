@@ -18,7 +18,7 @@ where it cannot drift.
 
 To run a loop without writing Rust, read
 [`guides/rsi-cli.md`](guides/rsi-cli.md): a loop is a folder of JSON, Markdown
-and small scripts that the `tinyrsi` binary runs.
+and small scripts that the `rsi-ralph` binary runs.
 
 The repository root has [`ROADMAP.md`](../ROADMAP.md) (shipped, next, out of
 scope).
@@ -69,7 +69,7 @@ docs/
   by a later one.
 
 Module-level design notes live next to the code in
-`crates/tinyrsi/src/<module>/README.md`.
+`crates/rsi-ralph/src/<module>/README.md`.
 
 ## Conventions
 

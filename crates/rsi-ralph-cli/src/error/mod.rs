@@ -1,6 +1,6 @@
 //! Crate-wide error and result types.
 //!
-//! Manifest errors name the offending field or path so `tinyrsi check` can
+//! Manifest errors name the offending field or path so `rsi-ralph check` can
 //! point at the exact line of `rsi.json` to fix. Runtime errors wrap the
 //! crate that failed.
 

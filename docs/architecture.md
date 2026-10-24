@@ -1,16 +1,16 @@
 # Architecture
 
-TinyRSI is a Rust library that a host program uses to improve a
+RSI Ralph is a Rust library that a host program uses to improve a
 [tinyhivemind](https://github.com/tinyhumansai/tinyhivemind) hive one reviewed
 change at a time. A hive is a typed package (seats, prompts, context, memory
 identities, roster, policies) plus an exact memory image. The library never
 runs on its own: the host owns the coordinator, the model credentials, the
-private test tasks and the human who approves changes. TinyRSI supplies the
+private test tasks and the human who approves changes. RSI Ralph supplies the
 durable bookkeeping and the gates between those pieces.
 
 The crate also holds a small in-memory `Lineage` ledger of graded
 candidates, independent of the loop described here; see
-[`crates/tinyrsi/src/lineage/README.md`](../crates/tinyrsi/src/lineage/README.md).
+[`crates/rsi-ralph/src/lineage/README.md`](../crates/rsi-ralph/src/lineage/README.md).
 
 Terms in *italics* below are defined in the [glossary](glossary.md). For the
 same epoch traced through the files it writes, read the
@@ -20,7 +20,7 @@ same epoch traced through the files it writes, read the
 
 An *epoch* is one pass from live work to a possible deployment. Every arrow
 below is a direct function call made by the host; there is no scheduler inside
-the library. Paths are relative to `crates/tinyrsi/src/`, except `host/`,
+the library. Paths are relative to `crates/rsi-ralph/src/`, except `host/`,
 `suites/`, `epoch_driver/` and `evidence_journal/`, which live in
 `crates/rsi-ralph-host/src/`. Steps 1, 2 and 6 use the `rsi-ralph-host` crate.
 
@@ -134,7 +134,7 @@ exists yet, and nothing in this document depends on them.
 
 - [Glossary](glossary.md) for every term above.
 - [Loop walkthrough](rsi/loop-walkthrough.md) for the on-disk evidence.
-- Module READMEs under `crates/tinyrsi/src/<module>/README.md` for design and
+- Module READMEs under `crates/rsi-ralph/src/<module>/README.md` for design and
   constraints of each piece; [`host/README.md`](../crates/rsi-ralph-host/src/host/README.md)
   covers the host lifecycle in order.
 - [Host runtime spec](specs/host-runtime.md) and

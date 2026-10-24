@@ -1,7 +1,7 @@
 //! Curve fitting: lower the held-out RMSE of a noisy damped sinusoid fit.
 //!
-//! The fixtures stay with the self-contained `tinyrsi` example in
-//! `crates/tinyrsi/examples/script_loop/` and are embedded from there, brief
+//! The fixtures stay with the self-contained `rsi-ralph` example in
+//! `crates/rsi-ralph/examples/script_loop/` and are embedded from there, brief
 //! included, so both runs read one copy. The canned replies match that
 //! example's: a cubic (accepted), a constant (rejected), an edit to the fixed
 //! harness (invalid) and a damped-sinusoid fit (reaches the target).
@@ -9,14 +9,14 @@ use super::{Definition, metric};
 use crate::{Replies, proposal};
 use rsi_ralph::{LoopPolicy, MetricDirection};
 
-const HARNESS: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/curve_fit.py");
-const MODEL: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/model.py");
-const BRIEF: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/brief.txt");
-const CUBIC: &str = include_str!("../../../crates/tinyrsi/examples/script_loop/proposals/cubic.py");
+const HARNESS: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/curve_fit.py");
+const MODEL: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/model.py");
+const BRIEF: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/brief.txt");
+const CUBIC: &str = include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/cubic.py");
 const CONSTANT: &str =
-    include_str!("../../../crates/tinyrsi/examples/script_loop/proposals/constant.py");
+    include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/constant.py");
 const DAMPED: &str =
-    include_str!("../../../crates/tinyrsi/examples/script_loop/proposals/damped.py");
+    include_str!("../../../crates/rsi-ralph/examples/script_loop/proposals/damped.py");
 
 pub(super) fn definition() -> Definition {
     Definition {

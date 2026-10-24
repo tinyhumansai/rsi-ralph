@@ -23,7 +23,7 @@ the remaining host and evaluation integrations.
   completion API.
 - Never describe finite agent-authored Lean tasks as curated or independent
   model-performance evidence.
-- Production sandbox provisioning is a host deployment responsibility. TinyRSI
+- Production sandbox provisioning is a host deployment responsibility. RSI Ralph
   can pin and test the configured wrapper identity, but cannot claim to provide
   the OS boundary itself.
 

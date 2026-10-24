@@ -50,7 +50,7 @@ binary, so nothing can run them in a matrix.
 Each is the existing example, unchanged. `rsi_ralph_examples::benchmarks`
 holds them as a `Benchmark` enum; the Python fixtures stay where they are and
 are embedded with `include_str!`. The curve-fit fixtures stay in
-`crates/tinyrsi/examples/script_loop/`, which keeps its own self-contained
+`crates/rsi-ralph/examples/script_loop/`, which keeps its own self-contained
 example; the shared brief moves to a `brief.txt` beside them so both read one
 copy.
 

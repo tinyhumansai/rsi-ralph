@@ -8,7 +8,7 @@
 //! ```
 //!
 //! Every JSON document is written to a temporary sibling and renamed, so a
-//! reader (the UI, `tinyrsi runs`) never sees half a file.
+//! reader (the UI, `rsi-ralph runs`) never sees half a file.
 
 use std::{
     collections::BTreeMap,

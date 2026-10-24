@@ -5,9 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Exports TinyRSI loop traces to Langfuse through OpenHuman's client."
+description = "Exports RSI Ralph loop traces to Langfuse through OpenHuman's client."
 readme = "../../README.md"
-keywords = ["rsi", "langfuse", "observability", "tinyrsi"]
+keywords = ["rsi", "langfuse", "observability", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 

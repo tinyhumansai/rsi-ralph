@@ -1,6 +1,6 @@
 //! Crate-wide error and result types.
 //!
-//! The first two variants keep the names and messages the `tinyrsi` crate
+//! The first two variants keep the names and messages the `rsi-ralph` crate
 //! has always reported, so a caller that matched them before the split still
 //! matches the same failures.
 

@@ -1,4 +1,4 @@
-//! The `tinyrsi` command.
+//! The `rsi-ralph` command.
 
 use clap::Parser;
 use rsi_ralph_cli::cli::{Cli, execute, exit_code};
@@ -12,7 +12,7 @@ fn main() {
         &mut std::io::stdout(),
     );
     if let Err(error) = &result {
-        eprintln!("tinyrsi: {}", error_chain(error));
+        eprintln!("rsi-ralph: {}", error_chain(error));
     }
     std::process::exit(exit_code(&result));
 }

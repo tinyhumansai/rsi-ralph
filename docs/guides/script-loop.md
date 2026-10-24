@@ -3,7 +3,7 @@
 The script loop improves any program that prints a number. This guide covers
 what your script must do, how to describe it to the loop, and how to read the
 results. The behavior contract is [`specs/script-loop.md`](../specs/script-loop.md);
-the bundled example is [`examples/script_loop`](../../crates/tinyrsi/examples/script_loop/README.md).
+the bundled example is [`examples/script_loop`](../../crates/rsi-ralph/examples/script_loop/README.md).
 
 ## 1. Make the script measurable
 

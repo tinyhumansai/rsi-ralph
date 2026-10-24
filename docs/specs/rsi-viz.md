@@ -1,6 +1,6 @@
 # RSI loop visualizer
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 Plan: [`../plans/rsi-viz.md`](../plans/rsi-viz.md).
 

@@ -1,6 +1,6 @@
 //! Evolving a plain script: the supervisor and the proposals it makes.
 //!
-//! The script loop in `tinyrsi` renders a [`ScriptBrief`] from its ledger and
+//! The script loop in `rsi-ralph` renders a [`ScriptBrief`] from its ledger and
 //! asks a [`ScriptSupervisor`] for a [`ScriptProposal`]: whole-file
 //! replacements of editable files, with a rationale, a checkable hypothesis,
 //! a short `approach` label naming the technique, and, when it retries an

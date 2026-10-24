@@ -1,6 +1,6 @@
 # Durable host runtime contract
 
-TinyRSI is the external host of a typed hive improvement loop. It records the
+RSI Ralph is the external host of a typed hive improvement loop. It records the
 selected design separately from the deployed coordinator, evaluates against
 immutable private checks, and requires explicit human approval. The
 `rsi-ralph-host` crate (formerly the optional `host` feature) holds the concrete asynchronous coordinator/SQLite adapter and

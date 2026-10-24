@@ -1,4 +1,4 @@
-# TinyRSI research and implementation
+# RSI Ralph research and implementation
 
 The improvement object is a typed tinyhivemind hive package and its exact pinned
 memory image. An external host observes real work, generates proposals,

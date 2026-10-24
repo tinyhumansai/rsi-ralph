@@ -5,17 +5,17 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "The hive host runtime for TinyRSI: coordinators, private suites, durable epochs and deployment."
+description = "The hive host runtime for RSI Ralph: coordinators, private suites, durable epochs and deployment."
 readme = "../../README.md"
-keywords = ["rsi", "agents", "hive", "tinyrsi"]
+keywords = ["rsi", "agents", "hive", "rsi-ralph"]
 categories = ["development-tools"]
 publish = false
 
 [dependencies]
-tinyrsi = { workspace = true }
+rsi-ralph = { workspace = true }
 rsi-ralph-verify = { workspace = true }
 # SQLite coordinator storage is what makes host restarts and rollback durable;
-# it is why this runtime is its own crate rather than part of `tinyrsi`.
+# it is why this runtime is its own crate rather than part of `rsi-ralph`.
 tinyhivemind-hives = { workspace = true, features = ["sqlite"] }
 tinyhivemind-lang = { workspace = true }
 tinybackrooms = { workspace = true }
