@@ -316,7 +316,7 @@ fn the_binary_reports_success_and_input_errors_by_exit_code() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let home = tempfile::tempdir().unwrap();
     let tinyrsi = |args: &[&str], key: bool| {
-        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_tinyrsi"));
+        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_rsi-ralph"));
         command
             .arg("--home")
             .arg(home.path())
