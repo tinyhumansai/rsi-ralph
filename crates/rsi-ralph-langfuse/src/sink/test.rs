@@ -213,7 +213,7 @@ fn an_explicit_flush_reports_the_failure() {
 }
 
 #[test]
-fn a_partially_rejected_batch_counts_as_a_failure() {
+fn a_partially_rejected_batch_counts_as_a_failure_and_stays_pending() {
     let (base, rx) = responding(vec![(
         200,
         r#"{"partialSuccess":{"rejectedSpans":"2","errorMessage":"x"}}"#,
@@ -224,8 +224,9 @@ fn a_partially_rejected_batch_counts_as_a_failure() {
     }
     rx.recv().unwrap();
     assert_eq!(trace.failures(), 1);
-    // The accepted spans are not sent again.
-    assert_eq!(trace.pending(), [] as [Value; 0]);
+    // OpenHuman's client reports a rejected span as an error, so the request
+    // stays pending for a later flush instead of being dropped.
+    assert_eq!(trace.pending().len(), 1);
 }
 
 #[test]
