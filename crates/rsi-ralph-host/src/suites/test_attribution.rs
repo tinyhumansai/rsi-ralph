@@ -119,6 +119,15 @@ fn candidate_timeouts_and_overspent_replies_are_classified() {
 #[test]
 fn an_unsupported_or_unreservable_candidate_fails_before_any_model_call() {
     let mut unsupported = state();
+    unsupported
+        .package
+        .manifest
+        .mcp
+        .push(tinyhivemind_lang::McpServer {
+            id: "external".into(),
+            endpoint: "external-mcp".into(),
+            ..Default::default()
+        });
     unsupported.package.manifest.seats[0]
         .mcp
         .push("external".into());

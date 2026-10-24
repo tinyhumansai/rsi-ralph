@@ -295,6 +295,11 @@ fn model_binding_and_executor_boundaries_fail_without_panicking() {
             .with_model_name("chosen".into())
             .unwrap();
     let mut candidate = state();
+    candidate.manifest.models.push(tinyhivemind_lang::Model {
+        id: "chosen".into(),
+        name: "chosen".into(),
+        ..Default::default()
+    });
     candidate.package.manifest.seats[0].model = Some("chosen".into());
     assert!(
         evaluator
@@ -373,6 +378,11 @@ async fn controlled_factory_requires_binding_and_retains_session_when_writer_is_
     assert!(make().with_model_name(String::new()).is_err());
     let factory = make().with_model_name("declared".into()).unwrap();
     let mut package = state().package;
+    package.manifest.models.push(tinyhivemind_lang::Model {
+        id: "declared".into(),
+        name: "declared".into(),
+        ..Default::default()
+    });
     package.manifest.seats[0].model = Some("declared".into());
     let hive = tinyhivemind_lang::lower(&package).unwrap();
     factory.validate(&hive).unwrap();
