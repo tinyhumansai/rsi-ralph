@@ -106,6 +106,17 @@ fn patch_shapes_ignore_literal_values_but_not_targets() {
 }
 
 #[test]
+fn integration_patch_shapes_render_their_class() {
+    let mut patch = context("tools", "a");
+    patch.class = PatchClass::Integration;
+    assert!(
+        PatchShape::of(&patch)
+            .to_string()
+            .starts_with("integration:")
+    );
+}
+
+#[test]
 fn only_harmful_stops_strike_among_proposal_reasons() {
     let dir = tempfile::tempdir().unwrap();
     let mut archive = Archive::open(dir.path().join("a.json")).unwrap();
