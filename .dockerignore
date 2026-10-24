@@ -1,0 +1,8 @@
+# Keep the build context to sources: build output, checkouts and the visualizer
+# are never needed to compile the binary.
+.git
+target
+worktrees
+apps
+docs
+**/node_modules
