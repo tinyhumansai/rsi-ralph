@@ -213,7 +213,19 @@ Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or
 commit and tag already exist. The workflow revalidates the workspace, versions
 and tags it — one `[workspace.package]` version that every member inherits —
 and creates a GitHub release with generated notes. A release is a tagged
-source version; there are no binary assets.
+source version, and the `rsi-ralph` binary is published as the container image
+`ghcr.io/tinyhumansai/rsi-ralph` (tagged with the version and `latest`). The
+crates are not on crates.io: they depend on vendored git and path dependencies.
+
+```sh
+docker run --rm -v "$PWD/loops:/loops" -v rsi-ralph-home:/data \
+  ghcr.io/tinyhumansai/rsi-ralph check /loops/graph-coloring
+```
+
+Run records persist in the `/data` volume (`TINYRSI_HOME`). The UI listens on
+loopback only, so use `--network host` to reach it, or pass `--no-serve` to
+`run`. Build the image yourself with `docker build -t rsi-ralph .` from a
+checkout with submodules initialized.
 
 The separate acceptance/deployment validation uses a model-authored, schema-bound
 context repair outside the preregistered comparison:
