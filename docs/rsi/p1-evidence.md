@@ -1,6 +1,6 @@
 # P1 offline evidence demonstration — 2026-10-11
 
-`cargo run -p tinyrsi-host --example observe_epochs` completed two
+`cargo run -p rsi-ralph-host --example observe_epochs` completed two
 actual coordinator turns with independently observed golden checker passes.
 The deterministic offline provider reported ten input and two output tokens per
 turn. Those counters are adapter measurements, not billed hosted-model tokens.
@@ -28,9 +28,9 @@ rejected queries and parent-pointer revert.
 
 Implementation: [evidence contract](../specs/epoch-evidence.md),
 [test-first plan](../plans/epoch-evidence.md),
-[journal design](../../crates/tinyrsi-host/src/evidence_journal/README.md).
+[journal design](../../crates/rsi-ralph-host/src/evidence_journal/README.md).
 Regression suites: `evidence_journal/test.rs`, `suites/test_journal.rs`,
-`crates/tinyrsi-verify/src/verification/test.rs` and the existing `archive/test*.rs` files.
+`crates/rsi-ralph-verify/src/verification/test.rs` and the existing `archive/test*.rs` files.
 
 Host admission must be stopped and runners joined at an epoch boundary. Upstream
 transcript and episode reads are separate snapshots. A remote response lost

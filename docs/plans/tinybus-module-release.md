@@ -11,7 +11,7 @@
    state into the service.
 3. Verify a locally built `cdylib` through the real TinyBus dynamic loader
    (`verify_module`), then a tagged release archive (`verify_github_release`).
-4. Replace TinyBus host bundles with tagged `tinyrsi` module archives for
+4. Replace TinyBus host bundles with tagged `rsi-ralph` module archives for
    every platform the release matrix covers.
 
 ## Status

@@ -34,7 +34,7 @@ measures the repetition share.
   `approach` label. Render "Already tried" above the recent rejections, and
   tell the supervisor not to resubmit an approach unless it names what is
   different this time.
-- **Code:** `ScriptProposal` (tinyrsi-evolve) gains an optional `approach`
+- **Code:** `ScriptProposal` (rsi-ralph-evolve) gains an optional `approach`
   field; `ScriptLedger` stores it; `script_loop/prompt.rs` renders the summary.
 - **Measure:** the share of proposals whose approach was already rejected
   (gpt-4.1-mini runs: over 50%). Target under 15%, and fewer epochs to stall.
@@ -82,7 +82,7 @@ earlier slots of the same epoch, and a slot may set a temperature
   seeds (up to a cap) before deciding. A sequential test keeps the error rate
   honest.
 - **Code:** `LoopPolicy::max_seeds`; `score.rs` re-decides with the larger
-  sample; reuse the paired machinery in `tinyrsi-score`.
+  sample; reuse the paired machinery in `rsi-ralph-score`.
 - **Measure:** the inconclusive rate. Gains below the current resolution
   (curve fit degree 7) should now resolve either way.
 
@@ -100,7 +100,7 @@ earlier slots of the same epoch, and a slot may set a temperature
 ### 6. Benchmark harness for the loop itself
 
 **Implemented:** [loop benchmarks spec](../specs/loop-benchmarks.md),
-`cargo run -p tinyrsi-examples --example benchmarks`. The repetition share is
+`cargo run -p rsi-ralph-examples --example benchmarks`. The repetition share is
 a proxy (identical content or normalized hypothesis of an earlier ruled-out
 proposal) until item 1 adds an `approach` label.
 

@@ -1,6 +1,6 @@
 # Host-driven hive improvement
 
-Related: tinyhumansai/tinyrsi#1 and #2.
+Related: tinyhumansai/rsi-ralph#1 and #2.
 
 ## Contract
 

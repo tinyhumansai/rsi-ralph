@@ -1,7 +1,7 @@
 # Roadmap
 
 What exists, what comes next, and what is deliberately out of scope. Phase
-numbers (P1–P6) follow [umbrella issue #1](https://github.com/tinyhumansai/tinyrsi/issues/1).
+numbers (P1–P6) follow [umbrella issue #1](https://github.com/tinyhumansai/rsi-ralph/issues/1).
 Implementation detail per phase is in [`docs/rsi/phases.md`](docs/rsi/phases.md);
 the acceptance gaps are audited in
 [`docs/rsi/remaining-work.md`](docs/rsi/remaining-work.md). For how the pieces
@@ -13,8 +13,8 @@ published 24-attempt experiment is inconclusive.
 
 ## Shipped
 
-**Improvement loop library** (paths under `crates/tinyrsi/src/`, or
-`crates/tinyrsi-host/src/` for `host/`, `suites/`, `epoch_driver/` and
+**Improvement loop library** (paths under `crates/rsi-ralph/src/`, or
+`crates/rsi-ralph-host/src/` for `host/`, `suites/`, `epoch_driver/` and
 `evidence_journal/`)
 
 - P1 observe and record: `Observer`, `Dossier` (`observation/`),
@@ -25,29 +25,29 @@ published 24-attempt experiment is inconclusive.
   Demonstrated offline by the `observe_epochs` example.
 - P2 human-gated shadow selection: `run_proposal_h` with frozen screen,
   selection and confirmation stages (`orchestrator/`), normalized H scoring
-  and bootstrap (`crates/tinyrsi-score/src/scoring/`), private suites and `CoordinatorEvaluator`
+  and bootstrap (`crates/rsi-ralph-score/src/scoring/`), private suites and `CoordinatorEvaluator`
   (`suites/`), immutable memory snapshots (`memory/`).
-- P3 verified decomposition: `Blueprint` (`crates/tinyrsi-verify/src/blueprint/`), `VerifierRegistry`
+- P3 verified decomposition: `Blueprint` (`crates/rsi-ralph-verify/src/blueprint/`), `VerifierRegistry`
   and `VerifiedRunner` with process, golden, schema and Lean checks
-  (`crates/tinyrsi-verify/src/verification/`), plus a pinned-toolchain `lake build` checker
-  (`crates/tinyrsi-verify/src/verification/lake/`) validated on 12 private reference proofs
+  (`crates/rsi-ralph-verify/src/verification/`), plus a pinned-toolchain `lake build` checker
+  (`crates/rsi-ralph-verify/src/verification/lake/`) validated on 12 private reference proofs
   ([`docs/rsi/pinned-lean.md`](docs/rsi/pinned-lean.md)).
 - P4 creative retreat: `prepare_retreat_epoch` / `evaluate_retreat_epoch`
   with a durable `EpochJournal`, generation receipts and outcome datasets
-  (`epoch_driver/`), the tinybackrooms request contract (`crates/tinyrsi-evolve/src/retreat/`) and
-  `DurableRetreatMemory` (`crates/tinyrsi-evolve/src/retreat_memory/`).
+  (`epoch_driver/`), the tinybackrooms request contract (`crates/rsi-ralph-evolve/src/retreat/`) and
+  `DurableRetreatMemory` (`crates/rsi-ralph-evolve/src/retreat_memory/`).
 - P5 structural deployment: `DeploymentStore::activate`, `rollback` and
   `recover` over `CoordinatorHost` with SQLite fencing and compensation
   (`host/`).
 - P6 bounded experiment: `ExperimentProtocol` and `run_experiment` with
-  original/evolved arms and memory/retreat ablations (`crates/tinyrsi-score/src/experiment/`).
+  original/evolved arms and memory/retreat ablations (`crates/rsi-ralph-score/src/experiment/`).
 - Model boundary: `ModelPort`, `OpenRouterModel`, `BudgetedModel` and
-  `ModelConversant` with pre-dispatch token reservation (`crates/tinyrsi-model`).
+  `ModelConversant` with pre-dispatch token reservation (`crates/rsi-ralph-model`).
 - A private 48-task numerical benchmark bank and pinned Euler controls
   ([`docs/rsi/private-benchmarks.md`](docs/rsi/private-benchmarks.md)).
-- The `tinyrsi` binary (`crates/tinyrsi-cli`): loops defined as folders of
+- The `rsi-ralph` binary (`crates/rsi-ralph-cli`): loops defined as folders of
   JSON, Markdown and step scripts, a hive of agents writing candidates, a
-  spend-capped gateway (`crates/tinyrsi-gateway`), a durable run store and a
+  spend-capped gateway (`crates/rsi-ralph-gateway`), a durable run store and a
   built-in UI ([`docs/specs/rsi-cli.md`](docs/specs/rsi-cli.md),
   [`docs/guides/rsi-cli.md`](docs/guides/rsi-cli.md)).
 
@@ -82,7 +82,7 @@ Ordered roughly by how much they unblock. Each item links back to the audit.
 
 - A TinyBus or other plugin surface. The lineage module and its native
   release archives were removed
-  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); TinyRSI is a library.
+  ([ADR 0002](docs/adr/0002-split-crates-drop-bus.md)); RSI Ralph is a library.
 
 - Modifying vendored or upstream engines from this repository. OpenHuman,
   tinyhivemind language and coordinator, tinybackrooms and memory engines

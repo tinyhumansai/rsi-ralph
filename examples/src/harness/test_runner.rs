@@ -4,9 +4,9 @@ use super::runner::{ModelChoice, execute, plan, run_job, write_summary};
 use super::{Summary, aggregate};
 use crate::benchmarks::Benchmark;
 use crate::python;
+use rsi_ralph::StopReason;
 use std::path::Path;
 use std::sync::Mutex;
-use tinyrsi::StopReason;
 
 #[test]
 fn the_plan_nests_benchmark_model_repeat_with_one_directory_each() {

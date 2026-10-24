@@ -1,7 +1,7 @@
 # RSI phase status and evidence
 
-This page tracks [umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1)
-and [scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2). The
+This page tracks [umbrella #1](https://github.com/tinyhumansai/rsi-ralph/issues/1)
+and [scoring #2](https://github.com/tinyhumansai/rsi-ralph/issues/2). The
 [framework](specs/rsi-framework.md) defines ownership; the
 [host runtime specification](../specs/host-runtime.md) defines deployed behavior.
 Implemented mechanisms and experimental efficacy are separate claims.
@@ -155,12 +155,12 @@ replication remains necessary. See the [experiment contract](../specs/ignition.m
 
 ## Trackers and upstream boundaries
 
-P1–P6 trackers are [#3](https://github.com/tinyhumansai/tinyrsi/issues/3),
-[#4](https://github.com/tinyhumansai/tinyrsi/issues/4),
-[#5](https://github.com/tinyhumansai/tinyrsi/issues/5),
-[#6](https://github.com/tinyhumansai/tinyrsi/issues/6),
-[#7](https://github.com/tinyhumansai/tinyrsi/issues/7), and
-[#8](https://github.com/tinyhumansai/tinyrsi/issues/8). Existing deployment,
+P1–P6 trackers are [#3](https://github.com/tinyhumansai/rsi-ralph/issues/3),
+[#4](https://github.com/tinyhumansai/rsi-ralph/issues/4),
+[#5](https://github.com/tinyhumansai/rsi-ralph/issues/5),
+[#6](https://github.com/tinyhumansai/rsi-ralph/issues/6),
+[#7](https://github.com/tinyhumansai/rsi-ralph/issues/7), and
+[#8](https://github.com/tinyhumansai/rsi-ralph/issues/8). Existing deployment,
 identity and completion work remains owned by tinyhivemind; generalized memory
 engines remain owned by their upstream projects. The remaining language contract
 is tracked in [tinyhivemind #122](https://github.com/tinyhumansai/tinyhivemind/issues/122).

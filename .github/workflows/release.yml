@@ -23,7 +23,7 @@ permissions:
 env:
   # The workspace member whose version names the release. Every member inherits
   # the same version from `[workspace.package]`, so one package is enough.
-  RELEASE_PACKAGE: tinyrsi
+  RELEASE_PACKAGE: rsi-ralph
 
 jobs:
   prepare:

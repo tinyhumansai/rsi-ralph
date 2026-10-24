@@ -8,7 +8,7 @@ into this repository. Run from the repository root:
 python3 -m unittest discover -s scripts/benchmarks -p 'test_*.py'
 python3 scripts/benchmarks/catalog.py > target/euler-source-catalog.json
 python3 scripts/benchmarks/curate.py --output target/private-benchmarks/bank.json
-cargo run -p tinyrsi-host --example private_benchmark -- \
+cargo run -p rsi-ralph-host --example private_benchmark -- \
   target/private-benchmarks/bank.json
 ```
 

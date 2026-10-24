@@ -16,18 +16,18 @@
 //! # Example
 //!
 //! ```
-//! use tinyrsi_examples::{Replies, proposal};
+//! use rsi_ralph_examples::{Replies, proposal};
 //! let replies = Replies::new([proposal("why", "what", "a.py", "print(1)")]);
 //! assert_eq!(replies.remaining(), 1);
 //! ```
 
+use rsi_ralph::{ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, RunLocation};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tinyrsi::{ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, RunLocation};
 
 pub mod benchmarks;
 pub mod harness;
@@ -66,7 +66,7 @@ pub fn default_live_model() -> String {
 ///
 /// Returns an error for an empty or control-containing model id.
 pub fn live_model(model: &str) -> Result<Arc<dyn ModelPort>, Box<dyn Error>> {
-    Ok(Arc::new(tinyrsi::OpenRouterModel::new(model.to_owned())?))
+    Ok(Arc::new(rsi_ralph::OpenRouterModel::new(model.to_owned())?))
 }
 
 /// A fresh run directory under `target/rsi-examples/<example>/`.

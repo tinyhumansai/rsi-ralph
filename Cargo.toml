@@ -3,7 +3,7 @@ resolver = "3"
 # Every crate in this repository lives under `crates/`, one directory per
 # package, each directory named for the package it holds; `examples/` is the
 # one exception, a package of runnable end-to-end examples. There is no root
-# package: the library a host depends on is `crates/tinyrsi`, the same as any
+# package: the library a host depends on is `crates/rsi-ralph`, the same as any
 # other member. Keeping the root virtual is what makes that uniform — a root
 # package would make one crate structurally different from the rest for no
 # reason other than history.
@@ -23,36 +23,36 @@ version = "0.2.1"
 edition = "2024"
 rust-version = "1.96"
 license = "GPL-3.0-only"
-repository = "https://github.com/tinyhumansai/rust-tinyrsi"
+repository = "https://github.com/tinyhumansai/rsi-ralph"
 
 [workspace.dependencies]
 # Shared proposal and candidate data. No `version` requirement on purpose: the
 # workspace version moves on every release, and nothing here is published, so
 # the path is the whole address.
-tinyrsi-types = { path = "crates/tinyrsi-types" }
+rsi-ralph-types = { path = "crates/rsi-ralph-types" }
 # The loop library the host runtime builds on.
-tinyrsi = { path = "crates/tinyrsi" }
+rsi-ralph = { path = "crates/rsi-ralph" }
 # The hive host runtime, which the examples package drives end to end.
-tinyrsi-host = { path = "crates/tinyrsi-host" }
+rsi-ralph-host = { path = "crates/rsi-ralph-host" }
 # Paired comparison, normalized scoring, experiments and the `Scorer` port.
-tinyrsi-score = { path = "crates/tinyrsi-score" }
+rsi-ralph-score = { path = "crates/rsi-ralph-score" }
 # Host checkers, blueprints and the bounded process runner.
-tinyrsi-verify = { path = "crates/tinyrsi-verify" }
+rsi-ralph-verify = { path = "crates/rsi-ralph-verify" }
 # The Evolver port, the script supervisor and tinybackrooms retreat.
-tinyrsi-evolve = { path = "crates/tinyrsi-evolve" }
+rsi-ralph-evolve = { path = "crates/rsi-ralph-evolve" }
 # The loop trace written for the visualizer and mirrored into `tracing`.
-tinyrsi-trace = { path = "crates/tinyrsi-trace" }
+rsi-ralph-trace = { path = "crates/rsi-ralph-trace" }
 # Langfuse export of the loop trace, through OpenHuman's existing client.
-tinyrsi-langfuse = { path = "crates/tinyrsi-langfuse" }
+rsi-ralph-langfuse = { path = "crates/rsi-ralph-langfuse" }
 # Bounded, metered model calls shared by scoring, evolution and the loops.
-tinyrsi-model = { path = "crates/tinyrsi-model" }
-# The `tinyrsi` binary that runs file-defined loops.
-tinyrsi-cli = { path = "crates/tinyrsi-cli" }
-# The hive of OpenHuman agents that writes candidates in a `tinyrsi` run.
-tinyrsi-swarm = { path = "crates/tinyrsi-swarm" }
-# The spend-capped OpenRouter proxy each `tinyrsi` run starts in-process.
-tinyrsi-gateway = { path = "crates/tinyrsi-gateway" }
-# Derive macros for the crate-wide error type in `crates/tinyrsi/src/error/`.
+rsi-ralph-model = { path = "crates/rsi-ralph-model" }
+# The `rsi-ralph` binary that runs file-defined loops.
+rsi-ralph-cli = { path = "crates/rsi-ralph-cli" }
+# The hive of OpenHuman agents that writes candidates in a `rsi-ralph` run.
+rsi-ralph-swarm = { path = "crates/rsi-ralph-swarm" }
+# The spend-capped OpenRouter proxy each `rsi-ralph` run starts in-process.
+rsi-ralph-gateway = { path = "crates/rsi-ralph-gateway" }
+# Derive macros for the crate-wide error type in `crates/rsi-ralph/src/error/`.
 # Every dependency entry should carry a comment like this one saying why it is
 # here.
 thiserror = "2"
@@ -82,32 +82,34 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 # Tests capture mirrored spans and events with a registry layer.
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
-# `tinyrsi-gateway` serves its OpenAI-compatible loopback surface with axum.
+# `rsi-ralph-gateway` serves its OpenAI-compatible loopback surface with axum.
 # Only HTTP/1 over Tokio with JSON bodies: no forms, queries or HTTP/2.
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
-# `tinyrsi-gateway` forwards admitted calls to OpenRouter. rustls rather than
+# `rsi-ralph-gateway` forwards admitted calls to OpenRouter. rustls rather than
 # native-tls so no system OpenSSL is linked; `stream` passes server-sent
 # events through as they arrive.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
-# `tinyrsi-gateway` drains the upstream event stream and re-wraps it as the
+# `rsi-ralph-gateway` drains the upstream event stream and re-wraps it as the
 # response body (`StreamExt`, `stream::unfold`).
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
 # Scripted OpenAI-compatible model servers in the swarm and CLI tests.
 wiremock = "0.6"
-# Command-line parsing for the `tinyrsi` binary in `crates/tinyrsi-cli`; derive
+# Command-line parsing for the `rsi-ralph` binary in `crates/rsi-ralph-cli`; derive
 # only, no colour or terminal-width probing.
 clap = { version = "4", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 
 # OpenHuman's embedding facade, used only for its `observe::langfuse` client so
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
 # Default features off: only the `langfuse` export is needed, not the agent
-# runtime's optional domains.
-openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse"] }
+# runtime's optional domains. `channels` is on because OpenHuman's agent bus
+# imports `channels::run_channel_turn` without gating it, so a build without the
+# feature does not compile.
+openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse", "channels"] }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
-# coordinator, for `tinyrsi-swarm`. It names OpenHuman by git source; the
+# coordinator, for `rsi-ralph-swarm`. It names OpenHuman by git source; the
 # `[patch."https://github.com/tinyhumansai/openhuman"]` table below resolves
-# that onto `vendor/openhuman`, so the swarm and `tinyrsi-langfuse` link one
+# that onto `vendor/openhuman`, so the swarm and `rsi-ralph-langfuse` link one
 # OpenHuman. Its `offline` fixture feature is enabled only by the swarm's tests.
 tinyhivemind-openhuman = { path = "vendor/tinyhivemind/crates/tinyhivemind-openhuman" }
 
@@ -171,6 +173,12 @@ tinytools-agent = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed" }
 openhuman = { path = "vendor/openhuman/crates/openhuman-core" }
 
+[patch."https://github.com/tinyhumansai/tinyflows"]
+# tinyhivemind-openhuman names the tinyflows scheduler by git rev. Redirect it to
+# the copy OpenHuman vendors so the graph holds one `tinyflows-bus` and the
+# `Schedule` the adapter validates is the one OpenHuman's cron domain uses.
+tinyflows-schedule = { path = "vendor/openhuman/vendor/tinyflows/crates/tinyflows-schedule" }
+
 [patch."https://github.com/tinyhumansai/tinymemory"]
 # tinyhivemind-openhuman's hive memory names the memory contract by git rev.
 # Redirect it to the copy OpenHuman vendors — the one its memory domain links —
@@ -178,15 +186,61 @@ openhuman = { path = "vendor/openhuman/crates/openhuman-core" }
 tinymemory-api = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-api" }
 tinymemory-tools = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-tools" }
 
+[patch."https://github.com/tinyhumansai/tinybus"]
+# tinystoragedrivers-bus (and tinywallet, which names tinybus by git rev) name
+# tinybus by git. Redirect them to the in-tree copy so the graph holds exactly
+# one `tinybus` (one `Interface`, one `Connection`) and one module SDK instead of
+# a second set compiled only for the storage wire types.
+tinybus = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus" }
+tinybus-macros = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-macros" }
+tinybus-module = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-module" }
+
+[patch."https://github.com/senamakel/tinybus"]
+# The v2 storage and TinyBox modules depend on the migration fork URL. Patch
+# that source identity to the same checkout as the canonical dependency above
+# so all bus interfaces share one Rust type identity.
+tinybus = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus" }
+tinybus-macros = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-macros" }
+tinybus-module = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-module" }
+
 [patch."https://github.com/tinyhumansai/tinystoragedrivers"]
-# tinyflows names the storage crates by git tag so it can build on its own.
-# Redirect them to the copy tinyagents vendors — the one the session store and
-# the core `storage` domain link — so there is exactly one `DocumentStore`
-# trait and one `libsqlite3-sys` (`links = "sqlite3"`) in the graph.
-tinystoragedrivers-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-core" }
-tinystoragedrivers-sqlite = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-sqlite" }
+# One editable checkout every module resolves onto. The v2 repository splits
+# the public facade, API, types and primitive implementations into separate
+# packages; only packages that exist in the pinned v2 checkout are patched.
+# scripts/ci/check-storage-owner.mjs enforces that resolved TSD packages stay
+# under this vendor directory.
+tinystoragedrivers = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers" }
+tinystoragedrivers-api = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-api" }
+tinystoragedrivers-blob = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-blob" }
+tinystoragedrivers-bus = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-bus" }
+tinystoragedrivers-busproxy = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-busproxy" }
+tinystoragedrivers-connect = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-connect" }
+tinystoragedrivers-document = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-document" }
+tinystoragedrivers-kv = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-kv" }
+tinystoragedrivers-queue = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-queue" }
+tinystoragedrivers-secrets = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-secrets" }
+tinystoragedrivers-testkit = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-testkit" }
+tinystoragedrivers-types = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-types" }
+
+[patch."https://github.com/senamakel/tinystoragedrivers"]
+# The v2.1.0 owner APIs are published from the migration fork while the host
+# consumes their canonical module sources from the same pinned vendor tree.
+tinystoragedrivers = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers" }
+tinystoragedrivers-api = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-api" }
+tinystoragedrivers-blob = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-blob" }
+tinystoragedrivers-bus = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-bus" }
+tinystoragedrivers-busproxy = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-busproxy" }
+tinystoragedrivers-connect = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-connect" }
+tinystoragedrivers-document = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-document" }
+tinystoragedrivers-kv = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-kv" }
+tinystoragedrivers-queue = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-queue" }
+tinystoragedrivers-secrets = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-secrets" }
+tinystoragedrivers-testkit = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-testkit" }
+tinystoragedrivers-types = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-types" }
 
 [patch."https://github.com/tinyhumansai/tinyinference"]
+# tinycomputer depends on the Jev client by git; resolve it to the vendored copy.
+tinyinference-decisions = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-decisions" }
 tinyinference-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
 tinyinference-embeddings = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
 tinyinference-llm = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
@@ -195,9 +249,21 @@ tinyinference-providers = { path = "vendor/openhuman/vendor/tinyagents/vendor/ti
 tinyinference-voice = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
 
 [patch.crates-io]
+# Module crates name TinyAgents by version (with a nested-path patch of their
+# own for standalone builds); resolve those names to the one copy the host uses.
+tinyagents-live = { path = "vendor/openhuman/vendor/tinyagents/crates/tinyagents-live" }
+tinyagents-harness = { path = "vendor/openhuman/vendor/tinyagents/crates/tinyagents-harness" }
+tinyagents-hooks = { path = "vendor/openhuman/vendor/tinyagents/crates/tinyagents-hooks" }
+tinytools = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
+tinybus = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus" }
+tinybus-macros = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-macros" }
+tinybus-module = { path = "vendor/openhuman/vendor/tinybus/crates/tinybus-module" }
 tinyinference-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
 tinyinference-embeddings = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
 tinyinference-llm = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
 tinyinference-local = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local" }
 tinyinference-providers = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-providers" }
 tinyinference-voice = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
+tinyflows = { path = "vendor/openhuman/vendor/tinyflows/crates/tinyflows" }
+tinychannels = { path = "vendor/openhuman/vendor/tinychannels" }
+tiny-artifacts = { path = "vendor/openhuman/vendor/tiny-artifacts/crates/tiny-artifacts" }

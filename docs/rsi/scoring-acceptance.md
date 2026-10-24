@@ -1,6 +1,6 @@
 # Scoring acceptance and implementation map
 
-Issue [#2](https://github.com/tinyhumansai/tinyrsi/issues/2) is a planning/spec
+Issue [#2](https://github.com/tinyhumansai/rsi-ralph/issues/2) is a planning/spec
 issue. Its normative deliverable is the [scoring specification](specs/scoring.md),
 with a [worked recorded-data example](scoring-worked-example.md). Acceptance of
 that design does not assert that every intended mechanism below already exists.
@@ -11,17 +11,17 @@ completion. No tests are skipped or added to pretend a missing feature exists.
 
 The identifiers in the tables refer to these actual source files:
 
-- **S**: [normalized scoring tests](../../crates/tinyrsi-score/src/scoring/test.rs).
-- **N**: [normalized proposal tests](../../crates/tinyrsi/src/orchestrator/normalized/test.rs).
-- **O**: [original proposal tests](../../crates/tinyrsi/src/orchestrator/test.rs).
-- **F**: [memory/guard funnel tests](../../crates/tinyrsi/src/orchestrator/test_funnel.rs).
-- **Q**: [quality and judge-calibration tests](../../crates/tinyrsi-score/src/evaluation/test.rs).
-- **M**: [snapshot-memory tests](../../crates/tinyrsi/src/memory/test.rs).
-- **E**: [Engine epoch tests](../../crates/tinyrsi-host/src/epoch_driver/test.rs).
+- **S**: [normalized scoring tests](../../crates/rsi-ralph-score/src/scoring/test.rs).
+- **N**: [normalized proposal tests](../../crates/rsi-ralph/src/orchestrator/normalized/test.rs).
+- **O**: [original proposal tests](../../crates/rsi-ralph/src/orchestrator/test.rs).
+- **F**: [memory/guard funnel tests](../../crates/rsi-ralph/src/orchestrator/test_funnel.rs).
+- **Q**: [quality and judge-calibration tests](../../crates/rsi-ralph-score/src/evaluation/test.rs).
+- **M**: [snapshot-memory tests](../../crates/rsi-ralph/src/memory/test.rs).
+- **E**: [Engine epoch tests](../../crates/rsi-ralph-host/src/epoch_driver/test.rs).
 
 ## Reject-code coverage and compatibility
 
-The current public [ReasonCode](../../crates/tinyrsi-types/src/proposal/types.rs)
+The current public [ReasonCode](../../crates/rsi-ralph-types/src/proposal/types.rs)
 serializes twelve outcomes. The intended seventeen rejection codes below remain a more detailed taxonomy.
 `Archive::proposal_dispositions` now provides versioned exact-duplicate history
 without changing that coarse wire contract.
@@ -114,8 +114,8 @@ any failed attempt. Current implemented decisions have regression suites;
 future mechanisms have explicit test obligations above.
 
 Implementation follow-ups belong to the existing
-[P2 human-gated loop](https://github.com/tinyhumansai/tinyrsi/issues/4),
-[P4 retreat](https://github.com/tinyhumansai/tinyrsi/issues/6), and
-[P6 experiment](https://github.com/tinyhumansai/tinyrsi/issues/8) trackers, with
+[P2 human-gated loop](https://github.com/tinyhumansai/rsi-ralph/issues/4),
+[P4 retreat](https://github.com/tinyhumansai/rsi-ralph/issues/6), and
+[P6 experiment](https://github.com/tinyhumansai/rsi-ralph/issues/8) trackers, with
 memory-engine cleanup remaining upstream/host work. This planning issue's
 closure does not close those implementation or scientific acceptance trackers.

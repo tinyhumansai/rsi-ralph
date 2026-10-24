@@ -18,7 +18,7 @@ export default async function RunListPage() {
       {runs.length === 0 ? (
         <p className="notice">
           No runs found. Set <code>RSI_RUN_ROOT</code> to a directory holding <code>events.jsonl</code> traces or hive
-          snapshots, or start a loop with <code>cargo run -p tinyrsi --example script_loop</code>.
+          snapshots, or start a loop with <code>cargo run -p rsi-ralph --example script_loop</code>.
         </p>
       ) : (
         <ul>

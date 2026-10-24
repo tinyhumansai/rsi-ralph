@@ -1,10 +1,10 @@
 # Loop trace
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 ## Problem
 
-Every TinyRSI artifact before this one is a snapshot: an atomically rewritten
+Every RSI Ralph artifact before this one is a snapshot: an atomically rewritten
 JSON document behind an exclusive lock. Nothing tells a watcher *what the loop
 is doing right now*, so a run can only be inspected after it ends, and a
 visualizer would have to take the same locks the writer holds.
@@ -71,7 +71,7 @@ when the proposal has no label or was refused, so unlabelled traces (and the
 hive loop's) keep their exact bytes; readers treat a missing field and `null`
 alike.
 
-`provider_refused` is written by the `tinyrsi` binary's engine, just before
+`provider_refused` is written by the `rsi-ralph` binary's engine, just before
 `epoch_finished`, when the model provider refused calls during an epoch whose
 hive changed nothing (or refused every call). `calls` counts the hive's calls
 forwarded to the provider that epoch, `refused` those answered with a

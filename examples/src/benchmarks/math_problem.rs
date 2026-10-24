@@ -2,7 +2,7 @@
 //! `examples/math_problem/`.
 use super::{Definition, metric};
 use crate::{Grader, Replies, proposal, with_approach};
-use tinyrsi::{LoopPolicy, MetricDirection};
+use rsi_ralph::{LoopPolicy, MetricDirection};
 
 const CHECKER: &str = include_str!("../../math_problem/check_pi.py");
 const START: &str = include_str!("../../math_problem/pi.py");

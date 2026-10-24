@@ -6,14 +6,14 @@
 //! controlled runner binds exactly one task seat per hive, so the "agents"
 //! here are every turn that seat takes; all of them read the same shared
 //! context document, which is what the run improves.
-use std::collections::BTreeMap;
-use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
-use tinyhivemind_lang::{Goal, Role, Seat};
-use tinyrsi_host::{
+use rsi_ralph_host::{
     Archive, Error, EvalDecision, FamilyAnchor, HApprovalGate, HostVerifier, Package, Patch,
     PatchClass, PrivateSuites, PrivateTask, Proposal, Result, ScoreComparison, ScorePenalties,
     ScoringPolicySpec,
 };
+use std::collections::BTreeMap;
+use tinyhivemind_lang::lineage::{Direction, ObjectiveScore, Verdict, VersionMetadata};
+use tinyhivemind_lang::{Goal, Role, Seat};
 
 /// The shared context document every agent reads.
 pub(crate) const CONTEXT: &str = "context/method.md";

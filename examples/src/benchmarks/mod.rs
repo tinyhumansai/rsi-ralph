@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```
-//! use tinyrsi_examples::benchmarks::Benchmark;
+//! use rsi_ralph_examples::benchmarks::Benchmark;
 //! let names: Vec<_> = Benchmark::ALL.iter().map(|b| b.name()).collect();
 //! assert_eq!(names, ["curve_fit", "graph_coloring", "math_problem", "upgrade_file"]);
 //! assert_eq!(Benchmark::from_name("graph_coloring"), Some(Benchmark::GraphColoring));
@@ -23,13 +23,13 @@ mod math_problem;
 mod upgrade_file;
 
 use crate::{Grader, Replies};
-use std::{error::Error, path::Path, sync::Arc};
-use tinyrsi::{
+use rsi_ralph::{
     Composite, JsonlTrace, JudgeLimits, LlmJudge, LoopPolicy, LoopReport, MetricDirection,
     MetricScorer, MetricSpec, ModelPort, MonotonicClock, Projected, RunLocation, Scorer,
     ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, SupervisorLimits,
     run_script_loop_with,
 };
+use std::{error::Error, path::Path, sync::Arc};
 
 /// One script-loop benchmark: a subject, its goal and its offline stand-ins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -154,7 +154,7 @@ impl Benchmark {
     /// Returns an error when the benchmark has a judge and `models.judge` is
     /// `None` (`judge required`), when the workspace or trace cannot be
     /// written, or when the loop itself fails (see
-    /// [`tinyrsi::run_script_loop_with`]).
+    /// [`rsi_ralph::run_script_loop_with`]).
     pub fn run(
         self,
         run: &RunLocation,

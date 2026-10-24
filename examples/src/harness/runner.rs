@@ -7,11 +7,11 @@
 //! `summary.json` and `summary.md` beside the run directories.
 use super::{RunCell, RunRecord, Summary, model_label, record, render_markdown};
 use crate::benchmarks::{Benchmark, Models};
+use rsi_ralph::{RunLocation, ScriptLedger};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
-use tinyrsi::{RunLocation, ScriptLedger};
 
 /// Which supervisor (and judge) a run uses.
 #[derive(Debug, Clone, PartialEq, Eq)]

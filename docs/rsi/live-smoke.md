@@ -4,7 +4,7 @@ Run on 2026-10-11 using `openai/gpt-4.1-mini` and an inherited
 `OPENROUTER_API_KEY`. No credentials were read from `.env` or stored in artifacts.
 
 ```sh
-TINYRSI_LIVE_OPENROUTER=1 TINYRSI_SMOKE_ARCHIVE=target/rsi-smoke/engine-grounded.json cargo run --offline -p tinyrsi --example live_openrouter
+TINYRSI_LIVE_OPENROUTER=1 TINYRSI_SMOKE_ARCHIVE=target/rsi-smoke/engine-grounded.json cargo run --offline -p rsi-ralph --example live_openrouter
 ```
 
 The actual pinned tinybackrooms engine ran the critic/proposer conversation,

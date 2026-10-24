@@ -1,24 +1,24 @@
 # RSI CLI: file-defined loops
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 Related: [loop trace](loop-trace.md), [script loop](script-loop.md),
 [rsi-viz](rsi-viz.md), [plan](../plans/2026-10-11-rsi-cli.md).
 
 ## Problem
 
-Running an improvement loop with TinyRSI today means writing Rust against the
+Running an improvement loop with RSI Ralph today means writing Rust against the
 library: a subject literal, a supervisor, a scorer, a policy, a trace sink. Real
 users do not. The OpenHuman memory benchmark loop (`oh-bench-rsi`) reimplemented
 the loop in Python, the agent swarm in a standalone Rust crate, a spend-capped
 model gateway in another, and copied the trace schema by hand with placeholder
 values. The generic parts of an RSI loop — epochs, candidate workspaces,
 agents, scoring, decision, promotion, spend, trace, run history — belong in
-TinyRSI; only the benchmark belongs to the user.
+RSI Ralph; only the benchmark belongs to the user.
 
 ## Goals and non-goals
 
-- Goal: a `tinyrsi` binary (crate `tinyrsi-cli`) that runs a loop defined as a
+- Goal: a `rsi-ralph` binary (crate `rsi-ralph-cli`) that runs a loop defined as a
   folder of JSON and Markdown plus small step scripts in any language.
 - Goal: the agents that write candidates are always a tinyhivemind hive,
   declared in the hive language inside the loop folder.
@@ -138,7 +138,7 @@ one of:
 **`score.decide`.** `on` names the deciding `run` scorer. `test` is:
 
 - `seeds`: every `run` scorer runs once per seed in `seeds` (at least two
-  distinct) and the paired `tinyrsi_score::decide` decides on the deciding
+  distinct) and the paired `rsi_ralph_score::decide` decides on the deciding
   scorer's per-seed scores, with `direction` (`maximize` default, or
   `minimize`), `margin` (in quality units, 0–1) and `target`. Judge grades are
   mixed into the per-seed qualities by weight; the incumbent counts as a
@@ -234,7 +234,7 @@ refusals.
 - When the provider refused every call of an epoch, the run stops with
   reason `provider_refused` and status `failed`, and `run.json`'s `error`
   names the refusal, such as `provider refused 2 of 2 model calls (403: Key
-  limit exceeded (daily limit) …)`. `tinyrsi run` prints the summary and
+  limit exceeded (daily limit) …)`. `rsi-ralph run` prints the summary and
   then fails with that line, exit status 1. Rerunning does not help until the
   key or provider is fixed.
 - An empty epoch with no refusals behaves as before.
@@ -258,18 +258,18 @@ retreat/         retreat memory per loop
 ```
 
 `run.json` and `ledger.json` are rewritten atomically. A run whose process died
-is shown as `interrupted`. `tinyrsi run`, `tinyrsi show` and the UI print a
+is shown as `interrupted`. `rsi-ralph run`, `rsi-ralph show` and the UI print a
 run's `error` and each of its `warnings`.
 
 ## CLI
 
 ```text
-tinyrsi check <loop>
-tinyrsi run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve] [--env K=V]...
-tinyrsi score <loop> --label L [--checkout P] [--env K=V]...
-tinyrsi runs  [--loop NAME]
-tinyrsi show  <loop>/<run-id>
-tinyrsi serve [--port 8787]
+rsi-ralph check <loop>
+rsi-ralph run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve] [--env K=V]...
+rsi-ralph score <loop> --label L [--checkout P] [--env K=V]...
+rsi-ralph runs  [--loop NAME]
+rsi-ralph show  <loop>/<run-id>
+rsi-ralph serve [--port 8787]
 ```
 
 `run` serves the UI on `127.0.0.1:<port>` by default and prints its URL.
@@ -297,10 +297,10 @@ Exit status is 0 on success, 1 on a loop error (including a run stopped on
 
 ## Acceptance criteria
 
-- `tinyrsi check` rejects every malformed field with a specific error, and a
+- `rsi-ralph check` rejects every malformed field with a specific error, and a
   subject whose folder, repository or branch does not exist.
 - An offline example loop runs end to end through the binary, reaches its goal,
-  appears in `tinyrsi runs`, and is visible through `tinyrsi serve`.
+  appears in `rsi-ralph runs`, and is visible through `rsi-ralph serve`.
 - oh-bench-rsi's loop is expressed as a loop folder with no Rust of its own.
 
 ## Open questions

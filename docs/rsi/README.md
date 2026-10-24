@@ -1,4 +1,4 @@
-# TinyRSI research and implementation
+# RSI Ralph research and implementation
 
 The improvement object is a typed tinyhivemind hive package and its exact pinned
 memory image. An external host observes real work, generates proposals,
@@ -53,7 +53,7 @@ recorded separately.
   loop cut RMSE 0.644 → 0.258 in three promotions, then stalled short of its
   0.06 target; why, and the ranked next improvements.
 
-The `tinyrsi-host` crate (formerly the `host` feature) now includes real coordinator evaluation, immutable local memory,
+The `rsi-ralph-host` crate (formerly the `host` feature) now includes real coordinator evaluation, immutable local memory,
 durable Engine epochs and attempts, human-gated activation, compensation and
 rollback. The bounded experiment completed with an inconclusive 24-attempt
 comparison. Neither the arithmetic smoke nor the implemented harness establishes

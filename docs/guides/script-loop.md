@@ -3,7 +3,7 @@
 The script loop improves any program that prints a number. This guide covers
 what your script must do, how to describe it to the loop, and how to read the
 results. The behavior contract is [`specs/script-loop.md`](../specs/script-loop.md);
-the bundled example is [`examples/script_loop`](../../crates/tinyrsi/examples/script_loop/README.md).
+the bundled example is [`examples/script_loop`](../../crates/rsi-ralph/examples/script_loop/README.md).
 
 ## 1. Make the script measurable
 
@@ -118,8 +118,8 @@ with credentials in the subject's `env`.
 
 `run_script_loop` decides on the metric alone. When the goal is partly about
 the code itself, such as readability or following a standard, call
-`run_script_loop_with` with a `tinyrsi_score::Scorer<ScriptCandidate>`, for
+`run_script_loop_with` with a `rsi_ralph_score::Scorer<ScriptCandidate>`, for
 example a `Composite` of the metric (`MetricScorer` through a `Projected`) and
 an `LlmJudge` reading the sources. An `LlmJudge` without a passing
 `JudgeCalibration` can widen a margin but can never promote a candidate on its
-own. See [`crates/tinyrsi-score/README.md`](../../crates/tinyrsi-score/README.md).
+own. See [`crates/rsi-ralph-score/README.md`](../../crates/rsi-ralph-score/README.md).

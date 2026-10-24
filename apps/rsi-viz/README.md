@@ -1,6 +1,6 @@
 # rsi-viz
 
-A local, read-only web app for watching TinyRSI loops. It lists the runs under
+A local, read-only web app for watching RSI Ralph loops. It lists the runs under
 one directory and renders each one:
 
 - **Trace runs** (a directory with `events.jsonl`) update live: a loop ring
@@ -36,7 +36,7 @@ The script loop writes its trace to `target/rsi-script-loop/<run>/events.jsonl`
 (the `script_loop` example lands in a parallel pull request):
 
 ```sh
-cargo run -p tinyrsi --example script_loop     # terminal 1
+cargo run -p rsi-ralph --example script_loop     # terminal 1
 cd apps/rsi-viz && npm run dev                 # terminal 2
 ```
 

@@ -1,13 +1,13 @@
 # Crate split
 
-**Status:** Accepted. **Owner:** TinyRSI maintainers.
+**Status:** Accepted. **Owner:** RSI Ralph maintainers.
 
 Plan: [`../plans/crate-split.md`](../plans/crate-split.md). Decision record:
 [ADR 0002](../adr/0002-split-crates-drop-bus.md).
 
 ## Problem
 
-`crates/tinyrsi` is one crate of roughly 16k non-test lines in 23 modules.
+`crates/rsi-ralph` is one crate of roughly 16k non-test lines in 23 modules.
 Several separate concerns share it:
 
 - the hive epoch path;
@@ -45,7 +45,7 @@ their own. Observability is a fourth concern:
 - Goal: a top-level `examples/` package that runs the whole system offline on
   three problems: a math problem, upgrading a file to a written standard, and
   improving a hive of agents.
-- Goal: remove `crates/tinyrsi-bus`, the TinyBus module and its release
+- Goal: remove `crates/rsi-ralph-bus`, the TinyBus module and its release
   packaging.
 - Non-goal: changing any decision rule. `evaluation::compare` and
   `scoring::compare_h` stay the only accept/reject logic.
@@ -64,33 +64,33 @@ listed above it.
 
 | Crate | Holds | Depends on |
 |---|---|---|
-| `tinyrsi-types` | `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`, `EvalStage`, `ProposalEvent`, `Goal`; re-exports `Patch`, `Package`, `PatchClass`, `Operation`, `Record`, `VersionMetadata` from `tinyhivemind-lang` | tinyhivemind-lang |
-| `tinyrsi-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
-| `tinyrsi-gateway` | `Gateway`, `GatewayConfig`, `Spend`, `PriceTable`, `Limits`: the in-process, spend-capped OpenAI-compatible proxy to OpenRouter that each run starts | axum, reqwest, tokio |
-| `tinyrsi-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
-| `tinyrsi-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse over OTLP | trace, openhuman-embed (`langfuse` only) |
-| `tinyrsi-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | types, model, trace, tinybackrooms |
-| `tinyrsi-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
-| `tinyrsi-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor` with what it reads and writes (`ScriptBrief`, `ScriptProposal`, `ProposedFile`, `SupervisorLimits`); `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
-| `tinyrsi` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
-| `tinyrsi-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | tinyrsi, tinyhivemind-hives (sqlite), tokio |
-| `tinyrsi-examples` | three runnable examples, `publish = false` | tinyrsi-host |
-| `tinyrsi-swarm` | `run_swarm`, `load_package`, `editing_seats`: one epoch of a hive package run as `OpenHuman` agents editing candidate checkouts | tinyhivemind-openhuman, tinyhivemind-hives (sqlite), tinyhivemind-lang, openhuman-embed |
+| `rsi-ralph-types` | `Proposal`, `Prediction`, `CandidateState`, `ReasonCode`, `EvalStage`, `ProposalEvent`, `Goal`; re-exports `Patch`, `Package`, `PatchClass`, `Operation`, `Record`, `VersionMetadata` from `tinyhivemind-lang` | tinyhivemind-lang |
+| `rsi-ralph-model` | `ModelPort`, `ModelRequest`, `ModelReply`, `OpenRouterModel`, `BudgetedModel`, `GenerationMeter`, `ModelConversant`, `block_on` | tinybackrooms |
+| `rsi-ralph-gateway` | `Gateway`, `GatewayConfig`, `Spend`, `PriceTable`, `Limits`: the in-process, spend-capped OpenAI-compatible proxy to OpenRouter that each run starts | axum, reqwest, tokio |
+| `rsi-ralph-trace` | `LoopEvent`, `TraceRecord`, `TraceSink`, `JsonlTrace`, `VecTrace`, `NullTrace`, clocks; `TracingTrace`, `FanoutTrace` | tracing |
+| `rsi-ralph-langfuse` | `LangfuseTrace`, a `TraceSink` that exports runs to Langfuse over OTLP | trace, openhuman-embed (`langfuse` only) |
+| `rsi-ralph-score` | `evaluation`, `scoring`, `experiment`; the `Scorer` port; `MetricScorer`, `LlmJudge`, `BackroomsJudge`, `Composite` | types, model, trace, tinybackrooms |
+| `rsi-ralph-verify` | `process`, `blueprint`, `verification` (including `lake`); `VerifierScorer` | score, tinyhivemind-hives |
+| `rsi-ralph-evolve` | `retreat`, `retreat_memory`; the `Evolver` port; `ScriptSupervisor` with what it reads and writes (`ScriptBrief`, `ScriptProposal`, `ProposedFile`, `SupervisorLimits`); `ScriptedEvolver`. `retreat` reads any `RetreatDossier` (serializable, with an epoch), which core implements for `observation::Dossier`, so the dossier stays in core and the request bytes are unchanged. | types, model, tinybackrooms |
+| `rsi-ralph` | `orchestrator`, `archive`, `lineage`, `memory`, `observation`, `script_loop` (driver, execution, ledger, and the prompt it renders from that ledger) | all of the above |
+| `rsi-ralph-host` | `host`, `suites`, `epoch_driver`, `evidence_journal` | rsi-ralph, tinyhivemind-hives (sqlite), tokio |
+| `rsi-ralph-examples` | three runnable examples, `publish = false` | rsi-ralph-host |
+| `rsi-ralph-swarm` | `run_swarm`, `load_package`, `editing_seats`: one epoch of a hive package run as `OpenHuman` agents editing candidate checkouts | tinyhivemind-openhuman, tinyhivemind-hives (sqlite), tinyhivemind-lang, openhuman-embed |
 
-`tinyrsi-host` replaces the `host` Cargo feature: its modules are exactly the
+`rsi-ralph-host` replaces the `host` Cargo feature: its modules are exactly the
 ones the feature gated. `memory` and `observation` compile without the feature
-today, so they stay in `tinyrsi` and keep their paths; only the
+today, so they stay in `rsi-ralph` and keep their paths; only the
 `MemorySnapshot` implementation for `SnapshotMemoryStore`, which already
-needed the feature, moves to `tinyrsi-host` beside the trait.
+needed the feature, moves to `rsi-ralph-host` beside the trait.
 
 Each crate has its own `Error` and `Result`. Shared variants keep their names
-and messages, and the `tinyrsi` crate converts lower crates' errors into the
+and messages, and the `rsi-ralph` crate converts lower crates' errors into the
 variants its own functions always returned. So `run_script_loop`,
-`run_proposal_h` and the rest still fail with `tinyrsi::Error::HostFailed`,
+`run_proposal_h` and the rest still fail with `rsi_ralph::Error::HostFailed`,
 `InvalidEvaluation`, and so on.
 
-`tinyrsi-host` is the one exception: it has no `Error` of its own and returns
-`tinyrsi::Error`. Its modules moved out of a Cargo feature unchanged, and every
+`rsi-ralph-host` is the one exception: it has no `Error` of its own and returns
+`rsi_ralph::Error`. Its modules moved out of a Cargo feature unchanged, and every
 failure they report is already a core variant (`HostFailed`, `ArchiveIo`,
 `ArchiveLocked`, `InvalidRecord` and the rest), largely raised by the core
 archive and orchestrator they drive. A host enum would duplicate those variants
@@ -98,18 +98,18 @@ and add a lossless conversion at every call without giving callers anything to
 match on. It gets its own type once it has a failure core cannot express.
 
 **Error types of moved functions do change.** A function that moved returns
-its new crate's error, even when it is reached through a `tinyrsi::`
-re-export: `tinyrsi::compare` returns `tinyrsi_score::Error`, and
-`tinyrsi::ModelRequest::new` returns `tinyrsi_model::Error`. Every such
-error converts into `tinyrsi::Error` with `?` or `From`, landing on the same
+its new crate's error, even when it is reached through a `rsi_ralph::`
+re-export: `rsi_ralph::compare` returns `rsi_ralph_score::Error`, and
+`rsi_ralph::ModelRequest::new` returns `rsi_ralph_model::Error`. Every such
+error converts into `rsi_ralph::Error` with `?` or `From`, landing on the same
 variant callers matched before. Code that names the result type or matches
 the moved function's error directly must use the new type, re-exported as
-`tinyrsi::{ScoreError, ModelError, TraceError, VerifyError, EvolveError}`.
+`rsi_ralph::{ScoreError, ModelError, TraceError, VerifyError, EvolveError}`.
 Implementations of the moved ports (`ModelPort`, `TraceSink`,
 `ExperimentExecutor`, `ArtifactProducer`, `VerificationObserver`,
 `RetreatTransport`) return their crate's `Result` for the same reason.
 
-`tinyrsi` re-exports every crate below it, so existing `tinyrsi::Name` paths
+`rsi-ralph` re-exports every crate below it, so existing `rsi_ralph::Name` paths
 keep resolving for every retained item that was not behind the `host`
 feature. The exceptions are deliberate removals:
 
@@ -119,14 +119,14 @@ feature. The exceptions are deliberate removals:
 - the crate-root `append` and `head` wrappers;
 - `Supervisor`, renamed `ScriptSupervisor`.
 
-**Host-feature paths do break.** `tinyrsi` cannot re-export `tinyrsi-host`,
+**Host-feature paths do break.** `rsi-ralph` cannot re-export `rsi-ralph-host`,
 because the host crate depends on it. Items that were reachable only with
-`--features host` therefore move to `tinyrsi_host::Name`:
+`--features host` therefore move to `rsi_ralph_host::Name`:
 `CoordinatorHost`, `DeploymentStore`, `MemorySnapshot`,
 `CoordinatorEvaluator`, `EvidenceJournal`, the `epoch_driver` items and the
-rest. A consumer replaces `tinyrsi = { features = ["host"] }` with a
-dependency on `tinyrsi-host` and changes those imports.
-`tinyrsi-host` re-exports `tinyrsi`, so after that one change a single import
+rest. A consumer replaces `rsi-ralph = { features = ["host"] }` with a
+dependency on `rsi-ralph-host` and changes those imports.
+`rsi-ralph-host` re-exports `rsi-ralph`, so after that one change a single import
 root covers both. The release notes for the version that drops the feature
 must list this migration.
 
@@ -169,7 +169,7 @@ pub struct Assessment {
 ```
 
 The port is synchronous, like the script loop. Model-backed scorers drive their
-`ModelPort` future on the calling thread with `tinyrsi_model::block_on`.
+`ModelPort` future on the calling thread with `rsi_ralph_model::block_on`.
 `decide(incumbent, candidate, seeds, policy)` turns two assessments into a
 `ScoreDecision` and an interval, using `evaluation::compare`. It is the only
 decision function, and it applies three rules:
@@ -212,7 +212,7 @@ Implementations:
   `Accept` beside a negative metric interval). So a blend reports its
   interval in quality units. A high-weight uncalibrated judge can widen the
   margin, but the eligible evidence must still show an improvement by itself.
-- `VerifierScorer` (in `tinyrsi-verify`): a registered `HostVerifier` or
+- `VerifierScorer` (in `rsi-ralph-verify`): a registered `HostVerifier` or
   Lake check. A pass scores the checker's own reported quality (1 for a
   plain pass), and a failure scores 0. `compare` accepts the closed interval
   `[0, 1]`, so no smoothing is needed. Checkers are deterministic, so the
@@ -267,7 +267,7 @@ Implementations:
 
 ### Observe
 
-`tinyrsi-trace` owns the `events.jsonl` schema. Its one addition is an
+`rsi-ralph-trace` owns the `events.jsonl` schema. Its one addition is an
 optional `units: "quality"` on `scored`, written when the interval is in
 scorer qualities rather than the goal metric and omitted otherwise, so
 metric-scored traces keep their bytes and `apps/rsi-viz` labels the interval
@@ -277,7 +277,7 @@ event inside per-run and per-epoch spans, and `FanoutTrace`, which writes one
 stream to several sinks.
 
 Langfuse export reuses OpenHuman's existing client and span builder rather
-than a second exporter stack. `tinyrsi-langfuse` depends on `openhuman-embed`
+than a second exporter stack. `rsi-ralph-langfuse` depends on `openhuman-embed`
 with only its `langfuse` feature and provides `LangfuseTrace`.
 
 - **Mapping.** Each run is one trace with a root `tinyrsi.run` span. Each
@@ -302,7 +302,7 @@ kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 
 ### Removed
 
-- `crates/tinyrsi-bus`.
+- `crates/rsi-ralph-bus`.
 - `src/tinybus_module/`.
 - The `verify_module` and `verify_github_release` examples.
 - `MODULE.md`.
@@ -310,14 +310,14 @@ kinds at its stage boundaries, so `apps/rsi-viz/` shows hive epochs live.
 - The cdylib crate type.
 - The release workflow's module packaging, checksum and install jobs.
 
-`GradeEntry` and the lineage `Verdict` move into `tinyrsi::lineage`. The
+`GradeEntry` and the lineage `Verdict` move into `rsi_ralph::lineage`. The
 crate-root `append` and `head` wrappers, which only adapted bus payloads, are
 removed; `Lineage::append` and `Lineage::head` remain.
 
 ## Invariants and constraints
 
-- No crate depends on a crate below it in the table. `tinyrsi-score`,
-  `tinyrsi-evolve` and `tinyrsi-trace` never depend on `tinyhivemind-hives`,
+- No crate depends on a crate below it in the table. `rsi-ralph-score`,
+  `rsi-ralph-evolve` and `rsi-ralph-trace` never depend on `tinyhivemind-hives`,
   SQLite or Tokio.
 - `evaluation::compare` and `scoring::compare_h` are the only accept/reject
   rules. A scorer produces qualities and never decides.
@@ -336,8 +336,8 @@ removed; `Lineage::append` and `Lineage::head` remain.
 ## Acceptance criteria
 
 - `cargo test -p <crate>` passes alone for every crate in the table.
-- `cargo tree -p tinyrsi-score`, `-p tinyrsi-evolve` and `-p tinyrsi-trace`
-  contain neither `tinyrsi` nor `tinyhivemind-hives`.
+- `cargo tree -p rsi-ralph-score`, `-p rsi-ralph-evolve` and `-p rsi-ralph-trace`
+  contain neither `rsi-ralph` nor `tinyhivemind-hives`.
 - The script loop runs on `Scorer` and `Evolver`. Its existing tests pass
   unchanged, apart from constructing a `ScriptSupervisor` where they built a
   `Supervisor`.
@@ -346,10 +346,10 @@ removed; `Lineage::append` and `Lineage::head` remain.
   low-weight flat eligible scorer yields no `Accept`.
 - `decide` on `MetricScorer` assessments reproduces the script loop's current
   decisions and metric-unit intervals exactly.
-- `cargo run -p tinyrsi-examples --example math_problem`, `upgrade_file` and
+- `cargo run -p rsi-ralph-examples --example math_problem`, `upgrade_file` and
   `hive_goal` run offline, each records at least one accepted and one rejected
   candidate, and each writes an `events.jsonl` that `apps/rsi-viz/` lists.
-- Nothing in the workspace references `tinybus` or `tinyrsi_bus`.
+- Nothing in the workspace references `tinybus` or `rsi_ralph_bus`.
 
 ## Open questions
 

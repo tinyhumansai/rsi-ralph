@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```
-//! use tinyrsi_examples::harness::{model_label, normalize_hypothesis};
+//! use rsi_ralph_examples::harness::{model_label, normalize_hypothesis};
 //! assert_eq!(model_label("anthropic/claude-sonnet-4.5"), "anthropic_claude-sonnet-4.5");
 //! assert_eq!(normalize_hypothesis("Kempe chains, again!"), "kempe chains again");
 //! ```
@@ -19,10 +19,10 @@ pub mod options;
 pub mod runner;
 mod types;
 
+use rsi_ralph::{CandidateDecision, LedgerCandidate, ScriptLedger, StopReason};
 use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::PathBuf;
-use tinyrsi::{CandidateDecision, LedgerCandidate, ScriptLedger, StopReason};
 pub use types::{RunCell, RunRecord, Summary, SummaryRow};
 
 /// `model` with every character outside `[A-Za-z0-9._-]` replaced by `_`,

@@ -1,6 +1,6 @@
 # Scoring and supervised proposals
 
-Related: [#2](https://github.com/tinyhumansai/tinyrsi/issues/2).
+Related: [#2](https://github.com/tinyhumansai/rsi-ralph/issues/2).
 
 This specification defines the intended system, including mechanisms not yet
 implemented. The [acceptance and test map](../scoring-acceptance.md) distinguishes

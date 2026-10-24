@@ -23,7 +23,7 @@ ignore = [
 
 [licenses]
 # Licenses accepted for this crate and its dependencies. Keep GPL-3.0-only for
-# the tinyrsi crate itself; the remaining entries cover compatible dependency
+# the rsi-ralph crate itself; the remaining entries cover compatible dependency
 # licenses commonly encountered by Rust projects.
 allow = [
     "Apache-2.0",
@@ -33,7 +33,7 @@ allow = [
     "CDLA-Permissive-2.0",
     "GPL-3.0-only",
     # OpenHuman's vendored `tinyflows-*` crates, reached through
-    # `openhuman-embed` in `tinyrsi-langfuse`, are `GPL-3.0-or-later`, which is
+    # `openhuman-embed` in `rsi-ralph-langfuse`, are `GPL-3.0-or-later`, which is
     # compatible with this workspace's `GPL-3.0-only`.
     "GPL-3.0-or-later",
     "ISC",

@@ -54,9 +54,9 @@ On the hive path a patch that makes a run bad is never really penalized.
 
 ### 1. Attribution
 
-`tinyrsi-types` gains `CandidateFailureKind` (`crash`, `timeout`,
+`rsi-ralph-types` gains `CandidateFailureKind` (`crash`, `timeout`,
 `over_budget`, `unsupported`) and `CandidateFailure { kind, failed_runs, runs }`.
-`tinyrsi::Error` and `tinyrsi_score::Error` gain
+`rsi_ralph::Error` and `rsi_ralph_score::Error` gain
 `CandidateFailed(CandidateFailure)`, with message
 `candidate failed runs the incumbent completed`; the `From` mapping keeps it.
 
@@ -166,7 +166,7 @@ quiescent boundary as `activate` and `rollback`.
 Prior-idea seeds gain `"outcome"`: `crashed` (`HARMFUL`), `regressed` (a
 `Regressed` strike), `flat` (other `NO_GAIN`, `NOT_REPLICATED`,
 `INCONCLUSIVE`), `cooled` (`COOLDOWN`), `denied` (`APPROVAL_DENIED`), or `null`.
-`tinyrsi-evolve` exposes the seed as `PriorIdea`, whose fields stay private so
+`rsi-ralph-evolve` exposes the seed as `PriorIdea`, whose fields stay private so
 nothing but epoch, class, whitelisted reason, operation count and outcome can
 be sent. `prepare_retreat_epoch` lists struck attempts first, otherwise in
 archive order. No delta value, interval, patch body, rationale or private task
@@ -203,7 +203,7 @@ the returned discovery text.
   changes nothing; rollback errors propagate.
 - Prior-idea seeds carry an outcome and no private fields.
 - Retreat memory round-trips the new statuses.
-- `cargo run -p tinyrsi-examples --example hive_goal` shows a crashing patch
+- `cargo run -p rsi-ralph-examples --example hive_goal` shows a crashing patch
   rejected `HARMFUL` with `failures > 0` on its trace and its near-duplicate
   stopped `COOLDOWN` without evaluation.
 

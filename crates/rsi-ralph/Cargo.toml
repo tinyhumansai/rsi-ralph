@@ -1,0 +1,44 @@
+[package]
+name = "rsi-ralph"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Host-driven improvement loops for tinyhivemind hives and plain scripts."
+documentation = "https://docs.rs/rsi-ralph"
+readme = "../../README.md"
+keywords = ["rsi", "self-improvement", "agents", "evaluation", "rsi-ralph"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+rsi-ralph-types = { workspace = true }
+rsi-ralph-model = { workspace = true }
+rsi-ralph-trace = { workspace = true }
+rsi-ralph-score = { workspace = true }
+rsi-ralph-verify = { workspace = true }
+rsi-ralph-evolve = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tinyhivemind-lang = { workspace = true }
+tinyhivemind-hives = { workspace = true }
+tinybackrooms = { workspace = true }
+fs2 = { workspace = true }
+sha2 = { workspace = true }
+jsonschema = { workspace = true }
+tempfile = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
+
+# A directory example: `main.rs` plus the Python harness, starting model and
+# canned proposals it embeds. Runs offline by default, so it needs no feature.
+[[example]]
+name = "script_loop"
+path = "examples/script_loop/main.rs"

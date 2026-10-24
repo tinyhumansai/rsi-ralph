@@ -8,7 +8,7 @@ the new library modules still aim for 90% line coverage.
 
 ## Assumptions
 
-- `tinyrsi-examples` keeps its existing error style (`Box<dyn Error>`), as
+- `rsi-ralph-examples` keeps its existing error style (`Box<dyn Error>`), as
   every function in its library already does; the runner adds no error enum.
 - No new dependency: `serde` (derive) is already a workspace dependency and
   is added to the examples package; `std::thread::scope` covers `--jobs`.
@@ -21,7 +21,7 @@ the new library modules still aim for 90% line coverage.
 
 ## 2. Shared benchmark definitions
 
-1. Move the curve-fit brief to `crates/tinyrsi/examples/script_loop/brief.txt`
+1. Move the curve-fit brief to `crates/rsi-ralph/examples/script_loop/brief.txt`
    and read it with `include_str!` in `main.rs`; output is unchanged.
 2. `examples/src/benchmarks/`:
    - `mod.rs`: the `Benchmark` enum (`ALL`, `name`, `from_name`,
@@ -84,8 +84,8 @@ cargo +1.99 clippy --all-targets --all-features -- -D warnings
 cargo +1.99 build --all-targets --all-features
 cargo +1.99 test --all-features
 RUSTDOCFLAGS="-D warnings" cargo +1.99 doc --no-deps --all-features
-cargo +1.99 run -p tinyrsi-examples --example benchmarks -- --repeats 2
-cargo +1.99 run -p tinyrsi-examples --example math_problem   # and the other three
+cargo +1.99 run -p rsi-ralph-examples --example benchmarks -- --repeats 2
+cargo +1.99 run -p rsi-ralph-examples --example math_problem   # and the other three
 ```
 
 ## Checklist

@@ -1,0 +1,46 @@
+[package]
+name = "rsi-ralph-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The hive host runtime for RSI Ralph: coordinators, private suites, durable epochs and deployment."
+readme = "../../README.md"
+keywords = ["rsi", "agents", "hive", "rsi-ralph"]
+categories = ["development-tools"]
+publish = false
+
+[dependencies]
+rsi-ralph = { workspace = true }
+rsi-ralph-verify = { workspace = true }
+# SQLite coordinator storage is what makes host restarts and rollback durable;
+# it is why this runtime is its own crate rather than part of `rsi-ralph`.
+tinyhivemind-hives = { workspace = true, features = ["sqlite"] }
+tinyhivemind-lang = { workspace = true }
+tinybackrooms = { workspace = true }
+fs2 = { workspace = true }
+jsonschema = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true
+
+[[example]]
+name = "complete_openrouter"
+
+[[example]]
+name = "observe_epochs"
+
+[[example]]
+name = "private_benchmark"
+
+[[example]]
+name = "proposal_metrics"
+
+[[example]]
+name = "verify_lean_slice"

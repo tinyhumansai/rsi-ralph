@@ -15,11 +15,11 @@
 //! agents then loop looking for it and overspend every run, which the host
 //! penalizes.
 use crate::hive;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use tinyrsi_host::{
+use rsi_ralph_host::{
     ModelError, ModelFuture, ModelPort, ModelReply, ModelRequest, Operation, Patch, PatchClass,
     Prediction, Proposal,
 };
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Fills in a reply's usage the way a provider would (about four bytes per
 /// token) and holds it to the request's reservation, as a real port must.

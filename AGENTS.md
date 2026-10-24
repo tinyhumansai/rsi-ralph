@@ -4,8 +4,9 @@ This file is the single source of truth for how humans and coding agents work
 in this repository. `CLAUDE.md` is a symlink to this file, so every agent reads
 the same instructions.
 
-TinyRSI is a host-driven improvement loop for tinyhivemind hives and plain
-scripts, shipped as a Rust library. Start with
+RSI Ralph is a host-driven improvement loop for tinyhivemind hives and plain
+scripts, shipped as a Rust library. It runs recursive Ralph loops: OpenHuman
+re-edits a hive's language files until a goal is properly met. Start with
 [`docs/architecture.md`](docs/architecture.md) for the shape of one epoch and
 [`docs/glossary.md`](docs/glossary.md) for the vocabulary used throughout the
 code and docs.
@@ -15,7 +16,7 @@ code and docs.
 This is a Rust 2024 cargo workspace rooted at a virtual `Cargo.toml`. Every
 crate lives under `crates/`, one directory per package, each directory named for
 the package it holds. There is no root package: the library hosts depend on is
-`crates/tinyrsi`, the same as any other member. The crates are split by loop
+`crates/rsi-ralph`, the same as any other member. The crates are split by loop
 phase; see [`docs/specs/crate-split.md`](docs/specs/crate-split.md).
 
 ```text
@@ -23,20 +24,20 @@ Cargo.toml              # virtual workspace: members, [workspace.package],
                         # [workspace.dependencies], [workspace.lints]
 ROADMAP.md              # shipped / next / out of scope
 crates/
-├── tinyrsi-types/      # proposal and candidate data shared by every crate
-├── tinyrsi-model/      # ModelPort, OpenRouterModel, metering, block_on
-├── tinyrsi-trace/      # `events.jsonl` loop trace and its `tracing` mirror
-├── tinyrsi-langfuse/   # Langfuse export of loop traces via openhuman-embed
-├── tinyrsi-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
-├── tinyrsi-score/      # Scorer port, judges, decide, paired stats, experiments
-├── tinyrsi-verify/     # host checkers, blueprints, Lake, process runner
-├── tinyrsi-evolve/     # Evolver port, script supervisor, retreat and its memory
-├── tinyrsi-cli/        # the `tinyrsi` binary: file-defined loops, run store, UI
-├── tinyrsi-host/       # hive runtime: coordinators, suites, epochs, deployment
+├── rsi-ralph-types/      # proposal and candidate data shared by every crate
+├── rsi-ralph-model/      # ModelPort, OpenRouterModel, metering, block_on
+├── rsi-ralph-trace/      # `events.jsonl` loop trace and its `tracing` mirror
+├── rsi-ralph-langfuse/   # Langfuse export of loop traces via openhuman-embed
+├── rsi-ralph-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
+├── rsi-ralph-score/      # Scorer port, judges, decide, paired stats, experiments
+├── rsi-ralph-verify/     # host checkers, blueprints, Lake, process runner
+├── rsi-ralph-evolve/     # Evolver port, script supervisor, retreat and its memory
+├── rsi-ralph-cli/        # the `rsi-ralph` binary: file-defined loops, run store, UI
+├── rsi-ralph-host/       # hive runtime: coordinators, suites, epochs, deployment
 │   ├── src/            # host/, suites/, epoch_driver/, evidence_journal/
 │   └── examples/       # complete_openrouter, observe_epochs, private benchmarks
-├── tinyrsi-swarm/      # a hive package run as OpenHuman agents editing candidates
-└── tinyrsi/            # the loop library, re-exporting the crates above
+├── rsi-ralph-swarm/      # a hive package run as OpenHuman agents editing candidates
+└── rsi-ralph/            # the loop library, re-exporting the crates above
     ├── src/
     │   ├── lib.rs            # crate docs + the entire public surface
     │   ├── error/            # crate-wide `Error` and `Result<T>`
@@ -48,9 +49,9 @@ crates/
     │   └── script_loop/      # improvement loop over a plain script
     ├── tests/          # integration tests against the public API only
     └── examples/       # runnable, compiled-in-CI usage examples
-examples/               # `tinyrsi-examples`: math_problem, upgrade_file, graph_coloring,
+examples/               # `rsi-ralph-examples`: math_problem, upgrade_file, graph_coloring,
                         # hive_goal
-loops/                  # example loop folders for the `tinyrsi` binary
+loops/                  # example loop folders for the `rsi-ralph` binary
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
@@ -58,7 +59,7 @@ apps/rsi-viz/           # read-only Next.js loop visualizer
 docs/                   # see docs/README.md for what lives where
 ```
 
-`crates/tinyrsi-host` holds what needs a live coordinator (host runtime,
+`crates/rsi-ralph-host` holds what needs a live coordinator (host runtime,
 private suites, durable epochs, evidence journal) and adds SQLite coordinator
 storage and Tokio; it replaced the former `host` Cargo feature. Each module
 directory follows the
@@ -95,7 +96,7 @@ broad ones.
 
 Keep public exports centralized in each crate's `src/lib.rs` so downstream users
 have one predictable surface. Put shared error variants in
-`crates/tinyrsi/src/error/mod.rs` and return the crate-wide `Result<T>` from
+`crates/rsi-ralph/src/error/mod.rs` and return the crate-wide `Result<T>` from
 fallible public APIs.
 
 ## Build And Test
@@ -115,18 +116,18 @@ Supporting commands:
 - `cargo fmt` — format before committing. Leave off `--all`: it also
   formats the vendored path dependencies, which are never edited here.
 - `cargo test <filter>` — run a focused subset while iterating.
-- `cargo test -p tinyrsi` — run one crate's suite.
-- `cargo run -p tinyrsi --example basic` — run the minimal lineage example.
-- `cargo run -p tinyrsi-examples --example math_problem` (or `upgrade_file`,
+- `cargo test -p rsi-ralph` — run one crate's suite.
+- `cargo run -p rsi-ralph --example basic` — run the minimal lineage example.
+- `cargo run -p rsi-ralph-examples --example math_problem` (or `upgrade_file`,
   `graph_coloring`, `hive_goal`) — the offline end-to-end examples in `examples/`; each writes a
   trace under `target/rsi-examples/` and fails if it misses its goal.
-- `cargo run -p tinyrsi-cli -- check loops/graph-coloring` (or `run`, `runs`,
-  `show`, `serve`) — the `tinyrsi` binary over a loop folder; see
+- `cargo run -p rsi-ralph-cli -- check loops/graph-coloring` (or `run`, `runs`,
+  `show`, `serve`) — the `rsi-ralph` binary over a loop folder; see
   `docs/guides/rsi-cli.md`.
-- `cargo run -p tinyrsi-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
-- `cargo run -p tinyrsi-host --example observe_epochs` — offline
+- `cargo run -p rsi-ralph-examples --example benchmarks -- --repeats 2` — benchmark × model × repeat matrix of the script loop; writes `summary.md` under `target/rsi-benchmarks/` (see `docs/specs/loop-benchmarks.md`).
+- `cargo run -p rsi-ralph-host --example observe_epochs` — offline
   two-epoch observation demo; writes receipts under `target/rsi-observe-epochs/`.
-- `cargo run -p tinyrsi-host --example complete_openrouter` — the
+- `cargo run -p rsi-ralph-host --example complete_openrouter` — the
   full live loop; does nothing unless `TINYRSI_LIVE_OPENROUTER=1` and needs
   `OPENROUTER_API_KEY` and `TINYRSI_LEAN` (see `docs/rsi/complete-live.md`).
 - `cargo doc --no-deps --all-features` — build the rustdoc CI also builds with
@@ -135,7 +136,7 @@ Supporting commands:
 
 Other examples: `live_openrouter` (arithmetic smoke, opt-in like the above),
 `private_benchmark`, `proposal_metrics` and `verify_lean_slice` (all in
-`tinyrsi-host`; the last builds private Lean proofs with a pinned Lake), and
+`rsi-ralph-host`; the last builds private Lean proofs with a pinned Lake), and
 `script_loop` (offline curve-fitting run of the plain-script loop).
 
 Never skip, ignore, or delete a failing test to make a command pass. Fix the
@@ -197,7 +198,7 @@ tinyhivemind, tinybackrooms and OpenHuman are registered as the
 `vendor/tinyhivemind`, `vendor/tinybackrooms` and `vendor/openhuman` git
 submodules and pinned by their gitlinks. They supply the hive language,
 coordinator and storage, the creative-retreat engine, and the Langfuse client
-`tinyrsi-langfuse` exports through. Initialize them after cloning with:
+`rsi-ralph-langfuse` exports through. Initialize them after cloning with:
 
 ```sh
 git submodule update --init --recursive

@@ -7,8 +7,8 @@ No vendor modifications are required.
 
 ## 1. Preserve selected design and measured evidence
 
-Source: `crates/tinyrsi/src/archive/{mod,types,replay,normalized}.rs` and
-`crates/tinyrsi/src/orchestrator/normalized/`.
+Source: `crates/rsi-ralph/src/archive/{mod,types,replay,normalized}.rs` and
+`crates/rsi-ralph/src/orchestrator/normalized/`.
 
 Implemented sequence: validate proposal/guards, write normalized preregistration,
 pin and prepare the candidate, persist Screen/Selection/Confirmation runs,
@@ -19,7 +19,7 @@ policy replacement, duplicate candidates, corruption and transactional failures.
 
 ## 2. Provide immutable local memory
 
-Source: `crates/tinyrsi/src/memory/mod.rs` and `memory/test.rs`.
+Source: `crates/rsi-ralph/src/memory/mod.rs` and `memory/test.rs`.
 
 `SnapshotMemoryStore` pins owned namespace/watermark maps without changing active
 memory. It validates entry preconditions, writable identities, forks, canaries and
@@ -30,7 +30,7 @@ other engines can implement the same semantics. This is not a CortexDB adapter.
 
 ## 3. Bind actual verification to coordinator completion
 
-Source: `crates/tinyrsi/src/verification/{mod,types,runner}.rs`,
+Source: `crates/rsi-ralph/src/verification/{mod,types,runner}.rs`,
 `verification/test.rs` and `verification/test/runner.rs`.
 
 Immutable `VerifierRegistry` checks references, schema, direct executables and
@@ -44,7 +44,7 @@ Hosts supply sandboxing and immutable process checker workspaces.
 
 ## 4. Evaluate private draws and install a concrete runner
 
-Source: `crates/tinyrsi-host/src/suites/{types,fingerprint,runner,mod,factory}.rs`.
+Source: `crates/rsi-ralph-host/src/suites/{types,fingerprint,runner,mod,factory}.rs`.
 Tests: `suites/test.rs`, `suites/test_private.rs`.
 
 `PrivateSuites::freeze` fingerprints four disjoint stages without secret Debug
@@ -62,7 +62,7 @@ capabilities. Deployment/evaluation use the same conservative scheduler cap map.
 
 ## 5. Make activation and observation durable
 
-Source: `crates/tinyrsi-host/src/host/{mod,types,runtime}.rs`.
+Source: `crates/rsi-ralph-host/src/host/{mod,types,runtime}.rs`.
 Tests: `host/test.rs`, `host/test_runtime.rs`, `host/test_store.rs`.
 
 `DeploymentStore` records selected/deployed separation and intent before mutation.
@@ -80,7 +80,7 @@ preserve deployment and do not consume observations.
 
 ## 6. Run durable Engine epochs and retain all attempts
 
-Source: `crates/tinyrsi-host/src/epoch_driver/{generation,journal,mod,types}.rs`,
+Source: `crates/rsi-ralph-host/src/epoch_driver/{generation,journal,mod,types}.rs`,
 `retreat_memory/` and `model/`.
 
 `prepare_retreat_epoch` validates persisted observations, freezes normalized
@@ -98,7 +98,7 @@ Credentials remain inherited host configuration.
 
 ## 7. Separate experiment machinery from efficacy
 
-Source: `crates/tinyrsi/src/experiment/`; contracts:
+Source: `crates/rsi-ralph/src/experiment/`; contracts:
 [ignition specification](../specs/ignition.md) and [implementation map](ignition.md).
 
 `ExperimentProtocol` freezes all arms/draws/caps before output; `run_experiment`
@@ -106,7 +106,7 @@ checks exact provenance, complete attempt ledgers, paired anchors and independen
 trial bootstrap. Full, MemoryOff and RetreatOff are explicit interventions.
 Missing/invalid evidence prevents positive claims; scripted runs are ProtocolOnly.
 
-`crates/tinyrsi-host/examples/complete_openrouter.rs` with `examples/complete/`
+`crates/rsi-ralph-host/examples/complete_openrouter.rs` with `examples/complete/`
 executes the worked retreat followed by 24 bounded live assignments; the separate
 controlled path validates accepted deployment. The [measured report](../rsi/complete-live.md)
 retains the inconclusive comparison. No result from this bounded harness is

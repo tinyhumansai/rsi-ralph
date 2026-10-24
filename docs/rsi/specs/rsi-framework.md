@@ -1,11 +1,11 @@
-# TinyRSI hive orchestration
+# RSI Ralph hive orchestration
 
-Related: [umbrella #1](https://github.com/tinyhumansai/tinyrsi/issues/1),
-[scoring #2](https://github.com/tinyhumansai/tinyrsi/issues/2).
+Related: [umbrella #1](https://github.com/tinyhumansai/rsi-ralph/issues/1),
+[scoring #2](https://github.com/tinyhumansai/rsi-ralph/issues/2).
 
 ## Improvement object
 
-TinyRSI is an external host process improving a tinyhivemind `Package`. It edits
+RSI Ralph is an external host process improving a tinyhivemind `Package`. It edits
 only typed `Patch` operations and validates through tinyhivemind-lang's atomic
 `apply` and constitution `guard`. It does not rewrite OpenHuman configuration
 or model weights. Candidate identity includes the exact package and the hive

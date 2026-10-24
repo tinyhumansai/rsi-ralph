@@ -1,7 +1,7 @@
 //! Run the script-loop benchmarks as a matrix and compare the results.
 //!
 //! ```sh
-//! cargo run -p tinyrsi-examples --example benchmarks -- \
+//! cargo run -p rsi-ralph-examples --example benchmarks -- \
 //!   [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR]
 //! ```
 //!
@@ -18,18 +18,18 @@
 //! `TINYRSI_LIVE_OPENROUTER=1` and `OPENROUTER_API_KEY`, each `--models` id
 //! (default `OPENROUTER_MODEL`, else `openai/gpt-4.1-mini`) supervises and
 //! judges. Definitions: `docs/specs/loop-benchmarks.md`.
-use std::{
-    error::Error,
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
-use tinyrsi_examples::harness::{
+use rsi_ralph_examples::harness::{
     Summary, aggregate,
     options::{Options, USAGE},
     render_markdown,
     runner::{ModelChoice, execute, plan, write_summary},
 };
-use tinyrsi_examples::{default_live_model, live, python};
+use rsi_ralph_examples::{default_live_model, live, python};
+use std::{
+    error::Error,
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let options = Options::parse(std::env::args().skip(1)).map_err(|e| format!("{e}\n{USAGE}"))?;

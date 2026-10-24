@@ -1,16 +1,16 @@
-# Writing a loop for the `tinyrsi` binary
+# Writing a loop for the `rsi-ralph` binary
 
-A loop is a folder. `tinyrsi` runs it: it gives a hive of agents the brief, lets
+A loop is a folder. `rsi-ralph` runs it: it gives a hive of agents the brief, lets
 them edit candidate copies of your subject, scores each candidate with your
 score functions, keeps the ones that are better, and records everything. You
 write no Rust. The full contract is [`../specs/rsi-cli.md`](../specs/rsi-cli.md);
 this guide walks through [`loops/graph-coloring`](../../loops/graph-coloring).
 
 ```sh
-cargo install --path crates/tinyrsi-cli     # or: cargo run -p tinyrsi-cli --
+cargo install --path crates/rsi-ralph-cli     # or: cargo run -p rsi-ralph-cli --
 export OPENROUTER_API_KEY=...                # or put it in <loop>/.env
-tinyrsi check loops/graph-coloring
-tinyrsi run   loops/graph-coloring           # UI on http://127.0.0.1:8787
+rsi-ralph check loops/graph-coloring
+rsi-ralph run   loops/graph-coloring           # UI on http://127.0.0.1:8787
 ```
 
 ## The folder
@@ -85,7 +85,7 @@ Every section with a safe default may be left out (see the hive language's
 [`loops/graph-coloring/hive`](../../loops/graph-coloring/hive) is a complete
 two-seat example. Multi-seat hives should widen `coordinator.round_width`
 (and `policies.routing`/`division`), whose defaults of 1 run one turn at a
-time. tinyrsi adds the hive tools and the turn-taking rules itself.
+time. rsi-ralph adds the hive tools and the turn-taking rules itself.
 
 ## 4. Tune creativity, models, keys and money
 
@@ -113,18 +113,18 @@ time. tinyrsi adds the hive tools and the turn-taking rules itself.
 
 ## 5. Watch it
 
-`tinyrsi run` serves the UI while it works: the score chart, every candidate
+`rsi-ralph run` serves the UI while it works: the score chart, every candidate
 with its decision and diff, each epoch's brief, and the live event log.
 Afterwards:
 
 ```sh
-tinyrsi runs                         # every run, newest first
-tinyrsi show graph-coloring/<run-id> # one run's outcome, error, warnings and folder
-tinyrsi serve                        # the UI over all stored runs
+rsi-ralph runs                         # every run, newest first
+rsi-ralph show graph-coloring/<run-id> # one run's outcome, error, warnings and folder
+rsi-ralph serve                        # the UI over all stored runs
 ```
 
 If the model provider refuses every call of an epoch (a key over its spending
-limit, say), the run stops as `failed` with reason `provider_refused`, `tinyrsi run`
+limit, say), the run stops as `failed` with reason `provider_refused`, `rsi-ralph run`
 exits with status 1, and `show` prints the provider's status and message on its `error` line. Partial
 refusals in an epoch that changed nothing appear as `warning` lines and the
 run goes on.

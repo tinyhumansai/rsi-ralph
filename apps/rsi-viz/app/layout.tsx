@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TinyRSI Loop Viewer",
-  description: "Read-only live view of TinyRSI loop traces and run snapshots",
+  title: "RSI Ralph Loop Viewer",
+  description: "Read-only live view of RSI Ralph loop traces and run snapshots",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <div className="shell">
           <header className="topbar">
-            <Link href="/">TinyRSI loop viewer</Link>
+            <Link href="/">RSI Ralph loop viewer</Link>
           </header>
           <main>{children}</main>
         </div>

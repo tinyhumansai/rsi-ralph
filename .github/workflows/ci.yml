@@ -60,18 +60,18 @@ jobs:
         run: cargo test --all-features
 
       - name: Test frozen checker grammar and example preflight
-        run: python3 -m unittest discover -s crates/tinyrsi-host/examples/complete -p 'test_*.py'
+        run: python3 -m unittest discover -s crates/rsi-ralph-host/examples/complete -p 'test_*.py'
 
       - name: Test independent private benchmark oracles
         run: python3 -m unittest discover -s scripts/benchmarks -p 'test_*.py'
 
       - name: Test private benchmark adapter
-        run: cargo test -p tinyrsi-host --example private_benchmark
+        run: cargo test -p rsi-ralph-host --example private_benchmark
 
       - name: Test private Lean slice curation and adapter
         run: |
           python3 -m unittest discover -s scripts/lean -p 'test_*.py'
-          cargo test -p tinyrsi-host --example verify_lean_slice
+          cargo test -p rsi-ralph-host --example verify_lean_slice
 
       - name: Test default features
         run: cargo test
@@ -80,16 +80,16 @@ jobs:
       # and fail if the loop no longer reaches its goal.
       - name: Run the end-to-end examples
         run: |
-          cargo run -p tinyrsi-examples --example math_problem
-          cargo run -p tinyrsi-examples --example upgrade_file
-          cargo run -p tinyrsi-examples --example hive_goal
-          cargo run -p tinyrsi-examples --example benchmarks -- --repeats 1
+          cargo run -p rsi-ralph-examples --example math_problem
+          cargo run -p rsi-ralph-examples --example upgrade_file
+          cargo run -p rsi-ralph-examples --example hive_goal
+          cargo run -p rsi-ralph-examples --example benchmarks -- --repeats 1
 
       # `cargo build --all-targets` only *compiles* an example. `AGENTS.md`
-      # promises `cargo run -p tinyrsi --example basic` works, and a compiled
+      # promises `cargo run -p rsi-ralph --example basic` works, and a compiled
       # example can still fail on its first line.
       - name: Run the bundled example
-        run: cargo run -p tinyrsi --example basic
+        run: cargo run -p rsi-ralph --example basic
 
       - name: Require 90% line coverage in every source file
         run: .github/scripts/check-file-coverage.sh 90 coverage.json
@@ -130,14 +130,14 @@ jobs:
           submodules: recursive
 
       # `rust-version` is inherited from `[workspace.package]`, so every member
-      # reports the same value. Read it off the `tinyrsi` package
+      # reports the same value. Read it off the `rsi-ralph` package
       # rather than off `packages[0]`, whose order cargo does not promise.
       - name: Read rust-version from Cargo.toml
         id: msrv
         run: |
           set -euo pipefail
           msrv="$(cargo metadata --format-version 1 --no-deps \
-            | jq -r '.packages[] | select(.name == "tinyrsi") | .rust_version')"
+            | jq -r '.packages[] | select(.name == "rsi-ralph") | .rust_version')"
           if [[ -z "$msrv" || "$msrv" == "null" ]]; then
             echo "workspace.package.rust-version is not set in Cargo.toml" >&2
             exit 1

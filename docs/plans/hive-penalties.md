@@ -14,11 +14,11 @@ fails for the expected reason.
 
 ## 2. Attribution
 
-1. `crates/tinyrsi-types/src/failure/`: `CandidateFailureKind` and
+1. `crates/rsi-ralph-types/src/failure/`: `CandidateFailureKind` and
    `CandidateFailure`, with serde pins. `ReasonCode::Harmful` pinned as
    `HARMFUL` in `proposal/test.rs`.
-2. `Error::CandidateFailed` in `crates/tinyrsi-score/src/error/` and
-   `crates/tinyrsi/src/error/`, with the `From` mapping and message tests.
+2. `Error::CandidateFailed` in `crates/rsi-ralph-score/src/error/` and
+   `crates/rsi-ralph/src/error/`, with the `From` mapping and message tests.
 3. Orchestrator tests first (`orchestrator/normalized/test.rs`,
    `orchestrator/test_funnel.rs`): a mock evaluator returning
    `CandidateFailed` must stop `Harmful` and leave a `CandidateFailureEvent`;
@@ -38,7 +38,7 @@ fails for the expected reason.
 
 ## 3. Ledger, cooldown and revocation
 
-1. `crates/tinyrsi/src/archive/penalty/`: `PatchShape`, `Strike`,
+1. `crates/rsi-ralph/src/archive/penalty/`: `PatchShape`, `Strike`,
    `StrikeKind`, `PenaltyReport`, `PenaltyPolicy`; tests for shape equality,
    each strike source, exclusions and window ageing.
 2. `ReasonCode::Cooldown` (`COOLDOWN`), non-terminal in dispositions.
@@ -57,7 +57,7 @@ fails for the expected reason.
 
 ## 4. Generator feedback
 
-1. `tinyrsi-evolve`: `PriorIdea`, `PriorOutcome`,
+1. `rsi-ralph-evolve`: `PriorIdea`, `PriorOutcome`,
    `build_retreat_request_with_priors`. Test first: seeds carry `outcome` and
    no private fields; the existing builder keeps its seeds otherwise.
 2. `RetreatOutcomeStatus::{Harmful, Regressed}` and optional `shape`, pinned;
@@ -72,5 +72,5 @@ fails for the expected reason.
 - `cargo +1.99 fmt --all -- --check`, `clippy --all-targets --all-features -- -D
   warnings`, `build --all-targets --all-features`, `test --all-features`.
 - `.github/scripts/check-file-coverage.sh`.
-- `cargo run -p tinyrsi-examples --example hive_goal`; `npm test` in
+- `cargo run -p rsi-ralph-examples --example hive_goal`; `npm test` in
   `apps/rsi-viz`.

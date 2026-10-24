@@ -2,7 +2,7 @@
 
 Status: Accepted contract; runtime integration is partial.
 
-Related: [P3 issue #5](https://github.com/tinyhumansai/tinyrsi/issues/5),
+Related: [P3 issue #5](https://github.com/tinyhumansai/rsi-ralph/issues/5),
 [phase status](../phases.md), and the
 [implementation plan](../../plans/verified-decomposition.md).
 
@@ -120,7 +120,7 @@ proofs, expected values or diagnostics.
 - The host supplies any OS sandbox; no isolation guarantee is inferred from
   bounded process execution alone.
 - Upstream typed goal-verifier declarations are integrated through their
-  canonical immutable language record, not reimplemented in TinyRSI.
+  canonical immutable language record, not reimplemented in RSI Ralph.
 
 ## Acceptance criteria
 
@@ -143,12 +143,12 @@ proofs, expected values or diagnostics.
 
 ## Current implementation and remaining work
 
-`tinyrsi-verify` currently implements the validated runtime DAG, immutable
+`rsi-ralph-verify` currently implements the validated runtime DAG, immutable
 verifier registry, real process/schema/golden/Lean/Lake checks, identity-bound
 evidence and `VerifiedRunner`. `VerificationEvidence` includes a checker
 identity digest. The durable journal rejects new callbacks without that digest
 while retaining historical records written before the field existed.
-`tinyrsi-host` journals checker observations;
+`rsi-ralph-host` journals checker observations;
 coordinator tests cover multi-seat dependencies and the completion gate. The
 private Lean example runs 12 agent-authored finite tasks through genuine pinned
 Lake builds. These are adapter checks, not independent model-performance
@@ -167,4 +167,4 @@ The generic upstream completion mechanism is not duplicated here.
 - Which independently curated proof tasks and reviewers will establish a
   private Lean slice beyond finite adapter certificates?
 - What exact public typed declaration lands in tinyhivemind #122, and how will
-  its stable identity be included in TinyRSI suite fingerprints?
+  its stable identity be included in RSI Ralph suite fingerprints?
