@@ -103,7 +103,7 @@ clap = { version = "4", default-features = false, features = ["std", "derive", "
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
 # Default features off: only the `langfuse` export is needed, not the agent
 # runtime's optional domains.
-openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse"] }
+openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse", "channels"] }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
 # coordinator, for `rsi-ralph-swarm`. It names OpenHuman by git source; the
 # `[patch."https://github.com/tinyhumansai/openhuman"]` table below resolves
@@ -159,7 +159,6 @@ strip = "debuginfo"
 # every host tool link — so there is exactly one `tinytools` package and one
 # `Tool` trait. Without this, MCP tools would not satisfy the harness's trait.
 tinytools = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
-tinytools-std = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-std" }
 tinytools-agent = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
 
 [patch."https://github.com/tinyhumansai/openhuman"]
@@ -238,7 +237,7 @@ tinystoragedrivers-testkit = { path = "vendor/openhuman/vendor/tinystoragedriver
 tinystoragedrivers-types = { path = "vendor/openhuman/vendor/tinystoragedrivers/crates/tinystoragedrivers-types" }
 
 [patch."https://github.com/tinyhumansai/tinyinference"]
-# tinymemes depends on the Jev client by git; resolve it to the vendored copy.
+# tinycomputer depends on the Jev client by git; resolve it to the vendored copy.
 tinyinference-decisions = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-decisions" }
 tinyinference-core = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
 tinyinference-embeddings = { path = "vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
