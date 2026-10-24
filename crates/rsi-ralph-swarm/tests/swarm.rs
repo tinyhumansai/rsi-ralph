@@ -8,8 +8,8 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use rsi_ralph_swarm::{
@@ -21,6 +21,15 @@ use wiremock::matchers::{method, path_regex};
 use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 
 const MODEL_KEY: &str = "sk-fixture-model-key-1234";
+/// OpenHuman runs one harness per process, so the runs in this file take turns.
+static ONE_SWARM_AT_A_TIME: Mutex<()> = Mutex::new(());
+
+fn one_swarm_at_a_time() -> MutexGuard<'static, ()> {
+    ONE_SWARM_AT_A_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 const NOTE: &str = "the swarm was here\n";
 
 fn fixture() -> PathBuf {
@@ -203,6 +212,7 @@ fn offered(requests: &[Request], seat: &str) -> Vec<String> {
 
 #[test]
 fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
+    let _turn = one_swarm_at_a_time();
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
     let server = server_runtime.block_on(model(Duration::ZERO));
     let dirs = dirs();
@@ -309,6 +319,7 @@ fn the_lead_delegates_and_the_implementer_writes_its_candidate() {
 #[cfg(feature = "web-search")]
 #[test]
 fn a_search_key_reaches_only_its_seat_and_no_run_file() {
+    let _turn = one_swarm_at_a_time();
     const SEARCH_KEY: &str = "AIza-fixture-search-key-5678";
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
     let server = server_runtime.block_on(model(Duration::ZERO));
@@ -341,6 +352,7 @@ fn a_search_key_reaches_only_its_seat_and_no_run_file() {
 
 #[test]
 fn the_wall_clock_stops_a_swarm_whose_seat_is_still_working() {
+    let _turn = one_swarm_at_a_time();
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
     let server = server_runtime.block_on(model(Duration::from_secs(30)));
     let dirs = dirs();
@@ -364,6 +376,7 @@ fn the_wall_clock_stops_a_swarm_whose_seat_is_still_working() {
 
 #[test]
 fn a_lead_outside_the_package_is_refused_before_anything_starts() {
+    let _turn = one_swarm_at_a_time();
     let dirs = dirs();
     let mut request = request(&dirs, "http://127.0.0.1:9", Duration::from_secs(1));
     request.lead = "nobody".into();
@@ -374,6 +387,7 @@ fn a_lead_outside_the_package_is_refused_before_anything_starts() {
 
 #[test]
 fn run_failures_surface_as_typed_errors_without_the_model_key() {
+    let _turn = one_swarm_at_a_time();
     // A zero turn wall is refused by the hive adapter.
     let zero_dirs = dirs();
     let mut zero_turn = request(&zero_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
@@ -461,6 +475,7 @@ async fn shell_model() -> MockServer {
 
 #[test]
 fn seat_shell_calls_run_under_the_seats_access() {
+    let _turn = one_swarm_at_a_time();
     let server_runtime = tokio::runtime::Runtime::new().unwrap();
     let server = server_runtime.block_on(shell_model());
     let dirs = dirs();
