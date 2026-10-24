@@ -17,7 +17,7 @@
 //! [`LangfuseTrace::flush`] retries them and reports the error.
 //!
 //! Langfuse can also accept a request in part: it answers 200 with OTLP's
-//! `partialSuccess.rejectedSpans`. OpenHuman's client reports that spelling as
+//! `partialSuccess.rejectedSpans`. `OpenHuman`'s client reports that spelling as
 //! an export error, so the request stays pending like any failed one. A
 //! `partial_success` spelling it does not recognise is acknowledged here,
 //! since resending it would duplicate the accepted spans, but it counts as a
