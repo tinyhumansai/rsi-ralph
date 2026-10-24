@@ -75,18 +75,19 @@ pub(super) fn validate(hive: &LoweredHive, model_name: Option<&str>) -> Result<(
         return Err(Error::HostFailed);
     }
     for seat in &hive.seats {
-        if !seat.mcp.is_empty()
-            || !seat.skills.is_empty()
-            || !seat.tools.allow.is_empty()
+        let integration = &seat.integration;
+        if !integration.mcp.is_empty()
+            || !integration.skills.is_empty()
+            || !integration.tools.allow.is_empty()
             || !(seat.config.is_null()
                 || seat
                     .config
                     .as_object()
                     .is_some_and(serde_json::Map::is_empty))
-            || seat
+            || integration
                 .model
-                .as_deref()
-                .is_some_and(|name| Some(name) != model_name)
+                .as_ref()
+                .is_some_and(|model| Some(model.model.name.as_str()) != model_name)
         {
             return Err(Error::HostFailed);
         }
