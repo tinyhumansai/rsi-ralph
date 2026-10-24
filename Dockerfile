@@ -19,5 +19,6 @@ COPY --from=build /src/target/release/rsi-ralph /usr/local/bin/rsi-ralph
 # Run records live under the home directory; mount a volume here to keep them.
 ENV TINYRSI_HOME=/data
 VOLUME /data
-EXPOSE 8787
+# The UI binds to 127.0.0.1 by design, so it is reachable only with
+# `--network host`; otherwise pass `--no-serve` to `run`.
 ENTRYPOINT ["rsi-ralph"]
