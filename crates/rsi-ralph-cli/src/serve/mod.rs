@@ -202,13 +202,7 @@ fn epochs(run: &Path) -> Vec<u32> {
             entries
                 .flatten()
                 .filter(|e| e.path().is_dir())
-                .filter_map(|e| {
-                    e.file_name()
-                        .to_str()?
-                        .strip_prefix("epoch-")?
-                        .parse()
-                        .ok()
-                })
+                .filter_map(|e| e.file_name().to_str()?.strip_prefix("epoch-")?.parse().ok())
                 .collect()
         })
         .unwrap_or_default();

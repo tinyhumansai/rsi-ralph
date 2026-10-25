@@ -46,7 +46,11 @@ fn served() -> (tempfile::TempDir, Server) {
         "{\"seq\":0,\"event\":{\"kind\":\"tool_call\"}}\n",
     )
     .unwrap();
-    fs::write(run.dir().join("meter.jsonl"), "{\"seat\":\"lead\"}\n").unwrap();
+    fs::write(
+        run.events_path().with_file_name("meter.jsonl"),
+        "{\"seat\":\"lead\"}\n",
+    )
+    .unwrap();
     let server = start(store, "127.0.0.1:0".parse().unwrap()).unwrap();
     (home, server)
 }
@@ -168,7 +172,10 @@ fn streams_the_meter_and_an_epochs_swarm_trace() {
 fn lists_a_runs_epochs_in_order() {
     let (_home, server) = served();
     let body = get(&server, "/api/runs/demo/r1/epochs", "GET");
-    assert!(body.contains("application/json") && body.ends_with("[1]"), "{body}");
+    assert!(
+        body.contains("application/json") && body.ends_with("[1]"),
+        "{body}"
+    );
     let dir = tempfile::tempdir().unwrap();
     for name in ["epoch-10", "epoch-2", "epoch-x", "loop"] {
         fs::create_dir(dir.path().join(name)).unwrap();

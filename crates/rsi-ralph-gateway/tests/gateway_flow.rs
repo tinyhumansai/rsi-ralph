@@ -312,7 +312,9 @@ async fn streams_through_and_settles_from_the_usage_event() {
     assert!((ledgers["run"]["settled_usd"].as_f64().unwrap() - 0.001).abs() < 1e-12);
     let row = &h.meter()[0];
     assert_eq!(row["stream"], true);
-    let ttft = row["ttft_ms"].as_u64().expect("a stream with a token has a ttft");
+    let ttft = row["ttft_ms"]
+        .as_u64()
+        .expect("a stream with a token has a ttft");
     assert!(ttft <= row["wall_ms"].as_u64().unwrap(), "{row}");
 }
 

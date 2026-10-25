@@ -51,10 +51,14 @@ fn reads_a_final_unterminated_event_and_skips_noise() {
 fn notices_the_first_generated_token_and_not_keepalives() {
     let mut scanner = SseUsage::default();
     scanner.feed(b": OPENROUTER PROCESSING\n\n");
-    scanner.feed(b"data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"\"}}]}\n\n");
+    scanner
+        .feed(b"data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"\"}}]}\n\n");
     assert!(!scanner.saw_token());
     scanner.feed(b"data: {\"choices\":[{\"delta\":{\"reasoning\":\"Hm");
-    assert!(!scanner.saw_token(), "an unterminated event is not read yet");
+    assert!(
+        !scanner.saw_token(),
+        "an unterminated event is not read yet"
+    );
     scanner.feed(b"\"}}]}\n\n");
     assert!(scanner.saw_token());
 }
