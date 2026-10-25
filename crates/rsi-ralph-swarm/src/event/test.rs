@@ -65,19 +65,33 @@ fn pins_the_stored_form_of_every_event_kind() {
         hive: "pair".into(),
         lead: "lead".into(),
         desks: vec!["lab".into()],
-        seats: vec![SeatInfo {
-            id: "lead".into(),
-            role: "lead".into(),
-            model: "m".into(),
-            action_dir: PathBuf::from("/incumbent"),
-            editing: false,
-        }],
+        seats: vec![
+            SeatInfo {
+                id: "lead".into(),
+                role: "lead".into(),
+                model: "m".into(),
+                action_dir: PathBuf::from("/incumbent"),
+                editing: false,
+                memory: None,
+            },
+            SeatInfo {
+                id: "scout".into(),
+                role: "scout".into(),
+                model: "m".into(),
+                action_dir: PathBuf::from("/incumbent"),
+                editing: false,
+                memory: Some("team:pair/agent:hive".into()),
+            },
+        ],
     };
     assert_eq!(
         serde_json::to_value(&started).unwrap(),
         json!({"kind": "swarm_started", "hive": "pair", "lead": "lead", "desks": ["lab"],
             "seats": [{"id": "lead", "role": "lead", "model": "m",
-                "action_dir": "/incumbent", "editing": false}]})
+                "action_dir": "/incumbent", "editing": false},
+                {"id": "scout", "role": "scout", "model": "m",
+                "action_dir": "/incumbent", "editing": false,
+                "memory": "team:pair/agent:hive"}]})
     );
     let message = SwarmEvent::AgentMessage {
         sequence: 3,

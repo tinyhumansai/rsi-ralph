@@ -17,8 +17,8 @@ use crate::{Error, Result};
 mod types;
 pub use types::{
     Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec,
-    StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
+    HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec,
+    ScorerSpec, StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
 /// The one tool capability a key can enable today.
@@ -238,6 +238,9 @@ fn validate_fields(m: &Manifest) -> Result<()> {
             "wall_secs and turn_secs must be positive",
         ));
     }
+    if let Some(memory) = &m.hive.memory {
+        validate_memory(memory)?;
+    }
     validate_creativity(&m.creativity)?;
     validate_keys(&m.keys)?;
     validate_score(&m.score)?;
@@ -353,6 +356,30 @@ fn validate_creativity(c: &Creativity) -> Result<()> {
                 "use cli, fugue or student",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_memory(memory: &HiveMemory) -> Result<()> {
+    let endpoint = memory.endpoint.trim();
+    if !(endpoint.starts_with("http://") || endpoint.starts_with("https://")) {
+        return Err(Error::field(
+            "hive.memory.endpoint",
+            "must be an http or https URL",
+        ));
+    }
+    if !env_name(&memory.key) {
+        return Err(Error::field(
+            "hive.memory.key",
+            "must name an upper-case environment variable",
+        ));
+    }
+    if memory
+        .root
+        .as_deref()
+        .is_some_and(|root| root.trim().is_empty())
+    {
+        return Err(Error::field("hive.memory.root", "must not be blank"));
     }
     Ok(())
 }
@@ -557,6 +584,20 @@ impl Loop {
         models
     }
 
+    /// The layout root the seats' memory sits below, when they carry memory:
+    /// `hive.memory.root`, else `team:<loop name>`, so every run of the loop
+    /// shares it.
+    #[must_use]
+    pub fn memory_root(&self) -> Option<String> {
+        let memory = self.manifest.hive.memory.as_ref()?;
+        Some(
+            memory
+                .root
+                .clone()
+                .unwrap_or_else(|| format!("team:{}", self.manifest.name)),
+        )
+    }
+
     /// Every environment variable the loop needs, sorted and unique.
     #[must_use]
     pub fn required_env(&self) -> Vec<String> {
@@ -567,6 +608,9 @@ impl Loop {
                 KeySpec::Env(env) => names.insert(env.clone()),
                 KeySpec::Tool(tool) => names.insert(tool.env.clone()),
             };
+        }
+        if let Some(memory) = &self.manifest.hive.memory {
+            names.insert(memory.key.clone());
         }
         names.into_iter().collect()
     }

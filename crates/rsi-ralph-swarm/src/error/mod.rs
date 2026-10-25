@@ -100,6 +100,10 @@ pub enum Error {
     /// The `OpenHuman` hive adapter refused a seat or setting.
     #[error("hive adapter failed")]
     Adapter(#[from] tinyhivemind_openhuman::Error),
+    /// The seats' memory engine could not be built; the message names the
+    /// engine and the reason, never its key.
+    #[error("cannot build the seat memory engine: {0}")]
+    MemoryEngine(String),
     /// The dedicated swarm thread or its async runtime could not start.
     #[error("cannot start the swarm thread")]
     Thread(#[source] std::io::Error),

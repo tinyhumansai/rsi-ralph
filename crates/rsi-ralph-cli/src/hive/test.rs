@@ -56,3 +56,66 @@ fn a_hive_with_no_editing_seat_is_refused() {
         Err(Error::Proposer(reason)) if reason.contains("no seat edits")
     ));
 }
+
+#[test]
+fn seats_carry_no_memory_unless_the_loop_names_one() {
+    let parsed = example(|_| {});
+    let hive = Hive::new(&parsed, &keys(&parsed), "http://x").unwrap();
+    assert!(hive.memory.is_none());
+}
+
+#[test]
+fn seats_remember_under_the_loop_root_and_can_share_one_namespace() {
+    let parsed = example(|m| {
+        m["hive"]["memory"] = serde_json::json!({
+            "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "shared": true
+        });
+    });
+    let hive = Hive::new(&parsed, &keys(&parsed), "http://x").unwrap();
+    let memory = hive.memory.as_ref().unwrap();
+    assert_eq!(memory.root(), "team:graph-coloring");
+    assert!(memory.is_shared());
+    assert_eq!(
+        memory.namespace("implementer"),
+        "team:graph-coloring/agent:hive"
+    );
+    assert!(!format!("{hive:?}").contains("sk-value"));
+
+    let per_seat = example(|m| {
+        m["hive"]["memory"] = serde_json::json!({
+            "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": "team:math"
+        });
+    });
+    let hive = Hive::new(&per_seat, &keys(&per_seat), "http://x").unwrap();
+    let memory = hive.memory.as_ref().unwrap();
+    assert!(!memory.is_shared());
+    assert_eq!(
+        memory.namespace("implementer"),
+        "team:math/agent:implementer"
+    );
+}
+
+#[test]
+fn a_memory_key_without_a_value_is_missing() {
+    let parsed = example(|m| {
+        m["hive"]["memory"] =
+            serde_json::json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+    });
+    assert!(matches!(
+        Hive::new(&parsed, &Keys::default(), "http://x"),
+        Err(Error::MissingKeys { names }) if names == ["CORTEX_API_KEY"]
+    ));
+}
+
+#[test]
+fn a_memory_root_the_runtime_refuses_fails_before_the_run() {
+    let parsed = example(|m| {
+        m["hive"]["memory"] = serde_json::json!({
+            "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": "root"
+        });
+    });
+    assert!(matches!(
+        Hive::new(&parsed, &keys(&parsed), "http://x"),
+        Err(Error::Proposer(_))
+    ));
+}
