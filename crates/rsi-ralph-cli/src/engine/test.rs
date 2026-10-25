@@ -5,7 +5,8 @@ use crate::{manifest, subject::copy_tree};
 use rsi_ralph_gateway::{CallMark, Refusal, UpstreamCalls};
 use std::fs;
 
-/// What a seat writes in an epoch, as `path:content`, or nothing.
+/// What a seat writes in an epoch, as `path:content` entries joined by `|`,
+/// or nothing.
 type Plan = Box<dyn Fn(u32, &str) -> Option<String>>;
 
 /// A hive stand-in that writes the next value for each seat.
@@ -25,8 +26,12 @@ impl Proposer for Scripted {
         self.briefs.push(request.brief.to_owned());
         for (seat, checkout) in request.candidates {
             if let Some(text) = (self.plan)(request.epoch, seat) {
-                let (path, body) = text.split_once(':').unwrap();
-                fs::write(checkout.path.join(path), body).unwrap();
+                for write in text.split('|') {
+                    let (path, body) = write.split_once(':').unwrap();
+                    let target = checkout.path.join(path);
+                    fs::create_dir_all(target.parent().unwrap()).unwrap();
+                    fs::write(target, body).unwrap();
+                }
             }
         }
         Ok(ProposalReport {
@@ -177,6 +182,10 @@ fn improves_until_the_goal_and_records_everything() {
     assert_eq!(ledger.epochs[0].promoted.as_deref(), Some("e1-a"));
     assert!(run.path.join("epoch-1/brief.md").exists());
     assert!(run.path.join("epoch-1/steps/e1-a/change.diff").exists());
+    assert!(
+        !run.path.join("epoch-1/notes.json").exists(),
+        "notes are only harvested when the loop asks for them"
+    );
 
     let kinds = events(&store, "r1");
     assert_eq!(kinds.first().map(String::as_str), Some("run_started"));
@@ -598,4 +607,62 @@ fn an_empty_epoch_without_refusals_still_stalls_quietly() {
             .iter()
             .any(|k| k == "provider_refused")
     );
+}
+
+#[test]
+fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, parsed) = fixture(root.path(), |m| {
+        m["subject"]["editable"] = serde_json::json!(["value.txt", "notes/"]);
+        m["carry"] = serde_json::json!({ "notes": ["notes/"] });
+        m["epochs"] = serde_json::json!(2);
+    });
+    fs::write(
+        dir.join("brief.md"),
+        "Lower the value.\n\n{{incumbent}}\n\n{{notes}}\n",
+    )
+    .unwrap();
+    let parsed = Loop {
+        brief: fs::read_to_string(dir.join("brief.md")).unwrap(),
+        ..parsed
+    };
+    let store = Store::new(root.path().join("home"));
+    let mut hive = Scripted {
+        seats: vec!["a".into(), "b".into()],
+        // Epoch 1: a wins on value; b loses but finds the obstacle. Epoch 2:
+        // nobody writes anything.
+        plan: Box::new(|epoch, seat| match (epoch, seat) {
+            (1, "a") => Some("value.txt:6|notes/a.md:a lowered it to 6".into()),
+            (1, _) => Some("value.txt:8|notes/b.md:b found the obstacle: parity".into()),
+            _ => None,
+        }),
+        briefs: Vec::new(),
+    };
+    let summary = engine(&parsed, &dir, &store, "n", &mut hive).run().unwrap();
+    assert_eq!(summary.promotions, 1);
+    assert_eq!(hive.briefs.len(), 2);
+    assert!(hive.briefs[0].contains("None yet."), "{}", hive.briefs[0]);
+    let second = &hive.briefs[1];
+    assert!(second.contains("epoch 1 promoted `e1-a`"), "{second}");
+    assert!(second.contains("### `b` (`e1-b`, "), "{second}");
+    assert!(second.contains("b found the obstacle: parity"), "{second}");
+    assert!(second.contains("a lowered it to 6"), "{second}");
+
+    let run = store.runs_root().join("value/n");
+    // Promotion dropped b's note from every epoch-2 checkout; only the
+    // harvest kept it.
+    assert!(!run.join("epoch-2/candidates/b/notes/b.md").exists());
+    assert_eq!(
+        fs::read_to_string(run.join("epoch-1/notes/b/notes/b.md")).unwrap(),
+        "b found the obstacle: parity"
+    );
+    let first: crate::carry::EpochNotes =
+        store::read_json(&run.join("epoch-1/notes.json")).unwrap();
+    assert_eq!(first.promoted.as_deref(), Some("e1-a"));
+    assert_eq!(first.seats.len(), 2);
+    // Epoch 2 changed nothing, so it carries nothing: a's note sitting
+    // unchanged in every checkout is not harvested again.
+    let second: crate::carry::EpochNotes =
+        store::read_json(&run.join("epoch-2/notes.json")).unwrap();
+    assert!(second.seats.is_empty());
 }
