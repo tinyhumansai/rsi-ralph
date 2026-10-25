@@ -50,6 +50,21 @@ svg text { fill: var(--muted); font: 11px var(--mono); }
 .empty-state { padding: 40px 0; text-align: center; }
 .log td { font-family: var(--mono); font-size: 12px; }
 .diff-add { color: var(--good); } .diff-del { color: var(--bad); }
+.scroll { overflow-x: auto; }
+.scroll table { min-width: 720px; }
+th.num, td.num { text-align: right; }
+th .sub { display: block; font-weight: normal; font-size: 11px; color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+.chips button { border: 1px solid var(--line); background: none; color: inherit; border-radius: 999px; padding: 2px 9px; cursor: pointer; font: inherit; font-size: 12px; }
+.chips button.on { background: var(--soft); border-color: var(--accent); }
+.bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); opacity: .55; vertical-align: middle; }
+.feed td { font-size: 12px; }
+.feed td.t { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+.feed .what { font-family: var(--mono); overflow-wrap: anywhere; }
+.feed details summary { cursor: pointer; overflow-wrap: anywhere; }
+.feed details pre { margin-top: 6px; }
+.ok { color: var(--good); } .fail { color: var(--bad); } .pending { color: var(--accent); }
+.seat { font-family: var(--mono); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -64,7 +79,18 @@ const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (n) => (n === null || n === undefined ? "–" : Math.abs(n) >= 100 ? n.toFixed(1) : n.toFixed(4));
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "–");
+const int = (n) => (n === null || n === undefined ? "–" : Math.round(n).toLocaleString());
+const kilo = (n) => (n === null || n === undefined ? "–" : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(1)}k` : int(n));
+const ms = (n) => (n === null || n === undefined || Number.isNaN(n) ? "–" : n >= 60000 ? `${(n / 60000).toFixed(1)}m` : n >= 1000 ? `${(n / 1000).toFixed(1)}s` : `${Math.round(n)}ms`);
+const usd = (n) => (n === null || n === undefined ? "–" : `$${n < 0.1 ? n.toFixed(4) : n.toFixed(2)}`);
+const clock = (t) => { const s = Math.floor(t / 1000); return `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+const pct = (xs, p) => { if (!xs.length) return null; const v = xs.slice().sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(p * v.length))]; };
+const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? `${s.slice(0, n)}…` : s; };
 let runs = [], current = null, source = null, events = [], ledger = null, record = null, briefEpoch = null, detail = null;
+// Model calls from the gateway meter, and the swarm trace of one epoch.
+let meterSource = null, meter = [], hiveSource = null, hive = [], hiveEpoch = null, hivePinned = false, epochList = [], budget = null;
+let seatFilter = null, kindFilter = "all", briefs = {}, openRows = new Set(), queued = false;
 
 async function json(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); return r.json(); }
 async function text(url) { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.text() : ""; }
@@ -82,22 +108,207 @@ async function loadRuns() {
   if (!current && runs.length) select(`${runs[0].loop}/${runs[0].id}`);
 }
 
+/// Follow one JSONL trace, pushing each parsed line into `sink`.
+function follow(url, sink) {
+  const es = new EventSource(url);
+  es.onmessage = (m) => { for (const line of m.data.split("\n")) { try { sink.push(JSON.parse(line)); } catch {} } schedule(); };
+  return es;
+}
+
+/// Coalesce bursts of trace lines into one render per animation frame.
+function schedule() { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; render(); }); } }
+
 function select(id) {
-  if (source) source.close();
+  for (const es of [source, meterSource, hiveSource]) if (es) es.close();
   current = id; events = []; ledger = null; record = null; briefEpoch = null; detail = null;
+  meter = []; hive = []; hiveEpoch = null; hivePinned = false; epochList = []; budget = null;
+  seatFilter = null; briefs = {}; openRows = new Set(); hiveSource = null;
   history.replaceState(null, "", `#${id}`);
   $("#where").textContent = id;
   for (const b of document.querySelectorAll("nav button")) b.classList.toggle("on", b.dataset.run === id);
-  source = new EventSource(`/api/runs/${id}/events`);
-  source.onmessage = (m) => { for (const line of m.data.split("\n")) { try { events.push(JSON.parse(line)); } catch {} } render(); };
+  source = follow(`/api/runs/${id}/events`, events);
+  meterSource = follow(`/api/runs/${id}/meter`, meter);
   refresh();
+}
+
+function showEpoch(epoch) {
+  if (hiveSource) hiveSource.close();
+  hiveEpoch = epoch; hive = []; openRows = new Set();
+  hiveSource = follow(`/api/runs/${current}/epochs/${epoch}/hive`, hive);
+  schedule();
 }
 
 async function refresh() {
   if (!current) return;
-  try { record = await json(`/api/runs/${current}/files/run.json`); } catch {}
-  try { ledger = await json(`/api/runs/${current}/files/ledger.json`); } catch {}
+  const run = current;
+  const [r, l, b, e] = await Promise.all([
+    json(`/api/runs/${run}/files/run.json`).catch(() => null),
+    json(`/api/runs/${run}/files/ledger.json`).catch(() => null),
+    json(`/api/runs/${run}/files/budget.json`).catch(() => null),
+    json(`/api/runs/${run}/epochs`).catch(() => []),
+  ]);
+  if (run !== current) return;
+  if (r) record = r; if (l) ledger = l; if (b) budget = b;
+  epochList = e;
+  // Follow the newest epoch's swarm until the reader picks one.
+  const latest = epochList.filter((n) => n > 0).pop() ?? epochList[epochList.length - 1];
+  if (latest !== undefined && !hivePinned && latest !== hiveEpoch) showEpoch(latest);
   render();
+}
+
+/// Everything the swarm trace of the shown epoch says, folded per seat and per tool.
+function swarm() {
+  const seats = new Map(), tools = new Map(), feed = [], open = new Map();
+  let started = null, finished = null, lastMs = 0;
+  const seat = (id) => { if (!seats.has(id)) seats.set(id, { id, role: "", model: "", editing: null, memory: "", turns: 0, inTok: 0, outTok: 0, calls: 0, failed: 0, running: 0, tools: new Map(), sent: 0, received: 0, last: null, lastMs: null }); return seats.get(id); };
+  const tool = (name) => { if (!tools.has(name)) tools.set(name, { name, calls: 0, ok: 0, failed: 0, running: 0, durations: [], chars: [], seats: new Set() }); return tools.get(name); };
+  for (const { seq, elapsed_ms: t = 0, event: e } of hive) {
+    if (!e) continue;
+    lastMs = Math.max(lastMs, t);
+    if (e.kind === "swarm_started") {
+      started = e;
+      for (const s of e.seats ?? []) Object.assign(seat(s.id), { role: s.role, model: s.model, editing: s.editing, memory: s.memory ?? "" });
+    } else if (e.kind === "swarm_finished") {
+      finished = e;
+    } else if (e.kind === "tool_call") {
+      const s = seat(e.seat), k = `${e.seat}\u0000${e.tool}`;
+      if (e.phase === "started") {
+        const row = { kind: "tool", seq, t, seat: e.seat, tool: e.tool, detail: e.detail, done: null };
+        feed.push(row);
+        if (!open.has(k)) open.set(k, []);
+        open.get(k).push(row);
+        const x = tool(e.tool); x.calls++; x.seats.add(e.seat);
+        s.calls++; s.tools.set(e.tool, (s.tools.get(e.tool) ?? 0) + 1);
+        s.last = `${e.tool} ${clip(e.detail, 80)}`; s.lastMs = t;
+      } else {
+        const row = open.get(k)?.shift() ?? { kind: "tool", seq, t, seat: e.seat, tool: e.tool, detail: null };
+        if (!feed.includes(row)) feed.push(row);
+        row.done = { t, success: e.success, chars: e.output_chars };
+        const x = tool(e.tool);
+        if (e.success === false) { x.failed++; s.failed++; } else x.ok++;
+        x.durations.push(t - row.t);
+        if (e.output_chars !== null && e.output_chars !== undefined) x.chars.push(e.output_chars);
+        s.lastMs = t;
+      }
+    } else if (e.kind === "agent_message") {
+      feed.push({ kind: "message", seq, t, seat: e.from, to: e.to, body: e.body ?? "", episode: e.episode });
+      if (seats.has(e.from) || e.from !== "host") seat(e.from).sent++;
+      const to = String(e.to ?? "");
+      if (!to.startsWith("hive:")) seat(to).received++;
+    } else if (e.kind === "agent_turn") {
+      const s = seat(e.seat);
+      s.turns++; s.inTok += e.input_tokens ?? 0; s.outTok += e.output_tokens ?? 0; s.lastMs = t;
+      feed.push({ kind: "turn", seq, t, seat: e.seat, inTok: e.input_tokens, outTok: e.output_tokens });
+    }
+  }
+  for (const rows of open.values()) for (const row of rows) { const s = seat(row.seat); s.running++; tool(row.tool).running++; }
+  return { seats, tools, feed, started, finished, lastMs };
+}
+
+/// The gateway meter folded per seat (or per phase, for calls with no seat).
+function calls() {
+  const by = new Map();
+  for (const m of meter) {
+    const key = m.seat || m.phase || "–";
+    if (!by.has(key)) by.set(key, { calls: 0, errors: 0, inTok: 0, outTok: 0, cost: 0, ttft: [], wall: [], tps: [] });
+    const g = by.get(key);
+    g.calls++;
+    if (m.error || (m.status && m.status >= 400)) g.errors++;
+    g.inTok += m.prompt_tokens ?? 0; g.outTok += m.completion_tokens ?? 0; g.cost += m.cost_usd ?? 0;
+    if (m.ttft_ms !== null && m.ttft_ms !== undefined) g.ttft.push(m.ttft_ms);
+    if (m.wall_ms) g.wall.push(m.wall_ms);
+    const gen = (m.wall_ms ?? 0) - (m.ttft_ms ?? 0);
+    if (m.completion_tokens && gen > 0) g.tps.push((m.completion_tokens * 1000) / gen);
+  }
+  return by;
+}
+
+function agentsCard(sw, cs) {
+  const ids = [...sw.seats.keys()];
+  for (const k of cs.keys()) if (!sw.seats.has(k)) ids.push(k);
+  if (!ids.length) return `<p class="muted">No agent activity yet: the swarm trace and the gateway meter are empty.</p>`;
+  const rows = ids.map((id) => {
+    const s = sw.seats.get(id), c = cs.get(id);
+    const top = s ? [...s.tools.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, k]) => `${esc(n)}×${k}`).join(" ") : "";
+    const state = !s ? "" : s.running ? `<span class="pending">● in ${s.running} tool call${s.running > 1 ? "s" : ""}</span>` : s.lastMs !== null ? `<span class="muted">idle ${ms(sw.lastMs - s.lastMs)}</span>` : "";
+    return `<tr class="clickable ${seatFilter === id ? "on" : ""}" data-seat="${esc(id)}" title="Show only this seat's activity">
+      <td><span class="seat">${esc(id)}</span>${s?.role ? `<div class="muted">${esc(s.role)}${s.editing ? " · edits" : ""}</div>` : ""}</td>
+      <td>${esc(s?.model || "")}<div>${state}</div></td>
+      <td class="num">${int(c?.calls)}${c?.errors ? `<div class="fail">${c.errors} failed</div>` : ""}</td>
+      <td class="num">${kilo(c?.inTok)} / ${kilo(c?.outTok)}</td>
+      <td class="num">${c ? usd(c.cost) : "–"}</td>
+      <td class="num">${c ? `${ms(mean(c.ttft))}<div class="muted">p50 ${ms(pct(c.ttft, 0.5))}</div>` : "–"}</td>
+      <td class="num">${c ? `${ms(mean(c.wall))}<div class="muted">${c.tps.length ? `${mean(c.tps).toFixed(0)} tok/s` : ""}</div>` : "–"}</td>
+      <td class="num">${int(s?.turns)}</td>
+      <td class="num">${int(s?.calls)}${s?.failed ? `<div class="fail">${s.failed} failed</div>` : ""}</td>
+      <td>${top || "–"}</td>
+      <td class="num">${s ? `${s.sent} / ${s.received}` : "–"}</td>
+      <td class="what" style="font-size:12px">${esc(clip(s?.last, 90) || "–")}</td></tr>`;
+  }).join("");
+  return `<div class="scroll"><table><thead><tr><th>Seat</th><th>Model</th>
+    <th class="num">Model calls<span class="sub">whole run</span></th><th class="num">Tokens in / out<span class="sub">whole run</span></th>
+    <th class="num">Cost<span class="sub">whole run</span></th><th class="num">TTFT<span class="sub">mean</span></th><th class="num">Call time<span class="sub">mean</span></th>
+    <th class="num">Turns<span class="sub">epoch ${esc(hiveEpoch ?? "–")}</span></th><th class="num">Tool calls<span class="sub">epoch ${esc(hiveEpoch ?? "–")}</span></th>
+    <th>Top tools</th><th class="num">Msgs out / in</th><th>Last action</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="margin:4px 0 0;font-size:12px">Model-call columns come from the gateway meter (TTFT needs a gateway that records <code>ttft_ms</code>); turns, tools and messages from the shown epoch's swarm trace. Click a seat to filter the activity below.</p>`;
+}
+
+function toolsCard(sw) {
+  const list = [...sw.tools.values()].sort((a, b) => b.calls - a.calls);
+  if (!list.length) return `<p class="muted">No tool calls in epoch ${esc(hiveEpoch ?? "–")} yet.</p>`;
+  const most = Math.max(...list.map((x) => x.calls));
+  return `<div class="scroll"><table><thead><tr><th>Tool</th><th class="num">Calls</th><th></th><th class="num">OK</th><th class="num">Failed</th><th class="num">Running</th>
+    <th class="num">Duration<span class="sub">mean</span></th><th class="num">p95</th><th class="num">Output<span class="sub">mean chars</span></th><th>Seats</th></tr></thead><tbody>${
+    list.map((x) => `<tr><td class="seat">${esc(x.name)}</td><td class="num">${x.calls}</td>
+      <td style="width:120px"><span class="bar" style="width:${Math.max(2, (x.calls / most) * 110)}px"></span></td>
+      <td class="num ok">${x.ok}</td><td class="num ${x.failed ? "fail" : ""}">${x.failed}</td><td class="num ${x.running ? "pending" : ""}">${x.running}</td>
+      <td class="num">${ms(mean(x.durations))}</td><td class="num">${ms(pct(x.durations, 0.95))}</td><td class="num">${int(mean(x.chars))}</td>
+      <td class="muted" style="font-size:12px">${esc([...x.seats].join(", "))}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function activityCard(sw) {
+  const kinds = [["all", "everything"], ["tool", "tool calls"], ["message", "messages"], ["turn", "turns"]];
+  const tabs = epochList.length ? `<div class="tabs">${epochList.map((e) => `<button data-hive="${e}" class="${e === hiveEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div>` : "";
+  const seatsSeen = [...sw.seats.keys()];
+  const chips = `<div class="chips"><span class="muted" style="font-size:12px">seat</span>
+    <button data-filter-seat="" class="${seatFilter === null ? "on" : ""}">all</button>
+    ${seatsSeen.map((id) => `<button data-filter-seat="${esc(id)}" class="${seatFilter === id ? "on" : ""}">${esc(id)}</button>`).join("")}
+    <span class="muted" style="font-size:12px;margin-left:8px">show</span>
+    ${kinds.map(([k, label]) => `<button data-kind="${k}" class="${kindFilter === k ? "on" : ""}">${label}</button>`).join("")}</div>`;
+  const rows = sw.feed.filter((r) => (kindFilter === "all" || r.kind === kindFilter) && (seatFilter === null || r.seat === seatFilter || r.to === seatFilter));
+  const shown = rows.slice(-300).reverse();
+  const head = sw.started ? `<p class="muted" style="font-size:12px;margin:0 0 8px">Hive <b>${esc(sw.started.hive)}</b>, lead <b>${esc(sw.started.lead)}</b>, desks ${esc((sw.started.desks ?? []).join(", ") || "–")}${
+    sw.finished ? ` · finished (${esc(sw.finished.stop)}): ${sw.finished.completed} turns completed, ${sw.finished.failed} failed, ${sw.finished.parked} parked` : " · running"}</p>` : "";
+  if (!shown.length) return `${tabs}${chips}${head}<p class="muted">${hive.length ? "Nothing matches the filter." : `No swarm trace for epoch ${esc(hiveEpoch ?? "–")} yet.`}</p>`;
+  const line = (r) => {
+    if (r.kind === "tool") {
+      const res = !r.done ? `<span class="pending">running ${ms(sw.lastMs - r.t)}</span>`
+        : r.done.success === false ? `<span class="fail">✗ ${ms(r.done.t - r.t)}</span>`
+        : `<span class="ok">✓ ${ms(r.done.t - r.t)}</span>${r.done.chars !== null && r.done.chars !== undefined ? ` <span class="muted">${int(r.done.chars)} chars</span>` : ""}`;
+      return `<td><b>${esc(r.tool)}</b></td><td class="what">${r.detail ? `<span title="${esc(r.detail)}">${esc(clip(r.detail, 220))}</span>` : `<span class="muted">–</span>`}</td><td style="white-space:nowrap">${res}</td>`;
+    }
+    if (r.kind === "message") {
+      const key = `m${r.seq}`, long = r.body.length > 160;
+      const body = long ? `<details data-row="${key}" ${openRows.has(key) ? "open" : ""}><summary>${esc(clip(r.body.replace(/\s+/g, " "), 160))}</summary><pre>${esc(r.body)}</pre></details>` : esc(r.body);
+      return `<td>→ <span class="seat">${esc(r.to)}</span></td><td>${body}</td><td></td>`;
+    }
+    return `<td><i>turn done</i></td><td class="muted">${kilo(r.inTok)} in / ${kilo(r.outTok)} out tokens</td><td></td>`;
+  };
+  return `${tabs}${chips}${head}<div class="scroll feed"><table><tbody>${shown.map((r) =>
+    `<tr><td class="t">${clock(r.t)}</td><td class="seat">${esc(r.seat)}</td>${line(r)}</tr>`).join("")}</tbody></table></div>
+    <p class="muted" style="margin:4px 0 0;font-size:12px">${rows.length > shown.length ? `Newest 300 of ${rows.length}.` : `${rows.length} entries.`} Times are since the swarm started.</p>`;
+}
+
+function callsCard() {
+  if (!meter.length) return `<p class="muted">No metered model calls yet.</p>`;
+  const recent = (seatFilter === null ? meter : meter.filter((m) => (m.seat || m.phase) === seatFilter)).slice(-100).reverse();
+  return `<div class="scroll"><table><thead><tr><th>Time</th><th>Seat</th><th>Phase</th><th>Model</th><th class="num">Status</th><th class="num">In / out</th>
+    <th class="num">TTFT</th><th class="num">Wall</th><th class="num">Cost</th><th>Error</th></tr></thead><tbody>${recent.map((m) =>
+    `<tr><td class="num">${esc(new Date(m.at_ms).toLocaleTimeString())}</td><td class="seat">${esc(m.seat || "–")}</td><td>${esc(m.phase || "–")}</td><td>${esc(m.model)}</td>
+      <td class="num ${m.status >= 400 ? "fail" : ""}">${esc(m.status)}</td><td class="num">${kilo(m.prompt_tokens)} / ${kilo(m.completion_tokens)}</td>
+      <td class="num">${ms(m.ttft_ms)}</td><td class="num">${ms(m.wall_ms)}</td><td class="num">${usd(m.cost_usd)}</td>
+      <td class="fail" style="font-size:12px">${esc(clip(m.error, 140))}</td></tr>`).join("")}</tbody></table></div>
+    <p class="muted" style="margin:4px 0 0;font-size:12px">Newest 100 of ${meter.length} calls${seatFilter === null ? "" : ` (filtered to ${esc(seatFilter)})`}.</p>`;
 }
 
 function series() {
@@ -151,6 +362,13 @@ function render() {
   const r = record ?? {};
   const epochs = (ledger?.epochs ?? []).map((e) => e.epoch);
   if (briefEpoch === null && epochs.length) briefEpoch = epochs[epochs.length - 1];
+  if (briefEpoch === null && epochList.length) briefEpoch = epochList[epochList.length - 1];
+  const briefTabs = epochs.length ? epochs : epochList;
+  const sw = swarm(), cs = calls();
+  const all = [...cs.values()];
+  const ttfts = all.flatMap((c) => c.ttft);
+  const spent = budget ? (budget.settled_usd ?? 0) + (budget.uncertain_usd ?? 0) : r.spend_usd ?? 0;
+  const toolCalls = [...sw.tools.values()].reduce((a, x) => a + x.calls, 0);
   $("#main").innerHTML = `
     <div><span class="badge ${esc(r.status)}">${esc(r.status ?? "…")}</span>
       ${r.stop_reason ? `<span class="muted">stopped: ${esc(r.stop_reason)}</span>` : ""}
@@ -160,18 +378,37 @@ function render() {
       <div class="stat"><span class="muted">Incumbent score</span><b>${fmt(r.incumbent_score)}</b></div>
       <div class="stat"><span class="muted">Epochs</span><b>${esc(r.epochs ?? 0)}</b></div>
       <div class="stat"><span class="muted">Promotions</span><b>${Math.max(0, (ledger?.incumbents?.length ?? 1) - 1)}</b></div>
-      <div class="stat"><span class="muted">Spend</span><b>$${(r.spend_usd ?? 0).toFixed(2)}</b></div>
+      <div class="stat"><span class="muted">Spend${budget ? ` of $${(budget.limit_usd ?? 0).toFixed(2)}` : ""}</span><b>$${spent.toFixed(2)}</b>${budget?.in_flight_usd ? `<span class="muted" style="font-size:11px">+$${budget.in_flight_usd.toFixed(2)} in flight</span>` : ""}</div>
+      <div class="stat"><span class="muted">Model calls</span><b>${int(meter.length)}</b></div>
+      <div class="stat"><span class="muted">Tokens in / out</span><b>${kilo(all.reduce((a, c) => a + c.inTok, 0))} / ${kilo(all.reduce((a, c) => a + c.outTok, 0))}</b></div>
+      <div class="stat"><span class="muted">TTFT p50 / p95</span><b>${ms(pct(ttfts, 0.5))} / ${ms(pct(ttfts, 0.95))}</b></div>
+      <div class="stat"><span class="muted">Tool calls · epoch ${esc(hiveEpoch ?? "–")}</span><b>${int(toolCalls)}</b></div>
+      <div class="stat"><span class="muted">Agents</span><b>${int(sw.seats.size || cs.size)}</b></div>
       <div class="stat"><span class="muted">Incumbent</span><b class="num" style="font:13px var(--mono)">${esc((r.incumbent ?? "").slice(0, 12) || "–")}</b></div>
     </div>
     <div class="card"><h2>Scores</h2>${chart()}</div>
+    <div class="card"><h2>Agents</h2>${agentsCard(sw, cs)}</div>
+    <div class="card"><h2>Activity</h2>${activityCard(sw)}</div>
+    <div class="card"><h2>Tools</h2>${toolsCard(sw)}</div>
+    <div class="card"><h2>Model calls</h2>${callsCard()}</div>
     <div class="card"><h2>Candidates</h2>${candidates()}</div>
     <div class="card"><h2>Detail</h2><div id="detail">${detail ?? `<p class="muted">Click a candidate to see its change.</p>`}</div></div>
-    <div class="card"><h2>Brief</h2><div class="tabs">${epochs.map((e) => `<button data-epoch="${e}" class="${e === briefEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="brief"></pre></div>
+    <div class="card"><h2>Brief</h2><div class="tabs">${briefTabs.map((e) => `<button data-epoch="${e}" class="${e === briefEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="brief">${esc(briefs[briefEpoch] ?? "")}</pre></div>
     <div class="card log"><h2>Events</h2><table><tbody>${events.slice(-60).reverse().map(({ seq, event: e }) =>
       `<tr><td>${seq}</td><td>${esc(e.kind)}</td><td>${esc(summary(e))}</td></tr>`).join("")}</tbody></table></div>`;
-  for (const b of document.querySelectorAll(".tabs button")) b.onclick = () => { briefEpoch = Number(b.dataset.epoch); render(); };
+  for (const b of document.querySelectorAll(".tabs button[data-epoch]")) b.onclick = () => { briefEpoch = Number(b.dataset.epoch); render(); };
+  for (const b of document.querySelectorAll(".tabs button[data-hive]")) b.onclick = () => { hivePinned = true; showEpoch(Number(b.dataset.hive)); };
+  for (const b of document.querySelectorAll("button[data-filter-seat]")) b.onclick = () => { seatFilter = b.dataset.filterSeat || null; render(); };
+  for (const b of document.querySelectorAll("button[data-kind]")) b.onclick = () => { kindFilter = b.dataset.kind; render(); };
+  for (const row of document.querySelectorAll("tr[data-seat]")) row.onclick = () => { seatFilter = seatFilter === row.dataset.seat ? null : row.dataset.seat; render(); };
+  for (const d of document.querySelectorAll("details[data-row]")) d.ontoggle = () => { if (d.open) openRows.add(d.dataset.row); else openRows.delete(d.dataset.row); };
   for (const row of document.querySelectorAll("tr[data-cand]")) row.onclick = () => showDiff(row.dataset.epoch, row.dataset.cand);
-  if (briefEpoch !== null) text(`/api/runs/${current}/files/epoch-${briefEpoch}/brief.md`).then((t) => { const el = $("#brief"); if (el) el.textContent = t; });
+  // A brief is written once, before its epoch's swarm starts; fetch each one once.
+  const epoch = briefEpoch, run = current;
+  if (epoch !== null && !(epoch in briefs)) {
+    briefs[epoch] = "";
+    text(`/api/runs/${run}/files/epoch-${epoch}/brief.md`).then((t) => { if (run !== current) return; briefs[epoch] = t; const el = $("#brief"); if (el && briefEpoch === epoch) el.textContent = t; if (!t) delete briefs[epoch]; });
+  }
 }
 
 function summary(e) {
