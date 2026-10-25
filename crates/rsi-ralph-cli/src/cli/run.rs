@@ -49,7 +49,7 @@ impl Meter for GatewayMeter<'_> {
 }
 
 /// `PATH` and `HOME` from the caller, for steps.
-fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
+pub(super) fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
     ["PATH", "HOME"]
         .into_iter()
         .filter_map(|k| lookup(k).map(|v| (k.to_owned(), v)))

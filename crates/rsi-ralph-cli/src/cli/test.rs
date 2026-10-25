@@ -436,3 +436,21 @@ fn a_doctor_failure_is_a_loop_error() {
     });
     assert_eq!(exit_code(&missing), 1);
 }
+
+#[test]
+fn steps_inherit_what_windows_programs_need_to_start() {
+    // Python on Windows aborts at startup without `SYSTEMROOT`, so a step
+    // environment holding only `PATH` and `HOME` cannot run a scorer there.
+    let lookup = |name: &str| match name {
+        "PATH" => Some("C:\\bin".to_owned()),
+        "SYSTEMROOT" => Some("C:\\Windows".to_owned()),
+        "USERPROFILE" => Some("C:\\Users\\me".to_owned()),
+        "OPENROUTER_API_KEY" => Some("sk-secret".to_owned()),
+        _ => None,
+    };
+    let env = run::inherited(&lookup);
+    let names: Vec<&str> = env.iter().map(|(k, _)| k.as_str()).collect();
+    assert!(names.contains(&"SYSTEMROOT"), "{names:?}");
+    assert!(names.contains(&"USERPROFILE"), "{names:?}");
+    assert!(!names.contains(&"OPENROUTER_API_KEY"), "{names:?}");
+}
