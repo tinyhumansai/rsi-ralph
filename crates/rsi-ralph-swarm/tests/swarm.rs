@@ -592,3 +592,41 @@ fn a_seat_calls_its_executable_tool_in_its_candidate_checkout() {
     assert!(offered(&requests, "implementer-a").contains(&"note".to_owned()));
     assert!(!offered(&requests, "lead").contains(&"note".to_owned()));
 }
+
+fn threads() -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir("/proc/self/task")
+        .unwrap()
+        .filter_map(|e| std::fs::read_to_string(e.ok()?.path().join("comm")).ok())
+        .map(|s| s.trim().to_owned())
+        .collect();
+    names.sort();
+    names
+}
+
+#[test]
+fn zz_probe_back_to_back() {
+    let _turn = one_swarm_at_a_time();
+    let before = threads();
+    for i in 0..40 {
+        let d = dirs();
+        let mut zero = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
+        zero.turn = Duration::ZERO;
+        let err = run_swarm(zero, &mut |_| {}).unwrap_err();
+        let after = threads();
+        let extra: Vec<_> = after.iter().filter(|t| !before.contains(t)).cloned().collect();
+        if matches!(err, rsi_ralph_swarm::Error::Runtime(_)) {
+            let start = std::time::Instant::now();
+            loop {
+                let d = dirs();
+                let mut z = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
+                z.turn = Duration::ZERO;
+                let e = run_swarm(z, &mut |_| {}).unwrap_err();
+                if !matches!(e, rsi_ralph_swarm::Error::Runtime(_)) { break; }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            eprintln!("iter {i}: AlreadyRunning; freed after {:?}; extra threads at failure: {extra:?}", start.elapsed());
+        } else {
+            eprintln!("iter {i}: ok ({err:?}); extra threads {extra:?}");
+        }
+    }
+}
