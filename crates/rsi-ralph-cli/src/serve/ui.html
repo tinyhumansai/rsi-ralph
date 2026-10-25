@@ -89,6 +89,8 @@ const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : nu
 const pct = (xs, p) => { if (!xs.length) return null; const v = xs.slice().sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(p * v.length))]; };
 const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? `${s.slice(0, n)}…` : s; };
 let upgradesText = null, history = null;
+// Harvested seat notes by epoch, from `epoch-<n>/notes.json` and its files.
+let notesEpoch = null, notes = {};
 let runs = [], current = null, source = null, events = [], ledger = null, record = null, briefEpoch = null, detail = null;
 // Model calls from the gateway meter, and the swarm trace of one epoch.
 let meterSource = null, meter = [], hiveSource = null, hive = [], hiveEpoch = null, hivePinned = false, epochList = [], budget = null;
@@ -122,7 +124,7 @@ function schedule() { if (!queued) { queued = true; requestAnimationFrame(() => 
 
 function select(id) {
   for (const es of [source, meterSource, hiveSource]) if (es) es.close();
-  upgradesText = null; history = null;
+  upgradesText = null; history = null; notesEpoch = null; notes = {};
   current = id; events = []; ledger = null; record = null; briefEpoch = null; detail = null;
   meter = []; hive = []; hiveEpoch = null; hivePinned = false; epochList = []; budget = null;
   seatFilter = null; briefs = {}; openRows = new Set(); hiveSource = null;
@@ -157,6 +159,7 @@ async function refresh() {
   if (run !== current) return;
   // Retry briefs that were missing, such as one for an epoch not yet written.
   for (const k of Object.keys(briefs)) if (!briefs[k]) delete briefs[k];
+  for (const k of Object.keys(notes)) if (!notes[k]) delete notes[k];
   if (r) record = r; if (l) ledger = l; if (b) budget = b; if (h) history = h;
   epochList = e;
   // Follow the newest epoch's swarm until the reader picks one.
@@ -424,6 +427,8 @@ function render() {
   if (briefEpoch === null && epochs.length) briefEpoch = epochs[epochs.length - 1];
   if (briefEpoch === null && epochList.length) briefEpoch = epochList[epochList.length - 1];
   const briefTabs = epochs.length ? epochs : epochList;
+  const noteTabs = briefTabs.filter((e) => e > 0);
+  if (notesEpoch === null && noteTabs.length) notesEpoch = noteTabs[noteTabs.length - 1];
   const sw = swarm(), cs = calls();
   const all = [...cs.values()];
   const ttfts = all.flatMap((c) => c.ttft);
@@ -454,11 +459,13 @@ function render() {
     <div class="card"><h2>Candidates</h2>${candidates()}</div>
     <div class="card"><h2>Detail</h2><div id="detail">${detail ?? `<p class="muted">Click a candidate to see its change.</p>`}</div></div>
     <div class="card"><h2>Brief</h2><div class="tabs">${briefTabs.map((e) => `<button data-epoch="${e}" class="${e === briefEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="brief">${esc(briefs[briefEpoch] ?? "")}</pre></div>
+    <div class="card"><h2>Notes</h2><div class="tabs">${noteTabs.map((e) => `<button data-notes="${e}" class="${e === notesEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="notes">${esc(notes[notesEpoch] || "No notes harvested for this epoch: the loop has no carry section, or the epoch has not ended.")}</pre></div>
     <div class="card"><h2>Score history</h2>${historyCard()}</div>
     <div class="card"><h2>Upgrades</h2><pre id="upgrades">${esc(upgradesText || "No upgrade log for this run.")}</pre></div>
     <div class="card log"><h2>Events</h2><table><tbody>${events.slice(-60).reverse().map(({ seq, event: e }) =>
       `<tr><td>${seq}</td><td>${esc(e.kind)}</td><td>${esc(summary(e))}</td></tr>`).join("")}</tbody></table></div>`;
   for (const b of document.querySelectorAll(".tabs button[data-epoch]")) b.onclick = () => { briefEpoch = Number(b.dataset.epoch); render(); };
+  for (const b of document.querySelectorAll(".tabs button[data-notes]")) b.onclick = () => { notesEpoch = Number(b.dataset.notes); render(); };
   for (const b of document.querySelectorAll(".tabs button[data-hive]")) b.onclick = () => { hivePinned = true; showEpoch(Number(b.dataset.hive)); };
   for (const b of document.querySelectorAll("button[data-filter-seat]")) b.onclick = () => { seatFilter = b.dataset.filterSeat || null; render(); };
   for (const b of document.querySelectorAll("button[data-kind]")) b.onclick = () => { kindFilter = b.dataset.kind; render(); };
@@ -477,6 +484,28 @@ function render() {
     briefs[epoch] = "";
     text(`/api/runs/${run}/files/epoch-${epoch}/brief.md`).then((t) => { if (run !== current) return; briefs[epoch] = t; const el = $("#brief"); if (el && briefEpoch === epoch) el.textContent = t; });
   }
+  // Notes are harvested once, when their epoch ends; fetch each epoch's once.
+  const shownNotes = notesEpoch;
+  if (shownNotes !== null && !(shownNotes in notes)) {
+    notes[shownNotes] = "";
+    notesText(run, shownNotes).then((t) => { if (run !== current) return; notes[shownNotes] = t; const el = $("#notes"); if (el && t && notesEpoch === shownNotes) el.textContent = t; });
+  }
+}
+
+/// One epoch's harvested notes as text: each seat, its outcome and its files.
+async function notesText(run, epoch) {
+  const index = await json(`/api/runs/${run}/files/epoch-${epoch}/notes.json`).catch(() => null);
+  if (!index) return "";
+  const parts = [`Epoch ${epoch} promoted ${index.promoted ?? "no candidate"}.`];
+  if (!index.seats.length) parts.push("No seat changed a carried file.");
+  for (const s of index.seats) {
+    parts.push(`\n### ${s.seat} (${s.candidate}, ${s.outcome})`);
+    for (const f of s.files) {
+      const body = f.kept ? await text(`/api/runs/${run}/files/epoch-${epoch}/notes/${encodeURIComponent(s.seat)}/${f.path.split("/").map(encodeURIComponent).join("/")}`) : "(dropped: the epoch's notes cap was reached)";
+      parts.push(`\n#### ${f.path}${f.kept && f.kept < f.bytes ? ` (cut to ${f.kept} of ${f.bytes} bytes)` : ""}\n\n${body.trimEnd()}`);
+    }
+  }
+  return parts.join("\n");
 }
 
 function summary(e) {

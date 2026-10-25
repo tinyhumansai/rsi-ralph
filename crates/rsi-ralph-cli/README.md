@@ -16,7 +16,8 @@ Markdown and small scripts, so a loop needs no Rust. Users start with
 | `subject/` | `dir` copies or `git` worktrees for the incumbent and candidates; changes, diffs, promotion |
 | `gate/` | The editable-surface check and the manifest's gate commands |
 | `score/` | Run scorers per seed, grade with judges, decide by paired seeds or the sign test |
-| `brief/` | Fill `{{incumbent}}`, `{{history}}`, `{{failures}}` and `{{ideas}}` |
+| `brief/` | Fill `{{incumbent}}`, `{{history}}`, `{{failures}}`, `{{ideas}}` and `{{notes}}` |
+| `carry/` | Harvest every candidate's changed notes into `epoch-<n>/notes/` under size caps, and render `{{notes}}` |
 | `retreat/` | The tinybackrooms creative retreat before each epoch, with memory across runs |
 | `hive/` | The hive proposer: the loop's hive package run on OpenHuman agents via `rsi-ralph-swarm` |
 | `engine/` | The epoch loop over the `Proposer`, `Ideator` and `Meter` ports; trace, ledger and run record |

@@ -98,6 +98,19 @@ two-seat example. Multi-seat hives should widen `coordinator.round_width`
 (and `policies.routing`/`division`), whose defaults of 1 run one turn at a
 time. rsi-ralph adds the hive tools and the turn-taking rules itself.
 
+Only the promoted candidate's checkout reaches the next epoch. If your seats
+keep notes, carry them so the losing seats' findings are not lost:
+
+```json
+"carry": { "notes": ["notes/"] }
+```
+
+and put `{{notes}}` in `brief.md`. At the end of each epoch every seat's
+changed files under `notes/` are copied to `epoch-<n>/notes/<seat>/` in the
+run store, and the next brief shows them, one section per seat, naming the
+promoted candidate. The notes path must be `editable`. Caps and the store
+layout are in [carried notes](../specs/carried-notes.md).
+
 ## 4. Tune creativity, models, keys and money
 
 ```json

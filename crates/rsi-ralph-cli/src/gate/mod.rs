@@ -18,12 +18,6 @@ use crate::{
 /// The surface check as a step outcome, so it is stored like any gate.
 #[must_use]
 pub fn surface(spec: &SubjectSpec, changed: &[String]) -> StepOutcome {
-    let under = |path: &str, prefix: &str| {
-        let prefix = prefix.trim_start_matches("./");
-        path == prefix.trim_end_matches('/')
-            || path.starts_with(prefix)
-                && (prefix.ends_with('/') || path[prefix.len()..].starts_with('/'))
-    };
     let outside = changed.iter().find(|path| {
         !spec.editable.iter().any(|p| under(path, p)) || spec.frozen.iter().any(|p| under(path, p))
     });
@@ -41,6 +35,15 @@ pub fn surface(spec: &SubjectSpec, changed: &[String]) -> StepOutcome {
         duration_ms: 0,
         stdout: String::new(),
     }
+}
+
+/// Whether `path` is `prefix` itself or sits below it: `notes/` and `notes`
+/// both cover `notes/a.md`, and neither covers `notes2.md`.
+pub(crate) fn under(path: &str, prefix: &str) -> bool {
+    let prefix = prefix.trim_start_matches("./");
+    path == prefix.trim_end_matches('/')
+        || path.starts_with(prefix)
+            && (prefix.ends_with('/') || path[prefix.len()..].starts_with('/'))
 }
 
 /// Run the gate commands for one candidate, stopping at the first failure.

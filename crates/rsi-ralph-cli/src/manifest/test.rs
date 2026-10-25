@@ -455,3 +455,60 @@ fn rejects_a_hive_memory_without_a_url_a_key_name_or_a_root() {
         .is_err()
     );
 }
+
+#[test]
+fn carry_is_off_by_default_and_leaves_the_stored_form_alone() {
+    let parsed = parse(&example()).unwrap();
+    assert_eq!(parsed.manifest.carry, None);
+    let stored = serde_json::to_value(&parsed.manifest).unwrap();
+    assert!(stored.get("carry").is_none(), "{stored}");
+}
+
+#[test]
+fn pins_the_stored_form_of_carry_with_its_caps_defaulted() {
+    let parsed = parse(&with(|m| m["carry"] = json!({ "notes": ["notes/"] }))).unwrap();
+    let carry = parsed.manifest.carry.clone().unwrap();
+    assert_eq!(carry.notes, vec!["notes/".to_owned()]);
+    let stored = serde_json::to_value(&parsed.manifest).unwrap();
+    assert_eq!(
+        stored["carry"],
+        json!({ "notes": ["notes/"], "file_bytes": 65_536, "epoch_bytes": 524_288, "brief_chars": 24_000 })
+    );
+    let back: Manifest = serde_json::from_value(stored).unwrap();
+    assert_eq!(back, parsed.manifest);
+
+    let parsed = parse(&with(|m| {
+        m["carry"] = json!({ "notes": ["notes/", "log.md"], "file_bytes": 10, "epoch_bytes": 20, "brief_chars": 30 });
+    }))
+    .unwrap();
+    let carry = parsed.manifest.carry.unwrap();
+    assert_eq!(
+        (carry.file_bytes, carry.epoch_bytes, carry.brief_chars),
+        (10, 20, 30)
+    );
+}
+
+#[test]
+fn rejects_a_carry_without_paths_with_unsafe_paths_or_with_zero_caps() {
+    let cases: Vec<(&str, Edit)> = vec![
+        ("carry.notes", |m| m["carry"] = json!({ "notes": [] })),
+        ("carry.file_bytes", |m| {
+            m["carry"] = json!({ "notes": ["notes/"], "file_bytes": 0 });
+        }),
+        ("carry.epoch_bytes", |m| {
+            m["carry"] = json!({ "notes": ["notes/"], "epoch_bytes": 0 });
+        }),
+        ("carry.brief_chars", |m| {
+            m["carry"] = json!({ "notes": ["notes/"], "brief_chars": 0 });
+        }),
+    ];
+    for (field, edit) in cases {
+        assert_eq!(field_error(&with(edit)), field);
+    }
+    for bad in ["../notes/", "/notes/", ""] {
+        let files = with(|m| m["carry"] = json!({ "notes": [bad] }));
+        assert!(matches!(parse(&files), Err(Error::Path { .. })), "{bad:?}");
+    }
+    let files = with(|m| m["carry"] = json!({ "notes": ["notes/"], "folder": "x" }));
+    assert!(matches!(parse(&files), Err(Error::Json { .. })));
+}

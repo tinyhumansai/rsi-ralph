@@ -16,9 +16,9 @@ use crate::{Error, Result};
 
 mod types;
 pub use types::{
-    Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec,
-    ScorerSpec, StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
+    Budget, Carry, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest,
+    GateStep, HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA,
+    ScoreSpec, ScorerSpec, StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
 /// The one tool capability a key can enable today.
@@ -288,6 +288,9 @@ fn validate_fields(m: &Manifest) -> Result<()> {
             "epochs and patience must be positive",
         ));
     }
+    if let Some(carry) = &m.carry {
+        validate_carry(carry)?;
+    }
     for key in m.env.keys() {
         if !env_name(key) || key.starts_with("RSI_") {
             return Err(Error::field(
@@ -320,6 +323,25 @@ fn validate_subject(s: &SubjectSpec) -> Result<()> {
     }
     for prefix in s.editable.iter().chain(&s.frozen) {
         plain(prefix)?;
+    }
+    Ok(())
+}
+
+fn validate_carry(c: &Carry) -> Result<()> {
+    if c.notes.is_empty() {
+        return Err(Error::field("carry.notes", "list at least one path"));
+    }
+    for prefix in &c.notes {
+        plain(prefix)?;
+    }
+    for (field, value) in [
+        ("carry.file_bytes", c.file_bytes),
+        ("carry.epoch_bytes", c.epoch_bytes),
+        ("carry.brief_chars", c.brief_chars),
+    ] {
+        if value == 0 {
+            return Err(Error::field(field, "must be positive"));
+        }
     }
     Ok(())
 }

@@ -68,6 +68,7 @@ fn fills_placeholders() {
             decide_on: "acc",
             history: &history,
             ideas: &ideas,
+            notes: "",
         },
     );
     assert!(out.contains("- `acc` (deciding): 0.5000"));
@@ -90,6 +91,7 @@ fn appends_missing_sections_and_marks_empty_ones() {
             decide_on: "acc",
             history: &[],
             ideas: &[],
+            notes: "",
         },
     );
     assert!(out.starts_with("Do better.\n\nNone yet."));
@@ -108,6 +110,7 @@ fn samples_at_most_two_failures_per_type_and_ten_overall() {
         decide_on: "acc",
         history: &[],
         ideas: &[],
+        notes: "",
     });
     assert_eq!(out.matches("### ").count(), 10);
     assert_eq!(out.matches("(a)").count(), 2);
@@ -121,4 +124,40 @@ fn clipping_marks_the_cut_and_closes_an_open_fence() {
     let cut = clip(&fenced, 20);
     assert!(cut.ends_with("…\n```"), "{cut}");
     assert_eq!(cut.matches("```").count(), 2);
+}
+
+#[test]
+fn fills_the_notes_placeholder_and_appends_notes_when_it_is_left_out() {
+    let card = card(Vec::new());
+    let notes = "### dens-a (rejected)\n\nthe density bound fails at n = 7\n";
+    let input = BriefInput {
+        incumbent: &card,
+        decide_on: "acc",
+        history: &[],
+        ideas: &[],
+        notes,
+    };
+    let out = render("Go.\n\n{{notes}}\n", &input);
+    assert!(out.starts_with("Go.\n\n### dens-a (rejected)"), "{out}");
+    assert!(!out.contains("## Notes"));
+
+    let out = render("Go.\n", &input);
+    assert!(
+        out.contains("## Notes from the last epoch\n\n### dens-a (rejected)"),
+        "{out}"
+    );
+}
+
+#[test]
+fn an_epoch_without_notes_reads_none_yet_and_adds_no_section() {
+    let card = card(Vec::new());
+    let input = BriefInput {
+        incumbent: &card,
+        decide_on: "acc",
+        history: &[],
+        ideas: &[],
+        notes: "",
+    };
+    assert!(render("{{notes}}", &input).starts_with("None yet."));
+    assert!(!render("Go.", &input).contains("## Notes"));
 }

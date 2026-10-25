@@ -25,6 +25,7 @@
 //! binary and the library agree on every stored format.
 
 pub mod brief;
+pub mod carry;
 pub mod cli;
 pub mod doctor;
 pub mod engine;

@@ -5,7 +5,8 @@
 //! retreat for ideas, give each editing seat its own candidate checkout, run
 //! the hive, and for every changed candidate run the surface check, the
 //! gates, the scorers and the decision. The best accepted candidate is
-//! promoted. The run stops on `goal_reached`, `stalled`, `budget`,
+//! promoted. With `carry`, every candidate's notes are then harvested into
+//! the store and shown in the next brief. The run stops on `goal_reached`, `stalled`, `budget`,
 //! `max_epochs`, `provider_refused` or `error`, and every step is mirrored
 //! to `events.jsonl`, `ledger.json` and `run.json` as it happens.
 //!
@@ -24,6 +25,7 @@ use sha2::{Digest, Sha256};
 use crate::{
     Error, Result,
     brief::{self, BriefInput, HistoryEntry},
+    carry::{self, EpochNotes, Source},
     gate,
     manifest::{DecideTest, Loop},
     score::{self, Judges, Scorecard},
@@ -114,6 +116,8 @@ struct State {
     incumbent: Checkout,
     revision: String,
     card: Scorecard,
+    /// The last epoch's harvested notes and its folder, for `{{notes}}`.
+    notes: Option<(PathBuf, EpochNotes)>,
 }
 
 impl Engine<'_> {
@@ -202,6 +206,7 @@ impl Engine<'_> {
             incumbent,
             revision,
             card,
+            notes: None,
         };
         let reason = self.epochs(&subject, &mut state)?;
         state.trace.record(LoopEvent::RunFinished {
@@ -373,6 +378,10 @@ impl Engine<'_> {
             history: u32::try_from(state.ledger.candidates.len()).unwrap_or(u32::MAX),
             rejected: u32::try_from(rejected).unwrap_or(u32::MAX),
         })?;
+        let notes = match (&manifest.carry, &state.notes) {
+            (Some(spec), Some((from, notes))) => carry::render(from, notes, spec.brief_chars),
+            _ => String::new(),
+        };
         let input = |ideas: &'_ [String]| {
             brief::render(
                 &self.parsed.brief,
@@ -381,6 +390,7 @@ impl Engine<'_> {
                     decide_on: &manifest.score.decide.on,
                     history: &history,
                     ideas,
+                    notes: &notes,
                 },
             )
         };
@@ -444,6 +454,10 @@ impl Engine<'_> {
             state.trace.record(refused.event.clone())?;
         }
         let promoted = self.promote_best(epoch, subject, state, &candidates, accepted)?;
+        if let Some(spec) = &manifest.carry {
+            let notes = harvest(spec, epoch, &state.ledger, first, &dir)?;
+            state.notes = Some((dir, notes));
+        }
         Ok(EpochOutcome { promoted, refused })
     }
 
@@ -650,6 +664,31 @@ fn emit_measurements(
         seeds: u32::try_from(runs.len()).unwrap_or(u32::MAX),
     })?;
     Ok(())
+}
+
+/// Harvest the notes of this epoch's candidates, `ledger.candidates[first..]`,
+/// once promotion has settled their outcomes.
+fn harvest(
+    spec: &crate::manifest::Carry,
+    epoch: u32,
+    ledger: &Ledger,
+    first: usize,
+    dir: &Path,
+) -> Result<EpochNotes> {
+    let outcomes = history(ledger);
+    let sources: Vec<Source<'_>> = ledger.candidates[first..]
+        .iter()
+        .zip(&outcomes[first..])
+        .map(|(c, h)| Source {
+            seat: &c.seat,
+            candidate: &c.id,
+            outcome: &h.outcome,
+            checkout: &c.checkout,
+            changed: &c.changed,
+        })
+        .collect();
+    let promoted = ledger.epochs.last().and_then(|e| e.promoted.as_deref());
+    carry::harvest(spec, epoch, promoted, &sources, dir)
 }
 
 /// Earlier decisions, for the brief.

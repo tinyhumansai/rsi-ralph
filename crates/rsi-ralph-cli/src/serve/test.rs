@@ -99,7 +99,21 @@ fn routes_only_safe_paths() {
             PathBuf::from("epoch-2/steps/e2-a/change.diff")
         )
     );
+    assert_eq!(
+        route("/api/runs/l/r/files/epoch-1/notes.json"),
+        Route::File(PathBuf::from("l/r"), PathBuf::from("epoch-1/notes.json"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/files/epoch-1/notes/dens-a/notes/dens-a.md"),
+        Route::File(
+            PathBuf::from("l/r"),
+            PathBuf::from("epoch-1/notes/dens-a/notes/dens-a.md")
+        )
+    );
     for bad in [
+        "/api/runs/l/r/files/epoch-1/notes/dens-a",
+        "/api/runs/l/r/files/epoch-1/notes/../../run.json",
+        "/api/runs/l/r/files/epoch-1/notes/a/../../../x.md",
         "/api/runs/../r/events",
         "/api/runs/l/r/files/../../etc/passwd",
         "/api/runs/l/r/files/loop/rsi.json",
