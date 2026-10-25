@@ -106,8 +106,12 @@ fn reads_cached_and_reasoning_tokens_from_the_final_stream_chunk() {
 
 #[test]
 fn leaves_cached_and_reasoning_tokens_unknown_without_details() {
-    let missing = Usage::from_body(&json!({"usage": {"prompt_tokens": 10, "completion_tokens": 3}}));
-    assert_eq!((missing.cached_tokens, missing.reasoning_tokens), (None, None));
+    let missing =
+        Usage::from_body(&json!({"usage": {"prompt_tokens": 10, "completion_tokens": 3}}));
+    assert_eq!(
+        (missing.cached_tokens, missing.reasoning_tokens),
+        (None, None)
+    );
     let null = Usage::from_body(&json!({"usage": {
         "prompt_tokens": 10,
         "prompt_tokens_details": {"cached_tokens": null},
@@ -119,7 +123,8 @@ fn leaves_cached_and_reasoning_tokens_unknown_without_details() {
 #[test]
 fn ignores_cache_and_reasoning_counts_when_pricing_at_the_ceiling() {
     let mut body = json!({"usage": surplus_usage()});
-    let plain = Usage::from_body(&json!({"usage": {"prompt_tokens": 28831, "completion_tokens": 4}}));
+    let plain =
+        Usage::from_body(&json!({"usage": {"prompt_tokens": 28831, "completion_tokens": 4}}));
     body["usage"]["prompt_tokens_details"]["cached_tokens"] = json!(28831);
     let price = PriceTable::standard().get(GLM_FLASH).unwrap().clone();
     assert_eq!(
