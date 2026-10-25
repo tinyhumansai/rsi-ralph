@@ -66,6 +66,11 @@ detect_target() {
     arm64 | aarch64) arch=aarch64 ;;
     *) fail "no prebuilt binary for $arch; build from source with cargo install" ;;
   esac
+  # A shell under Rosetta reports x86_64 on Apple silicon; prefer the native build.
+  if [ "$os" = Darwin ] && [ "$arch" = x86_64 ] &&
+    [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then
+    arch=aarch64
+  fi
   case "$os" in
     Linux) printf '%s\n' "$arch-unknown-linux-gnu" ;;
     Darwin) printf '%s\n' "$arch-apple-darwin" ;;
