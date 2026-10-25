@@ -29,6 +29,10 @@ let outcome = rsi_ralph_swarm::run_swarm(request, &mut |event| println!("{event:
      can cap and attribute each seat; model from the seat, else
      `default_model`; temperature from `config.temperature`, else
      `temperature`; `config.max_iterations` when set;
+   - session: the package's `session` settings (`parallel_tools`,
+     `max_tool_iterations`, `compact_context`, `max_history_messages`,
+     `tool_result_budget_bytes`, `agents_md`) on the shared runtime config;
+     a field left out keeps OpenHuman's default;
    - system prompt: seat prompt, role charter, working directory, every
      shared `context/` document, then [`HIVE_RULES`](src/prompt/mod.rs);
    - tools: the seat's `tools.allow` plus the nine `hivemind_*` tools and any
