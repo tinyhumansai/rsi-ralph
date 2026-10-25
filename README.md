@@ -9,10 +9,6 @@ scorer grades the copy against the current best, and the copy replaces the best
 only when the numbers say it won. Then it goes again, until the goal is met or
 the budget runs out.
 
-The name comes from the Ralph loop: run an agent on the same goal, over and
-over, and let the results decide. The RSI part (recursive self-improvement) is
-that the agents doing the editing can be the thing being improved.
-
 ## Install
 
 macOS and Linux:
@@ -127,6 +123,45 @@ The starter loop asks the agents to make a graph-colouring heuristic use fewer
 colours. It scores with a small Python script, runs three epochs and stops at
 $1 of model spend. When it finishes, the best version is in the run folder and
 `rsi-ralph show` tells you where.
+
+## Ralph loops, goals, and what RSI Ralph adds
+
+A **Ralph loop** is the simplest agent loop there is: hand an agent the same
+prompt, let it work, then run it again on whatever it left behind, until it is
+done. Nothing but the files carries over between runs, so progress has to land
+in the work itself.
+
+A **`/goal`** is what turns that into something that can stop. Instead of
+looping forever, you state a condition (tests pass, a score reaches a target)
+and keep going until it holds. The agent, its prompt and its tools stay fixed;
+only the subject of the work changes.
+
+| | Ralph loop | `/goal` | RSI Ralph |
+| --- | --- | --- | --- |
+| Runs | the same prompt, again and again | the same prompt, until a condition holds | epochs, until the goal or the budget |
+| Stops when | you stop it | the goal condition is met | the goal is met, patience runs out or spend hits the cap |
+| Judged by | you, by eye | a check on the result | your scorer, with a paired test against the current best |
+| Prompt | fixed | fixed | edited (seat prompts, roles, shared context) |
+| Agents | one, fixed | one, fixed | edited (the roster, policies and who talks to whom) |
+| Harness and tools | fixed | fixed | edited (the tools and integrations each seat may use) |
+| Subject | edited | edited | edited |
+| Kept only if better | no | no | yes, a candidate replaces the best only by winning |
+| Guardrails | none | the goal check | scorer outside the agents' reach, `constitution.json`, editable paths |
+
+RSI Ralph keeps the loop and the goal and drops the assumption that the agent
+is fixed. The team that does the editing is a tinyhivemind package of JSON and
+Markdown: roles, seat prompts, shared context, the tools each seat may use,
+and the policies that route turns between them. Mark those files editable and
+they are part of what each epoch can change, next to the subject. A candidate
+that edits its own team is scored like any other candidate, and it replaces the
+current best only if it wins. The next epoch then runs the better team.
+
+Two things stay out of reach so the loop cannot argue its way to a pass: your
+scorer runs in your code, and the hive's `constitution.json` lists constraints
+no edit may break. That is the recursive part of recursive self-improvement:
+each generation of the team is the editor of the next. [How it improves
+itself](#how-it-improves-itself) shows the loop, and the three depths of what
+the agents may edit.
 
 ## A hive is defined by a language
 
