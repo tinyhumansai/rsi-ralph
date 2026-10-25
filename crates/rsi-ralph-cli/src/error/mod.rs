@@ -88,6 +88,9 @@ pub enum Error {
     /// `rsi-ralph init` was pointed at a folder that already holds files.
     #[error("{} is not empty", .0.display())]
     NotEmpty(PathBuf),
+    /// An upgrade with this id is already in the loop's log.
+    #[error("upgrade {0} already exists")]
+    UpgradeExists(String),
     /// `rsi-ralph doctor` found required programs missing from `PATH`.
     #[error("missing programs: {}", missing.join(", "))]
     Doctor {

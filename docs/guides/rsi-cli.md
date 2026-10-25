@@ -135,6 +135,7 @@ Afterwards:
 rsi-ralph runs                         # every run, newest first
 rsi-ralph show graph-coloring/<run-id> # one run's outcome, error, warnings and folder
 rsi-ralph serve                        # the UI over all stored runs
+rsi-ralph history graph-coloring       # every score across runs, with scoring time (--csv, --json)
 ```
 
 If the model provider refuses every call of an epoch (a key over its spending
@@ -146,3 +147,25 @@ run goes on.
 Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/` (set `TINYRSI_HOME` to move
 them): a frozen copy of the loop, `run.json`, `ledger.json`, `events.jsonl`,
 and per-epoch briefs, candidates and step logs.
+
+## 6. Keep an upgrade log
+
+Between runs you will change the hive, the brief or `rsi.json`. Record each
+change and why, so the next reader (or you, next week) can tell what it was
+meant to do:
+
+```sh
+rsi-ralph upgrades add graph-coloring \
+  --title "Lead assigns before reading" \
+  --author assistant:claude-code@claude-opus-5-5=diagnosed --rationale "Seats waited 9 minutes for a first message." \
+  --author operator:me=approved --rationale "Startup is the cheapest win." \
+  --metric first_message_min=9.9@graph-coloring/<run-id> \
+  --change "The lead sends every assignment first." --file hive/seats/lead.md \
+  --expect "first_message_min<=2"
+rsi-ralph upgrades show graph-coloring          # the log as Markdown
+rsi-ralph upgrades outcome graph-coloring <id> --run <next-run> --metric first_message_min=1.3
+```
+
+Each run compares its loop folder with the previous run's. A change that no
+record names is logged as unexplained and shown as a `warning` on the run.
+The format is in [`docs/specs/upgrade-log.md`](../specs/upgrade-log.md).

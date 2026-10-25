@@ -12,7 +12,8 @@
 //! | `/api/runs/<loop>/<run>/meter` | the gateway's `meter.jsonl` (one row per model call), as SSE |
 //! | `/api/runs/<loop>/<run>/epochs` | the run's epoch numbers, ascending |
 //! | `/api/runs/<loop>/<run>/epochs/<n>/hive` | that epoch's swarm trace, `hive/events.jsonl`, as SSE |
-//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, `budget.json`, an epoch's `brief.md`, or a candidate's `change.diff` |
+//! | `/api/loops/<loop>/history` | the loop's score history across stored runs, with its upgrades |
+//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md`, or a candidate's `change.diff` |
 //!
 //! Every path segment is validated as a plain name before it touches the
 //! filesystem, so a request cannot leave the store.
@@ -26,7 +27,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{Error, Result, store::Store};
+use crate::{Error, Result, store::Store, upgrades};
 
 /// The UI page.
 const PAGE: &str = include_str!("ui.html");
@@ -118,8 +119,23 @@ fn handle(store: &Store, mut stream: TcpStream) -> std::io::Result<()> {
             Ok(body) => respond(&mut stream, 200, content_type(&file), &body),
             Err(_) => respond(&mut stream, 404, "text/plain", b"not found"),
         },
+        Route::History(name) => match history(store, &name) {
+            Ok(body) => respond(&mut stream, 200, "application/json", &body),
+            Err(_) => respond(&mut stream, 404, "text/plain", b"not found"),
+        },
         Route::NotFound => respond(&mut stream, 404, "text/plain", b"not found"),
     }
+}
+
+/// A loop's score history as JSON, with the upgrade log its latest run froze
+/// and every run's own.
+fn history(store: &Store, name: &str) -> Result<Vec<u8>> {
+    let log = upgrades::frozen_log(store, name)?.unwrap_or_default();
+    let entries = upgrades::collect(store, name, log)?;
+    let history = crate::history::collect(store, name, &entries)?;
+    serde_json::to_vec(&history).map_err(|e| Error::Json {
+        message: e.to_string(),
+    })
 }
 
 /// What a request path asks for.
@@ -132,6 +148,8 @@ enum Route {
     /// The epochs of a run.
     Epochs(PathBuf),
     File(PathBuf, PathBuf),
+    /// A loop's score history.
+    History(String),
     NotFound,
 }
 
@@ -140,6 +158,7 @@ fn route(path: &str) -> Route {
     match segments.as_slice() {
         [""] => Route::Page,
         ["api", "runs"] => Route::Runs,
+        ["api", "loops", l, "history"] if plain(l) => Route::History((*l).to_owned()),
         ["api", "runs", l, r, "events"] if plain(l) && plain(r) => {
             Route::Stream(Path::new(l).join(r).join("events.jsonl"))
         }
@@ -185,7 +204,9 @@ fn allowed(rest: &[&str]) -> Option<PathBuf> {
             .is_some_and(|n| n.parse::<u32>().is_ok())
     };
     match rest {
-        [name @ ("run.json" | "ledger.json" | "budget.json")] => Some(PathBuf::from(name)),
+        [name @ ("run.json" | "ledger.json" | "budget.json" | "upgrades.md")] => {
+            Some(PathBuf::from(name))
+        }
         [e, "brief.md"] if epoch(e) => Some(Path::new(e).join("brief.md")),
         [e, "steps", c, "change.diff"] if epoch(e) && plain(c) => {
             Some(Path::new(e).join("steps").join(c).join("change.diff"))

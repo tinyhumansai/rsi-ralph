@@ -65,6 +65,9 @@ pub struct Engine<'a> {
     pub secrets: Vec<String>,
     /// Epoch limit overriding the manifest's.
     pub epochs: Option<u32>,
+    /// Problems found before the run started, such as a hive change no
+    /// upgrade record explains; they open `run.json`'s `warnings`.
+    pub warnings: Vec<String>,
 }
 
 impl std::fmt::Debug for Engine<'_> {
@@ -135,7 +138,7 @@ impl Engine<'_> {
             epochs: 0,
             spend_usd: 0.0,
             error: None,
-            warnings: Vec::new(),
+            warnings: std::mem::take(&mut self.warnings),
         };
         store::write_json(&self.run.record_path(), &record)?;
         let result = self.execute(&mut record);

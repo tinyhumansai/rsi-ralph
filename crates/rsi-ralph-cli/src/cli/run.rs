@@ -24,6 +24,7 @@ use crate::{
     score::{self, Judges},
     store::{self, RunDir, Store},
     subject::{Checkout, Subject},
+    upgrades,
 };
 
 /// Spend read from the in-process gateway.
@@ -174,6 +175,9 @@ pub(super) fn run(
     let keys = Keys::resolve(parsed, loop_dir, lookup)?;
     Subject::from_spec(&parsed.manifest.subject, loop_dir).verify()?;
     let run = store.create_run(&parsed.manifest.name, run_id, files)?;
+    let warnings = upgrades::drift::check_run_start(store, &run, files, parsed, store::now())?
+        .into_iter()
+        .collect::<Vec<_>>();
     say(
         out,
         &format!(
@@ -200,6 +204,7 @@ pub(super) fn run(
         inherited: step_env(parsed, &keys, lookup),
         secrets: keys.values().map(str::to_owned).collect(),
         epochs,
+        warnings,
     };
     let summary = engine.run()?;
     say(
