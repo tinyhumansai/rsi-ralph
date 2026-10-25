@@ -376,6 +376,33 @@ fn the_wall_clock_stops_a_swarm_whose_seat_is_still_working() {
 }
 
 #[test]
+fn a_swarm_started_right_after_a_wall_clock_stop_still_gets_the_runtime() {
+    let _turn = one_swarm_at_a_time();
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(model(Duration::from_secs(30)));
+    let stopped_dirs = dirs();
+    let stopped = run_swarm(
+        request(&stopped_dirs, &server.uri(), Duration::from_secs(3)),
+        &mut |_| {},
+    )
+    .unwrap();
+    assert_eq!(stopped.stop, StopReason::WallClock);
+
+    // The stopped seat's turn is still winding down inside OpenHuman and
+    // holds its process-wide runtime slot for a moment. The next swarm, as
+    // the next epoch of a loop would, must wait for it rather than fail.
+    // A zero turn wall is refused only once the runtime is built.
+    let next_dirs = dirs();
+    let mut next = request(&next_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
+    next.turn = Duration::ZERO;
+    let error = run_swarm(next, &mut |_| {}).unwrap_err();
+    assert!(
+        matches!(error, rsi_ralph_swarm::Error::Adapter(_)),
+        "{error:?}"
+    );
+}
+
+#[test]
 fn a_lead_outside_the_package_is_refused_before_anything_starts() {
     let _turn = one_swarm_at_a_time();
     let dirs = dirs();

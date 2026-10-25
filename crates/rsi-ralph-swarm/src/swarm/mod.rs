@@ -46,7 +46,10 @@ static RUNNING: Mutex<()> = Mutex::new(());
 ///
 /// `progress` receives every [`SwarmEvent`] on the calling thread, after it
 /// has been scrubbed of secrets and appended to `events.jsonl`. Swarms in
-/// one process run one at a time.
+/// one process run one at a time. A seat turn the wall clock cut off can hold
+/// `OpenHuman`'s one-per-process runtime for a moment after this returns; the
+/// next swarm waits up to 30 seconds for it before failing with
+/// [`Error::Runtime`].
 ///
 /// # Errors
 ///

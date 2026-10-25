@@ -7,7 +7,10 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 
-use openhuman_embed::{Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolGroups, Workspace};
+use openhuman_embed::{
+    Access, GroupMode, Provider, Runtime, RuntimeBuilder, RuntimeConfig, RuntimeError, ToolGroups,
+    Workspace,
+};
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
@@ -35,6 +38,12 @@ pub const RUNTIME_DIR: &str = "runtime";
 const BRIEF_ID: &str = "brief";
 /// How often the transcript is mirrored while seats work.
 const MIRROR_INTERVAL: Duration = Duration::from_millis(500);
+/// How long a swarm waits for the previous swarm's runtime to be released.
+/// A seat whose turn the wall clock cut off keeps `OpenHuman`'s process-wide
+/// runtime slot until that turn has wound down, typically within a second.
+const RELEASE_WAIT: Duration = Duration::from_secs(30);
+/// How often the slot is retried while it is still held.
+const RELEASE_POLL: Duration = Duration::from_millis(50);
 
 /// Runs one epoch to idle or the wall clock.
 pub(super) async fn run(
@@ -286,7 +295,18 @@ async fn runtime(
     session: &SessionSettings,
     workspace: &Path,
 ) -> Result<Runtime> {
-    let mut builder = Runtime::builder()
+    // The build future is large; keep it off the caller's stack frame.
+    claim(RELEASE_WAIT, RELEASE_POLL, || {
+        Box::pin(builder(request, session, workspace).build())
+    })
+    .await
+    .map_err(|error| Error::Runtime(Box::new(error)))
+}
+
+/// The runtime's builder for `request` and the hive's `session` settings,
+/// with its workspace at `workspace`.
+fn builder(request: &SwarmRequest, session: &SessionSettings, workspace: &Path) -> RuntimeBuilder {
+    let builder = Runtime::builder()
         .config(runtime_config(request.memory.is_some(), session))
         .workspace(Workspace::dir(workspace))
         .provider(
@@ -298,11 +318,35 @@ async fn runtime(
         )
         .access(Access::readonly())
         .tool_groups(ToolGroups::packed().with("coding", GroupMode::Advertised));
-    if let Some(memory) = &request.memory {
-        builder = builder.memory_engine(memory.engine());
+    match &request.memory {
+        Some(memory) => builder.memory_engine(memory.engine()),
+        None => builder,
     }
-    // The build future is large; keep it off the caller's stack frame.
-    Box::pin(builder.build())
-        .await
-        .map_err(|error| Error::Runtime(Box::new(error)))
+}
+
+/// Runs `build` until it stops answering [`RuntimeError::AlreadyRunning`],
+/// retrying every `poll` for up to `wait`.
+///
+/// Swarms in one process take turns (`run_swarm` holds its lock), so a slot
+/// that is still claimed belongs to the previous swarm's teardown, which
+/// releases it on its own. Any other result, or the last refusal once `wait`
+/// is spent, is returned as is.
+pub(super) async fn claim<T, F, Fut>(
+    wait: Duration,
+    poll: Duration,
+    mut build: F,
+) -> std::result::Result<T, RuntimeError>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = std::result::Result<T, RuntimeError>>,
+{
+    let deadline = tokio::time::Instant::now() + wait;
+    loop {
+        match build().await {
+            Err(RuntimeError::AlreadyRunning) if tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(poll).await;
+            }
+            settled => return settled,
+        }
+    }
 }

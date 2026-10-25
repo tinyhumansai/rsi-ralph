@@ -10,6 +10,7 @@ use tinyhivemind_lang::SessionSettings;
 
 use super::*;
 use crate::{ToolKey, load_package};
+use openhuman_embed::RuntimeError;
 
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pair")
@@ -234,4 +235,58 @@ fn debug_output_hides_the_model_key_and_usage_starts_complete() {
     let usage = SeatUsage::default();
     assert_eq!(usage.turns, 0);
     assert!(usage.cost_complete);
+}
+
+/// `claim` over a build that refuses `refusals` times, then yields `7`.
+fn claim_after(refusals: usize, wait: Duration) -> (std::result::Result<u8, RuntimeError>, usize) {
+    let calls = std::cell::Cell::new(0);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_time()
+        .build()
+        .unwrap();
+    let result = runtime.block_on(run::claim(wait, Duration::from_millis(1), || {
+        calls.set(calls.get() + 1);
+        let refused = calls.get() <= refusals;
+        async move {
+            if refused {
+                Err(RuntimeError::AlreadyRunning)
+            } else {
+                Ok(7)
+            }
+        }
+    }));
+    (result, calls.get())
+}
+
+#[test]
+fn a_runtime_slot_still_held_by_the_previous_swarm_is_waited_for() {
+    let (result, calls) = claim_after(3, Duration::from_secs(30));
+    assert_eq!(result.unwrap(), 7);
+    assert_eq!(calls, 4);
+}
+
+#[test]
+fn a_runtime_slot_that_stays_held_is_reported_once_the_wait_is_spent() {
+    let (result, calls) = claim_after(usize::MAX, Duration::ZERO);
+    assert!(matches!(result, Err(RuntimeError::AlreadyRunning)));
+    assert_eq!(calls, 1);
+}
+
+#[test]
+fn other_build_failures_are_not_retried() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_time()
+        .build()
+        .unwrap();
+    let calls = std::cell::Cell::new(0);
+    let result: std::result::Result<u8, _> = runtime.block_on(run::claim(
+        Duration::from_secs(30),
+        Duration::from_millis(1),
+        || {
+            calls.set(calls.get() + 1);
+            async { Err(RuntimeError::BlankApiKey) }
+        },
+    ));
+    assert!(matches!(result, Err(RuntimeError::BlankApiKey)));
+    assert_eq!(calls.get(), 1);
 }
