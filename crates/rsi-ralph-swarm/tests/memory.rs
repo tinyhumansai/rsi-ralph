@@ -180,6 +180,9 @@ fn namespaces(engine: &ReferenceEngine) -> BTreeSet<String> {
         .unwrap()
         .block_on(engine.list(ListRequest::new(MetaFilter::default(), 1000)))
         .unwrap();
+    for hit in &page.items {
+        eprintln!("DEBUG {:?} {} {:?}", hit.kind, hit.meta.namespace, &hit.text.chars().take(160).collect::<String>());
+    }
     page.items
         .iter()
         .map(|hit| hit.meta.namespace.to_string())
