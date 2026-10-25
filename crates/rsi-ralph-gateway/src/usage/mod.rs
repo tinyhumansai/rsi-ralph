@@ -5,9 +5,11 @@
 //! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
 //! as they pass through. When the cost is missing but token counts are
 //! present, [`Usage::cost_or_ceiling`] prices the tokens at the model's
-//! ceiling, which is still an upper bound. The same scan notes when the
-//! first generated token arrives, which the proxy turns into time to first
-//! token.
+//! ceiling, which is still an upper bound. Cached and reasoning token counts
+//! are recorded when the provider reports them and left unknown otherwise;
+//! neither changes the cost, since no cache discount is assumed. The same
+//! scan notes when the first generated token arrives, which the proxy turns
+//! into time to first token.
 
 use serde_json::Value;
 
@@ -22,6 +24,14 @@ pub(crate) struct Usage {
     pub(crate) prompt_tokens: u64,
     /// Completion tokens, including reasoning.
     pub(crate) completion_tokens: u64,
+    /// Prompt tokens the provider served from its prompt cache
+    /// (`usage.prompt_tokens_details.cached_tokens`). `None` when the
+    /// provider did not say, which is not the same as no hits.
+    pub(crate) cached_tokens: Option<u64>,
+    /// Completion tokens spent reasoning
+    /// (`usage.completion_tokens_details.reasoning_tokens`). `None` when the
+    /// provider did not say.
+    pub(crate) reasoning_tokens: Option<u64>,
     /// Whether any usage object was seen at all.
     pub(crate) seen: bool,
 }
@@ -43,6 +53,12 @@ impl Usage {
                 .get("completion_tokens")
                 .and_then(Value::as_u64)
                 .unwrap_or(0),
+            cached_tokens: usage
+                .pointer("/prompt_tokens_details/cached_tokens")
+                .and_then(Value::as_u64),
+            reasoning_tokens: usage
+                .pointer("/completion_tokens_details/reasoning_tokens")
+                .and_then(Value::as_u64),
             seen: true,
         }
     }

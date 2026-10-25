@@ -37,6 +37,13 @@ pub(crate) struct MeterRow {
     pub(crate) prompt_tokens: u64,
     /// Completion tokens.
     pub(crate) completion_tokens: u64,
+    /// Prompt tokens the provider served from its prompt cache, as it
+    /// reported them. `None` (stored as `null`) when it did not report any
+    /// count, which is unknown rather than zero hits.
+    pub(crate) cached_tokens: Option<u64>,
+    /// Completion tokens spent reasoning, as the provider reported them.
+    /// `None` (stored as `null`) when it did not say.
+    pub(crate) reasoning_tokens: Option<u64>,
     /// Wall-clock duration.
     pub(crate) wall_ms: u128,
     /// Time to first token: from forwarding the call to the first stream

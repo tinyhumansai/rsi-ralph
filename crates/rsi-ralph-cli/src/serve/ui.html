@@ -217,11 +217,13 @@ function calls() {
   const by = new Map();
   for (const m of meter) {
     const key = m.seat || m.phase || "–";
-    if (!by.has(key)) by.set(key, { calls: 0, errors: 0, inTok: 0, outTok: 0, cost: 0, ttft: [], wall: [], tps: [] });
+    if (!by.has(key)) by.set(key, { calls: 0, errors: 0, inTok: 0, outTok: 0, cached: 0, cacheable: 0, cost: 0, ttft: [], wall: [], tps: [] });
     const g = by.get(key);
     g.calls++;
     if (m.error || (m.status && m.status >= 400)) g.errors++;
     g.inTok += m.prompt_tokens ?? 0; g.outTok += m.completion_tokens ?? 0; g.cost += m.cost_usd ?? 0;
+    // Cache hit rate counts only calls whose provider reported a cached count.
+    if (m.cached_tokens !== null && m.cached_tokens !== undefined) { g.cached += m.cached_tokens; g.cacheable += m.prompt_tokens ?? 0; }
     if (m.ttft_ms !== null && m.ttft_ms !== undefined) g.ttft.push(m.ttft_ms);
     if (m.wall_ms) g.wall.push(m.wall_ms);
     const gen = (m.wall_ms ?? 0) - (m.ttft_ms ?? 0);
@@ -242,7 +244,7 @@ function agentsCard(sw, cs) {
       <td><span class="seat">${esc(id)}</span>${s?.role ? `<div class="muted">${esc(s.role)}${s.editing ? " · edits" : ""}</div>` : ""}</td>
       <td class="model">${esc(s?.model || "")}<div>${state}</div></td>
       <td class="num">${int(c?.calls)}${c?.errors ? `<div class="fail">${c.errors} failed</div>` : ""}</td>
-      <td class="num">${kilo(c?.inTok)} / ${kilo(c?.outTok)}</td>
+      <td class="num">${kilo(c?.inTok)} / ${kilo(c?.outTok)}${c?.cacheable ? `<div class="muted">${((c.cached * 100) / c.cacheable).toFixed(0)}% cached</div>` : ""}</td>
       <td class="num">${c ? usd(c.cost) : "–"}</td>
       <td class="num">${c ? `${ms(mean(c.ttft))}<div class="muted">p50 ${ms(pct(c.ttft, 0.5))}</div>` : "–"}</td>
       <td class="num">${c ? `${ms(mean(c.wall))}<div class="muted">${c.tps.length ? `${mean(c.tps).toFixed(0)} tok/s` : ""}</div>` : "–"}</td>
@@ -257,7 +259,7 @@ function agentsCard(sw, cs) {
     <th class="num">Cost<span class="sub">whole run</span></th><th class="num">TTFT<span class="sub">mean</span></th><th class="num">Call time<span class="sub">mean</span></th>
     <th class="num">Turns<span class="sub">epoch ${esc(hiveEpoch ?? "–")}</span></th><th class="num">Tool calls<span class="sub">epoch ${esc(hiveEpoch ?? "–")}</span></th>
     <th>Top tools</th><th class="num">Msgs out / in</th><th>Last action</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="muted" style="margin:4px 0 0;font-size:12px">Model-call columns come from the gateway meter (TTFT needs a gateway that records <code>ttft_ms</code>); turns, tools and messages from the shown epoch's swarm trace. Click a seat to filter the activity below.</p>`;
+    <p class="muted" style="margin:4px 0 0;font-size:12px">Model-call columns come from the gateway meter (TTFT needs a gateway that records <code>ttft_ms</code>, the cached share of prompt tokens one that records <code>cached_tokens</code>); turns, tools and messages from the shown epoch's swarm trace. Click a seat to filter the activity below.</p>`;
 }
 
 function toolsCard(sw) {

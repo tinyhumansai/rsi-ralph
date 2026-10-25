@@ -84,7 +84,14 @@ reached. Upstream statuses and bodies otherwise pass through.
 5. **Meter** one JSON line in `<run_dir>/meter.jsonl` per call, admitted or
    refused, with its tags, model, status, reservation, cost, tokens, wall
    time and, for a stream, `ttft_ms`: the time from forwarding the call to the
-   first event carrying generated text, reasoning or a tool call.
+   first event carrying generated text, reasoning or a tool call. Alongside
+   `prompt_tokens` and `completion_tokens` it records `cached_tokens` (the
+   prompt tokens the provider served from its prompt cache,
+   `usage.prompt_tokens_details.cached_tokens`) and `reasoning_tokens`
+   (`usage.completion_tokens_details.reasoning_tokens`), from a buffered
+   response or a stream's usage event alike. Either is `null` when the
+   provider does not report it, which means unknown, not zero. Neither
+   changes the cost: no cache discount is assumed.
 6. **Tally** every forwarded call in memory: counted as sent when it is
    forwarded, and as refused once its answer is a non-success status or never
    completes (a failed connection, or a body that broke off, counted as

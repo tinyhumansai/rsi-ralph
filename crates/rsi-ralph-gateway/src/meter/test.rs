@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::{Meter, MeterRow, Tags};
 use crate::error::Error;
@@ -23,6 +23,8 @@ fn row() -> MeterRow {
         cost_usd: Some(0.01),
         prompt_tokens: 1,
         completion_tokens: 2,
+        cached_tokens: Some(1),
+        reasoning_tokens: Some(0),
         wall_ms: 3,
         ttft_ms: Some(2),
         error: None,
@@ -46,11 +48,25 @@ fn pins_the_stored_row_shape() {
             "cost_usd": 0.01,
             "prompt_tokens": 1,
             "completion_tokens": 2,
+            "cached_tokens": 1,
+            "reasoning_tokens": 0,
             "wall_ms": 3,
             "ttft_ms": 2,
             "error": null,
         })
     );
+}
+
+#[test]
+fn stores_unreported_cache_and_reasoning_counts_as_null() {
+    let row = MeterRow {
+        cached_tokens: None,
+        reasoning_tokens: None,
+        ..row()
+    };
+    let value = serde_json::to_value(row).unwrap();
+    assert_eq!(value.get("cached_tokens"), Some(&Value::Null), "{value}");
+    assert_eq!(value.get("reasoning_tokens"), Some(&Value::Null), "{value}");
 }
 
 #[test]

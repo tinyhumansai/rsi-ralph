@@ -72,6 +72,21 @@ async fn mock_chat(
             json!({"choices": [], "usage": {"prompt_tokens": 1000, "completion_tokens": 1000}}),
         )
         .into_response(),
+        // Surplus Intelligence's usage shape, with prompt-cache and reasoning
+        // details, on the final event of a stream.
+        "cached" => {
+            let usage = json!({
+                "prompt_tokens": 28831, "completion_tokens": 4, "total_tokens": 28835,
+                "prompt_tokens_details": {"cached_tokens": 28800},
+                "completion_tokens_details": {"reasoning_tokens": 0},
+                "buyer_cost_micro": 11,
+            });
+            let sse = format!(
+                "data: {{\"choices\":[{{\"delta\":{{\"content\":\"hi\"}}}}]}}\n\ndata: {}\n\ndata: [DONE]\n\n",
+                json!({"choices": [], "usage": usage})
+            );
+            ([("content-type", "text/event-stream")], sse).into_response()
+        }
         // Success headers, one event, then the connection drops mid-body.
         "cut" => {
             use futures_util::StreamExt as _;
@@ -316,6 +331,30 @@ async fn streams_through_and_settles_from_the_usage_event() {
         .as_u64()
         .expect("a stream with a token has a ttft");
     assert!(ttft <= row["wall_ms"].as_u64().unwrap(), "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn meters_the_prompt_cache_hits_and_reasoning_tokens_a_stream_reports() {
+    let h = Harness::start(5.0, 50.0);
+    let (status, _) = h
+        .chat("/v1/chat/completions", "cached", json!({"stream": true}))
+        .await;
+    assert_eq!(status, 200);
+    h.wait_for_meter_rows(1).await;
+    let row = &h.meter()[0];
+    assert_eq!(row["prompt_tokens"], 28831, "{row}");
+    assert_eq!(row["cached_tokens"], 28800, "{row}");
+    assert_eq!(row["reasoning_tokens"], 0, "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn meters_unreported_cache_hits_as_null() {
+    let h = Harness::start(5.0, 50.0);
+    h.chat("/v1/chat/completions", "hello", json!({})).await;
+    h.wait_for_meter_rows(1).await;
+    let row = &h.meter()[0];
+    assert_eq!(row.get("cached_tokens"), Some(&Value::Null), "{row}");
+    assert_eq!(row.get("reasoning_tokens"), Some(&Value::Null), "{row}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
