@@ -22,6 +22,14 @@ pub(crate) struct Usage {
     pub(crate) prompt_tokens: u64,
     /// Completion tokens, including reasoning.
     pub(crate) completion_tokens: u64,
+    /// Prompt tokens the provider served from its prompt cache
+    /// (`usage.prompt_tokens_details.cached_tokens`). `None` when the
+    /// provider did not say, which is not the same as no hits.
+    pub(crate) cached_tokens: Option<u64>,
+    /// Completion tokens spent reasoning
+    /// (`usage.completion_tokens_details.reasoning_tokens`). `None` when the
+    /// provider did not say.
+    pub(crate) reasoning_tokens: Option<u64>,
     /// Whether any usage object was seen at all.
     pub(crate) seen: bool,
 }
@@ -43,6 +51,8 @@ impl Usage {
                 .get("completion_tokens")
                 .and_then(Value::as_u64)
                 .unwrap_or(0),
+            cached_tokens: None,
+            reasoning_tokens: None,
             seen: true,
         }
     }
