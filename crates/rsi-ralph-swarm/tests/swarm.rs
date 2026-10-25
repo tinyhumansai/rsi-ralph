@@ -376,6 +376,33 @@ fn the_wall_clock_stops_a_swarm_whose_seat_is_still_working() {
 }
 
 #[test]
+fn a_swarm_started_right_after_a_wall_clock_stop_still_gets_the_runtime() {
+    let _turn = one_swarm_at_a_time();
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(model(Duration::from_secs(30)));
+    let stopped_dirs = dirs();
+    let stopped = run_swarm(
+        request(&stopped_dirs, &server.uri(), Duration::from_secs(3)),
+        &mut |_| {},
+    )
+    .unwrap();
+    assert_eq!(stopped.stop, StopReason::WallClock);
+
+    // The stopped seat's turn is still winding down inside OpenHuman and
+    // holds its process-wide runtime slot for a moment. The next swarm, as
+    // the next epoch of a loop would, must wait for it rather than fail.
+    // A zero turn wall is refused only once the runtime is built.
+    let next_dirs = dirs();
+    let mut next = request(&next_dirs, "http://127.0.0.1:9", Duration::from_secs(1));
+    next.turn = Duration::ZERO;
+    let error = run_swarm(next, &mut |_| {}).unwrap_err();
+    assert!(
+        matches!(error, rsi_ralph_swarm::Error::Adapter(_)),
+        "{error:?}"
+    );
+}
+
+#[test]
 fn a_lead_outside_the_package_is_refused_before_anything_starts() {
     let _turn = one_swarm_at_a_time();
     let dirs = dirs();
@@ -591,64 +618,4 @@ fn a_seat_calls_its_executable_tool_in_its_candidate_checkout() {
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
     assert!(offered(&requests, "implementer-a").contains(&"note".to_owned()));
     assert!(!offered(&requests, "lead").contains(&"note".to_owned()));
-}
-
-fn threads() -> Vec<String> {
-    let mut names: Vec<String> = std::fs::read_dir("/proc/self/task")
-        .unwrap()
-        .filter_map(|e| std::fs::read_to_string(e.ok()?.path().join("comm")).ok())
-        .map(|s| s.trim().to_owned())
-        .collect();
-    names.sort();
-    names
-}
-
-#[test]
-fn zz_probe_back_to_back() {
-    let _turn = one_swarm_at_a_time();
-    let before = threads();
-    for i in 0..40 {
-        let d = dirs();
-        let mut zero = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
-        zero.turn = Duration::ZERO;
-        let err = run_swarm(zero, &mut |_| {}).unwrap_err();
-        let after = threads();
-        let extra: Vec<_> = after.iter().filter(|t| !before.contains(t)).cloned().collect();
-        if matches!(err, rsi_ralph_swarm::Error::Runtime(_)) {
-            let start = std::time::Instant::now();
-            loop {
-                let d = dirs();
-                let mut z = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
-                z.turn = Duration::ZERO;
-                let e = run_swarm(z, &mut |_| {}).unwrap_err();
-                if !matches!(e, rsi_ralph_swarm::Error::Runtime(_)) { break; }
-                std::thread::sleep(Duration::from_millis(5));
-            }
-            eprintln!("iter {i}: AlreadyRunning; freed after {:?}; extra threads at failure: {extra:?}", start.elapsed());
-        } else {
-            eprintln!("iter {i}: ok ({err:?}); extra threads {extra:?}");
-        }
-    }
-}
-
-#[test]
-fn zz_probe_after_wall_clock() {
-    let _turn = one_swarm_at_a_time();
-    let server_runtime = tokio::runtime::Runtime::new().unwrap();
-    let server = server_runtime.block_on(model(Duration::from_secs(30)));
-    let dirs0 = dirs();
-    let outcome = run_swarm(request(&dirs0, &server.uri(), Duration::from_secs(3)), &mut |_| {}).unwrap();
-    eprintln!("wall run: {:?}", outcome.stop);
-    let start = std::time::Instant::now();
-    let mut tries = 0;
-    loop {
-        tries += 1;
-        let d = dirs();
-        let mut z = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
-        z.turn = Duration::ZERO;
-        let e = run_swarm(z, &mut |_| {}).unwrap_err();
-        if !matches!(e, rsi_ralph_swarm::Error::Runtime(_)) { break; }
-        std::thread::sleep(Duration::from_millis(50));
-    }
-    eprintln!("next swarm could build after {:?} ({tries} tries)", start.elapsed());
 }
