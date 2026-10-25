@@ -21,6 +21,8 @@ Markdown and small scripts, so a loop needs no Rust. Users start with
 | `hive/` | The hive proposer: the loop's hive package run on OpenHuman agents via `rsi-ralph-swarm` |
 | `engine/` | The epoch loop over the `Proposer`, `Ideator` and `Meter` ports; trace, ledger and run record |
 | `serve/` | A std-only HTTP server with one embedded page over the store |
+| `init/` | Bundled loop templates, compiled in from `loops/`, written by `rsi-ralph init` |
+| `doctor/` | `rsi-ralph doctor`: programs on `PATH`, the model key's presence, the run store |
 | `cli/` | `clap` commands and the wiring of keys, gateway, judges, hive and retreat |
 
 ## Design constraints

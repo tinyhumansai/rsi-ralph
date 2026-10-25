@@ -20,6 +20,10 @@ To run a loop without writing Rust, read
 [`guides/rsi-cli.md`](guides/rsi-cli.md): a loop is a folder of JSON, Markdown
 and small scripts that the `rsi-ralph` binary runs.
 
+To work on the repository itself, read [`development.md`](development.md):
+project layout, the build and test commands, live runs and releases.
+[`library.md`](library.md) tours the Rust crates a host links directly.
+
 The repository root has [`ROADMAP.md`](../ROADMAP.md) (shipped, next, out of
 scope).
 
@@ -33,6 +37,8 @@ docs/
 ├── README.md         # this index
 ├── architecture.md   # system overview
 ├── glossary.md       # term definitions
+├── development.md    # build, test, live runs, releases
+├── library.md        # what the Rust crates do, beyond the binary
 ├── specs/            # contracts for code in this repository
 ├── plans/            # implementation sequences for those specs
 ├── adr/              # architecture decision records, numbered and immutable

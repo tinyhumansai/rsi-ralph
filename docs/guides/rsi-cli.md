@@ -7,11 +7,18 @@ write no Rust. The full contract is [`../specs/rsi-cli.md`](../specs/rsi-cli.md)
 this guide walks through [`loops/graph-coloring`](../../loops/graph-coloring).
 
 ```sh
-cargo install --path crates/rsi-ralph-cli     # or: cargo run -p rsi-ralph-cli --
+curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
+rsi-ralph doctor                             # git, diff, python3, OPENROUTER_API_KEY
+rsi-ralph init graph-coloring                # this guide's loop, as a folder of your own
 export OPENROUTER_API_KEY=...                # or put it in <loop>/.env
-rsi-ralph check loops/graph-coloring
-rsi-ralph run   loops/graph-coloring           # UI on http://127.0.0.1:8787
+rsi-ralph check graph-coloring
+rsi-ralph run   graph-coloring               # UI on http://127.0.0.1:8787
 ```
+
+On Windows install with
+`irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex`;
+from a checkout, `cargo install --path crates/rsi-ralph-cli` builds it instead.
+`rsi-ralph init --list` names the bundled templates.
 
 ## The folder
 
