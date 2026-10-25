@@ -143,6 +143,10 @@ exits with status 1, and `show` prints the provider's status and message on its 
 refusals in an epoch that changed nothing appear as `warning` lines and the
 run goes on.
 
+Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/` (set `TINYRSI_HOME` to move
+them): a frozen copy of the loop, `run.json`, `ledger.json`, `events.jsonl`,
+and per-epoch briefs, candidates and step logs.
+
 ## 6. Keep an upgrade log
 
 Between runs you will change the hive, the brief or `rsi.json`. Record each
@@ -164,7 +168,3 @@ rsi-ralph upgrades outcome graph-coloring <id> --run <next-run> --metric first_m
 Each run compares its loop folder with the previous run's. A change that no
 record names is logged as unexplained and shown as a `warning` on the run.
 The format is in [`docs/specs/upgrade-log.md`](../specs/upgrade-log.md).
-
-Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/` (set `TINYRSI_HOME` to move
-them): a frozen copy of the loop, `run.json`, `ledger.json`, `events.jsonl`,
-and per-epoch briefs, candidates and step logs.
