@@ -80,6 +80,10 @@ fn routes_only_safe_paths() {
         Route::File(PathBuf::from("l/r"), PathBuf::from("budget.json"))
     );
     assert_eq!(
+        route("/api/runs/l/r/files/upgrades.md"),
+        Route::File(PathBuf::from("l/r"), PathBuf::from("upgrades.md"))
+    );
+    assert_eq!(
         route("/api/runs/l/r/files/ledger.json"),
         Route::File(PathBuf::from("l/r"), PathBuf::from("ledger.json"))
     );
