@@ -56,6 +56,28 @@ fn declaration(command: CommandSpec) -> VerifierDeclaration {
     }
 }
 
+/// Verifies each proof under `registry` and checks it passes exactly when
+/// `verdicts` says it should. The live Lake test and the offline fixture test
+/// share it, so the judging loop runs in every build.
+fn assert_proof_verdicts(registry: &VerifierRegistry, verdicts: &[(&str, bool)]) {
+    let binding = binding();
+    for (proof, expected) in verdicts {
+        let evidence = registry
+            .verify(
+                &binding,
+                &ArtifactSubmission {
+                    binding: binding.clone(),
+                    content: proof.as_bytes().to_vec(),
+                },
+            )
+            .unwrap();
+        assert_eq!(evidence.passed, *expected, "{proof}");
+        if *expected {
+            assert_eq!(evidence.exit_code, Some(0), "{proof}");
+        }
+    }
+}
+
 #[test]
 fn lake_version_build_and_output_failures_cannot_manufacture_proof_credit() {
     let report = "info: Rsi.lean:3:0: 'rsi_goal' does not depend on any axioms";
@@ -293,28 +315,16 @@ fn live_pinned_lake_builds_the_actual_kernel_proof_and_rejects_wrong_or_native_p
         theorem: "import Std\ntheorem rsi_goal : (123 : Nat) % 10 = 3 :=".into(),
         toolchain: "leanprover/lean4:v4.34.1".into(),
     });
-    let binding = binding();
-    for (proof, expected) in [
-        ("by decide", true),
-        ("by rfl", true),
-        ("by exact False.elim (by contradiction)", false),
-        ("by sorry", false),
-        ("by native_decide", false),
-    ] {
-        let evidence = registry
-            .verify(
-                &binding,
-                &ArtifactSubmission {
-                    binding: binding.clone(),
-                    content: proof.as_bytes().to_vec(),
-                },
-            )
-            .unwrap();
-        assert_eq!(evidence.passed, expected);
-        if expected {
-            assert_eq!(evidence.exit_code, Some(0));
-        }
-    }
+    assert_proof_verdicts(
+        &registry,
+        &[
+            ("by decide", true),
+            ("by rfl", true),
+            ("by exact False.elim (by contradiction)", false),
+            ("by sorry", false),
+            ("by native_decide", false),
+        ],
+    );
 }
 
 #[test]
@@ -346,12 +356,5 @@ fn lake_verifier_requires_a_frozen_project_and_stock_kernel_report() {
         theorem: "import Std\ntheorem rsi_goal : 3 + 4 = 7 :=".into(),
         toolchain: "leanprover/lean4:v4.34.1".into(),
     });
-    let binding = binding();
-    let artifact = ArtifactSubmission {
-        binding: binding.clone(),
-        content: b"by decide".to_vec(),
-    };
-    let result = registry.verify(&binding, &artifact).unwrap();
-    assert!(result.passed);
-    assert_eq!(result.exit_code, Some(0));
+    assert_proof_verdicts(&registry, &[("by decide", true)]);
 }
