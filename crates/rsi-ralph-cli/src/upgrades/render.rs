@@ -113,11 +113,10 @@ fn evidence(e: &Evidence) -> String {
     if let Some(claim) = &e.claim {
         refs.push(format!("claim {claim}"));
     }
-    if !refs.is_empty() {
-        if !line.is_empty() {
-            line.push(' ');
-        }
-        let _ = write!(line, "({})", refs.join(", "));
+    if line.is_empty() {
+        line = refs.join(", ");
+    } else if !refs.is_empty() {
+        let _ = write!(line, " ({})", refs.join(", "));
     }
     format!("- {line}\n")
 }

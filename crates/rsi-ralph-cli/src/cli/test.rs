@@ -475,3 +475,228 @@ fn the_budget_sets_the_gateway_completion_cap() {
     assert_eq!(lowered.max_tokens_cap, 1_024);
     assert_eq!(lowered.default_max_tokens, 1_024);
 }
+
+/// A writable copy of the example loop and a store, both in `root`.
+fn upgradable(root: &Path) -> (PathBuf, String) {
+    let dir = root.join("loop");
+    crate::subject::copy_tree(&example(), &dir).unwrap();
+    (dir, root.join("home").to_str().unwrap().to_owned())
+}
+
+#[test]
+fn upgrades_add_keeps_each_contributors_rationale_and_show_renders_them() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, h) = upgradable(root.path());
+    let d = dir.to_str().unwrap();
+    let (ok, out) = exec(
+        &[
+            "--home", h.as_str(), "upgrades", "add", d,
+            "--id", "u-1",
+            "--title", "Keep every seat working",
+            "--author", "assistant:claude-code@claude-opus-5-5=diagnosed",
+            "--rationale", "The lead ends each seat's work at its first report.",
+            "--author", "operator:steven=approved",
+            "--rationale", "Idle seats waste the epoch.",
+            "--saw", "the scout stopped after 4 minutes",
+            "--metric", "seats_busy_mean=7.2@graph-coloring/r9",
+            "--claim", "c-17",
+            "--diagnosis", "The lead prompt ends work at the first report.",
+            "--change", "The lead answers every report with the next assignment.",
+            "--file", "brief.md",
+            "--file", "hive/#max_turns",
+            "--expect", "seats_busy_mean>=10",
+            "--epoch", "1",
+        ],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(out.starts_with("recorded u-1 in "), "{out}");
+    let log = crate::upgrades::read(&dir.join(crate::upgrades::LOG)).unwrap();
+    let [crate::upgrades::Entry::Upgrade(u)] = log.as_slice() else {
+        panic!("one upgrade expected: {log:?}");
+    };
+    assert_eq!(u.contributors.len(), 2);
+    assert_eq!(
+        u.contributors[1].rationale.as_deref(),
+        Some("Idle seats waste the epoch.")
+    );
+    assert_eq!(u.evidence.len(), 3);
+    assert_eq!(u.applies_from.epoch, Some(1));
+    // No run yet: the brief has an after hash only; a folder has none.
+    let brief = std::fs::read_to_string(dir.join("brief.md")).unwrap();
+    assert_eq!(
+        u.change.files[0].after.as_deref(),
+        Some(crate::upgrades::digest(&brief).as_str())
+    );
+    assert_eq!(u.change.files[0].before, None);
+    assert_eq!(u.change.files[1].after, None);
+    let (ok, md) = exec(&["--home", h.as_str(), "upgrades", "show", d], true);
+    assert!(ok.is_ok(), "{ok:?}");
+    for line in [
+        "# Upgrades: graph-coloring",
+        "## Keep every seat working",
+        "`u-1` · from the next run, epoch 1 · by assistant claude-code (claude-opus-5-5), diagnosed; operator steven, approved",
+        "- assistant claude-code (claude-opus-5-5): The lead ends each seat's work at its first report.",
+        "- operator steven: Idle seats waste the epoch.",
+        "- `seats_busy_mean` >= 10",
+        "- claim c-17",
+    ] {
+        assert!(md.contains(line), "{line} in {md}");
+    }
+    let (ok, json) = exec(&["--home", h.as_str(), "upgrades", "show", d, "--json"], true);
+    assert!(ok.is_ok());
+    assert_eq!(json.lines().count(), 1);
+    assert!(json.starts_with("{\"kind\":\"upgrade\""), "{json}");
+    let (dup, _) = exec(
+        &[
+            "--home", h.as_str(), "upgrades", "add", d, "--id", "u-1",
+            "--title", "t", "--author", "operator:o", "--change", "c",
+        ],
+        true,
+    );
+    assert!(matches!(&dup, Err(Error::UpgradeExists(id)) if id == "u-1"));
+    assert_eq!(exit_code(&dup), 2);
+}
+
+#[test]
+fn upgrades_add_rejects_bad_authors_and_unpaired_rationales() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, h) = upgradable(root.path());
+    let d = dir.to_str().unwrap();
+    let base = ["--home", h.as_str(), "upgrades", "add", d, "--title", "t", "--change", "c"];
+    let with = |extra: &[&str]| {
+        let mut args = base.to_vec();
+        args.extend_from_slice(extra);
+        exec(&args, true).0
+    };
+    let bad = with(&["--author", "robot:r2"]);
+    assert!(matches!(&bad, Err(Error::Field { field, .. }) if field == "--author robot:r2"));
+    assert_eq!(exit_code(&bad), 2);
+    let unpaired = with(&["--author", "operator:o", "--rationale", "a", "--rationale", "b"]);
+    assert!(matches!(&unpaired, Err(Error::Field { field, .. }) if field == "--rationale"));
+    assert!(with(&["--author", "operator:o", "--expect", "nonsense"]).is_err());
+    assert!(with(&["--author", "operator:o", "--file", "../outside"]).is_err());
+    assert!(!dir.join(crate::upgrades::LOG).exists());
+}
+
+#[test]
+fn upgrades_add_reads_a_whole_record_from_json_and_hashes_against_the_last_run() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, h) = upgradable(root.path());
+    let d = dir.to_str().unwrap();
+    // A previous run froze the brief as it was.
+    let store = Store::new(&h);
+    let files = BTreeMap::from([
+        ("rsi.json".to_owned(), "{}".to_owned()),
+        ("brief.md".to_owned(), "old brief".to_owned()),
+    ]);
+    let run = store.create_run("graph-coloring", Some("r1"), &files).unwrap();
+    write_json(
+        &run.record_path(),
+        &RunRecord {
+            id: "r1".into(),
+            r#loop: "graph-coloring".into(),
+            status: RunStatus::Finished,
+            pid: 1,
+            started_at: 1,
+            finished_at: Some(2),
+            stop_reason: None,
+            incumbent: String::new(),
+            incumbent_score: None,
+            epochs: 1,
+            spend_usd: 0.0,
+            error: None,
+            warnings: Vec::new(),
+        },
+    )
+    .unwrap();
+    let record = root.path().join("record.json");
+    std::fs::write(
+        &record,
+        serde_json::json!({
+            "title": "Seat proposes a shorter brief",
+            "contributors": [
+                { "author": { "kind": "hive", "seat": "lead" }, "role": "proposed",
+                  "rationale": "The brief repeats the rules." },
+                { "author": { "kind": "operator", "name": "steven" }, "role": "applied" }
+            ],
+            "change": { "summary": "Shortened the brief.", "files": [ { "path": "brief.md" } ] }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let (ok, out) = exec(
+        &["--home", h.as_str(), "upgrades", "add", d, "--from", record.to_str().unwrap()],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(out.contains("recorded u-"), "{out}");
+    let log = crate::upgrades::read(&dir.join(crate::upgrades::LOG)).unwrap();
+    let [crate::upgrades::Entry::Upgrade(u)] = log.as_slice() else {
+        panic!("one upgrade expected: {log:?}");
+    };
+    assert_eq!(
+        u.contributors[0].author,
+        crate::upgrades::Author::Hive { seat: "lead".into() }
+    );
+    assert_eq!(
+        u.change.files[0].before.as_deref(),
+        Some(crate::upgrades::digest("old brief").as_str())
+    );
+    assert!(u.change.files[0].after.is_some());
+    // The loop's name alone reads the log from the latest run's frozen copy,
+    // which predates the record.
+    let (ok, md) = exec(&["--home", h.as_str(), "upgrades", "show", "graph-coloring"], true);
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(md.contains("No upgrades recorded."), "{md}");
+    let (none, _) = exec(&["--home", h.as_str(), "upgrades", "show", "no-such-loop"], true);
+    assert!(matches!(none, Err(Error::NoRun(_))));
+    let (bad, _) = exec(&["--home", h.as_str(), "upgrades", "show", "not/a/loop"], true);
+    assert!(matches!(bad, Err(Error::MissingFile { .. })));
+}
+
+#[test]
+fn upgrades_outcome_judges_the_predictions_against_the_measured_values() {
+    let root = tempfile::tempdir().unwrap();
+    let (dir, h) = upgradable(root.path());
+    let d = dir.to_str().unwrap();
+    let (ok, _) = exec(
+        &[
+            "--home", h.as_str(), "upgrades", "add", d, "--id", "u-1",
+            "--title", "t", "--author", "operator:o", "--change", "c",
+            "--expect", "busy>=10", "--expect", "p90_s<30",
+        ],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?}");
+    let outcome = |extra: &[&str]| {
+        let mut args = vec!["--home", h.as_str(), "upgrades", "outcome", d];
+        args.extend_from_slice(extra);
+        exec(&args, true)
+    };
+    let (ok, out) = outcome(&[
+        "u-1", "--run", "r2", "--metric", "busy=11", "--metric", "p90_s=45",
+        "--author", "assistant:claude-code@claude-opus-5-5", "--rationale", "Busy, but slower.",
+    ]);
+    assert!(ok.is_ok(), "{ok:?}");
+    assert_eq!(out.trim(), "recorded outcome of u-1 in run r2: mixed");
+    let (ok, out) = outcome(&["u-1", "--run", "r3", "--verdict", "refuted", "--saw", "stopped early"]);
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(out.ends_with("refuted\n"), "{out}");
+    let (unmeasured, _) = outcome(&["u-1", "--run", "r4", "--metric", "other=1"]);
+    assert!(matches!(&unmeasured, Err(Error::Field { field, .. }) if field == "--verdict"));
+    let (unknown, _) = outcome(&["u-9", "--run", "r4", "--verdict", "confirmed"]);
+    assert!(matches!(&unknown, Err(Error::Reference { kind: "upgrade", .. })));
+    assert_eq!(exit_code(&unknown), 2);
+    let (_, md) = exec(&["--home", h.as_str(), "upgrades", "show", d], true);
+    for line in [
+        "**Outcome in run r2: mixed** (by assistant claude-code (claude-opus-5-5), authored)",
+        "- `busy` = 11: expected >= 10, held",
+        "- `p90_s` = 45: expected < 30, did not hold",
+        "- assistant claude-code (claude-opus-5-5): Busy, but slower.",
+        "**Outcome in run r3: refuted**",
+        "- stopped early",
+    ] {
+        assert!(md.contains(line), "{line} in {md}");
+    }
+}
