@@ -115,6 +115,29 @@ pub struct HiveSpec {
     /// Limit for one seat turn, in seconds.
     #[serde(default = "default_turn_secs")]
     pub turn_secs: u64,
+    /// Where seats keep memory; absent, they keep none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory: Option<HiveMemory>,
+}
+
+/// The `hive.memory` section: a `CortexDB` server the seats remember in.
+///
+/// Memory lives under `root` and outlasts the run, so every run of the loop
+/// reads what earlier runs wrote.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HiveMemory {
+    /// The `CortexDB` base URL, such as `http://127.0.0.1:3141`.
+    pub endpoint: String,
+    /// The variable holding the `CortexDB` API key.
+    pub key: String,
+    /// The layout root seats' memory sits below; `team:<loop name>` when
+    /// absent.
+    #[serde(default)]
+    pub root: Option<String>,
+    /// One memory namespace for every seat instead of one per seat.
+    #[serde(default)]
+    pub shared: bool,
 }
 
 fn default_wall_secs() -> u64 {
@@ -364,6 +387,10 @@ pub struct Budget {
     /// Price ceilings for models beyond the gateway's built-in ones.
     #[serde(default)]
     pub prices: BTreeMap<String, ModelPrice>,
+    /// The largest `max_tokens` the gateway forwards for one model call
+    /// (hidden reasoning included); the gateway's own cap when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u64>,
 }
 
 /// A model's price ceiling and the one provider it may be routed to.

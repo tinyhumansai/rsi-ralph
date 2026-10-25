@@ -33,7 +33,9 @@ let outcome = rsi_ralph_swarm::run_swarm(request, &mut |event| println!("{event:
      tool-key tools; `tools.deny` plus `wait` and `wait_loop`, always; the
      `coding` pack's schemas are advertised;
    - access: editing seats get `Access::full()` in their candidate; the rest
-     `Access::readonly()` in the incumbent.
+     `Access::readonly()` in the incumbent;
+   - memory: none, unless `SwarmRequest::memory` names an engine (see
+     [Seat memory](#seat-memory)).
 4. **Coordinates** on `tinyhivemind-hives` with SQLite storage
    (`<run_dir>/hive.db`) and the package's own coordinator settings, creating
    every desk with its members.
@@ -86,8 +88,9 @@ different keys never share one.
 
 ## Executable tools
 
-A package's `hive.json` `tools` (tinyhivemind's executable tools: a program
-plus an argument schema, `docs/specs/executable-tools.md` there) reach the
+A package's `tools` (in `hive.json`, or in `tools.json` when the manifest is
+split; tinyhivemind's executable tools: a program plus an argument schema,
+`docs/specs/executable-tools.md` there) reach the
 seats whose toolpacks name them. `programs/` builds one host tool source for
 the run: on each turn of such a seat it adds a `tinyhivemind_exec::ProgramTool`
 per program, made visible and added to the seat's allow list. A call runs in
@@ -99,6 +102,32 @@ The swarm receives the package as text, so a program that is itself a package
 file (`tools/…`) is refused before the run (`Error::PackageProgram`). Name a
 program on `PATH` or by an absolute path. MCP servers declared in the package
 are not attached yet.
+
+## Seat memory
+
+`SwarmRequest::memory` is `None` by default and seats remember nothing
+between turns but their session. A `SwarmMemory` (`SwarmMemory::cortexdb`
+for a CortexDB server, `SwarmMemory::new` for any TinyMemory engine) turns
+OpenHuman's memory lifecycle on for every seat: a recall pack before each
+turn, the turn logged after it, and the `memory` tool added to an explicit
+allow list. The engine is installed on the run's runtime, which OpenHuman
+holds process-wide.
+
+| | Namespace a seat logs to | What it recalls |
+| --- | --- | --- |
+| per seat (default) | `<root>/agent:<seat>` | its own turns, and the root's shared learnings |
+| `shared(true)` | `<root>/agent:hive` for every seat | every seat's turns |
+
+The root outlasts the run, so a later run on the same root starts from what
+earlier ones logged. Each seat's namespace is announced in `swarm_started`.
+
+OpenHuman logs a turn only when its origin says a person wrote it, and a seat
+turn usually starts inside another seat's `hivemind_*` call, which gives it
+the sub-agent origin. With memory on, `hooks/` labels every seat turn
+`DirectChat`; the approval gate treats that exactly like the sub-agent
+default (`Cli`), so the label changes what is remembered, not what a seat may
+do. `tests/memory.rs` runs whole swarms against TinyMemory's reference engine,
+in its own test binary because the installed engine is process-wide.
 
 ## Pin requirement
 
@@ -127,13 +156,15 @@ need it.
 | `package/` | `load_package`, `editing_seats`, the lowered hive with roles and charters |
 | `prompt/` | seat system prompts and `HIVE_RULES` |
 | `swarm/` | `run_swarm`, request checks, seat specs, the async run |
-| `hooks/` | turn hooks: tool-call progress and per-seat usage |
+| `hooks/` | turn hooks: tool-call progress, per-seat usage, and the memory label |
+| `memory/` | `SwarmMemory`: the seats' engine, root, and per-seat or shared binding |
 | `mirror/` | transcript mirroring |
 | `event/` | `SwarmEvent` and secret scrubbing |
 | `trace/` | the `events.jsonl` sink |
 | `tools/` | tool keys and web-search wiring |
-| `programs/` | a seat's executable tools (`hive.json` `tools`) as native turn tools |
+| `programs/` | a seat's executable tools (the manifest's `tools`) as native turn tools |
 | `error/` | the crate `Error` |
 
 Tests: unit tests beside each module; `tests/swarm.rs` runs whole swarms
-offline against a scripted loopback model (`tests/fixtures/pair`).
+offline against a scripted loopback model (`tests/fixtures/pair`), and
+`tests/memory.rs` does the same with seat memory on.

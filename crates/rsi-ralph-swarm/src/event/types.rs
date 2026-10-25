@@ -90,6 +90,10 @@ pub struct SeatInfo {
     pub action_dir: PathBuf,
     /// Whether that checkout is its own editable candidate.
     pub editing: bool,
+    /// The memory namespace its conversations are logged in, when seats
+    /// carry memory; shared memory gives every seat the same one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory: Option<String>,
 }
 
 /// The two ends of a tool call.

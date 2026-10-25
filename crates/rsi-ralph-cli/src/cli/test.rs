@@ -454,3 +454,24 @@ fn steps_inherit_what_windows_programs_need_to_start() {
     assert!(names.contains(&"USERPROFILE"), "{names:?}");
     assert!(!names.contains(&"OPENROUTER_API_KEY"), "{names:?}");
 }
+
+#[test]
+fn the_budget_sets_the_gateway_completion_cap() {
+    use crate::manifest::Budget;
+    use rsi_ralph_gateway::Limits;
+    let stock = Limits::default();
+    assert_eq!(run::gateway_limits(&Budget::default()), stock);
+    let raised = run::gateway_limits(&Budget {
+        max_tokens: Some(65_536),
+        ..Budget::default()
+    });
+    assert_eq!(raised.max_tokens_cap, 65_536);
+    assert_eq!(raised.default_max_tokens, stock.default_max_tokens);
+    assert_eq!(raised.default_reasoning, stock.default_reasoning);
+    let lowered = run::gateway_limits(&Budget {
+        max_tokens: Some(1_024),
+        ..Budget::default()
+    });
+    assert_eq!(lowered.max_tokens_cap, 1_024);
+    assert_eq!(lowered.default_max_tokens, 1_024);
+}

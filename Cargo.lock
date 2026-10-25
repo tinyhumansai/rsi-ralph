@@ -2844,6 +2844,8 @@ dependencies = [
  "tinyhivemind-hives",
  "tinyhivemind-lang",
  "tinyhivemind-openhuman",
+ "tinymemory-api",
+ "tinymemory-integrations",
  "tokio",
  "wiremock",
 ]

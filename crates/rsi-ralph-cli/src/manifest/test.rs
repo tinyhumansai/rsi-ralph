@@ -258,6 +258,9 @@ fn rejects_out_of_range_fields() {
         ("gate[0]", |m| m["gate"] = json!([{ "run": "" }])),
         ("budget.run_usd", |m| m["budget"]["run_usd"] = json!(0)),
         ("budget.total_usd", |m| m["budget"]["total_usd"] = json!(-2)),
+        ("budget.max_tokens", |m| {
+            m["budget"]["max_tokens"] = json!(0);
+        }),
         ("budget.score_reserve_usd", |m| {
             m["budget"]["score_reserve_usd"] = json!(-1);
         }),
@@ -268,6 +271,14 @@ fn rejects_out_of_range_fields() {
     for (field, edit) in cases {
         assert_eq!(field_error(&with(edit)), field, "case {field}");
     }
+}
+
+#[test]
+fn reads_a_completion_cap_from_the_budget() {
+    let parsed = parse(&example()).unwrap();
+    assert_eq!(parsed.manifest.budget.max_tokens, None);
+    let parsed = parse(&with(|m| m["budget"]["max_tokens"] = json!(65_536))).unwrap();
+    assert_eq!(parsed.manifest.budget.max_tokens, Some(65_536));
 }
 
 #[test]
@@ -389,4 +400,58 @@ fn rejects_a_parallel_limit_that_is_not_a_whole_number() {
             "parallel = {bad}"
         );
     }
+}
+
+#[test]
+fn hive_memory_is_off_by_default_and_rooted_per_loop_when_named() {
+    let parsed = parse(&example()).unwrap();
+    assert_eq!(parsed.manifest.hive.memory, None);
+    assert_eq!(parsed.memory_root(), None);
+
+    let parsed = parse(&with(|m| {
+        m["hive"]["memory"] =
+            json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+    }))
+    .unwrap();
+    let memory = parsed.manifest.hive.memory.clone().unwrap();
+    assert!(!memory.shared);
+    assert_eq!(parsed.memory_root().as_deref(), Some("team:graph-coloring"));
+    assert!(parsed.required_env().contains(&"CORTEX_API_KEY".to_owned()));
+
+    let parsed = parse(&with(|m| {
+        m["hive"]["memory"] = json!({
+            "endpoint": "https://cortex.example", "key": "CORTEX_API_KEY",
+            "root": "team:math", "shared": true
+        });
+    }))
+    .unwrap();
+    assert!(parsed.manifest.hive.memory.as_ref().unwrap().shared);
+    assert_eq!(parsed.memory_root().as_deref(), Some("team:math"));
+}
+
+#[test]
+fn rejects_a_hive_memory_without_a_url_a_key_name_or_a_root() {
+    let cases: Vec<(&str, Edit)> = vec![
+        ("hive.memory.endpoint", |m| {
+            m["hive"]["memory"] = json!({ "endpoint": "127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+        }),
+        ("hive.memory.key", |m| {
+            m["hive"]["memory"] =
+                json!({ "endpoint": "http://127.0.0.1:3141", "key": "cortex key" });
+        }),
+        ("hive.memory.root", |m| {
+            m["hive"]["memory"] = json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": " " });
+        }),
+    ];
+    for (field, edit) in cases {
+        assert_eq!(field_error(&with(edit)), field);
+    }
+    assert!(
+        parse(&with(|m| {
+            m["hive"]["memory"] = json!({
+                "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "scope": "x"
+            });
+        }))
+        .is_err()
+    );
 }

@@ -70,13 +70,13 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `name` | yes | Loop name, `[a-z0-9-]`, names the run-store folder. |
 | `subject` | yes | What is improved; see below. |
 | `brief` | yes | Markdown prompt template. |
-| `hive` | yes | `package` (folder), `lead` (seat that receives the brief), `wall_secs` (default 3600), `turn_secs` (default 1200). |
+| `hive` | yes | `package` (folder), `lead` (seat that receives the brief), `wall_secs` (default 3600), `turn_secs` (default 1200), `memory` (seat memory; see below). |
 | `models` | no | `default`, `judge`, `retreat` model ids (OpenRouter names). |
 | `creativity` | no | `temperature` and `retreat`; see below. |
 | `keys` | no | Capability to env-var name; see below. |
 | `score` | yes | `scorers` (non-empty), `decide`, and `parallel` (default 1). |
 | `gate` | no | Ordered list of `{ "run", "cwd"?, "timeout_secs"? }`. |
-| `budget` | no | `run_usd`, `total_usd`, `score_reserve_usd`, `prices`. |
+| `budget` | no | `run_usd`, `total_usd`, `score_reserve_usd`, `prices`, `max_tokens`. |
 | `epochs` | no | Maximum epochs, default 3. |
 | `patience` | no | Epochs without promotion before stopping, default 2. |
 | `env` | no | Extra environment for every step. |
@@ -89,6 +89,12 @@ lives elsewhere. `editable` lists path prefixes the hive may change;
 also names the `branch` that holds the incumbent; promotion fast-forwards it.
 `require_test_change` (default `false`) rejects candidates that touch no file
 whose path contains `test`.
+
+**`budget.max_tokens`.** The largest `max_tokens` the gateway forwards for
+one model call, hidden reasoning included; a client asking for more is
+clamped to it. Unset, the gateway's own cap applies (16,384). It is per call,
+not per turn or per run, and each call reserves `max_tokens` times the
+model's completion price against the budget before it is sent.
 
 **`models`.** Every model call goes through the run's spend gateway, which only
 allows models with a price ceiling. `z-ai/glm-5.3-flash` (the default for every
@@ -110,6 +116,21 @@ many reach the brief, default 5), `mode` (`backrooms`, `brainstorm` or
 `critic_pair`), `template` (`cli`, `fugue` or `student`), `model`,
 `temperature`, and `memory` (default on: earlier ideas and whether their epoch
 promoted a candidate are fed back as prior ideas to move away from).
+
+**`hive.memory`.** Off when absent: seats carry no memory, as before. With
+`{ "endpoint", "key", "root"?, "shared"? }`, every seat runs OpenHuman's
+memory lifecycle against the CortexDB server at `endpoint` (an `http` or
+`https` URL), authenticated with the variable `key` names: a recall pack
+before each turn, the turn logged after it, and the `memory` tool. Memory sits
+below `root` (default `team:<loop name>`) and is never cleared, so every run of
+the loop reads what earlier runs wrote. By default each seat logs to its own
+namespace, `<root>/agent:<seat>`. `shared: true` (default `false`) binds every
+seat to the one namespace `<root>/agent:hive`, so each seat recalls what every
+other seat did. Each seat's namespace is announced in `swarm_started`. OpenHuman
+remembers only turns labelled as written by a person; with memory on, every
+seat turn carries the `DirectChat` label, which the approval gate trusts
+exactly as it trusts the sub-agent default, so only what is remembered
+changes.
 
 **Executable tools.** A hive package may declare executable tools in
 `hive.json` `tools` and hand them to seats through `toolpacks`. Each one a

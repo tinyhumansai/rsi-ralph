@@ -40,6 +40,7 @@ impl Dirs {
             default_model: "default-model".into(),
             temperature: Some(0.3),
             tools: Vec::new(),
+            memory: None,
             wall: Duration::from_secs(1),
             turn: Duration::from_secs(1),
         }
@@ -152,11 +153,19 @@ fn the_kickoff_lists_every_candidate_after_the_brief() {
 
 #[test]
 fn the_runtime_config_starts_nothing_on_its_own() {
-    let config = run::runtime_config();
+    let config = run::runtime_config(false);
     assert_eq!(config.agent.tool_dispatcher, "native");
     assert!(!config.local_ai.runtime_enabled);
     assert!(!config.memory.recall.enabled);
     assert!(!config.memory.conversations.enabled);
+}
+
+#[test]
+fn seats_with_memory_recall_before_and_log_after_every_turn() {
+    let config = run::runtime_config(true);
+    assert!(!config.local_ai.runtime_enabled);
+    assert!(config.memory.recall.enabled);
+    assert!(config.memory.conversations.enabled);
 }
 
 #[test]

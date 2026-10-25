@@ -117,6 +117,13 @@ tinyhivemind-exec = { path = "vendor/tinyhivemind/crates/tinyhivemind-exec" }
 # that onto `vendor/openhuman`, so the swarm and `rsi-ralph-langfuse` link one
 # OpenHuman. Its `offline` fixture feature is enabled only by the swarm's tests.
 tinyhivemind-openhuman = { path = "vendor/tinyhivemind/crates/tinyhivemind-openhuman" }
+# Builds the CortexDB engine a loop's `hive.memory` names, for seat memory in
+# `rsi-ralph-swarm`. The copy OpenHuman vendors and links, so the engine is the
+# one `MemoryEngine` trait its runtime installs. Only the `cortex` engine.
+tinymemory-integrations = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-integrations", default-features = false, features = ["cortex"] }
+# The memory contract, for the swarm's tests: its `conformance` reference
+# engine stands in for CortexDB offline. The same vendored copy as above.
+tinymemory-api = { path = "vendor/openhuman/vendor/tinymemory/crates/tinymemory-api" }
 
 # Lints apply to every member that opts in with `[lints] workspace = true`, and
 # to every target of that member. CI runs clippy with `-D warnings`, so anything
