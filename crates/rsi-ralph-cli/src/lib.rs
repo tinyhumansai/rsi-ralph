@@ -40,5 +40,6 @@ pub mod serve;
 pub mod step;
 pub mod store;
 pub mod subject;
+pub mod upgrades;
 
 pub use error::{Error, Result, chain as error_chain};

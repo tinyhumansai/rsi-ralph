@@ -18,11 +18,14 @@ use crate::{
     keys::Keys,
     manifest::{self, Loop, Manifest},
     serve,
-    store::{RunStatus, Store},
+    store::{self, RunStatus, Store},
     subject::Subject,
 };
 
 mod run;
+mod upgrades;
+
+pub use upgrades::{AddArgs, OutcomeArgs, UpgradesCommand};
 
 /// Run improvement loops defined as folders of files.
 #[derive(Debug, Parser)]
@@ -111,6 +114,12 @@ pub enum Command {
         /// `<loop>/<run-id>`.
         run: String,
     },
+    /// Read a loop's upgrade log, or record an upgrade or its outcome.
+    Upgrades {
+        /// What to do with the log.
+        #[command(subcommand)]
+        command: UpgradesCommand,
+    },
     /// Serve the UI over the run store.
     Serve {
         /// Port.
@@ -135,7 +144,8 @@ pub fn exit_code(result: &Result<()>) -> i32 {
             | Error::MissingKeys { .. }
             | Error::RunExists(_)
             | Error::NoRun(_)
-            | Error::NotEmpty(_),
+            | Error::NotEmpty(_)
+            | Error::UpgradeExists(_),
         ) => 2,
         Err(_) => 1,
     }
@@ -171,6 +181,7 @@ pub fn execute(
         Command::Check { r#loop } => check(&r#loop, lookup, out),
         Command::Runs { r#loop } => runs(&store, r#loop.as_deref(), out),
         Command::Show { run } => show(&store, &run, out),
+        Command::Upgrades { command } => upgrades::execute(command, &store, store::now(), out),
         Command::Serve { port } => {
             let server = serve::start(store, local(port))?;
             say(out, &format!("serving {}", server.url()))?;

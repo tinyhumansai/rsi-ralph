@@ -11,7 +11,7 @@ use clap::{Args, Subcommand};
 use super::say;
 use crate::{
     Error, Result, manifest,
-    store::{self, Store},
+    store::Store,
     upgrades::{
         self, AppliesFrom, Change, Contributor, Entry, Evidence, LOG, Outcome, Upgrade, drift,
         notation,
@@ -353,9 +353,4 @@ fn outcome(store: &Store, args: OutcomeArgs, now: u64, out: &mut dyn Write) -> R
             verdict.trim_matches('"')
         ),
     )
-}
-
-/// The current time, for records written now.
-pub(super) fn now() -> u64 {
-    store::now()
 }
