@@ -501,8 +501,10 @@ fn a_seat_asks_for_the_completion_cap_its_hive_model_declares() {
 
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
     let lead = completion_caps(&requests, "lead");
-    assert!(!lead.is_empty());
-    assert!(lead.iter().all(|cap| *cap == Some(32_768)), "{lead:?}");
+    assert!(
+        !lead.is_empty() && lead.iter().all(|cap| *cap == Some(32_768)),
+        "{lead:?}"
+    );
 }
 
 /// The pair script with shell calls: the read-only lead lists its incumbent,
