@@ -27,38 +27,9 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex
 ```
 
-The installer picks the build for your machine from the latest
-[release](https://github.com/tinyhumansai/rsi-ralph/releases), checks its
-SHA-256, and puts `rsi-ralph` in `~/.local/bin` (on Windows,
-`%LOCALAPPDATA%\Programs\rsi-ralph\bin`, which it adds to your user `PATH`).
-It does not use `sudo`. To pin a version or choose the folder, pass flags
-through the pipe:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh \
-  | sh -s -- --version v0.4.0 --dir /usr/local/bin
-```
-
-Prebuilt binaries exist for Linux (x86_64 and arm64, glibc 2.35+), macOS (Intel
-and Apple silicon) and Windows (x86_64, which also runs on Windows on Arm). Run
-the installer again to upgrade.
-
-If you would rather not install anything, use the container image:
-
-```sh
-docker run --rm -it -v "$PWD:/work" -w /work -v rsi-ralph-home:/data \
-  -e OPENROUTER_API_KEY ghcr.io/tinyhumansai/rsi-ralph doctor
-```
-
-Runs are kept in the `/data` volume. The UI only listens on loopback, so add
-`--network host` to reach it from the host, or pass `--no-serve` to `run`.
-
-To build from source you need Rust 1.96 or newer and the submodules:
-
-```sh
-git clone --recurse-submodules https://github.com/tinyhumansai/rsi-ralph
-cd rsi-ralph && cargo install --path crates/rsi-ralph-cli
-```
+This installs the `rsi-ralph` binary without `sudo`. Pinning a version, the
+container image, building from source and upgrading are in
+[INSTALL.md](INSTALL.md).
 
 ## Quick start
 
@@ -74,6 +45,77 @@ The starter loop asks the agents to make a graph-colouring heuristic use fewer
 colours. It scores with a small Python script, runs three epochs and stops at
 $1 of model spend. When it finishes, the best version is in the run folder and
 `rsi-ralph show` tells you where.
+
+## A hive is defined by a language
+
+The agents are not hard-coded. A hive is a *package* written in the
+[tinyhivemind](https://github.com/tinyhumansai/tinyhivemind) language: plain
+JSON and Markdown files that say who is on the team and how they behave. The
+runtime reads the package and runs it, so changing the files changes the team.
+
+```text
+hive/
+  hive.json           roles and seats: who exists, which tools each may use
+  roles/lead.md       a role's charter
+  seats/lead.md       the prompt a seat starts from
+  context/rules.md    shared context every seat reads
+  constitution.json   hard constraints no edit may break
+  memory.json         what the hive remembers between epochs
+
+        package (files)            tinyhivemind             OpenHuman
+     ┌───────────────────┐     ┌─────────────────┐     ┌────────────────┐
+     │ roles, seats,     │ ──▶ │ typed, checked  │ ──▶ │ agents run the │
+     │ prompts, context, │     │ language: parse │     │ team: lead,    │
+     │ policies, memory  │     │ and validate    │     │ implementers   │
+     └───────────────────┘     └─────────────────┘     └────────────────┘
+```
+
+Because the whole team is text with a schema, it can be diffed, scored,
+versioned and rolled back like any other source file. Every design is named by
+a content ID, a SHA-256 over the package and its memory.
+
+## How it improves itself
+
+Each epoch is one turn of the loop. The agents edit a *candidate*, a copy of
+the current best, and the scorer decides whether the copy replaces it.
+
+```text
+        ┌──────────────────────────────────────────────────────┐
+        │                                                      │
+        ▼                                                      │
+   ┌─────────┐   ┌───────────┐   ┌─────────┐   ┌───────────┐   │
+   │  brief  │──▶│  agents   │──▶│ scorer  │──▶│  paired   │   │
+   │ history │   │ edit a    │   │ runs on │   │  test vs  │   │
+   │ failures│   │ candidate │   │ both    │   │ the best  │   │
+   └─────────┘   └───────────┘   └─────────┘   └─────┬─────┘   │
+                                                     │         │
+                                     won ────────────┤         │
+                                     lost ───────────┤         │
+                                                     ▼         │
+                                     ┌───────────────────────┐ │
+                                     │ keep the better copy; │─┘
+                                     │ stop at goal or budget│
+                                     └───────────────────────┘
+```
+
+What the agents may edit decides how deep the improvement goes:
+
+```text
+   subject only            subject + hive              the hive itself
+  ┌─────────────┐        ┌────────────────┐        ┌──────────────────────┐
+  │ agents fix  │        │ agents also    │        │ the agents' own      │
+  │ the code    │   ──▶  │ rewrite their  │   ──▶  │ language files are   │
+  │ being graded│        │ prompts, roles │        │ the thing graded, so │
+  │             │        │ and context    │        │ the editors improve  │
+  └─────────────┘        └────────────────┘        └──────────────────────┘
+                                                      recursive self-improvement
+```
+
+In the last case the hive that edits is also the hive that gets edited. A
+better team writes better edits to the team, and the next epoch starts from the
+winner. The score stays outside the agents' reach: the scorer runs in your
+code, the constitution lists what may never change, and edits outside the
+editable paths fail the candidate before it is scored.
 
 ## What a loop is
 
@@ -119,8 +161,7 @@ starter loop. [The CLI spec](docs/specs/rsi-cli.md) is the full contract.
 | `rsi-ralph serve` | The UI over every stored run |
 | `rsi-ralph completions <shell>` | Print a completion script for bash, zsh, fish, PowerShell or elvish |
 
-To turn on completions in zsh, for example, add
-`source <(rsi-ralph completions zsh)` to `~/.zshrc`.
+Completions: see [INSTALL.md](INSTALL.md#shell-completions).
 
 Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/`. Set `TINYRSI_HOME` or pass
 `--home` to keep them somewhere else. Each run folder holds a frozen copy of
@@ -128,14 +169,10 @@ the loop, the ledger of every candidate and decision, the event log, and each
 epoch's brief, diffs and step logs. Exit status is 0 on success, 1 when a run
 fails, and 2 when the loop folder or arguments are invalid.
 
-## Where it stands
+## Roadmap
 
-The loop machinery is built and tested, and the CLI runs real loops end to
-end. Whether it produces genuine recursive improvement is still an open
-question. The one complete preregistered experiment, 24 attempts comparing an
-original and an evolved hive, came out inconclusive. The examples in this
-repository are toy problems and do not show positive RSI. The
-[roadmap](ROADMAP.md) lists what has shipped and what comes next, and
+The loop machinery is built and tested, and the CLI runs real loops end to end.
+The [roadmap](ROADMAP.md) lists what has shipped and what comes next, and
 [docs/rsi/](docs/rsi/README.md) has the research notes and dated results.
 
 ## Using it as a library
