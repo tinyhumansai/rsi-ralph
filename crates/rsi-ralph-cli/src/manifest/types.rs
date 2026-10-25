@@ -116,7 +116,7 @@ pub struct HiveSpec {
     #[serde(default = "default_turn_secs")]
     pub turn_secs: u64,
     /// Where seats keep memory; absent, they keep none.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory: Option<HiveMemory>,
 }
 
