@@ -182,7 +182,7 @@ fn the_hive_session_settings_reach_the_runtime_config() {
         r#"{ "parallel_tools": true, "max_tool_iterations": 7, "compact_context": true,
              "max_history_messages": 11, "tool_result_budget_bytes": 4096, "agents_md": false }"#,
     );
-    let agent = run::runtime_config(false, &hive.lowered.session).agent;
+    let agent = run::runtime_config(false, &hive.lowered.integrations.session).agent;
     assert!(agent.parallel_tools);
     assert_eq!(agent.max_tool_iterations, 7);
     assert!(agent.compact_context);
@@ -197,7 +197,7 @@ fn an_absent_hive_session_keeps_the_openhuman_defaults() {
     let dirs = Dirs::new();
     let mut request = dirs.request();
     let hive = check(&mut request).unwrap();
-    let agent = run::runtime_config(false, &hive.lowered.session).agent;
+    let agent = run::runtime_config(false, &hive.lowered.integrations.session).agent;
     let defaults = RuntimeConfig::default().agent;
     assert!(!agent.parallel_tools);
     assert_eq!(agent.parallel_tools, defaults.parallel_tools);
