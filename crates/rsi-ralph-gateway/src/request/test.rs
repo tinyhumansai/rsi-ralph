@@ -138,7 +138,7 @@ fn pins_reasoning_effort_unless_the_client_chose() {
     let prepared =
         chat(json!({"model": GLM_FLASH, "messages": [], "reasoning_effort": "high"})).unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"effort": "high"}));
-    assert!(prepared.body.get("reasoning_effort").is_none());
+    assert_eq!(prepared.body["reasoning_effort"], json!("high"));
     let prepared =
         chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"enabled": false}})).unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"enabled": false}));
