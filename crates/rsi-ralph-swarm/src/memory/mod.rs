@@ -75,7 +75,7 @@ impl SwarmMemory {
             ..EngineSettings::default()
         };
         let engine = tinymemory_integrations::build_engine(
-            tinymemory_integrations::cortex::CORTEXDB_ENGINE_ID,
+            tinymemory_integrations::CORTEXDB_ENGINE_ID,
             &settings,
             EngineCredential::Static(key.to_owned()),
         )
