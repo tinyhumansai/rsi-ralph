@@ -258,7 +258,9 @@ fn rejects_out_of_range_fields() {
         ("gate[0]", |m| m["gate"] = json!([{ "run": "" }])),
         ("budget.run_usd", |m| m["budget"]["run_usd"] = json!(0)),
         ("budget.total_usd", |m| m["budget"]["total_usd"] = json!(-2)),
-        ("budget.max_tokens", |m| m["budget"]["max_tokens"] = json!(0)),
+        ("budget.max_tokens", |m| {
+            m["budget"]["max_tokens"] = json!(0)
+        }),
         ("budget.score_reserve_usd", |m| {
             m["budget"]["score_reserve_usd"] = json!(-1);
         }),
