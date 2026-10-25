@@ -48,10 +48,29 @@ impl Meter for GatewayMeter<'_> {
     }
 }
 
-/// `PATH` and `HOME` from the caller, for steps.
+/// The caller's variables that steps inherit: `PATH` and `HOME`, plus those
+/// Windows programs need to start (Python aborts without `SYSTEMROOT`) or to
+/// find the user's folders. Unset names are skipped, so elsewhere this is
+/// `PATH` and `HOME`.
+const INHERITED: &[&str] = &[
+    "PATH",
+    "HOME",
+    "SYSTEMROOT",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "APPDATA",
+    "LOCALAPPDATA",
+];
+
+/// [`INHERITED`] from the caller, for steps.
 pub(super) fn inherited(lookup: &dyn Fn(&str) -> Option<String>) -> Vec<(String, String)> {
-    ["PATH", "HOME"]
-        .into_iter()
+    INHERITED
+        .iter()
+        .copied()
         .filter_map(|k| lookup(k).map(|v| (k.to_owned(), v)))
         .collect()
 }
