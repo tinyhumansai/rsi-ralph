@@ -182,7 +182,7 @@ pub fn check_run_start(
         None
     } else {
         let previous_id = previous_id.unwrap_or_default();
-        let paths: Vec<&str> = unexplained.iter().map(|c| c.path.as_str()).collect();
+        let paths: Vec<String> = unexplained.iter().map(|c| c.path.clone()).collect();
         let diff = summary(&unexplained, &previous_files, files);
         super::record(
             run,
