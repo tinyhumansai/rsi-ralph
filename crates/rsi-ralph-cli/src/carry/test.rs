@@ -65,8 +65,15 @@ fn harvests_only_changed_files_under_the_carry_paths() {
     // A file the seat did not change, such as the README every checkout
     // starts with, is not the seat's note.
     fs::write(reducer.dir.path().join("notes/README.md"), "shared").unwrap();
-    // A deleted note is listed as changed but has nothing to carry.
+    // A deleted note is listed as changed but has nothing to carry, and a
+    // binary file is not a note.
     reducer.changed.push("notes/gone.md".into());
+    fs::write(
+        reducer.dir.path().join("notes/plot.bin"),
+        [0xff, 0xfe, 0x00],
+    )
+    .unwrap();
+    reducer.changed.push("notes/plot.bin".into());
     let dens = seat(
         "dens-a",
         "rejected",
