@@ -18,7 +18,10 @@ rsi-ralph run   graph-coloring               # UI on http://127.0.0.1:8787
 On Windows install with
 `irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex`;
 from a checkout, `cargo install --path crates/rsi-ralph-cli` builds it instead.
-`rsi-ralph init --list` names the bundled templates.
+`rsi-ralph init --list` names the bundled templates: `graph-coloring` (this
+guide), plus `math-problem` (an LLM judge beside a metric) and `upgrade-file`
+(a behavior gate before the score). Start any of them with
+`rsi-ralph init <folder> --template <name>`.
 
 ## The folder
 

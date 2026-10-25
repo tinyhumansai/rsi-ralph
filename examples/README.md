@@ -20,6 +20,27 @@ cargo run -p rsi-ralph-examples --example graph_coloring
 cargo run -p rsi-ralph-examples --example hive_goal
 ```
 
+## The same examples as loop folders
+
+`math_problem`, `upgrade_file` and `graph_coloring` also exist as loop folders
+under [`loops/`](../loops), run by the `rsi-ralph` binary instead of Rust code.
+A loop is `rsi.json` plus a `hive/` package of JSON and Markdown files; a hive
+of agents edits the subject and your scorers decide. They need a model, so
+unlike the Rust examples they are not offline.
+
+| Loop | Mirrors | Shows |
+| --- | --- | --- |
+| [`loops/math-problem`](../loops/math-problem) | `math_problem` | metric (`digits`) with an LLM judge that can temper but never accept |
+| [`loops/upgrade-file`](../loops/upgrade-file) | `upgrade_file` | a behavior gate that runs before the scorers, a metric and a judge |
+| [`loops/graph-coloring`](../loops/graph-coloring) | `graph_coloring` | a hidden-seed metric, minimized |
+
+```sh
+rsi-ralph init my-pi --template math-problem
+OPENROUTER_API_KEY=... rsi-ralph run my-pi
+```
+
+See the [loop guide](../docs/guides/rsi-cli.md).
+
 ## What each run shows
 
 - **Composite scoring with an uncalibrated judge.** `math_problem` and
