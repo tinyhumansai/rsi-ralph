@@ -178,13 +178,112 @@ jobs:
           git push origin "HEAD:${GITHUB_REF_NAME}"
           git push origin "${RELEASE_TAG}"
 
+  binaries:
+    name: Build ${{ matrix.target }}
+    needs:
+      - prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Built on the oldest supported Ubuntu so the binary needs only
+          # glibc 2.35 and OpenSSL 3.
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      # The vendored OpenHuman tree nests deep enough to pass Windows' 260
+      # character limit, and the bundled loop templates are compiled into the
+      # binary byte for byte, so check out without CRLF conversion.
+      - name: Configure git for Windows checkouts
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          git config --global core.longpaths true
+          git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+          persist-credentials: false
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install OpenSSL headers
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libssl-dev pkg-config
+
+      - name: Build rsi-ralph
+        run: cargo build --release --locked -p rsi-ralph-cli --target ${{ matrix.target }}
+
+      - name: Package
+        id: package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          name="rsi-ralph-${TARGET}"
+          mkdir -p "dist/${name}"
+          cp LICENSE README.md "dist/${name}/"
+          cd dist
+          if [[ "$TARGET" == *windows* ]]; then
+            cp "../target/${TARGET}/release/rsi-ralph.exe" "${name}/"
+            archive="${name}.zip"
+            7z a -tzip "$archive" "$name" >/dev/null
+          else
+            cp "../target/${TARGET}/release/rsi-ralph" "${name}/"
+            "${name}/rsi-ralph" --version
+            archive="${name}.tar.gz"
+            tar -czf "$archive" "$name"
+          fi
+          if command -v sha256sum >/dev/null; then
+            sha256sum "$archive" > "${archive}.sha256"
+          else
+            shasum -a 256 "$archive" > "${archive}.sha256"
+          fi
+          cat "${archive}.sha256"
+          echo "archive=${archive}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            dist/${{ steps.package.outputs.archive }}
+            dist/${{ steps.package.outputs.archive }}.sha256
+          if-no-files-found: error
+
   github-release:
     name: Create GitHub release
     needs:
       - prepare
+      - binaries
     runs-on: ubuntu-latest
     steps:
-      - name: Create immutable source release
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      # The release is immutable once published, so every binary is attached
+      # in the same call that creates it; nothing can be added afterwards.
+      - name: Create immutable release with binaries
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
@@ -194,7 +293,8 @@ jobs:
           if gh release view "$RELEASE_TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
             echo "Release ${RELEASE_TAG} already exists; it is unchanged."
           else
-            gh release create "$RELEASE_TAG" \
+            ls -l dist
+            gh release create "$RELEASE_TAG" dist/* \
               --repo "$REPOSITORY" \
               --verify-tag \
               --title "$RELEASE_TAG" \
