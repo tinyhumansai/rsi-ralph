@@ -88,7 +88,7 @@ const clock = (t) => { const s = Math.floor(t / 1000); return `${String(Math.flo
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const pct = (xs, p) => { if (!xs.length) return null; const v = xs.slice().sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(p * v.length))]; };
 const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? `${s.slice(0, n)}…` : s; };
-let upgradesText = null;
+let upgradesText = null, history = null;
 let runs = [], current = null, source = null, events = [], ledger = null, record = null, briefEpoch = null, detail = null;
 // Model calls from the gateway meter, and the swarm trace of one epoch.
 let meterSource = null, meter = [], hiveSource = null, hive = [], hiveEpoch = null, hivePinned = false, epochList = [], budget = null;
@@ -122,7 +122,7 @@ function schedule() { if (!queued) { queued = true; requestAnimationFrame(() => 
 
 function select(id) {
   for (const es of [source, meterSource, hiveSource]) if (es) es.close();
-  upgradesText = null;
+  upgradesText = null; history = null;
   current = id; events = []; ledger = null; record = null; briefEpoch = null; detail = null;
   meter = []; hive = []; hiveEpoch = null; hivePinned = false; epochList = []; budget = null;
   seatFilter = null; briefs = {}; openRows = new Set(); hiveSource = null;
@@ -147,16 +147,17 @@ function showEpoch(epoch) {
 async function refresh() {
   if (!current) return;
   const run = current;
-  const [r, l, b, e] = await Promise.all([
+  const [r, l, b, e, h] = await Promise.all([
     json(`/api/runs/${run}/files/run.json`).catch(() => null),
     json(`/api/runs/${run}/files/ledger.json`).catch(() => null),
     json(`/api/runs/${run}/files/budget.json`).catch(() => null),
     json(`/api/runs/${run}/epochs`).catch(() => []),
+    json(`/api/loops/${run.split("/")[0]}/history`).catch(() => null),
   ]);
   if (run !== current) return;
   // Retry briefs that were missing, such as one for an epoch not yet written.
   for (const k of Object.keys(briefs)) if (!briefs[k]) delete briefs[k];
-  if (r) record = r; if (l) ledger = l; if (b) budget = b;
+  if (r) record = r; if (l) ledger = l; if (b) budget = b; if (h) history = h;
   epochList = e;
   // Follow the newest epoch's swarm until the reader picks one.
   const latest = epochList.filter((n) => n > 0).pop() ?? epochList[epochList.length - 1];
@@ -357,6 +358,53 @@ function chart() {
     <p class="muted" style="margin:4px 0 0;font-size:12px">Line: incumbent. Dots: candidates (green accepted, red rejected, amber inconclusive). X: epoch.</p>`;
 }
 
+/// Every stored run of this loop: score by run and epoch. Dots are candidates
+/// (promoted ones filled green), the line is the incumbent each run started
+/// from, and a dashed rule marks a run that carries upgrades.
+function historyCard() {
+  const runs = history?.runs ?? [];
+  const values = runs.flatMap((r) => [r.baseline?.mean, ...r.epochs.flatMap((e) => [e.finished_metric, ...e.candidates.map((p) => p.mean)])]).filter((v) => typeof v === "number");
+  if (!values.length) return `<p class="muted">No scores stored for this loop yet.</p>`;
+  const slots = [];
+  for (const r of runs) {
+    const last = Math.max(0, ...r.epochs.map((e) => e.epoch));
+    for (let e = 0; e <= last; e++) slots.push({ run: r.run, epoch: e });
+    slots.push(null);
+  }
+  slots.pop();
+  const W = 640, H = 240, L = 52, R = 12, T = 18, B = 30;
+  let lo = Math.min(...values), hi = Math.max(...values);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const x = (run, epoch) => { const i = slots.findIndex((s) => s && s.run === run && s.epoch === epoch); return L + (slots.length > 1 ? i / (slots.length - 1) : 0.5) * (W - L - R); };
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = [lo, (lo + hi) / 2, hi].map((v) => `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>
+    <line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>`).join("");
+  let marks = "", lines = "", dots = "", labels = "";
+  for (const r of runs) {
+    const last = Math.max(0, ...r.epochs.map((e) => e.epoch));
+    const ups = (history.upgrades ?? []).filter((u) => u.run === r.run);
+    const x0 = x(r.run, 0) - 6;
+    if (ups.length) marks += `<line x1="${x0}" x2="${x0}" y1="${T - 10}" y2="${H - B}" stroke="var(--warn)" stroke-dasharray="3 3"><title>${esc(ups.map((u) => `${u.id}: ${u.title}`).join("\n"))}</title></line><text x="${x0 + 2}" y="${T - 4}">${ups.length} up</text>`;
+    labels += `<text x="${x(r.run, 0)}" y="${H - 8}">${esc(r.run.slice(-6))}</text>`;
+    const start = r.baseline?.mean;
+    if (typeof start === "number") {
+      lines += `<path d="M${x(r.run, 0).toFixed(1)},${y(start).toFixed(1)}L${x(r.run, last).toFixed(1)},${y(start).toFixed(1)}" stroke="var(--accent)" stroke-width="2"/>`;
+      dots += `<circle cx="${x(r.run, 0)}" cy="${y(start)}" r="4" fill="var(--accent)"><title>${esc(r.run)} baseline: ${fmt(start)}</title></circle>`;
+    }
+    for (const e of r.epochs) for (const p of e.candidates) {
+      if (typeof p.mean !== "number") continue;
+      dots += p.promoted
+        ? `<circle cx="${x(r.run, e.epoch)}" cy="${y(p.mean)}" r="6" fill="var(--good)" stroke="var(--ink)"><title>${esc(r.run)} ${esc(p.candidate)}: ${fmt(p.mean)} (promoted)</title></circle>`
+        : `<circle cx="${x(r.run, e.epoch)}" cy="${y(p.mean)}" r="3.5" fill="var(--muted)" opacity=".7"><title>${esc(r.run)} ${esc(p.candidate)}: ${fmt(p.mean)}</title></circle>`;
+    }
+  }
+  const mins = (ms) => typeof ms === "number" ? (ms / 60000).toFixed(1) : "–";
+  const rows = runs.flatMap((r) => r.epochs.map((e) => `<tr><td class="num">${esc(r.run)}</td><td class="num">${e.epoch}</td><td class="num">${mins(e.hive_ms)}</td><td class="num">${mins(e.scoring_ms)}</td><td class="num">${e.candidates.length}</td></tr>`)).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="scores by run and epoch">${ticks}${marks}${lines}${dots}${labels}</svg>
+    <p class="muted" style="margin:4px 0 8px;font-size:12px">Line: the incumbent each run starts from. Dots: candidates (green: promoted). Dashed: a run carrying upgrades (hover for ids). X: run, then epoch.</p>
+    <table><thead><tr><th>Run</th><th>Epoch</th><th>Seats, min</th><th>Scoring, min</th><th>Candidates</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 function candidates() {
   const list = ledger?.candidates ?? [];
   if (!list.length) return `<p class="muted">No candidates yet.</p>`;
@@ -406,6 +454,7 @@ function render() {
     <div class="card"><h2>Candidates</h2>${candidates()}</div>
     <div class="card"><h2>Detail</h2><div id="detail">${detail ?? `<p class="muted">Click a candidate to see its change.</p>`}</div></div>
     <div class="card"><h2>Brief</h2><div class="tabs">${briefTabs.map((e) => `<button data-epoch="${e}" class="${e === briefEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="brief">${esc(briefs[briefEpoch] ?? "")}</pre></div>
+    <div class="card"><h2>Score history</h2>${historyCard()}</div>
     <div class="card"><h2>Upgrades</h2><pre id="upgrades">${esc(upgradesText || "No upgrade log for this run.")}</pre></div>
     <div class="card log"><h2>Events</h2><table><tbody>${events.slice(-60).reverse().map(({ seq, event: e }) =>
       `<tr><td>${seq}</td><td>${esc(e.kind)}</td><td>${esc(summary(e))}</td></tr>`).join("")}</tbody></table></div>`;

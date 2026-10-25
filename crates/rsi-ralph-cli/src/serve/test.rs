@@ -127,6 +127,11 @@ fn serves_the_page_runs_and_files() {
     let brief = get(&server, "/api/runs/demo/r1/files/epoch-1/brief.md", "GET");
     assert!(brief.contains("text/markdown") && brief.ends_with("# brief"));
     assert!(get(&server, "/api/runs/demo/r1/files/ledger.json", "GET").starts_with("HTTP/1.1 404"));
+    let history = get(&server, "/api/loops/demo/history", "GET");
+    assert!(
+        history.contains("application/json") && history.contains("\"loop\":\"demo\"") && history.contains("\"run\":\"r1\""),
+        "{history}"
+    );
     assert!(get(&server, "/nope", "GET").starts_with("HTTP/1.1 404"));
     assert!(get(&server, "/", "POST").starts_with("HTTP/1.1 405"));
 }
