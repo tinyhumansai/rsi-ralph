@@ -38,7 +38,19 @@ fn served() -> (tempfile::TempDir, Server) {
     )
     .unwrap();
     fs::write(run.events_path(), "{\"seq\":0}\n{\"seq\":1}\n").unwrap();
-    fs::write(run.epoch_dir(1).unwrap().join("brief.md"), "# brief").unwrap();
+    let epoch = run.epoch_dir(1).unwrap();
+    fs::write(epoch.join("brief.md"), "# brief").unwrap();
+    fs::create_dir_all(epoch.join("hive")).unwrap();
+    fs::write(
+        epoch.join("hive/events.jsonl"),
+        "{\"seq\":0,\"event\":{\"kind\":\"tool_call\"}}\n",
+    )
+    .unwrap();
+    fs::write(
+        run.events_path().with_file_name("meter.jsonl"),
+        "{\"seat\":\"lead\"}\n",
+    )
+    .unwrap();
     let server = start(store, "127.0.0.1:0".parse().unwrap()).unwrap();
     (home, server)
 }
@@ -49,7 +61,23 @@ fn routes_only_safe_paths() {
     assert_eq!(route("/api/runs"), Route::Runs);
     assert_eq!(
         route("/api/runs/l/r/events"),
-        Route::Events(PathBuf::from("l/r"))
+        Route::Stream(PathBuf::from("l/r/events.jsonl"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/meter"),
+        Route::Stream(PathBuf::from("l/r/meter.jsonl"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/epochs"),
+        Route::Epochs(PathBuf::from("l/r"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/epochs/3/hive"),
+        Route::Stream(PathBuf::from("l/r/epoch-3/hive/events.jsonl"))
+    );
+    assert_eq!(
+        route("/api/runs/l/r/files/budget.json"),
+        Route::File(PathBuf::from("l/r"), PathBuf::from("budget.json"))
     );
     assert_eq!(
         route("/api/runs/l/r/files/ledger.json"),
@@ -68,6 +96,9 @@ fn routes_only_safe_paths() {
         "/api/runs/l/r/files/loop/rsi.json",
         "/api/runs/l/r/files/epoch-x/brief.md",
         "/api/runs/l/%2e%2e/events",
+        "/api/runs/l/r/epochs/x/hive",
+        "/api/runs/l/r/epochs/../hive",
+        "/api/runs/l/r/files/meter.jsonl",
         "/other",
     ] {
         assert_eq!(route(bad), Route::NotFound, "{bad}");
@@ -108,6 +139,50 @@ fn streams_events_then_marks_ready() {
     }
     assert!(seen.contains("text/event-stream"));
     assert!(seen.contains("data: {\"seq\":0}\ndata: {\"seq\":1}\n\n"));
+}
+
+/// Reads an SSE stream until its `ready` marker.
+fn replay(server: &Server, path: &str) -> String {
+    let mut stream = TcpStream::connect(server.addr()).unwrap();
+    write!(stream, "GET {path} HTTP/1.1\r\n\r\n").unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut seen = String::new();
+    let mut buf = [0_u8; 4096];
+    while !seen.contains("event: ready") {
+        let n = stream.read(&mut buf).unwrap();
+        assert!(n > 0, "stream closed early: {seen}");
+        seen.push_str(&String::from_utf8_lossy(&buf[..n]));
+    }
+    seen
+}
+
+#[test]
+fn streams_the_meter_and_an_epochs_swarm_trace() {
+    let (_home, server) = served();
+    assert!(replay(&server, "/api/runs/demo/r1/meter").contains("data: {\"seat\":\"lead\"}\n"));
+    assert!(
+        replay(&server, "/api/runs/demo/r1/epochs/1/hive")
+            .contains("data: {\"seq\":0,\"event\":{\"kind\":\"tool_call\"}}\n")
+    );
+}
+
+#[test]
+fn lists_a_runs_epochs_in_order() {
+    let (_home, server) = served();
+    let body = get(&server, "/api/runs/demo/r1/epochs", "GET");
+    assert!(
+        body.contains("application/json") && body.ends_with("[1]"),
+        "{body}"
+    );
+    let dir = tempfile::tempdir().unwrap();
+    for name in ["epoch-10", "epoch-2", "epoch-x", "loop"] {
+        fs::create_dir(dir.path().join(name)).unwrap();
+    }
+    fs::write(dir.path().join("epoch-3"), "a file, not an epoch").unwrap();
+    assert_eq!(epochs(dir.path()), vec![2, 10]);
+    assert_eq!(epochs(&dir.path().join("missing")), Vec::<u32>::new());
 }
 
 #[test]

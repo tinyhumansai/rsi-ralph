@@ -82,7 +82,9 @@ reached. Upstream statuses and bodies otherwise pass through.
    every later call. Settlement runs detached, so it completes even when the
    client disconnects mid-call.
 5. **Meter** one JSON line in `<run_dir>/meter.jsonl` per call, admitted or
-   refused, with its tags, model, status, reservation, cost and tokens.
+   refused, with its tags, model, status, reservation, cost, tokens, wall
+   time and, for a stream, `ttft_ms`: the time from forwarding the call to the
+   first event carrying generated text, reasoning or a tool call.
 6. **Tally** every forwarded call in memory: counted as sent when it is
    forwarded, and as refused once its answer is a non-success status or never
    completes (a failed connection, or a body that broke off, counted as

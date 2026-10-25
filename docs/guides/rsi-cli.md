@@ -125,7 +125,10 @@ time. rsi-ralph adds the hive tools and the turn-taking rules itself.
 ## 5. Watch it
 
 `rsi-ralph run` serves the UI while it works: the score chart, every candidate
-with its decision and diff, each epoch's brief, and the live event log.
+with its decision and diff, each epoch's brief, and the live event log. For a
+hive loop it also shows what each agent is doing: model calls, tokens, cost,
+time to first token, tool calls by tool (with failures and durations), and a
+live feed of tool calls and messages that can be filtered by seat.
 Afterwards:
 
 ```sh

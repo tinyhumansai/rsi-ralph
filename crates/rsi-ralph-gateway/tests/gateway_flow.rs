@@ -310,7 +310,20 @@ async fn streams_through_and_settles_from_the_usage_event() {
     h.wait_for_meter_rows(1).await;
     let ledgers = h.status().await;
     assert!((ledgers["run"]["settled_usd"].as_f64().unwrap() - 0.001).abs() < 1e-12);
-    assert_eq!(h.meter()[0]["stream"], true);
+    let row = &h.meter()[0];
+    assert_eq!(row["stream"], true);
+    let ttft = row["ttft_ms"]
+        .as_u64()
+        .expect("a stream with a token has a ttft");
+    assert!(ttft <= row["wall_ms"].as_u64().unwrap(), "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn buffered_calls_have_no_ttft() {
+    let h = Harness::start(5.0, 50.0);
+    h.chat("/v1/chat/completions", "hello", json!({})).await;
+    h.wait_for_meter_rows(1).await;
+    assert!(h.meter()[0]["ttft_ms"].is_null());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -444,6 +457,8 @@ async fn a_call_whose_body_breaks_off_counts_as_refused() {
     let calls = h.gateway.upstream_calls();
     assert_eq!((calls.sent, calls.refused), (2, 2), "{calls:?}");
     assert_eq!(calls.last_refusal.unwrap().status, 502);
+    // Neither produced a token, so neither has a time to first token.
+    assert!(h.meter().iter().all(|row| row["ttft_ms"].is_null()));
 }
 
 #[tokio::test(flavor = "multi_thread")]

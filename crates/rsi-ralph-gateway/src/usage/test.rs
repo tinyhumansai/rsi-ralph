@@ -46,3 +46,28 @@ fn reads_a_final_unterminated_event_and_skips_noise() {
     scanner.feed(b"data: {\"usage\":{\"cost\":0.1}}");
     assert_eq!(scanner.finish().cost, Some(0.1));
 }
+
+#[test]
+fn notices_the_first_generated_token_and_not_keepalives() {
+    let mut scanner = SseUsage::default();
+    scanner.feed(b": OPENROUTER PROCESSING\n\n");
+    scanner
+        .feed(b"data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"\"}}]}\n\n");
+    assert!(!scanner.saw_token());
+    scanner.feed(b"data: {\"choices\":[{\"delta\":{\"reasoning\":\"Hm");
+    assert!(
+        !scanner.saw_token(),
+        "an unterminated event is not read yet"
+    );
+    scanner.feed(b"\"}}]}\n\n");
+    assert!(scanner.saw_token());
+}
+
+#[test]
+fn counts_a_tool_call_delta_as_a_token() {
+    let mut scanner = SseUsage::default();
+    scanner.feed(
+        b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"f\"}}]}}]}\n",
+    );
+    assert!(scanner.saw_token());
+}

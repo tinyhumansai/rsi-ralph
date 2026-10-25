@@ -24,6 +24,7 @@ fn row() -> MeterRow {
         prompt_tokens: 1,
         completion_tokens: 2,
         wall_ms: 3,
+        ttft_ms: Some(2),
         error: None,
     }
 }
@@ -46,6 +47,7 @@ fn pins_the_stored_row_shape() {
             "prompt_tokens": 1,
             "completion_tokens": 2,
             "wall_ms": 3,
+            "ttft_ms": 2,
             "error": null,
         })
     );
