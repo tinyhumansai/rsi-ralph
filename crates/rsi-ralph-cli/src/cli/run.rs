@@ -59,8 +59,6 @@ const INHERITED: &[&str] = &[
     "WINDIR",
     "COMSPEC",
     "PATHEXT",
-    "TEMP",
-    "TMP",
     "USERPROFILE",
     "APPDATA",
     "LOCALAPPDATA",
