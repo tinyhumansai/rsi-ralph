@@ -1,0 +1,106 @@
+{
+  "$schema": "https://tinyhumans.ai/schemas/hive/v1",
+  "version": 1,
+  "id": "math-problem",
+  "name": "Pi lab",
+  "roles": [
+    {
+      "id": "lead",
+      "charter": "roles/lead.md"
+    },
+    {
+      "id": "implementer",
+      "charter": "roles/implementer.md"
+    }
+  ],
+  "seats": [
+    {
+      "id": "lead",
+      "role": "lead",
+      "prompt": "seats/lead.md",
+      "template": "openhuman",
+      "config": {
+        "action_dir": "{incumbent}",
+        "max_iterations": 20
+      },
+      "tools": {
+        "allow": [
+          "file_read",
+          "grep",
+          "glob",
+          "list",
+          "shell",
+          "read_diff"
+        ],
+        "deny": [
+          "wait",
+          "wait_loop",
+          "spawn_subagent",
+          "spawn_async_subagent",
+          "spawn_parallel_agents",
+          "web_fetch"
+        ]
+      }
+    },
+    {
+      "id": "implementer",
+      "role": "implementer",
+      "prompt": "seats/implementer.md",
+      "template": "openhuman",
+      "config": {
+        "action_dir": "{candidate}",
+        "max_iterations": 20
+      },
+      "tools": {
+        "allow": [
+          "file_read",
+          "grep",
+          "glob",
+          "list",
+          "shell",
+          "read_diff",
+          "file_write",
+          "edit",
+          "apply_patch"
+        ],
+        "deny": [
+          "wait",
+          "wait_loop",
+          "spawn_subagent",
+          "spawn_async_subagent",
+          "spawn_parallel_agents",
+          "web_fetch"
+        ]
+      }
+    }
+  ],
+  "desks": [
+    {
+      "id": "lab",
+      "name": "Pi lab",
+      "description": "find a method that computes pi to more correct digits",
+      "members": [
+        "lead",
+        "implementer"
+      ],
+      "responder_mode": "auto"
+    }
+  ],
+  "context": [
+    "context/rules.md"
+  ],
+  "policies": {
+    "routing": {
+      "round_width": 4
+    },
+    "division": {
+      "round_width": 4
+    },
+    "episode": {
+      "turn_budget": 24
+    }
+  },
+  "coordinator": {
+    "round_width": 4
+  }
+}

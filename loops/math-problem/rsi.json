@@ -1,0 +1,18 @@
+{
+  "$schema": "https://tinyhumans.ai/schemas/rsi/v1",
+  "version": 1,
+  "name": "math-problem",
+  "subject": { "kind": "dir", "path": "subject", "editable": ["pi.py"] },
+  "brief": "brief.md",
+  "hive": { "package": "hive", "lead": "lead", "wall_secs": 900 },
+  "creativity": { "temperature": 0.4 },
+  "score": {
+    "scorers": [
+      { "id": "digits", "run": "python3 scorers/digits.py", "timeout_secs": 30 },
+      { "id": "justification", "judge": "scorers/justification.md", "weight": 0.3 }
+    ],
+    "decide": { "on": "digits", "test": "seeds", "seeds": [1, 2], "direction": "maximize", "target": 12 }
+  },
+  "budget": { "run_usd": 1 },
+  "epochs": 3
+}
