@@ -164,11 +164,16 @@ fn sends_the_reasoning_effort_in_both_spellings() {
     let prepared = chat(json!({"model": GLM_FLASH, "messages": []})).unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"effort": "low"}));
     assert_eq!(prepared.body["reasoning_effort"], json!("low"));
-    let prepared = chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"effort": "medium"}}))
-        .unwrap();
+    let prepared =
+        chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"effort": "medium"}}))
+            .unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"effort": "medium"}));
     assert_eq!(prepared.body["reasoning_effort"], json!("medium"));
     let prepared =
         chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"enabled": false}})).unwrap();
-    assert!(prepared.body.get("reasoning_effort").is_none(), "{}", prepared.body);
+    assert!(
+        prepared.body.get("reasoning_effort").is_none(),
+        "{}",
+        prepared.body
+    );
 }
