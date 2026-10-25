@@ -440,6 +440,8 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         cost_usd: outcome.cost,
         prompt_tokens: outcome.usage.prompt_tokens,
         completion_tokens: outcome.usage.completion_tokens,
+        cached_tokens: None,
+        reasoning_tokens: None,
         wall_ms: started.elapsed().as_millis(),
         ttft_ms: outcome.ttft_ms,
         error: outcome.error,
