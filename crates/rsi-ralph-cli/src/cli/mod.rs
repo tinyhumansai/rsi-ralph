@@ -14,7 +14,7 @@ use std::{
 use clap::{Parser, Subcommand};
 
 use crate::{
-    Error, Result,
+    Error, Result, doctor, init,
     keys::Keys,
     manifest::{self, Loop, Manifest},
     serve,
@@ -39,6 +39,26 @@ pub struct Cli {
 /// The subcommands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Write a starter loop folder from a bundled template.
+    Init {
+        /// The folder to create; it must not exist or must be empty. The loop
+        /// is named after it.
+        #[arg(required_unless_present = "list")]
+        r#loop: Option<PathBuf>,
+        /// Template to start from.
+        #[arg(long, default_value = "graph-coloring")]
+        template: String,
+        /// List the bundled templates instead of writing one.
+        #[arg(long, conflicts_with = "loop")]
+        list: bool,
+    },
+    /// Check that the programs and keys a run needs are available.
+    Doctor,
+    /// Print a shell completion script, such as `rsi-ralph completions zsh`.
+    Completions {
+        /// The shell to complete for.
+        shell: clap_complete::Shell,
+    },
     /// Validate a loop folder and report missing keys.
     Check {
         /// The loop folder.
@@ -114,7 +134,8 @@ pub fn exit_code(result: &Result<()>) -> i32 {
             | Error::Hive(_)
             | Error::MissingKeys { .. }
             | Error::RunExists(_)
-            | Error::NoRun(_),
+            | Error::NoRun(_)
+            | Error::NotEmpty(_),
         ) => 2,
         Err(_) => 1,
     }
@@ -133,6 +154,20 @@ pub fn execute(
 ) -> Result<()> {
     let store = Store::new(cli.home.unwrap_or_else(|| Store::default_home(lookup)));
     match cli.command {
+        Command::Init {
+            r#loop,
+            template,
+            list,
+        } => match r#loop {
+            Some(dir) => init_loop(&dir, &template, out),
+            _ => templates(out),
+        },
+        Command::Doctor => doctor::run(store.home(), lookup, &mut |line| say(out, line)),
+        Command::Completions { shell } => {
+            let mut command = <Cli as clap::CommandFactory>::command();
+            clap_complete::generate(shell, &mut command, "rsi-ralph", out);
+            Ok(())
+        }
         Command::Check { r#loop } => check(&r#loop, lookup, out),
         Command::Runs { r#loop } => runs(&store, r#loop.as_deref(), out),
         Command::Show { run } => show(&store, &run, out),
@@ -221,6 +256,21 @@ fn check_summary(m: &Manifest) -> String {
         wire(&m.score.decide.test),
         m.hive.lead
     )
+}
+
+fn templates(out: &mut dyn Write) -> Result<()> {
+    for t in init::TEMPLATES {
+        say(out, &format!("{:<16} {}", t.name, t.about))?;
+    }
+    Ok(())
+}
+
+fn init_loop(dir: &Path, template: &str, out: &mut dyn Write) -> Result<()> {
+    let name = init::write(init::template(template)?, dir)?;
+    say(out, &format!("created {name} in {}", dir.display()))?;
+    say(out, "next:")?;
+    say(out, &format!("  rsi-ralph check {}", dir.display()))?;
+    say(out, &format!("  rsi-ralph run   {}", dir.display()))
 }
 
 fn runs(store: &Store, loop_name: Option<&str>, out: &mut dyn Write) -> Result<()> {

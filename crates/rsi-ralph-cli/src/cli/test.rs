@@ -376,3 +376,63 @@ fn score_passes_plain_keys_to_steps_under_their_own_name() {
     assert!(result.is_ok(), "{result:?} {out}");
     assert!(out.contains("colors = 4.0000"), "{out}");
 }
+
+#[test]
+fn init_writes_a_loop_that_check_accepts() {
+    let root = tempfile::tempdir().unwrap();
+    let dir = root.path().join("colors");
+    let (ok, out) = exec(&["init", dir.to_str().unwrap()], true);
+    assert!(ok.is_ok());
+    assert!(out.starts_with("created colors in "), "{out}");
+    assert!(out.contains("rsi-ralph run"), "{out}");
+    let (checked, line) = exec(&["check", dir.to_str().unwrap()], true);
+    assert!(checked.is_ok(), "{checked:?}");
+    assert!(line.starts_with("ok: colors "), "{line}");
+    let (again, _) = exec(&["init", dir.to_str().unwrap()], true);
+    assert!(matches!(again, Err(Error::NotEmpty(_))));
+    assert_eq!(exit_code(&again), 2);
+    let (unknown, _) = exec(
+        &[
+            "init",
+            root.path().join("x").to_str().unwrap(),
+            "--template",
+            "nope",
+        ],
+        true,
+    );
+    assert_eq!(exit_code(&unknown), 2);
+}
+
+#[test]
+fn init_lists_the_bundled_templates() {
+    let (ok, out) = exec(&["init", "--list"], true);
+    assert!(ok.is_ok());
+    assert!(out.starts_with("graph-coloring "), "{out}");
+    assert!(Cli::try_parse_from(["rsi-ralph", "init"]).is_err());
+}
+
+#[test]
+fn doctor_reports_the_store_it_would_use() {
+    let home = tempfile::tempdir().unwrap();
+    let (_, out) = exec(&["--home", home.path().to_str().unwrap(), "doctor"], true);
+    assert!(out.starts_with("rsi-ralph "), "{out}");
+    assert!(out.contains("ok      OPENROUTER_API_KEY is set"), "{out}");
+    assert!(out.contains(&format!("store   {}", home.path().display())));
+}
+
+#[test]
+fn completions_print_a_script_naming_every_command() {
+    let (ok, out) = exec(&["completions", "bash"], true);
+    assert!(ok.is_ok());
+    for command in ["init", "doctor", "check", "run", "serve"] {
+        assert!(out.contains(command), "{command} missing from completions");
+    }
+}
+
+#[test]
+fn a_doctor_failure_is_a_loop_error() {
+    let missing = Err(Error::Doctor {
+        missing: vec!["git".into()],
+    });
+    assert_eq!(exit_code(&missing), 1);
+}
