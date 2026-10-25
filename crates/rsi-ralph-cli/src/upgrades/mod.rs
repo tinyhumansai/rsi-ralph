@@ -34,6 +34,7 @@ use crate::{
 };
 
 pub mod drift;
+pub mod notation;
 pub mod render;
 mod types;
 pub use types::{
