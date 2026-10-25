@@ -133,12 +133,9 @@ pub(crate) fn prepare(
                     .and_then(Value::as_str)
                     .map(str::to_owned)
             })
-            .or_else(|| {
-                client_reasoning
-                    .is_none()
-                    .then_some(limits.default_reasoning)
-                    .flatten()
-                    .map(str::to_owned)
+            .or_else(|| match client_reasoning {
+                None => limits.default_reasoning.map(str::to_owned),
+                Some(_) => None,
             });
         if let Some(effort) = effort {
             if client_reasoning.is_none() {
