@@ -577,6 +577,20 @@ impl Loop {
         models
     }
 
+    /// The layout root the seats' memory sits below, when they carry memory:
+    /// `hive.memory.root`, else `team:<loop name>`, so every run of the loop
+    /// shares it.
+    #[must_use]
+    pub fn memory_root(&self) -> Option<String> {
+        let memory = self.manifest.hive.memory.as_ref()?;
+        Some(
+            memory
+                .root
+                .clone()
+                .unwrap_or_else(|| format!("team:{}", self.manifest.name)),
+        )
+    }
+
     /// Every environment variable the loop needs, sorted and unique.
     #[must_use]
     pub fn required_env(&self) -> Vec<String> {
