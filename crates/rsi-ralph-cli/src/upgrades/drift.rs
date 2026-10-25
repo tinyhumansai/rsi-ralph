@@ -9,10 +9,7 @@
 //! first are those in its loop log that the previous run's frozen log did not
 //! hold, plus any whose `applies_from.run` names it.
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::Path,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     Applied, Author, Change, Contributor, Entry, FileChange, LOG, RENDERED, Role, Upgrade, append,
@@ -227,10 +224,4 @@ pub fn check_run_start(
     let text = render::markdown(&run.loop_name, &entries);
     store::write_atomic(&run.path.join(RENDERED), text.as_bytes())?;
     Ok(warning)
-}
-
-/// Whether `dir` holds a run's frozen loop.
-#[must_use]
-pub fn is_frozen_loop(dir: &Path) -> bool {
-    dir.join(manifest::MANIFEST).is_file()
 }
