@@ -32,6 +32,8 @@ See [`host-runtime.md`](host-runtime.md) or
 - [`rsi-cli.md`](rsi-cli.md) — the `rsi-ralph` binary and file-defined loops.
 - [`upgrade-log.md`](upgrade-log.md) — why a loop's hive or config changed
   between runs: records, the run-start diff and `rsi-ralph upgrades`.
+- [`score-history.md`](score-history.md) — every score of a loop across runs
+  and epochs, scoring wall time, and `rsi-ralph history`.
 - [`rsi-viz.md`](rsi-viz.md) — read-only live visualizer for loop traces
   and run snapshots (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — score, evolve, core and observe

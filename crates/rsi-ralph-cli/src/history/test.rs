@@ -61,7 +61,14 @@ fn a_trace_gives_the_baseline_each_candidate_and_the_scoring_wall_time() {
     let seats: Vec<_> = e1
         .candidates
         .iter()
-        .map(|p| (p.seat.as_deref().unwrap(), p.mean.unwrap(), p.failures, p.promoted))
+        .map(|p| {
+            (
+                p.seat.as_deref().unwrap(),
+                p.mean.unwrap(),
+                p.failures,
+                p.promoted,
+            )
+        })
         .collect();
     assert_eq!(
         seats,
@@ -69,7 +76,10 @@ fn a_trace_gives_the_baseline_each_candidate_and_the_scoring_wall_time() {
     );
     // The running epoch has no end and no scoring time yet.
     let e2 = &scores.epochs[1];
-    assert_eq!((e2.finished_metric, e2.scoring_ms, e2.hive_ms), (None, None, None));
+    assert_eq!(
+        (e2.finished_metric, e2.scoring_ms, e2.hive_ms),
+        (None, None, None)
+    );
 }
 
 #[test]
@@ -147,7 +157,10 @@ fn upgrades_are_placed_between_the_run_before_and_the_run_they_apply_to() {
     assert_eq!(placed[2].run, None);
     assert_eq!(placed[2].before.as_ref().unwrap().run, "r10");
     assert_eq!(placed[2].after, None);
-    assert_eq!((placed[3].before.as_ref(), placed[3].after.as_ref()), (None, None));
+    assert_eq!(
+        (placed[3].before.as_ref(), placed[3].after.as_ref()),
+        (None, None)
+    );
     let first = marks(&runs[..1], &[upgrade("u", Some("r9"))]);
     assert_eq!(first[0].before, None);
 }
@@ -174,7 +187,10 @@ fn the_text_and_csv_forms_list_every_point_and_upgrade() {
     let csv = render::csv(&history);
     let rows: Vec<&str> = csv.lines().collect();
     assert_eq!(rows[0], render::CSV_HEADER);
-    assert_eq!(rows[1], "r10,0,0,baseline,a6c8,,0.1047,0,2,false,a6c8,0.1047,,,u-1");
+    assert_eq!(
+        rows[1],
+        "r10,0,0,baseline,a6c8,,0.1047,0,2,false,a6c8,0.1047,,,u-1"
+    );
     assert_eq!(
         rows[3],
         "r10,0,1,candidate,e1-main-b,main-b,0.1087,1,2,true,a6c8,0.1047,2706,988,u-1"
@@ -193,9 +209,7 @@ fn collect_reads_every_stored_run_oldest_first_and_skips_ones_without_a_trace() 
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path());
     for (id, at, events) in [("b", 20, true), ("a", 10, true), ("c", 30, false)] {
-        let run = store
-            .create_run("l", Some(id), &BTreeMap::new())
-            .unwrap();
+        let run = store.create_run("l", Some(id), &BTreeMap::new()).unwrap();
         write_json(
             &run.record_path(),
             &RunRecord {
@@ -227,6 +241,9 @@ fn collect_reads_every_stored_run_oldest_first_and_skips_ones_without_a_trace() 
     let wire = serde_json::to_value(&history).unwrap();
     assert_eq!(wire["loop"], "l");
     assert_eq!(wire["runs"][0]["epochs"][0]["scoring_ms"], 988_538);
-    assert_eq!(wire["runs"][0]["epochs"][0]["candidates"][1]["promoted"], true);
+    assert_eq!(
+        wire["runs"][0]["epochs"][0]["candidates"][1]["promoted"],
+        true
+    );
     assert!(wire["runs"][0]["epochs"][1].get("scoring_ms").is_none());
 }

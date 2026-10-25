@@ -326,6 +326,7 @@ rsi-ralph score <loop> --label L [--checkout P] [--env K=V]...
 rsi-ralph runs  [--loop NAME]
 rsi-ralph show  <loop>/<run-id>
 rsi-ralph upgrades show|add|outcome <loop> ...
+rsi-ralph history <loop> [--csv | --json]
 rsi-ralph serve [--port 8787]
 ```
 
@@ -338,7 +339,8 @@ completion script generated from the same parser.
 
 `run` serves the UI on `127.0.0.1:<port>` by default and prints its URL.
 The UI is one page embedded in the binary — no Node toolchain is involved —
-over a read-only API: `/api/runs`, `/api/runs/<loop>/<run>/events` (SSE,
+over a read-only API: `/api/runs`, `/api/loops/<loop>/history` (the loop's
+[score history](score-history.md)), `/api/runs/<loop>/<run>/events` (SSE,
 replay then tail), `/api/runs/<loop>/<run>/meter` (the gateway's
 `meter.jsonl`, SSE), `/api/runs/<loop>/<run>/epochs` (the epoch numbers),
 `/api/runs/<loop>/<run>/epochs/<n>/hive` (that epoch's swarm trace,

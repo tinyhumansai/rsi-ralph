@@ -9,9 +9,15 @@ fn score(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |v| format!("{v:.4}"))
 }
 
-#[expect(clippy::cast_precision_loss, reason = "minutes are shown to one decimal")]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "minutes are shown to one decimal"
+)]
 fn minutes(ms: Option<u64>) -> String {
-    ms.map_or_else(|| "-".to_owned(), |ms| format!("{:.1} min", ms as f64 / 60_000.0))
+    ms.map_or_else(
+        || "-".to_owned(),
+        |ms| format!("{:.1} min", ms as f64 / 60_000.0),
+    )
 }
 
 fn brief(s: &RunSummary) -> String {
@@ -80,7 +86,11 @@ pub fn text(history: &ScoreHistory) -> String {
             .after
             .as_ref()
             .map_or_else(|| "next run".to_owned(), brief);
-        let _ = writeln!(out, "  {}  {}\n    before {before}\n    after  {after}", u.id, u.title);
+        let _ = writeln!(
+            out,
+            "  {}  {}\n    before {before}\n    after  {after}",
+            u.id, u.title
+        );
     }
     out
 }

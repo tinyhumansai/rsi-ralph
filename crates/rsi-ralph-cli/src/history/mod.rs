@@ -132,10 +132,11 @@ pub fn run_scores(run: &str, started_at: u64, events: &str, ledger: Option<&Valu
         match kind {
             "measured" => {
                 let id = event["candidate"].as_str().unwrap_or("");
-                let seat = facts.seats.get(id).cloned().or_else(|| {
-                    id.strip_prefix(&format!("e{epoch}-"))
-                        .map(str::to_owned)
-                });
+                let seat = facts
+                    .seats
+                    .get(id)
+                    .cloned()
+                    .or_else(|| id.strip_prefix(&format!("e{epoch}-")).map(str::to_owned));
                 let mut p = point(event, seat, at);
                 p.promoted = facts.promoted.iter().any(|c| c == id);
                 open.candidates.push(p);
@@ -179,18 +180,15 @@ impl RunScores {
     #[must_use]
     pub fn summary(&self) -> RunSummary {
         let candidates = self.epochs.iter().flat_map(|e| &e.candidates);
-        let best = candidates.clone().filter_map(|p| p.mean).reduce(|a, b| {
-            if (b > a) == self.maximize { b } else { a }
-        });
+        let best = candidates
+            .clone()
+            .filter_map(|p| p.mean)
+            .reduce(|a, b| if (b > a) == self.maximize { b } else { a });
         RunSummary {
             run: self.run.clone(),
             start: self.baseline.as_ref().and_then(|b| b.mean),
             best,
-            end: self
-                .epochs
-                .iter()
-                .rev()
-                .find_map(|e| e.finished_metric),
+            end: self.epochs.iter().rev().find_map(|e| e.finished_metric),
             candidates: candidates.clone().count(),
             promoted: candidates.filter(|p| p.promoted).count(),
         }
