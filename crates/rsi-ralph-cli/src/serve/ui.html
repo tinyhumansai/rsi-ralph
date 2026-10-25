@@ -64,7 +64,8 @@ th .sub { display: block; font-weight: normal; font-size: 11px; color: var(--mut
 .feed details summary { cursor: pointer; overflow-wrap: anywhere; }
 .feed details pre { margin-top: 6px; }
 .ok { color: var(--good); } .fail { color: var(--bad); } .pending { color: var(--accent); }
-.seat { font-family: var(--mono); font-size: 12px; }
+.seat { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+td.num, td.model { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -90,7 +91,7 @@ const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? `${s.slice(0
 let runs = [], current = null, source = null, events = [], ledger = null, record = null, briefEpoch = null, detail = null;
 // Model calls from the gateway meter, and the swarm trace of one epoch.
 let meterSource = null, meter = [], hiveSource = null, hive = [], hiveEpoch = null, hivePinned = false, epochList = [], budget = null;
-let seatFilter = null, kindFilter = "all", briefs = {}, openRows = new Set(), queued = false;
+let hiveSeenAt = 0, seatFilter = null, kindFilter = "all", briefs = {}, openRows = new Set(), queued = false;
 
 async function json(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); return r.json(); }
 async function text(url) { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.text() : ""; }
@@ -131,10 +132,13 @@ function select(id) {
   refresh();
 }
 
+/// The host side of the coordinator, which is not a seat.
+const isHost = (id) => id === "host" || String(id).startsWith("hivemind:") || String(id).startsWith("hive:");
+
 function showEpoch(epoch) {
   if (hiveSource) hiveSource.close();
   hiveEpoch = epoch; hive = []; openRows = new Set();
-  hiveSource = follow(`/api/runs/${current}/epochs/${epoch}/hive`, hive);
+  hiveSource = follow(`/api/runs/${current}/epochs/${epoch}/hive`, { push: (line) => { hive.push(line); hiveSeenAt = Date.now(); } });
   schedule();
 }
 
@@ -194,9 +198,8 @@ function swarm() {
       }
     } else if (e.kind === "agent_message") {
       feed.push({ kind: "message", seq, t, seat: e.from, to: e.to, body: e.body ?? "", episode: e.episode });
-      if (e.from !== "host") seat(e.from).sent++;
-      const to = String(e.to ?? "");
-      if (!to.startsWith("hive:")) seat(to).received++;
+      if (!isHost(e.from)) seat(e.from).sent++;
+      if (!isHost(e.to)) seat(e.to).received++;
     } else if (e.kind === "agent_turn") {
       const s = seat(e.seat);
       s.turns++; s.inTok += e.input_tokens ?? 0; s.outTok += e.output_tokens ?? 0; s.lastMs = t;
@@ -204,7 +207,9 @@ function swarm() {
     }
   }
   for (const rows of open.values()) for (const row of rows) { const s = seat(row.seat); s.running++; tool(row.tool).running++; }
-  return { seats, tools, feed, started, finished, lastMs };
+  // "Now" on the swarm clock: the newest event, plus the time since it arrived while the swarm runs.
+  const now = finished || !hiveSeenAt ? lastMs : lastMs + Math.max(0, Date.now() - hiveSeenAt);
+  return { seats, tools, feed, started, finished, lastMs: now };
 }
 
 /// The gateway meter folded per seat (or per phase, for calls with no seat).
@@ -235,7 +240,7 @@ function agentsCard(sw, cs) {
     const state = !s ? "" : s.running ? `<span class="pending">● in ${s.running} tool call${s.running > 1 ? "s" : ""}</span>` : s.lastMs !== null ? `<span class="muted">idle ${ms(sw.lastMs - s.lastMs)}</span>` : "";
     return `<tr class="clickable ${seatFilter === id ? "on" : ""}" data-seat="${esc(id)}" title="Show only this seat's activity">
       <td><span class="seat">${esc(id)}</span>${s?.role ? `<div class="muted">${esc(s.role)}${s.editing ? " · edits" : ""}</div>` : ""}</td>
-      <td>${esc(s?.model || "")}<div>${state}</div></td>
+      <td class="model">${esc(s?.model || "")}<div>${state}</div></td>
       <td class="num">${int(c?.calls)}${c?.errors ? `<div class="fail">${c.errors} failed</div>` : ""}</td>
       <td class="num">${kilo(c?.inTok)} / ${kilo(c?.outTok)}</td>
       <td class="num">${c ? usd(c.cost) : "–"}</td>
