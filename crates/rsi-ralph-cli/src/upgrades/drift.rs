@@ -220,7 +220,15 @@ pub fn check_run_start(
             paths.join(", ")
         ))
     };
-    let entries = collect(store, &run.loop_name, current_log)?;
+    // The run has no `run.json` yet, so the store does not list it: add its
+    // own entries, just written.
+    let mut entries = collect(store, &run.loop_name, current_log)?;
+    let listed = entries
+        .iter()
+        .any(|e| matches!(e, Entry::Applied(a) if a.run == run.id));
+    if !listed {
+        entries.extend(super::read(&run.path.join(LOG))?);
+    }
     let text = render::markdown(&run.loop_name, &entries);
     store::write_atomic(&run.path.join(RENDERED), text.as_bytes())?;
     Ok(warning)

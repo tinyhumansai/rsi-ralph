@@ -1,7 +1,7 @@
 //! The upgrade log: wire forms, the text notation, the run-start diff and
 //! the Markdown rendering.
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
 
 use serde_json::json;
 
@@ -361,6 +361,12 @@ fn example(root: &Path) -> (BTreeMap<String, String>, Loop, Store) {
 /// Store a finished run of `name` started at `at`, with `files` frozen.
 fn stored(store: &Store, name: &str, id: &str, at: u64, files: &BTreeMap<String, String>) {
     let run = store.create_run(name, Some(id), files).unwrap();
+    finish(&run, at);
+}
+
+/// Mark a stored run finished, started at `at`.
+fn finish(run: &crate::store::RunDir, at: u64) {
+    let (name, id) = (run.loop_name.as_str(), run.id.as_str());
     write_json(
         &run.record_path(),
         &RunRecord {
@@ -495,7 +501,7 @@ fn a_hive_change_named_by_a_new_upgrade_is_explained_and_carried() {
     assert_eq!(applied.files.len(), 1);
     assert!(applied.unexplained.is_empty());
     // The run after carries nothing new: r2's frozen log already held it.
-    stored(&store, &name, "r2", 20, &changed);
+    finish(&run, 20);
     let run = store.create_run(&name, Some("r3"), &changed).unwrap();
     drift::check_run_start(&store, &run, &changed, &parsed, 30).unwrap();
     let log = run_log(&store, &name, "r3");
@@ -545,7 +551,6 @@ fn collect_reads_the_loop_log_then_each_run_oldest_first() {
     };
     record(&run, assistant_and_operator()).unwrap();
     assert_eq!(read(&hook.join(LOG)).unwrap().len(), 2);
-    let _: PathBuf = hook;
 }
 
 #[test]
