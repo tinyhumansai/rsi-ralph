@@ -573,26 +573,6 @@ fn upgrades_add_keeps_each_contributors_rationale_and_show_renders_them() {
     assert!(ok.is_ok());
     assert_eq!(json.lines().count(), 1);
     assert!(json.starts_with("{\"kind\":\"upgrade\""), "{json}");
-    let (dup, _) = exec(
-        &[
-            "--home",
-            h.as_str(),
-            "upgrades",
-            "add",
-            d,
-            "--id",
-            "u-1",
-            "--title",
-            "t",
-            "--author",
-            "operator:o",
-            "--change",
-            "c",
-        ],
-        true,
-    );
-    assert!(matches!(&dup, Err(Error::UpgradeExists(id)) if id == "u-1"));
-    assert_eq!(exit_code(&dup), 2);
 }
 
 #[test]
@@ -631,6 +611,45 @@ fn upgrades_add_rejects_bad_authors_and_unpaired_rationales() {
     assert!(with(&["--author", "operator:o", "--expect", "nonsense"]).is_err());
     assert!(with(&["--author", "operator:o", "--file", "../outside"]).is_err());
     assert!(!dir.join(crate::upgrades::LOG).exists());
+    let (ok, _) = exec(
+        &[
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--id",
+            "u-1",
+            "--title",
+            "t",
+            "--author",
+            "operator:o",
+            "--change",
+            "c",
+        ],
+        true,
+    );
+    assert!(ok.is_ok(), "{ok:?}");
+    let (dup, _) = exec(
+        &[
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--id",
+            "u-1",
+            "--title",
+            "t",
+            "--author",
+            "operator:o",
+            "--change",
+            "c",
+        ],
+        true,
+    );
+    assert!(matches!(&dup, Err(Error::UpgradeExists(id)) if id == "u-1"));
+    assert_eq!(exit_code(&dup), 2);
 }
 
 #[test]

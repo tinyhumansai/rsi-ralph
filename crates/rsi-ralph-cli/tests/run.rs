@@ -310,54 +310,7 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
             .starts_with("graph-coloring/e2e\tfinished")
     );
 
-    // The first run of the loop records that it had nothing to compare with.
-    let log = std::fs::read_to_string(run.join("upgrades.jsonl")).unwrap();
-    let applied: Value = serde_json::from_str(log.lines().next().unwrap()).unwrap();
-    assert_eq!(applied["kind"], "applied");
-    assert_eq!(applied["run"], "e2e");
-    assert!(applied.get("previous_run").is_none(), "{applied}");
-    assert!(
-        std::fs::read_to_string(run.join("upgrades.md"))
-            .unwrap()
-            .contains("## Run e2e started")
-    );
-
-    // A seat prompt edited with no upgrade record is flagged by the next run.
-    let seat = loop_dir.join("hive/seats/lead.md");
-    let mut prompt = std::fs::read_to_string(&seat).unwrap();
-    prompt.push_str("\nAssign every seat before reading anything.\n");
-    std::fs::write(&seat, prompt).unwrap();
-    let cli = Cli::parse_from([
-        "rsi-ralph",
-        "--home",
-        home.to_str().unwrap(),
-        "run",
-        loop_dir.to_str().unwrap(),
-        "--run",
-        "e2e-2",
-        "--epochs",
-        "1",
-        "--no-serve",
-    ]);
-    let mut out = Vec::new();
-    let result = execute(cli, &lookup, &mut out);
-    let printed = String::from_utf8(out).unwrap();
-    assert!(result.is_ok(), "{result:?}\n{printed}");
-    let second = home.join("runs/graph-coloring/e2e-2");
-    let record: Value =
-        serde_json::from_str(&std::fs::read_to_string(second.join("run.json")).unwrap()).unwrap();
-    assert_eq!(
-        record["warnings"][0],
-        "changed since run e2e with no upgrade record: hive/seats/lead.md"
-    );
-    let log = std::fs::read_to_string(second.join("upgrades.jsonl")).unwrap();
-    let entries: Vec<Value> = log
-        .lines()
-        .map(|l| serde_json::from_str(l).unwrap())
-        .collect();
-    assert_eq!(entries[0]["previous_run"], "e2e");
-    assert_eq!(entries[0]["unexplained"], json!(["hive/seats/lead.md"]));
-    assert_eq!(entries[1]["contributors"][0]["author"]["kind"], "loop");
+    upgrade_log_flags_an_unrecorded_edit(&home, &loop_dir, &lookup);
 }
 
 #[test]
@@ -444,4 +397,62 @@ fn a_provider_refusing_every_call_fails_the_run_with_its_message() {
     assert_eq!(record["stop_reason"], "provider_refused");
     assert_eq!(record["epochs"], 1);
     assert_eq!(record["error"].as_str().unwrap(), message);
+}
+
+/// After the end-to-end run `e2e`: its upgrade log, then a second run that
+/// flags a seat prompt edited with no upgrade record.
+fn upgrade_log_flags_an_unrecorded_edit(
+    home: &Path,
+    loop_dir: &Path,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) {
+    let run = home.join("runs/graph-coloring/e2e");
+    // The first run of the loop records that it had nothing to compare with.
+    let log = std::fs::read_to_string(run.join("upgrades.jsonl")).unwrap();
+    let applied: Value = serde_json::from_str(log.lines().next().unwrap()).unwrap();
+    assert_eq!(applied["kind"], "applied");
+    assert_eq!(applied["run"], "e2e");
+    assert!(applied.get("previous_run").is_none(), "{applied}");
+    assert!(
+        std::fs::read_to_string(run.join("upgrades.md"))
+            .unwrap()
+            .contains("## Run e2e started")
+    );
+
+    // A seat prompt edited with no upgrade record is flagged by the next run.
+    let seat = loop_dir.join("hive/seats/lead.md");
+    let mut prompt = std::fs::read_to_string(&seat).unwrap();
+    prompt.push_str("\nAssign every seat before reading anything.\n");
+    std::fs::write(&seat, prompt).unwrap();
+    let cli = Cli::parse_from([
+        "rsi-ralph",
+        "--home",
+        home.to_str().unwrap(),
+        "run",
+        loop_dir.to_str().unwrap(),
+        "--run",
+        "e2e-2",
+        "--epochs",
+        "1",
+        "--no-serve",
+    ]);
+    let mut out = Vec::new();
+    let result = execute(cli, lookup, &mut out);
+    let printed = String::from_utf8(out).unwrap();
+    assert!(result.is_ok(), "{result:?}\n{printed}");
+    let second = home.join("runs/graph-coloring/e2e-2");
+    let record: Value =
+        serde_json::from_str(&std::fs::read_to_string(second.join("run.json")).unwrap()).unwrap();
+    assert_eq!(
+        record["warnings"][0],
+        "changed since run e2e with no upgrade record: hive/seats/lead.md"
+    );
+    let log = std::fs::read_to_string(second.join("upgrades.jsonl")).unwrap();
+    let entries: Vec<Value> = log
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    assert_eq!(entries[0]["previous_run"], "e2e");
+    assert_eq!(entries[0]["unexplained"], json!(["hive/seats/lead.md"]));
+    assert_eq!(entries[1]["contributors"][0]["author"]["kind"], "loop");
 }
