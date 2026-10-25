@@ -317,15 +317,11 @@ async fn streams_through_and_settles_from_the_usage_event() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn buffered_calls_and_tokenless_streams_have_no_ttft() {
+async fn buffered_calls_have_no_ttft() {
     let h = Harness::start(5.0, 50.0);
     h.chat("/v1/chat/completions", "hello", json!({})).await;
-    h.chat("/v1/chat/completions", "cut", json!({"stream": true}))
-        .await;
-    h.wait_for_meter_rows(2).await;
-    for row in h.meter() {
-        assert!(row["ttft_ms"].is_null(), "{row}");
-    }
+    h.wait_for_meter_rows(1).await;
+    assert!(h.meter()[0]["ttft_ms"].is_null());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -459,6 +455,8 @@ async fn a_call_whose_body_breaks_off_counts_as_refused() {
     let calls = h.gateway.upstream_calls();
     assert_eq!((calls.sent, calls.refused), (2, 2), "{calls:?}");
     assert_eq!(calls.last_refusal.unwrap().status, 502);
+    // Neither produced a token, so neither has a time to first token.
+    assert!(h.meter().iter().all(|row| row["ttft_ms"].is_null()));
 }
 
 #[tokio::test(flavor = "multi_thread")]
