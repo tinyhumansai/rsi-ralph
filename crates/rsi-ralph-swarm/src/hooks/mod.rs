@@ -1,10 +1,19 @@
 //! Turn hooks: stream each seat's tool calls and per-turn usage into the
-//! trace, and keep the per-seat tally [`crate::SwarmOutcome`] reports.
+//! trace, keep the per-seat tally [`crate::SwarmOutcome`] reports, and,
+//! when seats carry memory, label every turn so it is remembered.
+//!
+//! `OpenHuman` logs a turn to memory only when its origin says a person wrote
+//! it. A seat's turn usually starts inside another seat's `hivemind_*` call
+//! and inherits that call's sub-agent origin, so without a label only turns
+//! the host started would be remembered. With memory on, every seat turn is
+//! labelled `DirectChat`: the approval gate trusts it exactly as it trusts
+//! the sub-agent default (`Cli`), so the label changes what is remembered,
+//! not what a seat may do.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use openhuman_embed::LastTurnUsage;
+use openhuman_embed::{AgentTurnOrigin, LastTurnUsage};
 use openhuman_embed::agent_progress::AgentProgress;
 use tinyhivemind_hives::TurnDisposition;
 use tinyhivemind_openhuman::{TurnHooks, TurnProgressSink, TurnScope};
@@ -21,6 +30,8 @@ const DETAIL_CHARS: usize = 240;
 pub(crate) struct SwarmHooks {
     trace: Arc<Trace>,
     usage: Mutex<BTreeMap<String, SeatUsage>>,
+    /// Whether seats carry memory, so every turn is labelled to be logged.
+    remembered: bool,
 }
 
 impl SwarmHooks {
@@ -29,7 +40,15 @@ impl SwarmHooks {
         Self {
             trace,
             usage: Mutex::new(BTreeMap::new()),
+            remembered: false,
         }
+    }
+
+    /// Label every turn so `OpenHuman` logs it to the seats' memory.
+    #[must_use]
+    pub(crate) fn remembered(mut self, remembered: bool) -> Self {
+        self.remembered = remembered;
+        self
     }
 
     /// Every seat's turns and spend so far.
@@ -101,6 +120,14 @@ pub(crate) fn tool_event(seat: &str, progress: AgentProgress) -> Option<SwarmEve
 }
 
 impl TurnHooks for SwarmHooks {
+    fn configure(&self, _scope: &TurnScope, turn: openhuman_embed::Turn) -> openhuman_embed::Turn {
+        if self.remembered {
+            turn.origin(AgentTurnOrigin::DirectChat)
+        } else {
+            turn
+        }
+    }
+
     fn progress(&self, scope: &TurnScope) -> Option<TurnProgressSink> {
         let (sender, mut receiver) = tokio::sync::mpsc::channel::<AgentProgress>(256);
         let trace = self.trace.clone();

@@ -62,7 +62,7 @@ pub(super) async fn run(
         tinyhivemind_openhuman::language::coordinator_options(&lowered.coordinator),
     )
     .await?;
-    let hooks = Arc::new(SwarmHooks::new(trace.clone()));
+    let hooks = Arc::new(SwarmHooks::new(trace.clone()).remembered(request.memory.is_some()));
     let mut host = OpenHumanHost::new(runtime.runtime_id().into(), coordinator.clone())?
         .with_turn_timeout(request.turn)?
         .with_hooks(hooks.clone())?;
