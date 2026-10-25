@@ -138,6 +138,16 @@ seat holds is offered to it as a tool, running in that seat's working
 directory. Its program must be on `PATH` or named by an absolute path; a
 package file (`tools/…`) is refused before the run.
 
+**Session settings.** A hive package's top-level `hive.json` `session`
+(tinyhivemind's `SessionSettings`) applies to every seat's OpenHuman agent,
+mapped as tinyhivemind's own deploy maps it: `compact_context`,
+`max_history_messages`, `tool_result_budget_bytes`, `max_tool_iterations`,
+`parallel_tools` and `agents_md` (OpenHuman's `agents_md_enabled`). A field
+left out keeps OpenHuman's default, so `parallel_tools` stays off unless the
+package sets it. `"session": { "parallel_tools": true }` runs the independent
+tool calls of one model step concurrently, up to OpenHuman's
+`max_parallel_tools`, instead of one after another.
+
 **`keys`.** A map from capability to the *name* of an environment variable.
 Values never appear in files, the run store, traces or prompts.
 `openrouter` (default `OPENROUTER_API_KEY`) is read by the gateway only.
