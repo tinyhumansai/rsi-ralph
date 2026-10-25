@@ -54,10 +54,10 @@ fn fails_naming_each_missing_required_tool() {
     let tools = bin(&["python3"]);
     let home = tempfile::tempdir().unwrap();
     let (result, lines) = doctor(tools.path(), None, &home.path().join("new"));
-    match result {
-        Err(Error::Doctor { missing }) => assert_eq!(missing, ["git", "diff"]),
-        other => panic!("expected a doctor error, got {other:?}"),
-    }
+    assert!(
+        matches!(&result, Err(Error::Doctor { missing }) if missing == &["git", "diff"]),
+        "{result:?}"
+    );
     assert!(lines.iter().any(|l| l.starts_with("missing git")));
     assert!(
         lines

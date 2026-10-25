@@ -54,12 +54,13 @@ impl Store {
     #[must_use]
     pub fn default_home(lookup: &dyn Fn(&str) -> Option<String>) -> PathBuf {
         let set = |name: &str| lookup(name).filter(|value| !value.is_empty());
-        set("TINYRSI_HOME").map(PathBuf::from).unwrap_or_else(|| {
+        let home = || {
             set("HOME").or_else(|| set("USERPROFILE")).map_or_else(
                 || PathBuf::from(".tinyrsi"),
                 |h| Path::new(&h).join(".tinyrsi"),
             )
-        })
+        };
+        set("TINYRSI_HOME").map_or_else(home, PathBuf::from)
     }
 
     /// The home folder.

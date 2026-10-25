@@ -1,7 +1,7 @@
 //! `rsi-ralph doctor`: check the machine before a first run.
 //!
 //! A loop shells out to `git` and `diff`, the bundled templates score with
-//! `python3`, and every run needs an OpenRouter key. `doctor` reports each of
+//! `python3`, and every run needs `OPENROUTER_API_KEY`. `doctor` reports each of
 //! those from the environment it is given, so tests pass a map instead of
 //! the process environment. It never prints a key's value.
 

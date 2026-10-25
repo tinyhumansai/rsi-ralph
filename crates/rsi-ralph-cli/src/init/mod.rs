@@ -2,7 +2,7 @@
 //!
 //! An installed binary has no checkout to copy examples from, so the bundled
 //! templates are compiled in with `include_str!` from `loops/`. Each template
-//! is a complete loop that passes `rsi-ralph check` once an OpenRouter key is
+//! is a complete loop that passes `rsi-ralph check` once `OPENROUTER_API_KEY` is
 //! set. The new folder's `rsi.json` takes the folder's name, so runs of two
 //! loops made from one template do not share a run-store directory.
 
