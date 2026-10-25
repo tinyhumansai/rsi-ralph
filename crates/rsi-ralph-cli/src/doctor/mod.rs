@@ -27,7 +27,7 @@ pub struct Tool {
 pub const TOOLS: &[Tool] = &[
     Tool {
         name: "git",
-        used_for: "git subjects and candidate diffs",
+        used_for: "git subjects",
         required: true,
     },
     Tool {
