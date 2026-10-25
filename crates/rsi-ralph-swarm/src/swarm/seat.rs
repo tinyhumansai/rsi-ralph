@@ -94,6 +94,16 @@ pub(crate) fn spec(
         || request.default_model.clone(),
         |model| model.model.name.clone(),
     );
+    // The hive model's completion cap. Without it OpenHuman asks for its own
+    // per-turn cap (16,384) whatever the hive and the gateway allow.
+    let model_defaults = ModelDefaults {
+        max_tokens: seat
+            .integration
+            .model
+            .as_ref()
+            .and_then(|model| model.model.max_tokens),
+        ..ModelDefaults::default()
+    };
     let provider = Provider::openai_compatible(
         (request.model_base_url)(&seat.id),
         request.model_api_key.clone(),
