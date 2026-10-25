@@ -7,9 +7,9 @@
 //! present, [`Usage::cost_or_ceiling`] prices the tokens at the model's
 //! ceiling, which is still an upper bound. Cached and reasoning token counts
 //! are recorded when the provider reports them and left unknown otherwise;
-//! neither changes the cost, since no cache discount is assumed. The same scan notes when the
-//! first generated token arrives, which the proxy turns into time to first
-//! token.
+//! neither changes the cost, since no cache discount is assumed. The same
+//! scan notes when the first generated token arrives, which the proxy turns
+//! into time to first token.
 
 use serde_json::Value;
 
