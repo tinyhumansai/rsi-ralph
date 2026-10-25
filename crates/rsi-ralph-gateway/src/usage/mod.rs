@@ -5,7 +5,9 @@
 //! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
 //! as they pass through. When the cost is missing but token counts are
 //! present, [`Usage::cost_or_ceiling`] prices the tokens at the model's
-//! ceiling, which is still an upper bound. The same scan notes when the
+//! ceiling, which is still an upper bound. Cached and reasoning token counts
+//! are recorded when the provider reports them and left unknown otherwise;
+//! neither changes the cost, since no cache discount is assumed. The same scan notes when the
 //! first generated token arrives, which the proxy turns into time to first
 //! token.
 
@@ -51,8 +53,12 @@ impl Usage {
                 .get("completion_tokens")
                 .and_then(Value::as_u64)
                 .unwrap_or(0),
-            cached_tokens: None,
-            reasoning_tokens: None,
+            cached_tokens: usage
+                .pointer("/prompt_tokens_details/cached_tokens")
+                .and_then(Value::as_u64),
+            reasoning_tokens: usage
+                .pointer("/completion_tokens_details/reasoning_tokens")
+                .and_then(Value::as_u64),
             seen: true,
         }
     }
