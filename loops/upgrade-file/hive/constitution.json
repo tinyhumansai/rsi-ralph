@@ -1,7 +1,7 @@
 {
   "hard_constraints": [
-    "edit only coloring.py in the candidate folder",
-    "never read or edit the scorer",
-    "keep color(n, edges) pure and deterministic"
+    "edit only slug.py in the candidate folder",
+    "never read or edit the gate or the scorer",
+    "never change what slugify returns"
   ]
 }

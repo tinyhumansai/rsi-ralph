@@ -27,24 +27,65 @@ macro_rules! loop_files {
 }
 
 /// Every template, the default first.
-pub const TEMPLATES: &[Template] = &[Template {
-    name: "graph-coloring",
-    about: "colour random graphs with as few colours as possible (Python scorer)",
-    files: loop_files!("graph-coloring":
-        "rsi.json",
-        "brief.md",
-        "scorers/colors.py",
-        "subject/coloring.py",
-        "hive/hive.json",
-        "hive/constitution.json",
-        "hive/memory.json",
-        "hive/roles/lead.md",
-        "hive/roles/implementer.md",
-        "hive/context/rules.md",
-        "hive/seats/lead.md",
-        "hive/seats/implementer.md",
-    ),
-}];
+pub const TEMPLATES: &[Template] = &[
+    Template {
+        name: "graph-coloring",
+        about: "colour random graphs with as few colours as possible (Python scorer)",
+        files: loop_files!("graph-coloring":
+            "rsi.json",
+            "brief.md",
+            "scorers/colors.py",
+            "subject/coloring.py",
+            "hive/hive.json",
+            "hive/constitution.json",
+            "hive/memory.json",
+            "hive/roles/lead.md",
+            "hive/roles/implementer.md",
+            "hive/context/rules.md",
+            "hive/seats/lead.md",
+            "hive/seats/implementer.md",
+        ),
+    },
+    Template {
+        name: "math-problem",
+        about: "compute pi to 12 digits, with an LLM judge of the method (Python scorer)",
+        files: loop_files!("math-problem":
+            "rsi.json",
+            "brief.md",
+            "scorers/digits.py",
+            "scorers/justification.md",
+            "subject/pi.py",
+            "hive/hive.json",
+            "hive/constitution.json",
+            "hive/memory.json",
+            "hive/roles/lead.md",
+            "hive/roles/implementer.md",
+            "hive/context/rules.md",
+            "hive/seats/lead.md",
+            "hive/seats/implementer.md",
+        ),
+    },
+    Template {
+        name: "upgrade-file",
+        about: "bring a file to a coding standard behind a behavior gate (Python gate and scorer)",
+        files: loop_files!("upgrade-file":
+            "rsi.json",
+            "brief.md",
+            "gates/behavior.py",
+            "scorers/violations.py",
+            "scorers/readability.md",
+            "subject/slug.py",
+            "hive/hive.json",
+            "hive/constitution.json",
+            "hive/memory.json",
+            "hive/roles/lead.md",
+            "hive/roles/implementer.md",
+            "hive/context/rules.md",
+            "hive/seats/lead.md",
+            "hive/seats/implementer.md",
+        ),
+    },
+];
 
 /// The template named `name`.
 ///

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://tinyhumans.ai/schemas/rsi/v1",
+  "version": 1,
+  "name": "upgrade-file",
+  "subject": { "kind": "dir", "path": "subject", "editable": ["slug.py"] },
+  "brief": "brief.md",
+  "hive": { "package": "hive", "lead": "lead", "wall_secs": 900 },
+  "creativity": { "temperature": 0.4 },
+  "gate": [ { "run": "python3 gates/behavior.py", "timeout_secs": 30 } ],
+  "score": {
+    "scorers": [
+      { "id": "violations", "run": "python3 scorers/violations.py", "timeout_secs": 30 },
+      { "id": "readability", "judge": "scorers/readability.md", "weight": 0.3 }
+    ],
+    "decide": { "on": "violations", "test": "seeds", "seeds": [1, 2], "direction": "minimize", "target": 0 }
+  },
+  "budget": { "run_usd": 1 },
+  "epochs": 3
+}

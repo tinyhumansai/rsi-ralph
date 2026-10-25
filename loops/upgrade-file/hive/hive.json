@@ -1,8 +1,8 @@
 {
   "$schema": "https://tinyhumans.ai/schemas/hive/v1",
   "version": 1,
-  "id": "graph-coloring",
-  "name": "Graph colouring lab",
+  "id": "upgrade-file",
+  "name": "Upgrade lab",
   "roles": [
     {
       "id": "lead",
@@ -77,8 +77,8 @@
   "desks": [
     {
       "id": "lab",
-      "name": "Colouring lab",
-      "description": "find a graph colouring heuristic that uses fewer colours",
+      "name": "Upgrade lab",
+      "description": "bring slug.py up to the coding standard without changing behavior",
       "members": [
         "lead",
         "implementer"

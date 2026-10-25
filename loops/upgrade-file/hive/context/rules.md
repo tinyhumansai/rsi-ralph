@@ -1,3 +1,3 @@
-- Only `coloring.py` may change. The scorer is fixed and hidden from you.
-- The score is the number of colours used on random planted graphs; fewer is
-  better and an invalid colouring fails the seed.
+- Only `slug.py` may change. The gate and the scorer are fixed and hidden from you.
+- The score is the number of violations of the standard in the brief; fewer is
+  better. A change in behavior fails the gate and the candidate is rejected.
