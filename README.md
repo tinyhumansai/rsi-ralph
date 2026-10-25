@@ -16,13 +16,13 @@ prompt, let it work, then run it again on whatever it left behind, until it is
 done. Nothing but the files carries over between runs, so progress has to land
 in the work itself.
 
-A **goal** is what turns that into something that can stop. Instead of looping
+A **`/goal`** is what turns that into something that can stop. Instead of looping
 forever, you state a condition (tests pass, a score reaches a target) and keep
 going until it holds. The agent, its prompt and its tools stay fixed; only the
 subject of the work changes.
 
 ```text
-   Ralph loop with a goal                  RSI Ralph
+   /goal                                 RSI Ralph
 
    same prompt, same agent, same tools     the prompt, agents, harness and tools
    edit the subject until the goal holds   are files too, and they get edited
@@ -34,7 +34,7 @@ subject of the work changes.
                                            └───────────────────────────────┘
 ```
 
-| | Ralph loop | Ralph loop with a goal | RSI Ralph |
+| | Ralph loop | `/goal` | RSI Ralph |
 | --- | --- | --- | --- |
 | Runs | the same prompt, again and again | the same prompt, until a condition holds | epochs, until the goal or the budget |
 | Stops when | you stop it | the goal condition is met | the goal is met, patience runs out or spend hits the cap |
