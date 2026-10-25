@@ -11,7 +11,7 @@ use openhuman_embed::{Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolG
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
-use tinyhivemind_lang::LoweredHive;
+use tinyhivemind_lang::{LoweredHive, SessionSettings};
 use tinyhivemind_openhuman::OpenHumanHost;
 
 use super::{RUNTIME_SEAT, SeatUsage, SwarmOutcome, SwarmRequest, seat};
@@ -237,7 +237,7 @@ pub(super) fn kickoff(request: &SwarmRequest) -> String {
 /// The base config every seat's agent is built from: nothing that reaches
 /// out or spawns on its own. The memory lifecycle (a recall before and a log
 /// after every turn) runs only when seats carry memory (`memory`).
-pub(super) fn runtime_config(memory: bool) -> RuntimeConfig {
+pub(super) fn runtime_config(memory: bool, _session: &SessionSettings) -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
     config.agent.tool_dispatcher = "native".into();
     config.local_ai.runtime_enabled = false;
@@ -251,7 +251,7 @@ pub(super) fn runtime_config(memory: bool) -> RuntimeConfig {
 /// tagged [`RUNTIME_SEAT`], and the seats' memory engine when they carry one.
 async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
     let mut builder = Runtime::builder()
-        .config(runtime_config(request.memory.is_some()))
+        .config(runtime_config(request.memory.is_some(), &SessionSettings::default()))
         .workspace(Workspace::dir(workspace))
         .provider(
             Provider::openai_compatible(
