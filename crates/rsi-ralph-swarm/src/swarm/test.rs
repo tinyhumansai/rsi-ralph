@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use openhuman_embed::RuntimeConfig;
+use tinyhivemind_lang::SessionSettings;
+
 use super::*;
 use crate::{ToolKey, load_package};
 
@@ -151,9 +154,20 @@ fn the_kickoff_lists_every_candidate_after_the_brief() {
     assert!(body.ends_with("candidate"));
 }
 
+/// The fixture hive with `session` set to `session` in its `hive.json`.
+fn hive_with_session(dirs: &Dirs, session: &str) -> Hive {
+    let mut request = dirs.request();
+    for (path, text) in &mut request.package {
+        if path == "hive.json" {
+            *text = text.replacen('{', &format!("{{\n  \"session\": {session},"), 1);
+        }
+    }
+    check(&mut request).unwrap()
+}
+
 #[test]
 fn the_runtime_config_starts_nothing_on_its_own() {
-    let config = run::runtime_config(false);
+    let config = run::runtime_config(false, &SessionSettings::default());
     assert_eq!(config.agent.tool_dispatcher, "native");
     assert!(!config.local_ai.runtime_enabled);
     assert!(!config.memory.recall.enabled);
@@ -161,8 +175,45 @@ fn the_runtime_config_starts_nothing_on_its_own() {
 }
 
 #[test]
+fn the_hive_session_settings_reach_the_runtime_config() {
+    let dirs = Dirs::new();
+    let hive = hive_with_session(
+        &dirs,
+        r#"{ "parallel_tools": true, "max_tool_iterations": 7, "compact_context": true,
+             "max_history_messages": 11, "tool_result_budget_bytes": 4096, "agents_md": false }"#,
+    );
+    let agent = run::runtime_config(false, &hive.lowered.integrations.session).agent;
+    assert!(agent.parallel_tools);
+    assert_eq!(agent.max_tool_iterations, 7);
+    assert!(agent.compact_context);
+    assert_eq!(agent.max_history_messages, 11);
+    assert_eq!(agent.tool_result_budget_bytes, 4096);
+    assert!(!agent.agents_md_enabled);
+    assert_eq!(agent.tool_dispatcher, "native");
+}
+
+#[test]
+fn an_absent_hive_session_keeps_the_openhuman_defaults() {
+    let dirs = Dirs::new();
+    let mut request = dirs.request();
+    let hive = check(&mut request).unwrap();
+    let agent = run::runtime_config(false, &hive.lowered.integrations.session).agent;
+    let defaults = RuntimeConfig::default().agent;
+    assert!(!agent.parallel_tools);
+    assert_eq!(agent.parallel_tools, defaults.parallel_tools);
+    assert_eq!(agent.max_tool_iterations, defaults.max_tool_iterations);
+    assert_eq!(agent.compact_context, defaults.compact_context);
+    assert_eq!(agent.max_history_messages, defaults.max_history_messages);
+    assert_eq!(
+        agent.tool_result_budget_bytes,
+        defaults.tool_result_budget_bytes
+    );
+    assert_eq!(agent.agents_md_enabled, defaults.agents_md_enabled);
+}
+
+#[test]
 fn seats_with_memory_recall_before_and_log_after_every_turn() {
-    let config = run::runtime_config(true);
+    let config = run::runtime_config(true, &SessionSettings::default());
     assert!(!config.local_ai.runtime_enabled);
     assert!(config.memory.recall.enabled);
     assert!(config.memory.conversations.enabled);

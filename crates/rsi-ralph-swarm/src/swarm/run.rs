@@ -11,7 +11,7 @@ use openhuman_embed::{Access, GroupMode, Provider, Runtime, RuntimeConfig, ToolG
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
-use tinyhivemind_lang::LoweredHive;
+use tinyhivemind_lang::{LoweredHive, SessionSettings};
 use tinyhivemind_openhuman::OpenHumanHost;
 
 use super::{RUNTIME_SEAT, SeatUsage, SwarmOutcome, SwarmRequest, seat};
@@ -54,7 +54,12 @@ pub(super) async fn run(
         Redactor::new(secrets),
         events,
     )?);
-    let runtime = Box::pin(runtime(&request, &run_dir.join(RUNTIME_DIR))).await?;
+    let runtime = Box::pin(runtime(
+        &request,
+        &hive.lowered.integrations.session,
+        &run_dir.join(RUNTIME_DIR),
+    ))
+    .await?;
     let lowered = &hive.lowered;
     let coordinator = Coordinator::new(
         runtime.runtime_id().into(),
@@ -236,22 +241,53 @@ pub(super) fn kickoff(request: &SwarmRequest) -> String {
 
 /// The base config every seat's agent is built from: nothing that reaches
 /// out or spawns on its own. The memory lifecycle (a recall before and a log
-/// after every turn) runs only when seats carry memory (`memory`).
-pub(super) fn runtime_config(memory: bool) -> RuntimeConfig {
+/// after every turn) runs only when seats carry memory (`memory`). Each
+/// setting the hive's `session` gives replaces `OpenHuman`'s default.
+pub(super) fn runtime_config(memory: bool, session: &SessionSettings) -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
     config.agent.tool_dispatcher = "native".into();
     config.local_ai.runtime_enabled = false;
     config.memory.recall.enabled = memory;
     config.memory.conversations.enabled = memory;
+    apply_session(&mut config, session);
     config
+}
+
+/// Applies the hive's `session` settings the way tinyhivemind's own deploy
+/// does: every field set replaces the matching `agent` setting.
+fn apply_session(config: &mut RuntimeConfig, session: &SessionSettings) {
+    let agent = &mut config.agent;
+    if let Some(value) = session.compact_context {
+        agent.compact_context = value;
+    }
+    if let Some(value) = session.max_history_messages {
+        agent.max_history_messages = value;
+    }
+    if let Some(value) = session.tool_result_budget_bytes {
+        agent.tool_result_budget_bytes = value;
+    }
+    if let Some(value) = session.max_tool_iterations {
+        agent.max_tool_iterations = value;
+    }
+    if let Some(value) = session.parallel_tools {
+        agent.parallel_tools = value;
+    }
+    if let Some(value) = session.agents_md {
+        agent.agents_md_enabled = value;
+    }
 }
 
 /// The shared `OpenHuman` runtime: read-only by default, with the coding
 /// pack's schemas advertised (seats are coding agents), its own model calls
-/// tagged [`RUNTIME_SEAT`], and the seats' memory engine when they carry one.
-async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
+/// tagged [`RUNTIME_SEAT`], the hive's `session` settings, and the seats'
+/// memory engine when they carry one.
+async fn runtime(
+    request: &SwarmRequest,
+    session: &SessionSettings,
+    workspace: &Path,
+) -> Result<Runtime> {
     let mut builder = Runtime::builder()
-        .config(runtime_config(request.memory.is_some()))
+        .config(runtime_config(request.memory.is_some(), session))
         .workspace(Workspace::dir(workspace))
         .provider(
             Provider::openai_compatible(
