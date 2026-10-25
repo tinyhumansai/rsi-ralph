@@ -98,6 +98,9 @@ wiremock = "0.6"
 # Command-line parsing for the `rsi-ralph` binary in `crates/rsi-ralph-cli`; derive
 # only, no colour or terminal-width probing.
 clap = { version = "4", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
+# Shell completion scripts for `rsi-ralph completions`, generated from the same
+# `clap` command so they never drift from the parser.
+clap_complete = { version = "4", default-features = false }
 
 # OpenHuman's embedding facade, used only for its `observe::langfuse` client so
 # loop traces reach Langfuse through the same transport OpenHuman agents use.
