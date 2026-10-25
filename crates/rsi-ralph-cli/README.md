@@ -20,6 +20,7 @@ Markdown and small scripts, so a loop needs no Rust. Users start with
 | `retreat/` | The tinybackrooms creative retreat before each epoch, with memory across runs |
 | `hive/` | The hive proposer: the loop's hive package run on OpenHuman agents via `rsi-ralph-swarm` |
 | `engine/` | The epoch loop over the `Proposer`, `Ideator` and `Meter` ports; trace, ledger and run record |
+| `upgrades/` | The upgrade log: records of why the hive or config changed, the run-start diff, the Markdown rendering |
 | `serve/` | A std-only HTTP server with one embedded page over the store |
 | `init/` | Bundled loop templates, compiled in from `loops/`, written by `rsi-ralph init` |
 | `doctor/` | `rsi-ralph doctor`: programs on `PATH`, the model key's presence, the run store |

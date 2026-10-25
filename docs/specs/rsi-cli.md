@@ -246,8 +246,10 @@ exit 0; the last non-empty stderr line is recorded as the reason.
 
 ## One run
 
-1. Validate the folder (`check`), snapshot it into the run store, start the
-   gateway and (by default) the UI server.
+1. Validate the folder (`check`), snapshot it into the run store, compare it
+   with the previous run's snapshot and record the result in the run's
+   upgrade log ([upgrade log](upgrade-log.md)), start the gateway and (by
+   default) the UI server.
 2. Baseline: score the incumbent, reusing a cached result for the same loop,
    subject revision and scorer definition.
 3. Each epoch: render the brief (`{{incumbent}}`, `{{history}}`,
@@ -300,6 +302,8 @@ runs/<loop>/<run-id>/
   run.json       status, times, stop reason, error, warnings, incumbent, spend
   events.jsonl   loop trace (loop-trace.md)
   ledger.json    every candidate with gate, scores and decision
+  upgrades.jsonl what changed since the previous run, and why (upgrade-log.md)
+  upgrades.md    the loop's upgrade log rendered when the run started
   epoch-<n>/     brief.md, ideas.json, swarm/, candidates/, steps/
 cache/           incumbent score cache
 spend.json       total spend ledger across runs
@@ -321,6 +325,7 @@ rsi-ralph run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve] [--env
 rsi-ralph score <loop> --label L [--checkout P] [--env K=V]...
 rsi-ralph runs  [--loop NAME]
 rsi-ralph show  <loop>/<run-id>
+rsi-ralph upgrades show|add|outcome <loop> ...
 rsi-ralph serve [--port 8787]
 ```
 
@@ -338,7 +343,7 @@ replay then tail), `/api/runs/<loop>/<run>/meter` (the gateway's
 `meter.jsonl`, SSE), `/api/runs/<loop>/<run>/epochs` (the epoch numbers),
 `/api/runs/<loop>/<run>/epochs/<n>/hive` (that epoch's swarm trace,
 `epoch-<n>/hive/events.jsonl`, SSE) and `/api/runs/<loop>/<run>/files/<path>`
-for `run.json`, `ledger.json`, `budget.json`, an epoch's `brief.md` and a
+for `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md` and a
 candidate's `change.diff`. Besides the score chart and candidates, the page
 shows per agent its model calls, tokens (with the share of prompt tokens
 served from the provider's prompt cache, where reported), cost, time to first
