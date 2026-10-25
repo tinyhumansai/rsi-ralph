@@ -49,14 +49,16 @@ impl Store {
         Self { home: home.into() }
     }
 
-    /// `$TINYRSI_HOME`, else `$HOME/.tinyrsi`, else `.tinyrsi`.
+    /// `$TINYRSI_HOME`, else `.tinyrsi` under `$HOME` (or `%USERPROFILE%` on
+    /// Windows, which sets no `HOME`), else `.tinyrsi`.
     #[must_use]
     pub fn default_home(lookup: &dyn Fn(&str) -> Option<String>) -> PathBuf {
-        lookup("TINYRSI_HOME")
-            .filter(|h| !h.is_empty())
-            .map(PathBuf::from)
-            .or_else(|| lookup("HOME").map(|h| Path::new(&h).join(".tinyrsi")))
-            .unwrap_or_else(|| PathBuf::from(".tinyrsi"))
+        let set = |name: &str| lookup(name).filter(|value| !value.is_empty());
+        set("TINYRSI_HOME").map(PathBuf::from).unwrap_or_else(|| {
+            set("HOME")
+                .or_else(|| set("USERPROFILE"))
+                .map_or_else(|| PathBuf::from(".tinyrsi"), |h| Path::new(&h).join(".tinyrsi"))
+        })
     }
 
     /// The home folder.
