@@ -116,6 +116,7 @@ pub(crate) fn spec(
     };
     let mut spec = AgentSpec::new(seat.id.clone())
         .definition(definition)
+        .model_defaults(model_defaults)
         .provider(provider)
         .access(access)
         .action_dir(action_dir);
