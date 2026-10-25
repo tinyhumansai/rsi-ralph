@@ -51,7 +51,8 @@ crates/
     └── examples/       # runnable, compiled-in-CI usage examples
 examples/               # `rsi-ralph-examples`: math_problem, upgrade_file, graph_coloring,
                         # hive_goal
-loops/                  # example loop folders for the `rsi-ralph` binary
+loops/                  # example loop folders, compiled into `rsi-ralph init`
+scripts/                # install.sh / install.ps1 (+ tests), benchmark and Lean curation
 vendor/tinyhivemind/    # pinned hive language, coordinator and storage
 vendor/tinybackrooms/   # pinned creative-retreat engine
 vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
@@ -297,10 +298,12 @@ Releases run from `.github/workflows/release.yml` via a manual
 an interrupted release after its version commit and tag exist. The workflow
 re-runs the full validation suite, computes the next version, updates
 the root `[workspace.package]` version and `Cargo.lock`, commits and tags
-`vX.Y.Z`, pushes, and creates an immutable GitHub release with generated
-notes, then publishes the `rsi-ralph` binary as the `ghcr.io/<owner>/rsi-ralph`
-container image from the `Dockerfile`. A release is a tagged source version;
-there are no other binary assets.
+`vX.Y.Z`, pushes, builds the `rsi-ralph` binary for Linux, macOS and Windows,
+and creates an immutable GitHub release with generated notes and every
+binary archive attached in that one call. It then publishes the binary as the
+`ghcr.io/<owner>/rsi-ralph` container image from the `Dockerfile`. The archive
+names are a contract with `scripts/install.sh` and `scripts/install.ps1`; see
+[`docs/development.md`](docs/development.md#releasing).
 
 Consequently:
 

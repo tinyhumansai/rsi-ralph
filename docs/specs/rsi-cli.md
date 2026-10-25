@@ -192,7 +192,10 @@ Other `run` scorers are recorded and shown in the brief, never decided on.
 ## Step contract
 
 Gate and scorer commands run with a timeout (default 600 s), an output cap, and
-process-group kill. Environment: `PATH`, `HOME`, `TMPDIR`, the `env` map, and
+process-group kill. Environment: `PATH`, `HOME`, `TMPDIR`, the `env` map, and,
+where the caller has them, the Windows variables programs need to start
+(`SYSTEMROOT`, `WINDIR`, `COMSPEC`, `PATHEXT`, `USERPROFILE`, `APPDATA`,
+`LOCALAPPDATA`), and
 
 | Variable | Meaning |
 | --- | --- |
@@ -270,7 +273,8 @@ Provider messages are scrubbed of key values before they are stored.
 
 ## Run store
 
-`$TINYRSI_HOME` (default `~/.tinyrsi`, overridable with `--home`):
+`$TINYRSI_HOME` (default `.tinyrsi` under `$HOME`, or `%USERPROFILE%` on
+Windows; overridable with `--home`):
 
 ```text
 runs/<loop>/<run-id>/
@@ -291,6 +295,9 @@ run's `error` and each of its `warnings`.
 ## CLI
 
 ```text
+rsi-ralph init  <loop> [--template graph-coloring] | --list
+rsi-ralph doctor
+rsi-ralph completions <bash|zsh|fish|powershell|elvish>
 rsi-ralph check <loop>
 rsi-ralph run   <loop> [--run ID] [--epochs N] [--port 8787] [--no-serve] [--env K=V]...
 rsi-ralph score <loop> --label L [--checkout P] [--env K=V]...
@@ -298,6 +305,13 @@ rsi-ralph runs  [--loop NAME]
 rsi-ralph show  <loop>/<run-id>
 rsi-ralph serve [--port 8787]
 ```
+
+`init` writes a bundled template (compiled into the binary from `loops/`)
+into a new or empty folder and names the loop after it; it never overwrites a
+file. `doctor` reports the version, whether `git`, `diff` and `python3` are on
+`PATH`, whether `OPENROUTER_API_KEY` is set (never its value) and where the run
+store is; it exits 1 when `git` or `diff` is missing. `completions` prints a
+completion script generated from the same parser.
 
 `run` serves the UI on `127.0.0.1:<port>` by default and prints its URL.
 The UI is one page embedded in the binary — no Node toolchain is involved —

@@ -85,6 +85,15 @@ pub enum Error {
     /// No stored run matches.
     #[error("no run {0}")]
     NoRun(String),
+    /// `rsi-ralph init` was pointed at a folder that already holds files.
+    #[error("{} is not empty", .0.display())]
+    NotEmpty(PathBuf),
+    /// `rsi-ralph doctor` found required programs missing from `PATH`.
+    #[error("missing programs: {}", missing.join(", "))]
+    Doctor {
+        /// Program names, such as `git`.
+        missing: Vec<String>,
+    },
     /// A step command could not be started or produced no usable result.
     #[error("step {step}: {reason}")]
     Step {

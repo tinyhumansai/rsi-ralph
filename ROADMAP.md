@@ -50,6 +50,9 @@ published 24-attempt experiment is inconclusive.
   spend-capped gateway (`crates/rsi-ralph-gateway`), a durable run store and a
   built-in UI ([`docs/specs/rsi-cli.md`](docs/specs/rsi-cli.md),
   [`docs/guides/rsi-cli.md`](docs/guides/rsi-cli.md)).
+- Prebuilt `rsi-ralph` binaries for Linux, macOS and Windows on every release,
+  with `curl | sh` and PowerShell installers (`scripts/install.sh`,
+  `scripts/install.ps1`) and the `init`, `doctor` and `completions` commands.
 
 ## Next
 

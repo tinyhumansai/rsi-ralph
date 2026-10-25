@@ -2,242 +2,156 @@
 
 # RSI Ralph
 
-RSI Ralph runs recursive Ralph loops over a hive. An OpenHuman agent edits the
-hive's language files (seats, prompts, context, roster, policies, integrations)
-and the host checks the result against a goal. If the goal is not met, the same
-agent edits the files again, and the loop repeats until the goal is properly
-met or the budget runs out. The loop recurses because the thing being improved
-is the hive that does the improving.
+RSI Ralph keeps asking a team of AI agents to improve something until a score
+says it is better. You give it a folder or git branch to improve, a way to
+score it, and a short brief. A hive of OpenHuman agents edits a copy, your
+scorer grades the copy against the current best, and the copy replaces the best
+only when the numbers say it won. Then it goes again, until the goal is met or
+the budget runs out.
 
-A host-driven orchestrator for improving tinyhivemind hives through typed
-patches, private shadow evaluations and explicit human approval, plus a
-generic improvement loop for plain scripts. It is a Rust library,
-`crates/rsi-ralph`, that a host program links; it has no daemon and no plugin
-surface of its own.
+The name comes from the Ralph loop: run an agent on the same goal, over and
+over, and let the results decide. The RSI part (recursive self-improvement) is
+that the agents doing the editing can be the thing being improved.
 
-## What it does
+## Install
 
-The Rust API runs a host-controlled improvement loop: persist redacted epoch
-observations, generate typed proposals, freeze normalized evaluation policy and
-private suite identities, evaluate in isolated coordinator episodes, and ask a
-human to approve the exact confirmed candidate. `Archive` retains original
-language `Record` and `Package` values, prepared snapshots, declarations, paired
-runs, recomputed comparisons, explicit decisions and final outcomes. Selection
-and live deployment remain separate durable facts.
+macOS and Linux:
 
-The `rsi-ralph-host` crate supplies `CoordinatorHost` over real tinyhivemind
-storage, including SQLite, and `DeploymentStore` for activation, compensation,
-restart and parent rollback. `SnapshotMemoryStore` provides immutable local
-memory images. `VerifiedRunner` settles work only through immutable host checks;
-`CoordinatorEvaluator` runs frozen private suites with fresh coordinator storage
-per task, seed and arm. `EpochJournal` preserves real retreat attempts and
-prevents completed generation/evaluation from repeating after restart.
+```sh
+curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
+```
 
-`EvidenceJournal` persists controlled turn intent, provider-measured usage and
-observed checker evidence, then atomically consumes them into a redacted epoch
-receipt. Duplicate callbacks and repeated epoch reads do not recount work after
-restart; interrupted calls with missing usage remain explicitly unknown. Run
-`cargo run -p rsi-ralph-host --example observe_epochs` for the offline
-two-epoch demonstration and public receipts under `target/rsi-observe-epochs/`.
+Windows (PowerShell):
 
-`EpochJournal::proposal_dataset` links typed formatter occurrences and committed
-predictions to selection-only labels, preserving missing and censored outcomes.
-Optional probabilities are frozen before evaluation; Brier, tied-rank Spearman
-and precision-at-k report their denominators without using confirmation or anchor
-measurements. See the [dataset contract](crates/rsi-ralph-host/src/epoch_driver/dataset/README.md)
-and the `proposal_metrics` example for reporting an existing private host run.
+```powershell
+irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex
+```
 
-The supplied `ControlledRunnerFactory` is a bounded, artifact-only, single-seat
-adapter. It installs supported prompts, context, recall and conduct caps, and
-rejects unsupported models, tools, MCP and policies explicitly. A custom
-`RunnerFactory` owns broader deployment capabilities. Multi-seat verified DAG
-execution is exercised separately. These adapters use existing upstream APIs;
-this repository does not modify OpenHuman or provide a CortexDB memory adapter.
+The installer picks the build for your machine from the latest
+[release](https://github.com/tinyhumansai/rsi-ralph/releases), checks its
+SHA-256, and puts `rsi-ralph` in `~/.local/bin` (on Windows,
+`%LOCALAPPDATA%\Programs\rsi-ralph\bin`, which it adds to your user `PATH`).
+It does not use `sudo`. To pin a version or choose the folder, pass flags
+through the pipe:
 
-`ExperimentProtocol` and `run_experiment` preregister original/evolved arms,
-private draws, equal total caps, ablations and an aggregate reporting rule.
-The [complete live run](docs/rsi/complete-live.md) passed separate acceptance and
-SQLite deployment/rollback validation; its 24-attempt comparison was inconclusive.
-These public toy fixtures do not establish positive RSI or ignition.
-See [phase status](docs/rsi/phases.md), [host runtime](docs/specs/host-runtime.md)
-and [the experiment protocol](docs/specs/ignition.md).
+```sh
+curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh \
+  | sh -s -- --version v0.4.0 --dir /usr/local/bin
+```
 
-## Project Structure
+Prebuilt binaries exist for Linux (x86_64 and arm64, glibc 2.35+), macOS (Intel
+and Apple silicon) and Windows (x86_64, which also runs on Windows on Arm). Run
+the installer again to upgrade.
+
+If you would rather not install anything, use the container image:
+
+```sh
+docker run --rm -it -v "$PWD:/work" -w /work -v rsi-ralph-home:/data \
+  -e OPENROUTER_API_KEY ghcr.io/tinyhumansai/rsi-ralph doctor
+```
+
+Runs are kept in the `/data` volume. The UI only listens on loopback, so add
+`--network host` to reach it from the host, or pass `--no-serve` to `run`.
+
+To build from source you need Rust 1.96 or newer and the submodules:
+
+```sh
+git clone --recurse-submodules https://github.com/tinyhumansai/rsi-ralph
+cd rsi-ralph && cargo install --path crates/rsi-ralph-cli
+```
+
+## Quick start
+
+```sh
+rsi-ralph doctor                    # git, diff, python3 and your API key
+rsi-ralph init my-loop              # a starter loop: colour graphs with fewer colours
+export OPENROUTER_API_KEY=sk-or-...
+rsi-ralph check my-loop             # validate it before spending anything
+rsi-ralph run my-loop               # run it, with a live UI on http://127.0.0.1:8787
+```
+
+The starter loop asks the agents to make a graph-colouring heuristic use fewer
+colours. It scores with a small Python script, runs three epochs and stops at
+$1 of model spend. When it finishes, the best version is in the run folder and
+`rsi-ralph show` tells you where.
+
+## What a loop is
+
+A loop is a folder. You write JSON, Markdown and a scorer in whatever language
+you like. You don't write any Rust.
 
 ```text
-Cargo.toml              # virtual workspace: members, [workspace.package],
-                        # [workspace.dependencies], [workspace.lints]
-crates/
-├── rsi-ralph-types/      # proposal and candidate data shared by every crate
-├── rsi-ralph-model/      # bounded, metered model calls
-├── rsi-ralph-trace/      # live loop trace for rsi-viz and `tracing` subscribers
-├── rsi-ralph-langfuse/   # Langfuse export of loop traces via openhuman-embed
-├── rsi-ralph-gateway/    # spend-capped loopback proxy to OpenRouter, one per run
-├── rsi-ralph-score/      # Scorer port, LLM/backrooms judges, decide, statistics
-├── rsi-ralph-verify/     # host checkers, blueprints, pinned Lean, process runner
-├── rsi-ralph-evolve/     # Evolver port, script supervisor, tinybackrooms retreat
-├── rsi-ralph-host/       # hive runtime: coordinators, suites, durable epochs, deployment
-├── rsi-ralph-swarm/      # a hive package run as OpenHuman agents editing candidates
-└── rsi-ralph/            # the improvement-loop library
-    ├── src/
-    │   ├── lib.rs      # crate docs + the entire public surface
-    │   ├── error/      # crate-wide `Error` and `Result<T>`
-    │   ├── lineage/    # small in-memory ledger of graded candidates
-    │   ├── archive/    # replay-validated proposals and evaluation evidence
-    │   ├── observation/, orchestrator/  # epoch and approval funnel
-    │   ├── memory/     # immutable snapshots
-    │   └── script_loop/  # plain-script loop
-    ├── tests/          # integration tests against the public API only
-    └── examples/       # runnable, compiled-in-CI usage examples
-vendor/tinyhivemind/    # pinned language, coordinator and storage APIs
-vendor/tinybackrooms/   # pinned creative-retreat engine
-vendor/openhuman/       # pinned OpenHuman, for its embed Langfuse client
-examples/               # end-to-end examples: math_problem, upgrade_file, hive_goal
-docs/
-├── rsi/                # RSI research notes and the working framework spec
-├── specs/              # behavior and architecture specifications
-├── plans/              # test-first implementation plans
-└── adr/                # immutable architecture decision records
+my-loop/
+  rsi.json            what may change, how to score it, budget and epochs
+  brief.md            the goal, written for the agents
+  hive/               the agents: seats, roles and prompts
+  scorers/colors.py   prints METRIC colors=<n>, or writes result.json
+  subject/coloring.py the thing being improved
 ```
 
-Within each crate, feature areas use directory modules: implementation and
-exports live in `mod.rs`, substantial types move to `types.rs`, and unit tests
-live in `test.rs`. [`AGENTS.md`](AGENTS.md) holds the complete repository
-guidance, and `CLAUDE.md` is a symlink to it so every coding agent reads one
-source of truth.
+Each epoch, the lead agent reads the brief along with the history so far: past
+scores, the failures your scorer reported, and ideas from an optional
+brainstorming "retreat". Agents with a candidate checkout edit their copy.
+Edits outside the paths `rsi.json` marks editable fail the candidate before it
+is scored. Your scorer then runs on the candidate and on the current best, on
+the same seeds or held-out items, and a paired test decides which one wins.
+Markdown rubrics can act as LLM judges too, but a judge on its own can only
+hold a candidate back, never accept one.
 
-## Development
+Every model call goes through a local gateway that holds the only copy of your
+key and stops the run at its spend cap. Key values are never written to the
+run store.
 
-Rust 1.96 or newer is required by the pinned hive and retreat libraries.
-Clone with submodules, or initialize them before building:
+[Writing a loop](docs/guides/rsi-cli.md) walks through every field of the
+starter loop. [The CLI spec](docs/specs/rsi-cli.md) is the full contract.
 
-```sh
-git submodule update --init --recursive
-```
+## Commands
 
-```sh
-cargo fmt -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo build --all-targets --all-features
-cargo test --all-features
-cargo run -p rsi-ralph --example basic
-```
+| Command | What it does |
+| --- | --- |
+| `rsi-ralph init <dir>` | Write a starter loop into a new folder (`--list` shows the templates) |
+| `rsi-ralph doctor` | Check that `git`, `diff`, `python3` and `OPENROUTER_API_KEY` are available |
+| `rsi-ralph check <loop>` | Validate a loop folder and report missing keys |
+| `rsi-ralph run <loop>` | Run it, serving the UI (`--epochs N`, `--no-serve`, `--env K=V`) |
+| `rsi-ralph score <loop>` | Score one checkout with the loop's scorers, outside a run |
+| `rsi-ralph runs` | List stored runs, newest first |
+| `rsi-ralph show <loop>/<run>` | One run's outcome, spend, errors and folder |
+| `rsi-ralph serve` | The UI over every stored run |
+| `rsi-ralph completions <shell>` | Print a completion script for bash, zsh, fish, PowerShell or elvish |
 
-Those four checks are exactly what CI runs. Optional extras:
+To turn on completions in zsh, for example, add
+`source <(rsi-ralph completions zsh)` to `~/.zshrc`.
 
-```sh
-cargo doc --no-deps --all-features   # CI builds this with RUSTDOCFLAGS="-D warnings"
-cargo deny check all                 # supply-chain check; see deny.toml
-cargo install cargo-llvm-cov         # once, before running the coverage gate
-.github/scripts/check-file-coverage.sh 90 coverage.json
-```
+Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/`. Set `TINYRSI_HOME` or pass
+`--home` to keep them somewhere else. Each run folder holds a frozen copy of
+the loop, the ledger of every candidate and decision, the event log, and each
+epoch's brief, diffs and step logs. Exit status is 0 on success, 1 when a run
+fails, and 2 when the loop folder or arguments are invalid.
 
+## Where it stands
 
-## Loop visualizer
+The loop machinery is built and tested, and the CLI runs real loops end to
+end. Whether it produces genuine recursive improvement is still an open
+question. The one complete preregistered experiment, 24 attempts comparing an
+original and an evolved hive, came out inconclusive. The examples in this
+repository are toy problems and do not show positive RSI. The
+[roadmap](ROADMAP.md) lists what has shipped and what comes next, and
+[docs/rsi/](docs/rsi/README.md) has the research notes and dated results.
 
-[`apps/rsi-viz`](apps/rsi-viz/README.md) is a read-only Next.js app that lists
-runs under `target/` and follows a loop's `events.jsonl` live: current stage,
-metric by epoch, proposals with their decisions, and the incumbent lineage.
-`cd apps/rsi-viz && npm ci && npm run dev`.
+## Using it as a library
 
-To see the same runs in Langfuse, add a `rsi_ralph_langfuse::LangfuseTrace` to the
-loop's sink (for example beside `JsonlTrace` in a `FanoutTrace`). It sends
-OTLP spans through OpenHuman's own Langfuse client and reads the same
-`LANGFUSE_*` variables; see `.env.example`.
+Everything the binary does is also available as Rust crates, and the library
+has more besides. There is a host runtime that improves tinyhivemind hives
+through typed patches, private shadow evaluations and explicit human approval,
+with durable epochs, deployment and rollback. There is also a lighter loop that
+improves any script that prints `METRIC name=value`.
+[docs/library.md](docs/library.md) describes both, with the runnable examples.
 
-## Live OpenRouter smoke test
+## Contributing
 
-With an existing `OPENROUTER_API_KEY` in your environment:
+[docs/development.md](docs/development.md) covers the build, tests, live runs
+and releases. [AGENTS.md](AGENTS.md) is the working agreement for humans and
+coding agents alike, and [docs/README.md](docs/README.md) indexes the rest of
+the documentation. Security reports go through [SECURITY.md](SECURITY.md).
 
-```sh
-TINYRSI_LIVE_OPENROUTER=1 cargo run -p rsi-ralph --example live_openrouter
-```
-
-Optional `OPENROUTER_MODEL` selects the model (default `openai/gpt-4.1-mini`).
-`TINYRSI_SMOKE_ARCHIVE` selects a new archive path under `target/`; the example
-refuses to overwrite an existing run. Credentials never enter arguments or
-logs. The test runs the tinybackrooms critic/proposer engine through OpenRouter,
-requests a typed context patch, and evaluates a deliberately weak
-baseline and candidate on paired arithmetic tasks, confirms on fresh draws,
-checks denied approval preserves the baseline, and reopens durable evidence.
-It spends real API tokens. Passing proves integration, not general improvement.
-
-## Complete host experiment
-
-The optional example combines durable observation, actual tinybackrooms retreat,
-isolated code/reference/schema/Lean verification and the preregistered
-original/evolved experiment with memory-off and retreat-off ablations. The separate
-controlled path below exercises normalized confirmation, approval and deployment:
-
-```sh
-TINYRSI_LIVE_OPENROUTER=1 TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p rsi-ralph-host --example complete_openrouter
-```
-
-It requires inherited `OPENROUTER_API_KEY` and an actual stock Lean executable.
-`OPENROUTER_MODEL` chooses the model. `TINYRSI_COMPLETE_DIR` chooses a fresh
-host-private directory (default `target/rsi-complete-live`); existing directories
-are refused to preserve preregistration. The example spends real API tokens.
-It writes protocol and aggregate experiment reports without publishing private
-suite contents. A negative or inconclusive report is a valid result.
-
-## End-to-end examples
-
-[`examples/`](examples/README.md) runs the whole loop (evolve, score, keep
-what is better) on four problems, offline by default:
-
-- `math_problem`: compute π to 12 digits.
-- `upgrade_file`: bring a file up to a written coding standard.
-- `graph_coloring`: colour random graphs with as few colours as possible.
-- `hive_goal`: improve a hive of agents until they solve private tasks.
-
-Run `cargo run -p rsi-ralph-examples --example math_problem` (or
-`upgrade_file`, `graph_coloring`, `hive_goal`), then watch the runs in `apps/rsi-viz` with
-`RSI_RUN_ROOT=../../target/rsi-examples`.
-
-## Improving a plain script
-
-`run_script_loop` repeats observe, ideate, execute, measure, score and improve
-over any script that prints `METRIC <name>=<value>` (plus optional
-`DIAG <text>` lines the supervisor reads), supervised by a language
-model, and streams every stage to `events.jsonl`. Try it offline on a
-curve-fitting script with `cargo run -p rsi-ralph --example script_loop`; point
-it at your own script with the [script loop guide](docs/guides/script-loop.md).
-Proposed code runs locally without a sandbox; read the guide's safety note
-before live runs.
-
-## Releasing
-
-Run the **Release** workflow from the Actions tab with a `patch`, `minor`, or
-`major` bump. Use `current` only to resume an interrupted release whose version
-commit and tag already exist. The workflow revalidates the workspace, versions
-and tags it — one `[workspace.package]` version that every member inherits —
-and creates a GitHub release with generated notes. A release is a tagged
-source version, and the `rsi-ralph` binary is published as the container image
-`ghcr.io/tinyhumansai/rsi-ralph` (tagged with the version and `latest`). The
-crates are not on crates.io: they depend on vendored git and path dependencies.
-
-```sh
-docker run --rm -v "$PWD/loops:/loops" -v rsi-ralph-home:/data \
-  ghcr.io/tinyhumansai/rsi-ralph check /loops/graph-coloring
-```
-
-Run records persist in the `/data` volume (`TINYRSI_HOME`). The UI listens on
-loopback only, so use `--network host` to reach it, or pass `--no-serve` to
-`run`. Build the image yourself with `docker build -t rsi-ralph .` from a
-checkout with submodules initialized.
-
-The separate acceptance/deployment validation uses a model-authored, schema-bound
-context repair outside the preregistered comparison:
-
-```sh
-TINYRSI_LIVE_OPENROUTER=1 TINYRSI_CONTROLLED_ONLY=1 \
-  TINYRSI_COMPLETE_DIR=target/rsi-controlled-live \
-  TINYRSI_LEAN=/absolute/path/to/lean \
-  cargo run -p rsi-ralph-host --example complete_openrouter
-```
-
-It checks all three normalized evaluation stages, both sandbox gate decisions,
-a verified turn on the accepted SQLite deployment, exact parent rollback and
-reopening the deployment, archive and runtime. It does not contribute observations
-to the frozen original/evolved comparison.
+RSI Ralph is licensed under the [GPL-3.0](LICENSE).

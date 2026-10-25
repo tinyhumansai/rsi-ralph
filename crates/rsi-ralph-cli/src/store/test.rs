@@ -151,6 +151,23 @@ fn timestamps_are_utc_calendar_times() {
 }
 
 #[test]
+fn default_home_falls_back_to_userprofile_where_home_is_unset() {
+    // Windows sets `USERPROFILE`, not `HOME`; the store must not land in
+    // whatever folder the binary happens to be started from.
+    let windows = |k: &str| (k == "USERPROFILE").then(|| "/u".to_owned());
+    assert_eq!(Store::default_home(&windows), PathBuf::from("/u/.tinyrsi"));
+    let empty_home = |k: &str| match k {
+        "HOME" => Some(String::new()),
+        "USERPROFILE" => Some("/u".to_owned()),
+        _ => None,
+    };
+    assert_eq!(
+        Store::default_home(&empty_home),
+        PathBuf::from("/u/.tinyrsi")
+    );
+}
+
+#[test]
 fn default_home_prefers_tinyrsi_home() {
     let both = |k: &str| match k {
         "TINYRSI_HOME" => Some("/t".to_owned()),

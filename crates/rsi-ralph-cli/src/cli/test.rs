@@ -378,6 +378,84 @@ fn score_passes_plain_keys_to_steps_under_their_own_name() {
 }
 
 #[test]
+fn init_writes_a_loop_that_check_accepts() {
+    let root = tempfile::tempdir().unwrap();
+    let dir = root.path().join("colors");
+    let (ok, out) = exec(&["init", dir.to_str().unwrap()], true);
+    assert!(ok.is_ok());
+    assert!(out.starts_with("created colors in "), "{out}");
+    assert!(out.contains("rsi-ralph run"), "{out}");
+    let (checked, line) = exec(&["check", dir.to_str().unwrap()], true);
+    assert!(checked.is_ok(), "{checked:?}");
+    assert!(line.starts_with("ok: colors "), "{line}");
+    let (again, _) = exec(&["init", dir.to_str().unwrap()], true);
+    assert!(matches!(again, Err(Error::NotEmpty(_))));
+    assert_eq!(exit_code(&again), 2);
+    let (unknown, _) = exec(
+        &[
+            "init",
+            root.path().join("x").to_str().unwrap(),
+            "--template",
+            "nope",
+        ],
+        true,
+    );
+    assert_eq!(exit_code(&unknown), 2);
+}
+
+#[test]
+fn init_lists_the_bundled_templates() {
+    let (ok, out) = exec(&["init", "--list"], true);
+    assert!(ok.is_ok());
+    assert!(out.starts_with("graph-coloring "), "{out}");
+    assert!(Cli::try_parse_from(["rsi-ralph", "init"]).is_err());
+}
+
+#[test]
+fn doctor_reports_the_store_it_would_use() {
+    let home = tempfile::tempdir().unwrap();
+    let (_, out) = exec(&["--home", home.path().to_str().unwrap(), "doctor"], true);
+    assert!(out.starts_with("rsi-ralph "), "{out}");
+    assert!(out.contains("ok      OPENROUTER_API_KEY is set"), "{out}");
+    assert!(out.contains(&format!("store   {}", home.path().display())));
+}
+
+#[test]
+fn completions_print_a_script_naming_every_command() {
+    let (ok, out) = exec(&["completions", "bash"], true);
+    assert!(ok.is_ok());
+    for command in ["init", "doctor", "check", "run", "serve"] {
+        assert!(out.contains(command), "{command} missing from completions");
+    }
+}
+
+#[test]
+fn a_doctor_failure_is_a_loop_error() {
+    let missing = Err(Error::Doctor {
+        missing: vec!["git".into()],
+    });
+    assert_eq!(exit_code(&missing), 1);
+}
+
+#[test]
+fn steps_inherit_what_windows_programs_need_to_start() {
+    // Python on Windows aborts at startup without `SYSTEMROOT`, so a step
+    // environment holding only `PATH` and `HOME` cannot run a scorer there.
+    let lookup = |name: &str| match name {
+        "PATH" => Some("C:\\bin".to_owned()),
+        "SYSTEMROOT" => Some("C:\\Windows".to_owned()),
+        "USERPROFILE" => Some("C:\\Users\\me".to_owned()),
+        "OPENROUTER_API_KEY" => Some("sk-secret".to_owned()),
+        _ => None,
+    };
+    let env = run::inherited(&lookup);
+    let names: Vec<&str> = env.iter().map(|(k, _)| k.as_str()).collect();
+    assert!(names.contains(&"SYSTEMROOT"), "{names:?}");
+    assert!(names.contains(&"USERPROFILE"), "{names:?}");
+    assert!(!names.contains(&"OPENROUTER_API_KEY"), "{names:?}");
+}
+
+#[test]
 fn the_budget_sets_the_gateway_completion_cap() {
     use crate::manifest::Budget;
     use rsi_ralph_gateway::Limits;

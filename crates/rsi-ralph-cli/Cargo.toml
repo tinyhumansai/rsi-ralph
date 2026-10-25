@@ -36,6 +36,7 @@ rsi-ralph-verify = { workspace = true }
 tinybackrooms = { workspace = true }
 tinyhivemind-lang = { workspace = true }
 clap = { workspace = true }
+clap_complete = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
