@@ -340,8 +340,9 @@ replay then tail), `/api/runs/<loop>/<run>/meter` (the gateway's
 `epoch-<n>/hive/events.jsonl`, SSE) and `/api/runs/<loop>/<run>/files/<path>`
 for `run.json`, `ledger.json`, `budget.json`, an epoch's `brief.md` and a
 candidate's `change.diff`. Besides the score chart and candidates, the page
-shows per agent its model calls, tokens, cost, time to first token and call
-time (from the meter, whole run) and its turns, tool calls and messages (from
+shows per agent its model calls, tokens (with the share of prompt tokens
+served from the provider's prompt cache, where reported), cost, time to first
+token and call time (from the meter, whole run) and its turns, tool calls and messages (from
 the shown epoch's swarm trace); a per-tool table of calls, failures and
 durations; a filterable activity feed of tool calls, messages and turns; and
 the latest model calls. The store
