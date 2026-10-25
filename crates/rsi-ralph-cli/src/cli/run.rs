@@ -19,7 +19,7 @@ use crate::{
     engine::{Engine, Meter},
     hive::Hive,
     keys::Keys,
-    manifest::{self, Loop},
+    manifest::{self, Budget, Loop},
     retreat::Retreat,
     score::{self, Judges},
     store::{self, RunDir, Store},
