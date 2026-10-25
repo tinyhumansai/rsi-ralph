@@ -39,6 +39,10 @@ pub(crate) struct MeterRow {
     pub(crate) completion_tokens: u64,
     /// Wall-clock duration.
     pub(crate) wall_ms: u128,
+    /// Time to first token: from forwarding the call to the first stream
+    /// event carrying generated output. `None` for a buffered response or a
+    /// stream that produced nothing.
+    pub(crate) ttft_ms: Option<u128>,
     /// Refusal or failure reason.
     pub(crate) error: Option<String>,
 }

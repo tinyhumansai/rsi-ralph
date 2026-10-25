@@ -421,6 +421,8 @@ struct Outcome {
     usage: Usage,
     cost: Option<f64>,
     error: Option<String>,
+    /// Time to first token, for a stream that produced one.
+    ttft_ms: Option<u128>,
 }
 
 async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes) -> Response {
@@ -439,6 +441,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         prompt_tokens: outcome.usage.prompt_tokens,
         completion_tokens: outcome.usage.completion_tokens,
         wall_ms: started.elapsed().as_millis(),
+        ttft_ms: outcome.ttft_ms,
         error: outcome.error,
     };
     let refuse = |model: &str, error: &Error| {
@@ -452,6 +455,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
                 usage: Usage::default(),
                 cost: None,
                 error: Some(error.to_string()),
+                ttft_ms: None,
             },
         ));
         error_response(status, &error.to_string())
@@ -490,6 +494,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
                     usage: Usage::default(),
                     cost: None,
                     error: Some(settle_error.unwrap_or_else(|| error.to_string())),
+                    ttft_ms: None,
                 },
             ));
             return error_response(StatusCode::BAD_GATEWAY, &error.to_string());
@@ -502,6 +507,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
             prepared,
             reservation,
             response,
+            started,
             move |outcome| row(&outcome.0, outcome.1),
         );
     }
@@ -562,6 +568,7 @@ async fn buffered(
         usage,
         cost,
         error: settle_error.or(failure),
+        ttft_ms: None,
     };
     let response = Response::builder()
         .status(status.as_u16())
@@ -579,6 +586,7 @@ fn stream_through<F>(
     prepared: Prepared,
     reservation: Reservation,
     response: reqwest::Response,
+    started: Instant,
     row: F,
 ) -> Response
 where
@@ -590,10 +598,14 @@ where
         let mut scanner = SseUsage::default();
         let mut upstream = response.bytes_stream();
         let mut failure = None;
+        let mut ttft_ms = None;
         while let Some(chunk) = upstream.next().await {
             match chunk {
                 Ok(chunk) => {
                     scanner.feed(&chunk);
+                    if ttft_ms.is_none() && scanner.saw_token() {
+                        ttft_ms = Some(started.elapsed().as_millis());
+                    }
                     // Keep draining after the client goes away: the usage
                     // event arrives last and the call is billed regardless.
                     let _ = tx.send(Ok(chunk)).await;
@@ -628,6 +640,7 @@ where
                 usage,
                 cost,
                 error: settle_error.or(failure),
+                ttft_ms,
             },
         )));
         drop(in_flight);

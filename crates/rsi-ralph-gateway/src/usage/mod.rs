@@ -5,7 +5,9 @@
 //! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
 //! as they pass through. When the cost is missing but token counts are
 //! present, [`Usage::cost_or_ceiling`] prices the tokens at the model's
-//! ceiling, which is still an upper bound.
+//! ceiling, which is still an upper bound. The same scan notes when the
+//! first generated token arrives, which the proxy turns into time to first
+//! token.
 
 use serde_json::Value;
 
@@ -62,6 +64,7 @@ impl Usage {
 pub(crate) struct SseUsage {
     pending: Vec<u8>,
     usage: Usage,
+    token: bool,
 }
 
 impl SseUsage {
@@ -72,6 +75,14 @@ impl SseUsage {
             let line: Vec<u8> = self.pending.drain(..=end).collect();
             self.line(&line);
         }
+    }
+
+    /// Whether a complete event carrying generated text, reasoning or a
+    /// tool call has been seen. Keepalive comments and empty role deltas do
+    /// not count.
+    #[must_use]
+    pub(crate) fn saw_token(&self) -> bool {
+        self.token
     }
 
     /// Finishes the stream and returns the last usage seen.
@@ -90,12 +101,33 @@ impl SseUsage {
             return;
         };
         if let Ok(event) = serde_json::from_str::<Value>(data.trim()) {
+            self.token = self.token || carries_token(&event);
             let usage = Usage::from_body(&event);
             if usage.seen {
                 self.usage = usage;
             }
         }
     }
+}
+
+/// Whether a stream event's first choice delta holds any generated output.
+fn carries_token(event: &Value) -> bool {
+    let Some(delta) = event.pointer("/choices/0/delta") else {
+        return false;
+    };
+    let text = |key: &str| {
+        delta
+            .get(key)
+            .and_then(Value::as_str)
+            .is_some_and(|s| !s.is_empty())
+    };
+    text("content")
+        || text("reasoning")
+        || text("reasoning_content")
+        || delta
+            .get("tool_calls")
+            .and_then(Value::as_array)
+            .is_some_and(|calls| !calls.is_empty())
 }
 
 #[cfg(test)]
