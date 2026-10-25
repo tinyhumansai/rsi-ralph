@@ -277,3 +277,58 @@ fn without_sharing_each_seat_logs_to_its_own_namespace() {
     }
     assert!(!written.contains(&format!("{ROOT}/agent:{SHARED_MEMORY_AGENT}")));
 }
+
+/// The same shared run against a real `CortexDB` server: set
+/// `RSI_RALPH_LIVE_CORTEXDB_URL` and `RSI_RALPH_LIVE_CORTEXDB_KEY` to run it.
+/// Each run writes below a fresh root, so earlier runs cannot satisfy it.
+#[test]
+fn live_shared_memory_lands_in_one_cortexdb_namespace() {
+    let (Ok(url), Ok(key)) = (
+        std::env::var("RSI_RALPH_LIVE_CORTEXDB_URL"),
+        std::env::var("RSI_RALPH_LIVE_CORTEXDB_KEY"),
+    ) else {
+        eprintln!("skipped: RSI_RALPH_LIVE_CORTEXDB_URL and _KEY are not set");
+        return;
+    };
+    let _turn = one_swarm_at_a_time();
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    let root = format!("team:rsi-live-{stamp}");
+    let memory = SwarmMemory::cortexdb(&url, &key, root.clone())
+        .unwrap()
+        .shared(true);
+    let (events, _) = run(memory, FIRST_RUN_FINDING);
+    let shared = format!("{root}/agent:{SHARED_MEMORY_AGENT}");
+    assert!(announced(&events).values().all(|ns| ns.as_deref() == Some(shared.as_str())));
+
+    // Read back through a fresh client: what the seats wrote, where.
+    let reader = tinymemory_integrations::build_engine(
+        tinymemory_integrations::CORTEXDB_ENGINE_ID,
+        &tinymemory_integrations::EngineSettings {
+            endpoint: Some(url),
+            ..tinymemory_integrations::EngineSettings::default()
+        },
+        tinymemory_integrations::EngineCredential::Static(key),
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let mut seen = BTreeSet::new();
+    for _ in 0..30 {
+        let page = runtime
+            .block_on(reader.list(ListRequest::new(MetaFilter::default(), 1000)))
+            .unwrap();
+        seen = page
+            .items
+            .iter()
+            .map(|hit| hit.meta.namespace.to_string())
+            .filter(|namespace| namespace.starts_with(&root))
+            .collect();
+        if seen.contains(&shared) {
+            break;
+        }
+        std::thread::sleep(Duration::from_secs(1));
+    }
+    assert_eq!(seen, BTreeSet::from([shared]));
+}
