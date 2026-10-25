@@ -258,6 +258,9 @@ fn validate_fields(m: &Manifest) -> Result<()> {
             return Err(Error::field(field, "must be a positive amount"));
         }
     }
+    if b.max_tokens == Some(0) {
+        return Err(Error::field("budget.max_tokens", "must be positive"));
+    }
     if !b.score_reserve_usd.is_finite() || b.score_reserve_usd < 0.0 {
         return Err(Error::field(
             "budget.score_reserve_usd",

@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use rsi_ralph_gateway::{CallMark, Gateway, GatewayConfig, Price, UpstreamCalls};
+use rsi_ralph_gateway::{CallMark, Gateway, GatewayConfig, Limits, Price, UpstreamCalls};
 use rsi_ralph_model::OpenRouterModel;
 use rsi_ralph_score::{JudgeLimits, LlmJudge};
 use rsi_ralph_trace::StopReason;
@@ -110,7 +110,19 @@ fn gateway(
             },
         );
     }
+    config.limits = gateway_limits(budget);
     Gateway::start(config).map_err(|e| Error::Proposer(format!("gateway: {e}")))
+}
+
+/// The gateway's completion limits under `budget`: its `max_tokens` replaces
+/// the stock cap, and lowers the default to match when it is smaller.
+pub(super) fn gateway_limits(budget: &Budget) -> Limits {
+    let mut limits = Limits::default();
+    if let Some(cap) = budget.max_tokens {
+        limits.max_tokens_cap = cap;
+        limits.default_max_tokens = limits.default_max_tokens.min(cap);
+    }
+    limits
 }
 
 /// One `LlmJudge` per judge scorer, calling through the gateway.
