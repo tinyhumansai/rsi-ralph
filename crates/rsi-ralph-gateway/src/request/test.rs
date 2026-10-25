@@ -138,7 +138,7 @@ fn pins_reasoning_effort_unless_the_client_chose() {
     let prepared =
         chat(json!({"model": GLM_FLASH, "messages": [], "reasoning_effort": "high"})).unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"effort": "high"}));
-    assert!(prepared.body.get("reasoning_effort").is_none());
+    assert_eq!(prepared.body["reasoning_effort"], json!("high"));
     let prepared =
         chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"enabled": false}})).unwrap();
     assert_eq!(prepared.body["reasoning"], json!({"enabled": false}));
@@ -154,4 +154,26 @@ fn pins_reasoning_effort_unless_the_client_chose() {
     )
     .unwrap();
     assert!(prepared.body.get("reasoning").is_none());
+}
+
+#[test]
+fn sends_the_reasoning_effort_in_both_spellings() {
+    // OpenRouter reads `reasoning.effort`; other OpenAI-compatible upstreams
+    // (Surplus Intelligence among them) read only `reasoning_effort` and
+    // reason at full length without it.
+    let prepared = chat(json!({"model": GLM_FLASH, "messages": []})).unwrap();
+    assert_eq!(prepared.body["reasoning"], json!({"effort": "low"}));
+    assert_eq!(prepared.body["reasoning_effort"], json!("low"));
+    let prepared =
+        chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"effort": "medium"}}))
+            .unwrap();
+    assert_eq!(prepared.body["reasoning"], json!({"effort": "medium"}));
+    assert_eq!(prepared.body["reasoning_effort"], json!("medium"));
+    let prepared =
+        chat(json!({"model": GLM_FLASH, "messages": [], "reasoning": {"enabled": false}})).unwrap();
+    assert!(
+        prepared.body.get("reasoning_effort").is_none(),
+        "{}",
+        prepared.body
+    );
 }

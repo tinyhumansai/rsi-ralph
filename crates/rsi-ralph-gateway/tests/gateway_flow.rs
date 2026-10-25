@@ -280,6 +280,7 @@ async fn forwards_with_the_real_key_and_charges_reported_cost() {
     assert_eq!(seen[0].0, format!("Bearer {KEY}"));
     assert_eq!(seen[0].1["provider"]["only"], json!(["z-ai"]));
     assert_eq!(seen[0].1["reasoning"], json!({"effort": "low"}));
+    assert_eq!(seen[0].1["reasoning_effort"], json!("low"));
     let ledgers = h.status().await;
     assert!((ledgers["run"]["settled_usd"].as_f64().unwrap() - 0.002).abs() < 1e-12);
     assert!((ledgers["total"]["settled_usd"].as_f64().unwrap() - 0.002).abs() < 1e-12);
