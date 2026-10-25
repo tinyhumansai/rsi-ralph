@@ -13,8 +13,8 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use openhuman_embed::{AgentTurnOrigin, LastTurnUsage};
 use openhuman_embed::agent_progress::AgentProgress;
+use openhuman_embed::{AgentTurnOrigin, LastTurnUsage};
 use tinyhivemind_hives::TurnDisposition;
 use tinyhivemind_openhuman::{TurnHooks, TurnProgressSink, TurnScope};
 

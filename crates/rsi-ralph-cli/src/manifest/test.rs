@@ -398,7 +398,8 @@ fn hive_memory_is_off_by_default_and_rooted_per_loop_when_named() {
     assert_eq!(parsed.memory_root(), None);
 
     let parsed = parse(&with(|m| {
-        m["hive"]["memory"] = json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+        m["hive"]["memory"] =
+            json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY" });
     }))
     .unwrap();
     let memory = parsed.manifest.hive.memory.clone().unwrap();
@@ -424,11 +425,11 @@ fn rejects_a_hive_memory_without_a_url_a_key_name_or_a_root() {
             m["hive"]["memory"] = json!({ "endpoint": "127.0.0.1:3141", "key": "CORTEX_API_KEY" });
         }),
         ("hive.memory.key", |m| {
-            m["hive"]["memory"] = json!({ "endpoint": "http://127.0.0.1:3141", "key": "cortex key" });
+            m["hive"]["memory"] =
+                json!({ "endpoint": "http://127.0.0.1:3141", "key": "cortex key" });
         }),
         ("hive.memory.root", |m| {
-            m["hive"]["memory"] =
-                json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": " " });
+            m["hive"]["memory"] = json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": " " });
         }),
     ];
     for (field, edit) in cases {

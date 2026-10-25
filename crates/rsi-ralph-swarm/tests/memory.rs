@@ -13,8 +13,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use rsi_ralph_swarm::{
-    SHARED_MEMORY_AGENT, StopReason, SwarmEvent, SwarmMemory, SwarmRequest, load_package,
-    run_swarm,
+    SHARED_MEMORY_AGENT, StopReason, SwarmEvent, SwarmMemory, SwarmRequest, load_package, run_swarm,
 };
 use serde_json::{Value, json};
 use tinymemory_api::conformance::reference::ReferenceEngine;
@@ -263,7 +262,10 @@ fn without_sharing_each_seat_logs_to_its_own_namespace() {
         announced(&events),
         BTreeMap::from([
             ("lead".into(), Some(format!("{ROOT}/agent:lead"))),
-            ("implementer-a".into(), Some(format!("{ROOT}/agent:implementer-a"))),
+            (
+                "implementer-a".into(),
+                Some(format!("{ROOT}/agent:implementer-a"))
+            ),
         ])
     );
     let written = namespaces(&engine);

@@ -121,7 +121,10 @@ pub(crate) fn spec(
         model,
         action_dir: action_dir.to_path_buf(),
         editing: plan.editing,
-        memory: request.memory.as_ref().map(|memory| memory.namespace(&seat.id)),
+        memory: request
+            .memory
+            .as_ref()
+            .map(|memory| memory.namespace(&seat.id)),
     };
     (spec, info)
 }

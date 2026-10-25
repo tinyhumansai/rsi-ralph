@@ -106,7 +106,11 @@ impl SwarmMemory {
     /// The memory id `seat`'s turns are logged under.
     #[must_use]
     pub fn agent_id<'a>(&self, seat: &'a str) -> &'a str {
-        if self.shared { SHARED_MEMORY_AGENT } else { seat }
+        if self.shared {
+            SHARED_MEMORY_AGENT
+        } else {
+            seat
+        }
     }
 
     /// The namespace `seat`'s conversations live in, as announced in

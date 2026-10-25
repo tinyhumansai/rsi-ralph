@@ -89,7 +89,10 @@ fn seats_remember_under_the_loop_root_and_can_share_one_namespace() {
     let hive = Hive::new(&per_seat, &keys(&per_seat), "http://x").unwrap();
     let memory = hive.memory.as_ref().unwrap();
     assert!(!memory.is_shared());
-    assert_eq!(memory.namespace("implementer"), "team:math/agent:implementer");
+    assert_eq!(
+        memory.namespace("implementer"),
+        "team:math/agent:implementer"
+    );
 }
 
 #[test]

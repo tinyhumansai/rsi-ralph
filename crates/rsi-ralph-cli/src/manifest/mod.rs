@@ -17,8 +17,8 @@ use crate::{Error, Result};
 mod types;
 pub use types::{
     Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec,
-    StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
+    HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec,
+    ScorerSpec, StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
 /// The one tool capability a key can enable today.
@@ -371,7 +371,11 @@ fn validate_memory(memory: &HiveMemory) -> Result<()> {
             "must name an upper-case environment variable",
         ));
     }
-    if memory.root.as_deref().is_some_and(|root| root.trim().is_empty()) {
+    if memory
+        .root
+        .as_deref()
+        .is_some_and(|root| root.trim().is_empty())
+    {
         return Err(Error::field("hive.memory.root", "must not be blank"));
     }
     Ok(())
