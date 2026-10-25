@@ -1,10 +1,10 @@
 //! Seat memory end to end: swarm runs against a scripted model and
-//! TinyMemory's in-process reference engine.
+//! `TinyMemory`'s in-process reference engine.
 //!
 //! Its own test binary, because `OpenHuman` installs a memory engine for the
 //! whole process: the runs here would otherwise leak memory into the other
 //! swarm tests.
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
