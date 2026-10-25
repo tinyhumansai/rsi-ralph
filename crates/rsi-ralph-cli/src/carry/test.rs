@@ -36,36 +36,22 @@ fn seat(seat: &'static str, outcome: &'static str, files: &[(&str, &str)]) -> Se
     }
 }
 
-fn sources(seats: &[Seat]) -> Vec<(String, Source<'_>)> {
-    seats
-        .iter()
-        .map(|s| {
-            let id = format!("e1-{}", s.seat);
-            (
-                id,
-                Source {
-                    seat: s.seat,
-                    candidate: "",
-                    outcome: s.outcome,
-                    checkout: s.dir.path(),
-                    changed: &s.changed,
-                },
-            )
-        })
-        .collect()
-}
-
+/// Harvest epoch 1 of `seats` into a fresh epoch folder.
 fn run(spec: &Carry, seats: &[Seat], promoted: Option<&str>) -> (tempfile::TempDir, EpochNotes) {
-    let ids = sources(seats);
-    let list: Vec<Source<'_>> = ids
+    let ids: Vec<String> = seats.iter().map(|s| format!("e1-{}", s.seat)).collect();
+    let sources: Vec<Source<'_>> = seats
         .iter()
-        .map(|(id, s)| Source {
+        .zip(&ids)
+        .map(|(s, id)| Source {
+            seat: s.seat,
             candidate: id,
-            ..*s
+            outcome: s.outcome,
+            checkout: s.dir.path(),
+            changed: &s.changed,
         })
         .collect();
     let epoch = tempfile::tempdir().unwrap();
-    let notes = harvest(spec, 1, promoted, &list, epoch.path()).unwrap();
+    let notes = harvest(spec, 1, promoted, &sources, epoch.path()).unwrap();
     (epoch, notes)
 }
 
@@ -84,7 +70,10 @@ fn harvests_only_changed_files_under_the_carry_paths() {
     let dens = seat(
         "dens-a",
         "rejected",
-        &[("notes/dens-a.md", "density fails at 7"), ("log.md", "tried 3 bounds")],
+        &[
+            ("notes/dens-a.md", "density fails at 7"),
+            ("log.md", "tried 3 bounds"),
+        ],
     );
     let (epoch, notes) = run(&carry(1000, 10_000), &[dens, reducer], Some("e1-reducer"));
 
@@ -93,7 +82,12 @@ fn harvests_only_changed_files_under_the_carry_paths() {
     let files: Vec<(&str, Vec<&str>)> = notes
         .seats
         .iter()
-        .map(|s| (s.seat.as_str(), s.files.iter().map(|f| f.path.as_str()).collect()))
+        .map(|s| {
+            (
+                s.seat.as_str(),
+                s.files.iter().map(|f| f.path.as_str()).collect(),
+            )
+        })
         .collect();
     assert_eq!(
         files,
@@ -131,7 +125,10 @@ fn shares_the_epoch_cap_so_one_seat_cannot_crowd_out_the_rest() {
     let flood = seat(
         "flood",
         "rejected",
-        &[("notes/1.md", &"x".repeat(80)), ("notes/2.md", &"y".repeat(80))],
+        &[
+            ("notes/1.md", &"x".repeat(80)),
+            ("notes/2.md", &"y".repeat(80)),
+        ],
     );
     let quiet = seat("quiet", "rejected", &[("notes/q.md", "small but vital")]);
     let (epoch, notes) = run(&carry(1000, 100), &[flood, quiet], None);
@@ -143,7 +140,12 @@ fn shares_the_epoch_cap_so_one_seat_cannot_crowd_out_the_rest() {
     // quiet keeps its 15 bytes; flood gets the other 85, its second file cut
     // to 5 bytes.
     assert_eq!(kept, vec![vec![(80, 80), (80, 5)], vec![(15, 15)]]);
-    let total: usize = notes.seats.iter().flat_map(|s| &s.files).map(|f| f.kept).sum();
+    let total: usize = notes
+        .seats
+        .iter()
+        .flat_map(|s| &s.files)
+        .map(|f| f.kept)
+        .sum();
     assert!(total <= 100);
     assert_eq!(
         fs::read_to_string(epoch.path().join("notes/flood/notes/2.md")).unwrap(),
@@ -173,16 +175,29 @@ fn an_epoch_where_no_seat_wrote_notes_harvests_nothing_and_renders_nothing() {
 
 #[test]
 fn renders_one_section_per_seat_and_names_the_promoted_candidate() {
-    let reducer = seat("reducer", "promoted", &[("notes/reducer.md", "Rung2 reduces")]);
-    let dens = seat("dens-a", "rejected", &[("notes/dens-a.md", "density fails at 7")]);
+    let reducer = seat(
+        "reducer",
+        "promoted",
+        &[("notes/reducer.md", "Rung2 reduces")],
+    );
+    let dens = seat(
+        "dens-a",
+        "rejected",
+        &[("notes/dens-a.md", "density fails at 7")],
+    );
     let (epoch, notes) = run(&carry(1000, 10_000), &[reducer, dens], Some("e1-reducer"));
     let out = render(epoch.path(), &notes, 24_000);
     assert!(out.contains("epoch 1 promoted `e1-reducer`"), "{out}");
     assert!(
-        out.contains("### `dens-a` (`e1-dens-a`, rejected)\n\n#### `notes/dens-a.md`\n\ndensity fails at 7"),
+        out.contains(
+            "### `dens-a` (`e1-dens-a`, rejected)\n\n#### `notes/dens-a.md`\n\ndensity fails at 7"
+        ),
         "{out}"
     );
-    assert!(out.contains("### `reducer` (`e1-reducer`, promoted)"), "{out}");
+    assert!(
+        out.contains("### `reducer` (`e1-reducer`, promoted)"),
+        "{out}"
+    );
     assert!(out.find("dens-a").unwrap() < out.find("### `reducer`").unwrap());
 
     let (epoch, notes) = run(
@@ -220,7 +235,10 @@ fn a_file_the_epoch_cap_dropped_is_named_in_the_brief() {
     assert_eq!(notes.seats[0].files[1].kept, 0);
     assert!(!epoch.path().join("notes/flood/notes/2.md").exists());
     let out = render(epoch.path(), &notes, 24_000);
-    assert!(out.contains("#### `notes/2.md`\n\n(dropped: the epoch's notes cap was reached)"), "{out}");
+    assert!(
+        out.contains("#### `notes/2.md`\n\n(dropped: the epoch's notes cap was reached)"),
+        "{out}"
+    );
 }
 
 #[test]
