@@ -166,10 +166,10 @@ fn the_text_and_csv_forms_list_every_point_and_upgrade() {
         "run r10  started 19700101-000000  baseline 0.1047",
         "  epoch 1  from a6c8 (0.1047)  end 0.1087  seats 45.1 min  scoring 16.5 min",
         "    e1-main-b        main-b     0.1087  2 seeds, 1 failed  promoted",
-        "  epoch 2  from 8d2d (0.1087)  end -  seats - min",
+        "  epoch 2  from 8d2d (0.1087)  end -  seats -  scoring -",
         "  u-1  title u-1\n    before -\n    after  run r10 (start 0.1047, best 0.1087, end 0.1087, 1 promoted of 2)",
     ] {
-        assert!(text.contains(line.trim_end_matches(" min")), "{line}\n{text}");
+        assert!(text.contains(line), "{line}\n{text}");
     }
     let csv = render::csv(&history);
     let rows: Vec<&str> = csv.lines().collect();
