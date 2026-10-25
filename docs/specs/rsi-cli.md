@@ -146,7 +146,9 @@ mapped as tinyhivemind's own deploy maps it: `compact_context`,
 left out keeps OpenHuman's default, so `parallel_tools` stays off unless the
 package sets it. `"session": { "parallel_tools": true }` runs the independent
 tool calls of one model step concurrently, up to OpenHuman's
-`max_parallel_tools`, instead of one after another.
+`max_parallel_tools`, instead of one after another. `max_tool_iterations` is
+the runtime-wide default; a seat's own `config.max_iterations` is still set on
+that seat's agent.
 
 **`keys`.** A map from capability to the *name* of an environment variable.
 Values never appear in files, the run store, traces or prompts.
