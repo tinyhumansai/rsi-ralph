@@ -70,7 +70,10 @@ pub fn run(
             Some(found) => say(&format!("ok      {:<8} {}", tool.name, found.display()))?,
             None => {
                 let mark = if tool.required { "missing" } else { "absent " };
-                say(&format!("{mark} {:<8} needed for {}", tool.name, tool.used_for))?;
+                say(&format!(
+                    "{mark} {:<8} needed for {}",
+                    tool.name, tool.used_for
+                ))?;
                 if tool.required {
                     missing.push(tool.name.to_owned());
                 }

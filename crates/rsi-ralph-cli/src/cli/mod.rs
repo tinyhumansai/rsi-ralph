@@ -157,7 +157,7 @@ pub fn execute(
         Command::Init {
             r#loop,
             template,
-            list,
+            list: _,
         } => match r#loop {
             Some(dir) => init_loop(&dir, &template, out),
             _ => templates(out),

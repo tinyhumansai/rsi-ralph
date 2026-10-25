@@ -40,7 +40,11 @@ fn passes_when_every_required_tool_is_on_path() {
     assert!(result.is_ok());
     assert!(lines[0].starts_with("rsi-ralph "));
     assert!(lines.iter().any(|l| l.starts_with("ok      git")));
-    assert!(lines.iter().any(|l| l == "ok      OPENROUTER_API_KEY is set"));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l == "ok      OPENROUTER_API_KEY is set")
+    );
     assert!(lines.iter().any(|l| l.ends_with("(exists)")));
     assert!(!lines.iter().any(|l| l.contains("sk-secret")));
 }
@@ -55,7 +59,11 @@ fn fails_naming_each_missing_required_tool() {
         other => panic!("expected a doctor error, got {other:?}"),
     }
     assert!(lines.iter().any(|l| l.starts_with("missing git")));
-    assert!(lines.iter().any(|l| l.starts_with("absent  OPENROUTER_API_KEY")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("absent  OPENROUTER_API_KEY"))
+    );
     assert!(lines.iter().any(|l| l.ends_with("(created on first run)")));
 }
 
@@ -66,7 +74,11 @@ fn an_absent_optional_tool_does_not_fail() {
     let (result, lines) = doctor(tools.path(), Some(""), home.path());
     assert!(result.is_ok());
     assert!(lines.iter().any(|l| l.starts_with("absent  python3")));
-    assert!(lines.iter().any(|l| l.starts_with("absent  OPENROUTER_API_KEY")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("absent  OPENROUTER_API_KEY"))
+    );
 }
 
 #[test]

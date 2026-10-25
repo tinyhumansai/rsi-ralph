@@ -49,11 +49,13 @@ fn accepts_an_existing_empty_folder() {
 #[test]
 fn refuses_a_folder_that_holds_files() {
     let root = tempfile::tempdir().unwrap();
-    std::fs::write(root.path().join("keep.txt"), "mine").unwrap();
-    let err = write(&TEMPLATES[0], root.path()).unwrap_err();
+    let dir = root.path().join("taken");
+    std::fs::create_dir(&dir).unwrap();
+    std::fs::write(dir.join("keep.txt"), "mine").unwrap();
+    let err = write(&TEMPLATES[0], &dir).unwrap_err();
     assert!(matches!(err, Error::NotEmpty(_)), "{err}");
     assert_eq!(
-        std::fs::read_to_string(root.path().join("keep.txt")).unwrap(),
+        std::fs::read_to_string(dir.join("keep.txt")).unwrap(),
         "mine"
     );
 }

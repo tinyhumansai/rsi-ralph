@@ -161,7 +161,10 @@ fn default_home_falls_back_to_userprofile_where_home_is_unset() {
         "USERPROFILE" => Some("/u".to_owned()),
         _ => None,
     };
-    assert_eq!(Store::default_home(&empty_home), PathBuf::from("/u/.tinyrsi"));
+    assert_eq!(
+        Store::default_home(&empty_home),
+        PathBuf::from("/u/.tinyrsi")
+    );
 }
 
 #[test]

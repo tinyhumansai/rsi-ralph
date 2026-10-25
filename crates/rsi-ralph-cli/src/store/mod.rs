@@ -55,9 +55,10 @@ impl Store {
     pub fn default_home(lookup: &dyn Fn(&str) -> Option<String>) -> PathBuf {
         let set = |name: &str| lookup(name).filter(|value| !value.is_empty());
         set("TINYRSI_HOME").map(PathBuf::from).unwrap_or_else(|| {
-            set("HOME")
-                .or_else(|| set("USERPROFILE"))
-                .map_or_else(|| PathBuf::from(".tinyrsi"), |h| Path::new(&h).join(".tinyrsi"))
+            set("HOME").or_else(|| set("USERPROFILE")).map_or_else(
+                || PathBuf::from(".tinyrsi"),
+                |h| Path::new(&h).join(".tinyrsi"),
+            )
         })
     }
 

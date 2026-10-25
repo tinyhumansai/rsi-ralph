@@ -103,12 +103,14 @@ fn loop_name(dir: &Path) -> Result<String> {
 
 /// `rsi.json` with its `name` set to `name`, keeping the rest of the text.
 fn renamed(manifest: &str, name: &str) -> Result<String> {
-    let mut value: serde_json::Value =
-        serde_json::from_str(manifest).map_err(|e| Error::Json {
-            message: e.to_string(),
-        })?;
+    let mut value: serde_json::Value = serde_json::from_str(manifest).map_err(|e| Error::Json {
+        message: e.to_string(),
+    })?;
     if let Some(object) = value.as_object_mut() {
-        object.insert("name".to_owned(), serde_json::Value::String(name.to_owned()));
+        object.insert(
+            "name".to_owned(),
+            serde_json::Value::String(name.to_owned()),
+        );
     }
     let text = serde_json::to_string_pretty(&value).map_err(|e| Error::Json {
         message: e.to_string(),
