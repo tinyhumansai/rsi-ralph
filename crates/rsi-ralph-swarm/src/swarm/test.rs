@@ -9,7 +9,6 @@ use openhuman_embed::RuntimeConfig;
 use tinyhivemind_lang::SessionSettings;
 
 use super::*;
-use crate::package::Hive;
 use crate::{ToolKey, load_package};
 
 fn fixture() -> PathBuf {
