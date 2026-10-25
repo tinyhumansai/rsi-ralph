@@ -164,6 +164,7 @@ fn request(dirs: &Dirs, server_uri: &str, wall: Duration) -> SwarmRequest {
         default_model: "fixture-default".into(),
         temperature: Some(0.0),
         tools: Vec::new(),
+        memory: None,
         wall,
         turn: Duration::from_secs(60),
     }

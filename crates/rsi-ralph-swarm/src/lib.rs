@@ -16,6 +16,9 @@
 //!   a spend gateway can cap and attribute it.
 //! - Events stream to a progress callback and to `events.jsonl`; tool
 //!   secrets never reach either.
+//! - Seats carry no memory unless [`SwarmRequest::memory`] names an engine
+//!   ([`SwarmMemory`]): then each seat keeps its own memory namespace, or,
+//!   shared, every seat keeps one.
 //!
 //! # Example
 //!
@@ -44,6 +47,7 @@
 //!         default_model: "z-ai/glm-5.3-flash".into(),
 //!         temperature: Some(0.0),
 //!         tools: Vec::new(),
+//!         memory: None,
 //!         wall: Duration::from_secs(3600),
 //!         turn: Duration::from_secs(1200),
 //!     },
@@ -65,6 +69,7 @@
 mod error;
 mod event;
 mod hooks;
+mod memory;
 mod mirror;
 mod package;
 mod programs;
@@ -76,6 +81,7 @@ mod trace;
 
 pub use error::{Error, Result};
 pub use event::{SeatInfo, StopReason, SwarmEvent, ToolPhase};
+pub use memory::{SHARED_MEMORY_AGENT, SwarmMemory};
 pub use package::{CANDIDATE_DIR, editing_seats, load_package};
 pub use prompt::HIVE_RULES;
 pub use swarm::{

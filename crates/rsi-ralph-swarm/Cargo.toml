@@ -36,6 +36,8 @@ tinyhivemind-lang = { workspace = true }
 tinyhivemind-exec = { workspace = true }
 # Attaches the permanent `hivemind_*` tools to each seat and runs its turns.
 tinyhivemind-openhuman = { workspace = true }
+# Builds the CortexDB engine seats keep their memory in (`SwarmMemory::cortexdb`).
+tinymemory-integrations = { workspace = true }
 # The swarm's own runtime; `sync` carries tool-call progress out of turns.
 tokio = { workspace = true, features = ["sync"] }
 
@@ -44,6 +46,9 @@ tempfile = { workspace = true }
 # A loopback OpenAI-compatible model that scripts each seat's replies, so the
 # integration test runs offline and deterministically.
 wiremock = { workspace = true }
+# TinyMemory's in-process reference engine, so the seat-memory test sees what
+# each seat logged without a CortexDB server.
+tinymemory-api = { workspace = true, features = ["conformance"] }
 
 [lints]
 workspace = true

@@ -390,3 +390,57 @@ fn rejects_a_parallel_limit_that_is_not_a_whole_number() {
         );
     }
 }
+
+#[test]
+fn hive_memory_is_off_by_default_and_rooted_per_loop_when_named() {
+    let parsed = parse(&example()).unwrap();
+    assert_eq!(parsed.manifest.hive.memory, None);
+    assert_eq!(parsed.memory_root(), None);
+
+    let parsed = parse(&with(|m| {
+        m["hive"]["memory"] =
+            json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+    }))
+    .unwrap();
+    let memory = parsed.manifest.hive.memory.clone().unwrap();
+    assert!(!memory.shared);
+    assert_eq!(parsed.memory_root().as_deref(), Some("team:graph-coloring"));
+    assert!(parsed.required_env().contains(&"CORTEX_API_KEY".to_owned()));
+
+    let parsed = parse(&with(|m| {
+        m["hive"]["memory"] = json!({
+            "endpoint": "https://cortex.example", "key": "CORTEX_API_KEY",
+            "root": "team:math", "shared": true
+        });
+    }))
+    .unwrap();
+    assert!(parsed.manifest.hive.memory.as_ref().unwrap().shared);
+    assert_eq!(parsed.memory_root().as_deref(), Some("team:math"));
+}
+
+#[test]
+fn rejects_a_hive_memory_without_a_url_a_key_name_or_a_root() {
+    let cases: Vec<(&str, Edit)> = vec![
+        ("hive.memory.endpoint", |m| {
+            m["hive"]["memory"] = json!({ "endpoint": "127.0.0.1:3141", "key": "CORTEX_API_KEY" });
+        }),
+        ("hive.memory.key", |m| {
+            m["hive"]["memory"] =
+                json!({ "endpoint": "http://127.0.0.1:3141", "key": "cortex key" });
+        }),
+        ("hive.memory.root", |m| {
+            m["hive"]["memory"] = json!({ "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "root": " " });
+        }),
+    ];
+    for (field, edit) in cases {
+        assert_eq!(field_error(&with(edit)), field);
+    }
+    assert!(
+        parse(&with(|m| {
+            m["hive"]["memory"] = json!({
+                "endpoint": "http://127.0.0.1:3141", "key": "CORTEX_API_KEY", "scope": "x"
+            });
+        }))
+        .is_err()
+    );
+}

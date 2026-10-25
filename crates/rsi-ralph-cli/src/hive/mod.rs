@@ -4,11 +4,12 @@
 //! checkout (read-only for non-editing seats) and one candidate checkout per
 //! editing seat. Every seat's model calls go through the run's spend gateway,
 //! tagged `swarm/<seat>`, and tool keys (such as `web_search`) reach only the
-//! seats they name.
+//! seats they name. With `hive.memory`, seats remember in `CortexDB` under one
+//! root for every run of the loop, per seat or, `shared`, in one namespace.
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use rsi_ralph_swarm::{SwarmRequest, ToolKey};
+use rsi_ralph_swarm::{SwarmMemory, SwarmRequest, ToolKey};
 
 use crate::{
     Error, Result,
@@ -25,6 +26,7 @@ pub struct Hive {
     default_model: String,
     temperature: Option<f64>,
     tools: Vec<ToolKey>,
+    memory: Option<SwarmMemory>,
     wall: Duration,
     turn: Duration,
     base_url: String,
@@ -44,8 +46,9 @@ impl Hive {
     /// gateway).
     ///
     /// # Errors
-    /// Returns [`Error::Proposer`] when the package declares no editing seat,
-    /// and [`Error::MissingKeys`] when a tool key has no value.
+    /// Returns [`Error::Proposer`] when the package declares no editing seat
+    /// or the memory engine cannot be built, and [`Error::MissingKeys`] when
+    /// a tool or memory key has no value.
     pub fn new(parsed: &Loop, keys: &Keys, base_url: &str) -> Result<Self> {
         let editing = rsi_ralph_swarm::editing_seats(&parsed.hive)
             .map_err(|e| Error::Proposer(crate::error::chain(&e)))?;
@@ -68,6 +71,19 @@ impl Hive {
             });
         }
         let m = &parsed.manifest;
+        let memory = match (&m.hive.memory, parsed.memory_root()) {
+            (Some(spec), Some(root)) => {
+                let key = keys.get(&spec.key).ok_or_else(|| Error::MissingKeys {
+                    names: vec![spec.key.clone()],
+                })?;
+                Some(
+                    SwarmMemory::cortexdb(&spec.endpoint, key.expose(), root)
+                        .map_err(|e| Error::Proposer(crate::error::chain(&e)))?
+                        .shared(spec.shared),
+                )
+            }
+            _ => None,
+        };
         Ok(Self {
             package: parsed.hive.clone(),
             lead: m.hive.lead.clone(),
@@ -75,6 +91,7 @@ impl Hive {
             default_model: parsed.seat_model().to_owned(),
             temperature: m.creativity.temperature,
             tools,
+            memory,
             wall: Duration::from_secs(m.hive.wall_secs),
             turn: Duration::from_secs(m.hive.turn_secs),
             base_url: base_url.trim_end_matches('/').to_owned(),
@@ -106,6 +123,7 @@ impl Proposer for Hive {
                 default_model: self.default_model.clone(),
                 temperature: self.temperature,
                 tools: self.tools.clone(),
+                memory: self.memory.clone(),
                 wall: self.wall,
                 turn: self.turn,
             },
