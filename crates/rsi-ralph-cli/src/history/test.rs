@@ -137,17 +137,17 @@ fn upgrades_are_placed_between_the_run_before_and_the_run_they_apply_to() {
         upgrade("u-pending", None),
         upgrade("u-elsewhere", Some("r3")),
     ];
-    let marks = marks(&runs, &entries);
-    assert_eq!(marks.len(), 4);
-    for mark in &marks[..2] {
+    let placed = marks(&runs, &entries);
+    assert_eq!(placed.len(), 4);
+    for mark in &placed[..2] {
         assert_eq!(mark.run.as_deref(), Some("r10"));
         assert_eq!(mark.before.as_ref().unwrap().best, Some(0.1087));
         assert_eq!(mark.after.as_ref().unwrap().best, Some(0.2));
     }
-    assert_eq!(marks[2].run, None);
-    assert_eq!(marks[2].before.as_ref().unwrap().run, "r10");
-    assert_eq!(marks[2].after, None);
-    assert_eq!((marks[3].before.as_ref(), marks[3].after.as_ref()), (None, None));
+    assert_eq!(placed[2].run, None);
+    assert_eq!(placed[2].before.as_ref().unwrap().run, "r10");
+    assert_eq!(placed[2].after, None);
+    assert_eq!((placed[3].before.as_ref(), placed[3].after.as_ref()), (None, None));
     let first = marks(&runs[..1], &[upgrade("u", Some("r9"))]);
     assert_eq!(first[0].before, None);
 }
