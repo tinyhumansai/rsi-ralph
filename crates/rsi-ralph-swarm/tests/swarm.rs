@@ -467,6 +467,44 @@ fn run_failures_surface_as_typed_errors_without_the_model_key() {
     );
 }
 
+/// The completion cap on every chat request to `seat`, under either spelling.
+fn completion_caps(requests: &[Request], seat: &str) -> Vec<Option<u64>> {
+    let path = format!("/{seat}/v1/chat/completions");
+    requests
+        .iter()
+        .filter(|request| request.url.path() == path)
+        .map(|request| {
+            let body: Value = serde_json::from_slice(&request.body).unwrap();
+            body["max_tokens"]
+                .as_u64()
+                .or_else(|| body["max_completion_tokens"].as_u64())
+        })
+        .collect()
+}
+
+#[test]
+fn a_seat_asks_for_the_completion_cap_its_hive_model_declares() {
+    let _turn = one_swarm_at_a_time();
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(model(Duration::ZERO));
+    let dirs = dirs();
+    let mut request = request(&dirs, &server.uri(), Duration::from_secs(120));
+    let mut manifest: Value = serde_json::from_str(&request.package["hive.json"]).unwrap();
+    // Above OpenHuman's own per-turn cap of 16,384, which a seat used to send
+    // whatever its model declared.
+    manifest["models"][0]["max_tokens"] = json!(32_768);
+    request
+        .package
+        .insert("hive.json".into(), manifest.to_string());
+    let outcome = run_swarm(request, &mut |_| {}).unwrap();
+    assert_eq!(outcome.stop, StopReason::Idle);
+
+    let requests = server_runtime.block_on(server.received_requests()).unwrap();
+    let lead = completion_caps(&requests, "lead");
+    assert!(!lead.is_empty());
+    assert!(lead.iter().all(|cap| *cap == Some(32_768)), "{lead:?}");
+}
+
 /// The pair script with shell calls: the read-only lead lists its incumbent,
 /// tries (and is refused) a write, then assigns; the implementer writes a
 /// file through the shell.
