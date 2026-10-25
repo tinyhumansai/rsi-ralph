@@ -113,6 +113,7 @@ fn engine<'a>(
         inherited: vec![("PATH".into(), "/usr/bin:/bin".into())],
         secrets: vec!["sk-secret-value".into()],
         epochs: None,
+        warnings: Vec::new(),
     }
 }
 
