@@ -40,7 +40,7 @@ main { padding: 16px; overflow: auto; min-width: 0; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-tr.clickable { cursor: pointer; } tr.clickable:hover { background: var(--soft); }
+tr.clickable { cursor: pointer; } tr.clickable:hover, tr.clickable.on { background: var(--soft); }
 pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.5 var(--mono); max-height: 420px; overflow: auto; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
 .tabs button { border: 1px solid var(--line); background: none; color: inherit; border-radius: 6px; padding: 3px 9px; cursor: pointer; font: inherit; font-size: 12px; }
@@ -148,6 +148,8 @@ async function refresh() {
     json(`/api/runs/${run}/epochs`).catch(() => []),
   ]);
   if (run !== current) return;
+  // Retry briefs that were missing, such as one for an epoch not yet written.
+  for (const k of Object.keys(briefs)) if (!briefs[k]) delete briefs[k];
   if (r) record = r; if (l) ledger = l; if (b) budget = b;
   epochList = e;
   // Follow the newest epoch's swarm until the reader picks one.
@@ -181,8 +183,8 @@ function swarm() {
         s.calls++; s.tools.set(e.tool, (s.tools.get(e.tool) ?? 0) + 1);
         s.last = `${e.tool} ${clip(e.detail, 80)}`; s.lastMs = t;
       } else {
-        const row = open.get(k)?.shift() ?? { kind: "tool", seq, t, seat: e.seat, tool: e.tool, detail: null };
-        if (!feed.includes(row)) feed.push(row);
+        let row = open.get(k)?.shift();
+        if (!row) { row = { kind: "tool", seq, t, seat: e.seat, tool: e.tool, detail: null }; feed.push(row); }
         row.done = { t, success: e.success, chars: e.output_chars };
         const x = tool(e.tool);
         if (e.success === false) { x.failed++; s.failed++; } else x.ok++;
@@ -192,7 +194,7 @@ function swarm() {
       }
     } else if (e.kind === "agent_message") {
       feed.push({ kind: "message", seq, t, seat: e.from, to: e.to, body: e.body ?? "", episode: e.episode });
-      if (seats.has(e.from) || e.from !== "host") seat(e.from).sent++;
+      if (e.from !== "host") seat(e.from).sent++;
       const to = String(e.to ?? "");
       if (!to.startsWith("hive:")) seat(to).received++;
     } else if (e.kind === "agent_turn") {
@@ -268,7 +270,8 @@ function toolsCard(sw) {
 
 function activityCard(sw) {
   const kinds = [["all", "everything"], ["tool", "tool calls"], ["message", "messages"], ["turn", "turns"]];
-  const tabs = epochList.length ? `<div class="tabs">${epochList.map((e) => `<button data-hive="${e}" class="${e === hiveEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div>` : "";
+  const swarmEpochs = epochList.filter((e) => e > 0);
+  const tabs = swarmEpochs.length ? `<div class="tabs">${swarmEpochs.map((e) => `<button data-hive="${e}" class="${e === hiveEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div>` : "";
   const seatsSeen = [...sw.seats.keys()];
   const chips = `<div class="chips"><span class="muted" style="font-size:12px">seat</span>
     <button data-filter-seat="" class="${seatFilter === null ? "on" : ""}">all</button>
@@ -407,7 +410,7 @@ function render() {
   const epoch = briefEpoch, run = current;
   if (epoch !== null && !(epoch in briefs)) {
     briefs[epoch] = "";
-    text(`/api/runs/${run}/files/epoch-${epoch}/brief.md`).then((t) => { if (run !== current) return; briefs[epoch] = t; const el = $("#brief"); if (el && briefEpoch === epoch) el.textContent = t; if (!t) delete briefs[epoch]; });
+    text(`/api/runs/${run}/files/epoch-${epoch}/brief.md`).then((t) => { if (run !== current) return; briefs[epoch] = t; const el = $("#brief"); if (el && briefEpoch === epoch) el.textContent = t; });
   }
 }
 
