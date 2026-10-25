@@ -1,0 +1,114 @@
+# RSI Ralph
+
+> RSI Ralph runs recursive Ralph loops. A hive of OpenHuman agents edits a copy of a folder or git branch, your scorer grades the copy against the current best, and the copy replaces the best only when a paired test says it won. It repeats until the goal is met or the budget runs out. The hive that does the editing is a package of JSON and Markdown files, so it can be edited and improved by the same loop. It ships as the `rsi-ralph` binary and as Rust crates.
+
+Read this first if you are an agent asked to integrate, extend or operate this repository. Links are relative to https://github.com/tinyhumansai/rsi-ralph/blob/main/.
+
+## Pick your path
+
+- **Improve something with a score** (code, a prompt, a rubric, a config): write a loop folder and run the `rsi-ralph` binary. No Rust. This is the right path unless you are embedding the loop in a Rust program.
+- **Embed the loop in a Rust program**: depend on the `rsi-ralph` crate (`crates/rsi-ralph`). See docs/library.md.
+- **Change this repository**: follow AGENTS.md. Do not edit `vendor/`.
+
+## Run a loop (binary)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
+rsi-ralph doctor                         # git, diff, python3, OPENROUTER_API_KEY
+rsi-ralph init my-loop --template graph-coloring   # or math-problem, upgrade-file; --list shows all
+export OPENROUTER_API_KEY=...            # or put it in my-loop/.env (never commit it)
+rsi-ralph check my-loop                  # validate before spending anything; exit 2 if invalid
+rsi-ralph run my-loop --no-serve         # exit 0 on success, 1 when the run fails
+rsi-ralph runs                           # list stored runs
+rsi-ralph show my-loop/<run-id>          # outcome, spend, errors, folder of the best version
+```
+
+Always run `check` before `run`. `run` spends real money; it stops at `budget.run_usd`. Runs are stored in `~/.tinyrsi/runs/<loop>/<run-id>/` (`TINYRSI_HOME` or `--home` overrides). The best version is the run's `incumbent/` folder. Your own subject folder is never modified.
+
+## A loop is a folder
+
+```text
+my-loop/
+  rsi.json          manifest: subject, hive, scorers, decision rule, budget, epochs
+  brief.md          the goal, written for the agents; may use {{incumbent}} {{history}} {{failures}} {{ideas}}
+  hive/             the agents: a tinyhivemind package (hive.json, roles/, seats/, context/, constitution.json, memory.json)
+  scorers/ gates/   step scripts (any language) and Markdown judge rubrics
+  subject/          the thing being improved
+```
+
+Minimal `rsi.json`:
+
+```json
+{
+  "$schema": "https://tinyhumans.ai/schemas/rsi/v1",
+  "version": 1,
+  "name": "my-loop",
+  "subject": { "kind": "dir", "path": "subject", "editable": ["main.py"] },
+  "brief": "brief.md",
+  "hive": { "package": "hive", "lead": "lead", "wall_secs": 900 },
+  "score": {
+    "scorers": [ { "id": "metric", "run": "python3 scorers/metric.py", "timeout_secs": 60 } ],
+    "decide": { "on": "metric", "test": "seeds", "seeds": [1, 2, 3], "direction": "minimize", "target": 0 }
+  },
+  "budget": { "run_usd": 1 },
+  "epochs": 3
+}
+```
+
+Rules that cause most failed `check` runs:
+
+- Unknown fields fail. `$schema` and `version` must match exactly.
+- Every path is relative to the loop folder, has no `..` and no absolute part, and must exist (a `git` subject's own `path` may leave the folder).
+- `name` is `[a-z0-9-]`.
+- `score.decide.on` must name a `run` scorer, not a judge. `seeds` needs at least two distinct values. Only that scorer can accept a candidate; judges can temper or block, never accept.
+- Any model other than `z-ai/glm-5.3-flash` needs a price ceiling in `budget.prices`.
+- Secrets live in environment variables or `<loop>/.env`, named in `keys`. Never write a key value into a file.
+
+Start from a bundled loop, not from scratch: loops/graph-coloring (metric only), loops/math-problem (metric plus an LLM judge), loops/upgrade-file (a behavior gate before the score).
+
+## Write a scorer
+
+A scorer is any command run in the loop folder. It reads `$RSI_CANDIDATE` (the checkout to grade) and `$RSI_SEED`, and either prints `METRIC <name>=<number>` or writes `$RSI_OUT/result.json` with at least a finite `score`. A non-zero exit fails that seed. Keep scorers deterministic per seed. Put the scorer and any held-out data outside `editable` paths so the agents cannot read or change them. Anything the agents must not see (held-out accuracy) goes in a `"private"` map in `result.json`. Model calls a scorer makes should go through `$RSI_GATEWAY` so they count against the budget. Full variable list: docs/specs/rsi-cli.md, "Step contract".
+
+A `gate` is a command that must exit 0 before any scorer runs. Use one for behavior that must not change.
+
+## Let the loop improve the agents too
+
+The hive is files, so it can be part of what an epoch edits. Put the hive's prompts, roles, context or tool declarations under paths the subject marks `editable`, and a candidate that rewrites its own team is scored like any other. Keep `constitution.json` constraints and the scorer outside the editable paths. A hive may declare executable tools in `hive.json` (or `tools.json`) and give them to seats through `toolpacks`; the program must be on `PATH` or an absolute path.
+
+## Library
+
+Everything the binary does is also in Rust crates under `crates/`: `rsi-ralph` (the loop library, re-exports the rest), `rsi-ralph-score` (scorers, judges, paired decision), `rsi-ralph-evolve` (evolvers, retreat), `rsi-ralph-host` (hive runtime with typed patches, private shadow evaluation and human approval), `rsi-ralph-cli` (the binary). Public items are documented with rustdoc; run `cargo doc --no-deps --all-features`.
+
+## Contribute
+
+Run from the repository root; CI runs exactly these four:
+
+```sh
+cargo fmt -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo build --all-targets --all-features
+cargo test --all-features
+```
+
+Branch off `main`, never commit to it, open pull requests ready for review, and add tests with every behavior change. Never skip or `#[ignore]` a failing test. `vendor/tinyhivemind`, `vendor/tinybackrooms` and `vendor/openhuman` are submodules: change them in their own repositories, then bump the gitlink. Initialize them with `git submodule update --init --recursive`. Full rules: AGENTS.md.
+
+## Docs
+
+- README.md: what it is and the quick start
+- INSTALL.md: install, pinning a version, container image, shell completions
+- docs/guides/rsi-cli.md: step-by-step guide to writing a loop
+- docs/specs/rsi-cli.md: the full `rsi.json` and step contract
+- docs/specs/carried-notes.md: carrying seat notes between epochs
+- docs/architecture.md: one epoch and which function owns each step
+- docs/glossary.md: epoch, candidate, incumbent, dossier and the other terms
+- docs/library.md: the Rust crates and runnable examples
+- docs/rsi/scoring-acceptance.md: how a candidate is accepted
+- docs/development.md: build, tests, live runs, releases
+- ROADMAP.md: shipped, next, out of scope
+
+## Optional
+
+- docs/rsi/README.md: research notes and dated results
+- docs/specs/loop-trace.md: the `events.jsonl` trace format the visualizer reads
+- apps/rsi-viz: read-only visualizer over stored runs
