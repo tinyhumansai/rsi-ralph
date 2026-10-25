@@ -328,8 +328,17 @@ completion script generated from the same parser.
 `run` serves the UI on `127.0.0.1:<port>` by default and prints its URL.
 The UI is one page embedded in the binary — no Node toolchain is involved —
 over a read-only API: `/api/runs`, `/api/runs/<loop>/<run>/events` (SSE,
-replay then tail) and `/api/runs/<loop>/<run>/files/<path>` for `run.json`,
-`ledger.json`, an epoch's `brief.md` and a candidate's `change.diff`. The store
+replay then tail), `/api/runs/<loop>/<run>/meter` (the gateway's
+`meter.jsonl`, SSE), `/api/runs/<loop>/<run>/epochs` (the epoch numbers),
+`/api/runs/<loop>/<run>/epochs/<n>/hive` (that epoch's swarm trace,
+`epoch-<n>/hive/events.jsonl`, SSE) and `/api/runs/<loop>/<run>/files/<path>`
+for `run.json`, `ledger.json`, `budget.json`, an epoch's `brief.md` and a
+candidate's `change.diff`. Besides the score chart and candidates, the page
+shows per agent its model calls, tokens, cost, time to first token and call
+time (from the meter, whole run) and its turns, tool calls and messages (from
+the shown epoch's swarm trace); a per-tool table of calls, failures and
+durations; a filterable activity feed of tool calls, messages and turns; and
+the latest model calls. The store
 layout is also what `apps/rsi-viz` discovers, with `RSI_RUN_ROOT=$TINYRSI_HOME`.
 
 `--env K=V` (repeatable) overrides `rsi.json`'s `env` for one invocation; `run`
