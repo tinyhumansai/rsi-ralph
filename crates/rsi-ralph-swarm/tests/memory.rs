@@ -301,7 +301,11 @@ fn live_shared_memory_lands_in_one_cortexdb_namespace() {
         .shared(true);
     let (events, _) = run(memory, FIRST_RUN_FINDING);
     let shared = format!("{root}/agent:{SHARED_MEMORY_AGENT}");
-    assert!(announced(&events).values().all(|ns| ns.as_deref() == Some(shared.as_str())));
+    assert!(
+        announced(&events)
+            .values()
+            .all(|ns| ns.as_deref() == Some(shared.as_str()))
+    );
 
     // Read back through a fresh client: what the seats wrote, where.
     let reader = tinymemory_integrations::build_engine(
