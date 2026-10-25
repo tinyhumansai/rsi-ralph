@@ -387,6 +387,10 @@ pub struct Budget {
     /// Price ceilings for models beyond the gateway's built-in ones.
     #[serde(default)]
     pub prices: BTreeMap<String, ModelPrice>,
+    /// The largest `max_tokens` the gateway forwards for one model call
+    /// (hidden reasoning included); the gateway's own cap when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u64>,
 }
 
 /// A model's price ceiling and the one provider it may be routed to.
