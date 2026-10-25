@@ -31,9 +31,9 @@ pub enum UpgradesCommand {
         json: bool,
     },
     /// Record an upgrade in the loop folder's `upgrades.jsonl`.
-    Add(AddArgs),
+    Add(Box<AddArgs>),
     /// Record what a run measured against an upgrade's predictions.
-    Outcome(OutcomeArgs),
+    Outcome(Box<OutcomeArgs>),
 }
 
 /// `rsi-ralph upgrades add`.
@@ -133,8 +133,8 @@ pub(super) fn execute(
 ) -> Result<()> {
     match command {
         UpgradesCommand::Show { r#loop, json } => show(store, &r#loop, json, out),
-        UpgradesCommand::Add(args) => add(store, args, now, out),
-        UpgradesCommand::Outcome(args) => outcome(store, args, now, out),
+        UpgradesCommand::Add(args) => add(store, &args, now, out),
+        UpgradesCommand::Outcome(args) => outcome(store, &args, now, out),
     }
 }
 
@@ -228,14 +228,14 @@ fn evidence(saw: &[String], metrics: &[String], claims: &[String]) -> Result<Vec
     Ok(out)
 }
 
-fn add(store: &Store, args: AddArgs, now: u64, out: &mut dyn Write) -> Result<()> {
+fn add(store: &Store, args: &AddArgs, now: u64, out: &mut dyn Write) -> Result<()> {
     let dir = &args.r#loop;
     let name = loop_name(dir)?;
     let log_path = dir.join(LOG);
     let entries = upgrades::collect(store, &name, upgrades::read(&log_path)?)?;
     let mut upgrade = match &args.from {
         Some(path) => from_file(path, &entries, now)?,
-        None => from_flags(&args, &entries, now)?,
+        None => from_flags(args, &entries, now)?,
     };
     if upgrade.contributors.is_empty() {
         return Err(Error::field("--author", "an upgrade needs at least one"));
@@ -317,7 +317,7 @@ fn from_file(path: &Path, entries: &[Entry], now: u64) -> Result<Upgrade> {
     serde_json::from_value(value).map_err(decode)
 }
 
-fn outcome(store: &Store, args: OutcomeArgs, now: u64, out: &mut dyn Write) -> Result<()> {
+fn outcome(store: &Store, args: &OutcomeArgs, now: u64, out: &mut dyn Write) -> Result<()> {
     let dir = &args.r#loop;
     let name = loop_name(dir)?;
     let log_path = dir.join(LOG);

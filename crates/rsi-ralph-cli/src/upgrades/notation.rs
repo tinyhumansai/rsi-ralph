@@ -15,6 +15,15 @@
 use super::{Author, Comparison, Contributor, Evidence, FileChange, Prediction, Role, Verdict};
 use crate::{Error, Result};
 
+/// Comparison operators, the two-character ones first.
+const OPS: [(&str, Comparison); 5] = [
+    (">=", Comparison::Ge),
+    ("<=", Comparison::Le),
+    (">", Comparison::Gt),
+    ("<", Comparison::Lt),
+    ("=", Comparison::Eq),
+];
+
 /// Parse a contributor, `KIND:NAME[@MODEL][=ROLE]`; the role defaults to
 /// `authored`.
 ///
@@ -105,13 +114,6 @@ pub fn metric(text: &str) -> Result<Evidence> {
 /// or finite value.
 pub fn prediction(text: &str) -> Result<Prediction> {
     let bad = |reason: &str| Error::field(format!("--expect {text}"), reason);
-    const OPS: [(&str, Comparison); 5] = [
-        (">=", Comparison::Ge),
-        ("<=", Comparison::Le),
-        (">", Comparison::Gt),
-        ("<", Comparison::Lt),
-        ("=", Comparison::Eq),
-    ];
     let (at, symbol, op) = OPS
         .iter()
         .filter_map(|(symbol, op)| text.find(symbol).map(|at| (at, *symbol, *op)))

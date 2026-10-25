@@ -1,5 +1,9 @@
 //! The subcommands that need no model: check, score, runs, show, exit codes.
-#![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "assert deterministic fixtures"
+)]
 use super::*;
 use crate::store::{RunRecord, write_json};
 use std::collections::BTreeMap;

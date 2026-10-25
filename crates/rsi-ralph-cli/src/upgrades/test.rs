@@ -1,6 +1,10 @@
 //! The upgrade log: wire forms, the text notation, the run-start diff and
 //! the Markdown rendering.
-#![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "assert deterministic fixtures"
+)]
 use std::collections::BTreeMap;
 
 use serde_json::json;
@@ -183,7 +187,7 @@ fn a_log_line_that_does_not_decode_is_named_by_number() {
 fn append_then_read_round_trips_and_a_missing_log_is_empty() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("nested").join(LOG);
-    assert!(read(&path).unwrap().is_empty());
+    assert_eq!(read(&path).unwrap().len(), 0);
     let entry = Entry::Upgrade(assistant_and_operator());
     append(&path, &entry).unwrap();
     append(&path, &entry).unwrap();
@@ -344,7 +348,7 @@ fn compare_reports_changed_added_and_removed_files_but_skips_excluded_ones() {
     assert_eq!(changes[0].after.as_deref(), Some(digest("y").as_str()));
     assert_eq!(changes[1].before, None);
     assert_eq!(changes[2].after, None);
-    assert!(drift::compare(&before, &before, &excluded).is_empty());
+    assert_eq!(drift::compare(&before, &before, &excluded).len(), 0);
     let summary = drift::summary(&changes, &before, &after);
     assert_eq!(
         summary,
@@ -440,7 +444,7 @@ fn a_hive_change_with_no_upgrade_record_is_recorded_as_unexplained() {
     let mut changed = files.clone();
     let seat = changed
         .keys()
-        .find(|k| k.starts_with("hive/") && k.ends_with(".md"))
+        .find(|k| k.starts_with("hive/seats/"))
         .unwrap()
         .clone();
     changed.get_mut(&seat).unwrap().push_str("\nWork harder.\n");
@@ -456,7 +460,7 @@ fn a_hive_change_with_no_upgrade_record_is_recorded_as_unexplained() {
     let [Entry::Applied(applied), Entry::Upgrade(unexplained)] = log.as_slice() else {
         panic!("expected applied then upgrade: {log:?}");
     };
-    assert_eq!(applied.unexplained, [seat.clone()]);
+    assert_eq!(applied.unexplained, std::slice::from_ref(&seat));
     assert_eq!(
         unexplained.contributors[0].author,
         Author::Loop {
@@ -513,7 +517,7 @@ fn a_hive_change_named_by_a_new_upgrade_is_explained_and_carried() {
     };
     assert_eq!(applied.upgrades, [upgrade.id.clone()]);
     assert_eq!(applied.files.len(), 1);
-    assert!(applied.unexplained.is_empty());
+    assert_eq!(applied.unexplained.len(), 0);
     // The run after carries nothing new: r2's frozen log already held it.
     finish(&run, 20);
     let run = store.create_run(&name, Some("r3"), &changed).unwrap();

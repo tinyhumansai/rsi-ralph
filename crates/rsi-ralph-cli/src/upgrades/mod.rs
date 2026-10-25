@@ -147,7 +147,8 @@ pub fn next_id(entries: &[Entry], now: u64) -> String {
     if !taken.contains(base.as_str()) {
         return base;
     }
-    (2..)
+    // Among `taken.len() + 1` candidates at least one is free.
+    (2..=taken.len() + 2)
         .map(|n| format!("{base}-{n}"))
         .find(|id| !taken.contains(id.as_str()))
         .unwrap_or(base)
