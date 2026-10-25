@@ -118,15 +118,33 @@ pub(crate) fn prepare(
         let max_tokens = requested.clamp(1, limits.max_tokens_cap);
         map.insert("max_tokens".into(), json!(max_tokens));
         map.insert("usage".into(), json!({ "include": true }));
-        // OpenAI clients spell it `reasoning_effort`; OpenRouter reads
-        // `reasoning.effort`. Keep an explicit client choice, else the default.
+        // OpenRouter reads `reasoning.effort`; OpenAI-compatible upstreams
+        // such as Surplus Intelligence read only `reasoning_effort`, and
+        // reason at full length without it. Keep an explicit client choice,
+        // in either spelling, else the default, and send it in both.
+        let client_reasoning = map.get("reasoning").cloned();
         let effort = map
             .remove("reasoning_effort")
-            .and_then(|v| v.as_str().map(str::to_owned));
-        if let Some(effort) = effort.as_deref().or(limits.default_reasoning)
-            && !map.contains_key("reasoning")
-        {
-            map.insert("reasoning".into(), json!({ "effort": effort }));
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .or_else(|| {
+                client_reasoning
+                    .as_ref()
+                    .and_then(|r| r.get("effort"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+            })
+            .or_else(|| {
+                client_reasoning
+                    .is_none()
+                    .then_some(limits.default_reasoning)
+                    .flatten()
+                    .map(str::to_owned)
+            });
+        if let Some(effort) = effort {
+            if client_reasoning.is_none() {
+                map.insert("reasoning".into(), json!({ "effort": effort }));
+            }
+            map.insert("reasoning_effort".into(), json!(effort));
         }
         stream = map.get("stream").and_then(Value::as_bool).unwrap_or(false);
         if stream {
