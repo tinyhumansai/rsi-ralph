@@ -165,10 +165,6 @@ fn seats_with_memory_recall_before_and_log_after_every_turn() {
     assert!(!config.local_ai.runtime_enabled);
     assert!(config.memory.recall.enabled);
     assert!(config.memory.conversations.enabled);
-    assert_eq!(
-        config.memory.layout,
-        openhuman_embed::MemoryLayoutMode::Legacy
-    );
 }
 
 #[test]

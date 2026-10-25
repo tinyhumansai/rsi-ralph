@@ -236,17 +236,13 @@ pub(super) fn kickoff(request: &SwarmRequest) -> String {
 
 /// The base config every seat's agent is built from: nothing that reaches
 /// out or spawns on its own. The memory lifecycle (a recall before and a log
-/// after every turn) runs only when seats carry memory (`memory`), on the
-/// legacy layout a bound root needs.
+/// after every turn) runs only when seats carry memory (`memory`).
 pub(super) fn runtime_config(memory: bool) -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
     config.agent.tool_dispatcher = "native".into();
     config.local_ai.runtime_enabled = false;
     config.memory.recall.enabled = memory;
     config.memory.conversations.enabled = memory;
-    if memory {
-        config.memory.layout = openhuman_embed::MemoryLayoutMode::Legacy;
-    }
     config
 }
 
