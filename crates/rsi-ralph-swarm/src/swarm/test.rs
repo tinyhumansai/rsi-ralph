@@ -40,6 +40,7 @@ impl Dirs {
             default_model: "default-model".into(),
             temperature: Some(0.3),
             tools: Vec::new(),
+            memory: None,
             wall: Duration::from_secs(1),
             turn: Duration::from_secs(1),
         }

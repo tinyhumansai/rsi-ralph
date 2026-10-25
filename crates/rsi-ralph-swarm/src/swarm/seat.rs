@@ -30,6 +30,11 @@ pub(crate) const HIVEMIND_TOOLS: [&str; 9] = [
 /// the peer it waits for is never scheduled.
 pub(crate) const DENIED_TOOLS: [&str; 2] = ["wait", "wait_loop"];
 
+/// `OpenHuman`'s memory tool, added to an explicit allow list when seats
+/// carry memory, so a seat can recall and record on purpose as well as
+/// through the per-turn lifecycle.
+pub(crate) const MEMORY_TOOL: &str = "memory";
+
 /// Where `plan`'s seat works: its candidate checkout when it edits one, the
 /// incumbent otherwise.
 pub(crate) fn action_dir<'a>(plan: &SeatPlan, request: &'a SwarmRequest) -> &'a Path {
@@ -67,6 +72,9 @@ pub(crate) fn spec(
         allow.extend(HIVEMIND_TOOLS.iter().map(|tool| (*tool).to_owned()));
         allow.extend(tools::tool_names(&keys));
         allow.extend(programs::names(plan));
+        if request.memory.is_some() {
+            allow.push(MEMORY_TOOL.to_owned());
+        }
         allow.sort();
         allow.dedup();
         definition = definition.tools(ToolScopeSpec::Named(allow));
@@ -104,12 +112,16 @@ pub(crate) fn spec(
     if !keys.is_empty() {
         spec = spec.config(move |config| tools::apply(config, &keys));
     }
+    if let Some(memory) = &request.memory {
+        spec = spec.memory(memory.binding(&seat.id));
+    }
     let info = SeatInfo {
         id: seat.id.clone(),
         role: plan.role.clone(),
         model,
         action_dir: action_dir.to_path_buf(),
         editing: plan.editing,
+        memory: request.memory.as_ref().map(|memory| memory.namespace(&seat.id)),
     };
     (spec, info)
 }
