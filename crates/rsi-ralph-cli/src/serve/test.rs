@@ -80,6 +80,11 @@ fn routes_only_safe_paths() {
         Route::File(PathBuf::from("l/r"), PathBuf::from("budget.json"))
     );
     assert_eq!(
+        route("/api/loops/erdos-779/history"),
+        Route::History("erdos-779".into())
+    );
+    assert_eq!(route("/api/loops/../history"), Route::NotFound);
+    assert_eq!(
         route("/api/runs/l/r/files/upgrades.md"),
         Route::File(PathBuf::from("l/r"), PathBuf::from("upgrades.md"))
     );
