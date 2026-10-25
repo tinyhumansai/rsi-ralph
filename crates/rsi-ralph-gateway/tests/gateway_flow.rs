@@ -310,7 +310,22 @@ async fn streams_through_and_settles_from_the_usage_event() {
     h.wait_for_meter_rows(1).await;
     let ledgers = h.status().await;
     assert!((ledgers["run"]["settled_usd"].as_f64().unwrap() - 0.001).abs() < 1e-12);
-    assert_eq!(h.meter()[0]["stream"], true);
+    let row = &h.meter()[0];
+    assert_eq!(row["stream"], true);
+    let ttft = row["ttft_ms"].as_u64().expect("a stream with a token has a ttft");
+    assert!(ttft <= row["wall_ms"].as_u64().unwrap(), "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn buffered_calls_and_tokenless_streams_have_no_ttft() {
+    let h = Harness::start(5.0, 50.0);
+    h.chat("/v1/chat/completions", "hello", json!({})).await;
+    h.chat("/v1/chat/completions", "cut", json!({"stream": true}))
+        .await;
+    h.wait_for_meter_rows(2).await;
+    for row in h.meter() {
+        assert!(row["ttft_ms"].is_null(), "{row}");
+    }
 }
 
 #[tokio::test(flavor = "multi_thread")]
