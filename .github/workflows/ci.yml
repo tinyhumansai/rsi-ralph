@@ -189,8 +189,11 @@ jobs:
           cargo build --locked -p rsi-ralph-cli
           target/debug/rsi-ralph --version
           target/debug/rsi-ralph init --list
-          target/debug/rsi-ralph init target/ci-loop
-          OPENROUTER_API_KEY=ci-placeholder target/debug/rsi-ralph check target/ci-loop
+          # Outside `target/`: rust-cache restores that folder, and `init`
+          # refuses the loop an earlier run left there.
+          loop_dir="${RUNNER_TEMP}/rsi-ralph-ci-loop"
+          target/debug/rsi-ralph init "$loop_dir"
+          OPENROUTER_API_KEY=ci-placeholder target/debug/rsi-ralph check "$loop_dir"
 
       - name: Parse the PowerShell installer
         if: ${{ runner.os == 'Windows' }}

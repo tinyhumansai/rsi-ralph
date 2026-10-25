@@ -20,7 +20,9 @@ let outcome = rsi_ralph_swarm::run_swarm(request, &mut |event| println!("{event:
    keys name a supported capability and known seats.
 2. **Starts a dedicated thread** with a 16 MB stack and its own Tokio runtime.
    Swarms in one process run one at a time, because OpenHuman embeds one
-   runtime per process.
+   runtime per process. A seat turn cut off by the wall clock can keep that
+   runtime claimed for a moment after its swarm returns, so the next swarm
+   retries the build every 50 ms for up to 30 s before reporting it.
 3. **Builds one OpenHuman agent per seat** on one runtime whose workspace is
    `<run_dir>/runtime` (sessions and transcripts):
    - provider: OpenAI-compatible at `model_base_url(seat)`, so a spend gateway
