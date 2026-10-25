@@ -30,6 +30,7 @@ pub mod doctor;
 pub mod engine;
 mod error;
 pub mod gate;
+pub mod history;
 pub mod hive;
 pub mod init;
 pub mod keys;

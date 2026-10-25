@@ -140,7 +140,7 @@ pub(super) fn execute(
 
 /// The loop's name and its folder log, from a folder or, for a bare name,
 /// from the latest stored run's frozen copy.
-fn loop_log(store: &Store, target: &Path) -> Result<(String, Vec<Entry>)> {
+pub(super) fn loop_log(store: &Store, target: &Path) -> Result<(String, Vec<Entry>)> {
     if target.join(manifest::MANIFEST).is_file() {
         return Ok((loop_name(target)?, upgrades::read(&target.join(LOG))?));
     }
@@ -150,13 +150,7 @@ fn loop_log(store: &Store, target: &Path) -> Result<(String, Vec<Entry>)> {
             path: target.join(manifest::MANIFEST).display().to_string(),
         });
     }
-    let log = match drift::previous_run(store, &name, "")? {
-        Some((_, files)) => match files.get(LOG) {
-            Some(text) => upgrades::parse(text, Path::new(LOG))?,
-            None => Vec::new(),
-        },
-        None => return Err(Error::NoRun(name)),
-    };
+    let log = upgrades::frozen_log(store, &name)?.ok_or_else(|| Error::NoRun(name.clone()))?;
     Ok((name, log))
 }
 

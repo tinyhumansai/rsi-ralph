@@ -9,9 +9,8 @@ fn score(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |v| format!("{v:.4}"))
 }
 
+#[expect(clippy::cast_precision_loss, reason = "minutes are shown to one decimal")]
 fn minutes(ms: Option<u64>) -> String {
-    // Precision loss is irrelevant for minutes shown to one decimal.
-    #[expect(clippy::cast_precision_loss, reason = "shown to one decimal")]
     ms.map_or_else(|| "-".to_owned(), |ms| format!("{:.1} min", ms as f64 / 60_000.0))
 }
 
