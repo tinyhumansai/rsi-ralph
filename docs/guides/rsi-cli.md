@@ -77,7 +77,11 @@ can hold a candidate back but never accept one on their own.
 
 The hive is a [tinyhivemind hive package](../../vendor/tinyhivemind/docs/specs/hive-language.md):
 `hive.json`, `constitution.json`, `memory.json` and Markdown prompts under
-`seats/`, `roles/` and `context/`. `rsi.json` names the `lead` seat, which
+`seats/`, `roles/` and `context/`. A big `hive.json` can be split: its
+`roles`, `seats` and `profiles` may move to `agents.json`, its `tools`,
+`toolpacks`, `mcp`, `skills` and `hooks` to `tools.json`, and its `desks`,
+`topology` and `referrals` to `desks.json` (see the hive language's
+"Splitting the manifest"). `rsi.json` names the `lead` seat, which
 receives the brief. A seat whose `config.action_dir` is `"{candidate}"` gets its
 own candidate checkout to edit; the others see the incumbent read-only.
 Every section with a safe default may be left out (see the hive language's

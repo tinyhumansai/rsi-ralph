@@ -38,6 +38,53 @@ fn loads_root_manifests_and_nested_documents_only() {
 }
 
 #[test]
+fn a_hive_json_split_into_agents_tools_and_desks_loads_the_same_seats() {
+    let dir = copy();
+    let root = dir.path();
+    let mut hive: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(&std::fs::read_to_string(root.join("hive.json")).unwrap()).unwrap();
+    for (file, sections) in [
+        ("agents.json", &["roles", "seats", "profiles"][..]),
+        (
+            "tools.json",
+            &["tools", "toolpacks", "mcp", "skills", "hooks"],
+        ),
+        ("desks.json", &["desks", "topology", "referrals"]),
+    ] {
+        let part: serde_json::Map<_, _> = sections
+            .iter()
+            .filter_map(|section| Some(((*section).to_owned(), hive.remove(*section)?)))
+            .collect();
+        std::fs::write(root.join(file), serde_json::to_string(&part).unwrap()).unwrap();
+    }
+    assert!(!hive.contains_key("seats"));
+    std::fs::write(
+        root.join("hive.json"),
+        serde_json::to_string(&hive).unwrap(),
+    )
+    .unwrap();
+
+    let files = load_package(root).unwrap();
+    for file in ["agents.json", "tools.json", "desks.json"] {
+        assert!(files.contains_key(file), "{file} was not loaded");
+    }
+    let whole = load_package(&fixture()).unwrap();
+    assert_eq!(
+        editing_seats(&files).unwrap(),
+        editing_seats(&whole).unwrap()
+    );
+    let ids = |files| {
+        Hive::open(files)
+            .unwrap()
+            .seats
+            .iter()
+            .map(|seat| seat.seat.id.clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(ids(&files), ids(&whole));
+}
+
+#[test]
 fn skips_hidden_entries_symlinks_and_stray_files() {
     let dir = copy();
     let root = dir.path();
