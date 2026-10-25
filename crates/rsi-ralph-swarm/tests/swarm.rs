@@ -630,3 +630,25 @@ fn zz_probe_back_to_back() {
         }
     }
 }
+
+#[test]
+fn zz_probe_after_wall_clock() {
+    let _turn = one_swarm_at_a_time();
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(model(Duration::from_secs(30)));
+    let dirs0 = dirs();
+    let outcome = run_swarm(request(&dirs0, &server.uri(), Duration::from_secs(3)), &mut |_| {}).unwrap();
+    eprintln!("wall run: {:?}", outcome.stop);
+    let start = std::time::Instant::now();
+    let mut tries = 0;
+    loop {
+        tries += 1;
+        let d = dirs();
+        let mut z = request(&d, "http://127.0.0.1:9", Duration::from_secs(1));
+        z.turn = Duration::ZERO;
+        let e = run_swarm(z, &mut |_| {}).unwrap_err();
+        if !matches!(e, rsi_ralph_swarm::Error::Runtime(_)) { break; }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    eprintln!("next swarm could build after {:?} ({tries} tries)", start.elapsed());
+}
