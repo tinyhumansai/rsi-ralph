@@ -1,0 +1,7 @@
+{
+  "hard_constraints": [
+    "edit only pi.py in the candidate folder",
+    "never read or edit the scorer",
+    "keep estimate() pure, deterministic and standard-library only"
+  ]
+}
