@@ -4,7 +4,7 @@
 //! Its own test binary, because `OpenHuman` installs a memory engine for the
 //! whole process: the runs here would otherwise leak memory into the other
 //! swarm tests.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -187,13 +187,16 @@ fn namespaces(engine: &ReferenceEngine) -> BTreeSet<String> {
 
 /// The memory namespace each seat was announced with.
 fn announced(events: &[SwarmEvent]) -> BTreeMap<String, Option<String>> {
-    match events.first() {
-        Some(SwarmEvent::SwarmStarted { seats, .. }) => seats
-            .iter()
-            .map(|seat| (seat.id.clone(), seat.memory.clone()))
-            .collect(),
-        other => panic!("the run did not start with swarm_started: {other:?}"),
-    }
+    events
+        .iter()
+        .find_map(|event| match event {
+            SwarmEvent::SwarmStarted { seats, .. } => Some(seats),
+            _ => None,
+        })
+        .expect("the run announced its seats")
+        .iter()
+        .map(|seat| (seat.id.clone(), seat.memory.clone()))
+        .collect()
 }
 
 fn offered(requests: &[Request], seat: &str) -> Vec<String> {
