@@ -88,6 +88,7 @@ const clock = (t) => { const s = Math.floor(t / 1000); return `${String(Math.flo
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const pct = (xs, p) => { if (!xs.length) return null; const v = xs.slice().sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(p * v.length))]; };
 const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? `${s.slice(0, n)}…` : s; };
+let upgradesText = null;
 let runs = [], current = null, source = null, events = [], ledger = null, record = null, briefEpoch = null, detail = null;
 // Model calls from the gateway meter, and the swarm trace of one epoch.
 let meterSource = null, meter = [], hiveSource = null, hive = [], hiveEpoch = null, hivePinned = false, epochList = [], budget = null;
@@ -121,6 +122,7 @@ function schedule() { if (!queued) { queued = true; requestAnimationFrame(() => 
 
 function select(id) {
   for (const es of [source, meterSource, hiveSource]) if (es) es.close();
+  upgradesText = null;
   current = id; events = []; ledger = null; record = null; briefEpoch = null; detail = null;
   meter = []; hive = []; hiveEpoch = null; hivePinned = false; epochList = []; budget = null;
   seatFilter = null; briefs = {}; openRows = new Set(); hiveSource = null;
@@ -404,6 +406,7 @@ function render() {
     <div class="card"><h2>Candidates</h2>${candidates()}</div>
     <div class="card"><h2>Detail</h2><div id="detail">${detail ?? `<p class="muted">Click a candidate to see its change.</p>`}</div></div>
     <div class="card"><h2>Brief</h2><div class="tabs">${briefTabs.map((e) => `<button data-epoch="${e}" class="${e === briefEpoch ? "on" : ""}">epoch ${e}</button>`).join("")}</div><pre id="brief">${esc(briefs[briefEpoch] ?? "")}</pre></div>
+    <div class="card"><h2>Upgrades</h2><pre id="upgrades">${esc(upgradesText || "No upgrade log for this run.")}</pre></div>
     <div class="card log"><h2>Events</h2><table><tbody>${events.slice(-60).reverse().map(({ seq, event: e }) =>
       `<tr><td>${seq}</td><td>${esc(e.kind)}</td><td>${esc(summary(e))}</td></tr>`).join("")}</tbody></table></div>`;
   for (const b of document.querySelectorAll(".tabs button[data-epoch]")) b.onclick = () => { briefEpoch = Number(b.dataset.epoch); render(); };
@@ -413,6 +416,12 @@ function render() {
   for (const row of document.querySelectorAll("tr[data-seat]")) row.onclick = () => { seatFilter = seatFilter === row.dataset.seat ? null : row.dataset.seat; render(); };
   for (const d of document.querySelectorAll("details[data-row]")) d.ontoggle = () => { if (d.open) openRows.add(d.dataset.row); else openRows.delete(d.dataset.row); };
   for (const row of document.querySelectorAll("tr[data-cand]")) row.onclick = () => showDiff(row.dataset.epoch, row.dataset.cand);
+  // The upgrade log is rendered once, when the run starts; fetch it once per run.
+  if (upgradesText === null && current) {
+    const run = current;
+    upgradesText = "";
+    text(`/api/runs/${run}/files/upgrades.md`).then((t) => { if (run !== current) return; upgradesText = t; const el = $("#upgrades"); if (el && t) el.textContent = t; });
+  }
   // A brief is written once, before its epoch's swarm starts; fetch each one once.
   const epoch = briefEpoch, run = current;
   if (epoch !== null && !(epoch in briefs)) {
