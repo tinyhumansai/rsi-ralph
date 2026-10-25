@@ -3,7 +3,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use openhuman_embed::{Access, AgentDefinitionSpec, AgentSpec, Provider, ToolScopeSpec};
+use openhuman_embed::{
+    Access, AgentDefinitionSpec, AgentSpec, ModelDefaults, Provider, ToolScopeSpec,
+};
 
 use super::SwarmRequest;
 use crate::event::SeatInfo;
