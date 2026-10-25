@@ -96,6 +96,12 @@ clamped to it. Unset, the gateway's own cap applies (16,384). It is per call,
 not per turn or per run, and each call reserves `max_tokens` times the
 model's completion price against the budget before it is sent.
 
+The gateway only lowers what a seat asks for. A seat asks for the
+`max_tokens` of the hive model it names (`models[].max_tokens` in the hive
+package); a seat whose model sets none asks for OpenHuman's per-turn cap,
+16,384. To let a seat write longer completions, raise both: the hive model's
+`max_tokens`, and `budget.max_tokens` to at least that.
+
 **`models`.** Every model call goes through the run's spend gateway, which only
 allows models with a price ceiling. `z-ai/glm-5.3-flash` (the default for every
 role) and `openai/text-embedding-3-small` are built in; any other model a seat,

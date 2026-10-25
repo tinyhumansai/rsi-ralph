@@ -3,7 +3,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use openhuman_embed::{Access, AgentDefinitionSpec, AgentSpec, Provider, ToolScopeSpec};
+use openhuman_embed::{
+    Access, AgentDefinitionSpec, AgentSpec, ModelDefaults, Provider, ToolScopeSpec,
+};
 
 use super::SwarmRequest;
 use crate::event::SeatInfo;
@@ -94,6 +96,16 @@ pub(crate) fn spec(
         || request.default_model.clone(),
         |model| model.model.name.clone(),
     );
+    // The hive model's completion cap. Without it OpenHuman asks for its own
+    // per-turn cap (16,384) whatever the hive and the gateway allow.
+    let model_defaults = ModelDefaults {
+        max_tokens: seat
+            .integration
+            .model
+            .as_ref()
+            .and_then(|model| model.model.max_tokens),
+        ..ModelDefaults::default()
+    };
     let provider = Provider::openai_compatible(
         (request.model_base_url)(&seat.id),
         request.model_api_key.clone(),
@@ -106,6 +118,7 @@ pub(crate) fn spec(
     };
     let mut spec = AgentSpec::new(seat.id.clone())
         .definition(definition)
+        .model_defaults(model_defaults)
         .provider(provider)
         .access(access)
         .action_dir(action_dir);
