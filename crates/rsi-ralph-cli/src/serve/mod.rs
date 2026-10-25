@@ -13,7 +13,7 @@
 //! | `/api/runs/<loop>/<run>/epochs` | the run's epoch numbers, ascending |
 //! | `/api/runs/<loop>/<run>/epochs/<n>/hive` | that epoch's swarm trace, `hive/events.jsonl`, as SSE |
 //! | `/api/loops/<loop>/history` | the loop's score history across stored runs, with its upgrades |
-//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md`, or a candidate's `change.diff` |
+//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md`, `notes.json` or a harvested `notes/<seat>/<path>`, or a candidate's `change.diff` |
 //!
 //! Every path segment is validated as a plain name before it touches the
 //! filesystem, so a request cannot leave the store.
@@ -208,6 +208,14 @@ fn allowed(rest: &[&str]) -> Option<PathBuf> {
             Some(PathBuf::from(name))
         }
         [e, "brief.md"] if epoch(e) => Some(Path::new(e).join("brief.md")),
+        [e, "notes.json"] if epoch(e) => Some(Path::new(e).join("notes.json")),
+        [e, "notes", seat, path @ ..]
+            if epoch(e) && plain(seat) && !path.is_empty() && path.iter().all(|s| plain(s)) =>
+        {
+            let mut file = Path::new(e).join("notes").join(seat);
+            file.extend(path);
+            Some(file)
+        }
         [e, "steps", c, "change.diff"] if epoch(e) && plain(c) => {
             Some(Path::new(e).join("steps").join(c).join("change.diff"))
         }

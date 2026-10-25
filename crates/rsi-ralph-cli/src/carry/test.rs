@@ -156,7 +156,8 @@ fn water_filling_gives_small_seats_all_they_need_and_splits_the_rest() {
     assert_eq!(shares(&[10, 500, 500], 310), vec![10, 150, 150]);
     assert_eq!(shares(&[10, 20], 100), vec![10, 20]);
     assert_eq!(shares(&[], 100), Vec::<usize>::new());
-    assert_eq!(shares(&[7, 7, 7], 10), vec![3, 3, 3]);
+    // Integer division leaves a remainder for the last seat, not on the floor.
+    assert_eq!(shares(&[7, 7, 7], 10), vec![3, 3, 4]);
 }
 
 #[test]

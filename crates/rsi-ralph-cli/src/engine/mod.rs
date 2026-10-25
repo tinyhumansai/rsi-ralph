@@ -687,11 +687,7 @@ fn harvest(
             changed: &c.changed,
         })
         .collect();
-    let promoted = ledger
-        .epochs
-        .last()
-        .and_then(|e| e.promoted.as_deref())
-        .filter(|_| ledger.epochs.last().is_some_and(|e| e.epoch == epoch));
+    let promoted = ledger.epochs.last().and_then(|e| e.promoted.as_deref());
     carry::harvest(spec, epoch, promoted, &sources, dir)
 }
 
