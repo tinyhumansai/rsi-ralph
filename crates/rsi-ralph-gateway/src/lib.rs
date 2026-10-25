@@ -5,7 +5,8 @@
 //!
 //! 1. allows only the models in its [`PriceTable`];
 //! 2. pins each model to one provider with a price ceiling, bounds
-//!    `max_tokens`, and applies a default `reasoning.effort`;
+//!    `max_tokens`, and applies a default reasoning effort (sent as both
+//!    `reasoning.effort` and `reasoning_effort`);
 //! 3. reserves the call's worst-case cost against **both** the per-run and
 //!    the campaign-wide ledger, refusing with HTTP 402 if it does not fit;
 //! 4. settles to the cost the upstream reports (pricing token counts at the
