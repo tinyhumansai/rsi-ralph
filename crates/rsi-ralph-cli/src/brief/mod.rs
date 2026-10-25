@@ -1,11 +1,12 @@
 //! Rendering `brief.md` for one epoch.
 //!
-//! The template is the user's Markdown. Four placeholders are filled in:
+//! The template is the user's Markdown. Five placeholders are filled in:
 //! `{{incumbent}}` (current scores), `{{history}}` (earlier decisions in this
-//! run), `{{failures}}` (a sample of what the incumbent gets wrong) and
-//! `{{ideas}}` (creative-retreat ideas). A placeholder the template leaves out
-//! is appended as its own section when it has content, so a plain brief still
-//! gets the evidence.
+//! run), `{{failures}}` (a sample of what the incumbent gets wrong),
+//! `{{ideas}}` (creative-retreat ideas) and `{{notes}}` (what every seat of
+//! the last epoch wrote, when the loop carries notes; see [`crate::carry`]).
+//! A placeholder the template leaves out is appended as its own section when
+//! it has content, so a plain brief still gets the evidence.
 
 use std::{collections::BTreeMap, fmt::Write as _};
 
@@ -42,6 +43,9 @@ pub struct BriefInput<'a> {
     pub history: &'a [HistoryEntry],
     /// Retreat ideas for this epoch.
     pub ideas: &'a [String],
+    /// The last epoch's notes, already rendered by [`crate::carry::render`];
+    /// empty when there are none.
+    pub notes: &'a str,
 }
 
 /// Fill the template.
@@ -52,6 +56,7 @@ pub fn render(template: &str, input: &BriefInput<'_>) -> String {
         ("history", "What has been tried", history(input.history)),
         ("failures", "What still fails", failures(input)),
         ("ideas", "Ideas from the retreat", ideas(input.ideas)),
+        ("notes", "Notes from the last epoch", input.notes.to_owned()),
     ];
     let mut out = template.to_owned();
     for (key, title, body) in sections {
@@ -149,7 +154,7 @@ fn failures(input: &BriefInput<'_>) -> String {
 
 /// The first `limit` characters of `text`, marked when cut, with a code fence
 /// the cut left open closed again so the rest of the brief still renders.
-fn clip(text: &str, limit: usize) -> String {
+pub(crate) fn clip(text: &str, limit: usize) -> String {
     let mut out: String = text.chars().take(limit).collect();
     if out.len() < text.len() {
         out.push('…');
