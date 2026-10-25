@@ -490,22 +490,41 @@ fn upgrades_add_keeps_each_contributors_rationale_and_show_renders_them() {
     let d = dir.to_str().unwrap();
     let (ok, out) = exec(
         &[
-            "--home", h.as_str(), "upgrades", "add", d,
-            "--id", "u-1",
-            "--title", "Keep every seat working",
-            "--author", "assistant:claude-code@claude-opus-5-5=diagnosed",
-            "--rationale", "The lead ends each seat's work at its first report.",
-            "--author", "operator:steven=approved",
-            "--rationale", "Idle seats waste the epoch.",
-            "--saw", "the scout stopped after 4 minutes",
-            "--metric", "seats_busy_mean=7.2@graph-coloring/r9",
-            "--claim", "c-17",
-            "--diagnosis", "The lead prompt ends work at the first report.",
-            "--change", "The lead answers every report with the next assignment.",
-            "--file", "brief.md",
-            "--file", "hive/#max_turns",
-            "--expect", "seats_busy_mean>=10",
-            "--epoch", "1",
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--id",
+            "u-1",
+            "--title",
+            "Keep every seat working",
+            "--author",
+            "assistant:claude-code@claude-opus-5-5=diagnosed",
+            "--rationale",
+            "The lead ends each seat's work at its first report.",
+            "--author",
+            "operator:steven=approved",
+            "--rationale",
+            "Idle seats waste the epoch.",
+            "--saw",
+            "the scout stopped after 4 minutes",
+            "--metric",
+            "seats_busy_mean=7.2@graph-coloring/r9",
+            "--claim",
+            "c-17",
+            "--diagnosis",
+            "The lead prompt ends work at the first report.",
+            "--change",
+            "The lead answers every report with the next assignment.",
+            "--file",
+            "brief.md",
+            "--file",
+            "hive/#max_turns",
+            "--expect",
+            "seats_busy_mean>=10",
+            "--epoch",
+            "1",
         ],
         true,
     );
@@ -543,14 +562,28 @@ fn upgrades_add_keeps_each_contributors_rationale_and_show_renders_them() {
     ] {
         assert!(md.contains(line), "{line} in {md}");
     }
-    let (ok, json) = exec(&["--home", h.as_str(), "upgrades", "show", d, "--json"], true);
+    let (ok, json) = exec(
+        &["--home", h.as_str(), "upgrades", "show", d, "--json"],
+        true,
+    );
     assert!(ok.is_ok());
     assert_eq!(json.lines().count(), 1);
     assert!(json.starts_with("{\"kind\":\"upgrade\""), "{json}");
     let (dup, _) = exec(
         &[
-            "--home", h.as_str(), "upgrades", "add", d, "--id", "u-1",
-            "--title", "t", "--author", "operator:o", "--change", "c",
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--id",
+            "u-1",
+            "--title",
+            "t",
+            "--author",
+            "operator:o",
+            "--change",
+            "c",
         ],
         true,
     );
@@ -563,7 +596,17 @@ fn upgrades_add_rejects_bad_authors_and_unpaired_rationales() {
     let root = tempfile::tempdir().unwrap();
     let (dir, h) = upgradable(root.path());
     let d = dir.to_str().unwrap();
-    let base = ["--home", h.as_str(), "upgrades", "add", d, "--title", "t", "--change", "c"];
+    let base = [
+        "--home",
+        h.as_str(),
+        "upgrades",
+        "add",
+        d,
+        "--title",
+        "t",
+        "--change",
+        "c",
+    ];
     let with = |extra: &[&str]| {
         let mut args = base.to_vec();
         args.extend_from_slice(extra);
@@ -572,7 +615,14 @@ fn upgrades_add_rejects_bad_authors_and_unpaired_rationales() {
     let bad = with(&["--author", "robot:r2"]);
     assert!(matches!(&bad, Err(Error::Field { field, .. }) if field == "--author robot:r2"));
     assert_eq!(exit_code(&bad), 2);
-    let unpaired = with(&["--author", "operator:o", "--rationale", "a", "--rationale", "b"]);
+    let unpaired = with(&[
+        "--author",
+        "operator:o",
+        "--rationale",
+        "a",
+        "--rationale",
+        "b",
+    ]);
     assert!(matches!(&unpaired, Err(Error::Field { field, .. }) if field == "--rationale"));
     assert!(with(&["--author", "operator:o", "--expect", "nonsense"]).is_err());
     assert!(with(&["--author", "operator:o", "--file", "../outside"]).is_err());
@@ -590,7 +640,9 @@ fn upgrades_add_reads_a_whole_record_from_json_and_hashes_against_the_last_run()
         ("rsi.json".to_owned(), "{}".to_owned()),
         ("brief.md".to_owned(), "old brief".to_owned()),
     ]);
-    let run = store.create_run("graph-coloring", Some("r1"), &files).unwrap();
+    let run = store
+        .create_run("graph-coloring", Some("r1"), &files)
+        .unwrap();
     write_json(
         &run.record_path(),
         &RunRecord {
@@ -626,7 +678,15 @@ fn upgrades_add_reads_a_whole_record_from_json_and_hashes_against_the_last_run()
     )
     .unwrap();
     let (ok, out) = exec(
-        &["--home", h.as_str(), "upgrades", "add", d, "--from", record.to_str().unwrap()],
+        &[
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--from",
+            record.to_str().unwrap(),
+        ],
         true,
     );
     assert!(ok.is_ok(), "{ok:?}");
@@ -637,7 +697,9 @@ fn upgrades_add_reads_a_whole_record_from_json_and_hashes_against_the_last_run()
     };
     assert_eq!(
         u.contributors[0].author,
-        crate::upgrades::Author::Hive { seat: "lead".into() }
+        crate::upgrades::Author::Hive {
+            seat: "lead".into()
+        }
     );
     assert_eq!(
         u.change.files[0].before.as_deref(),
@@ -646,12 +708,21 @@ fn upgrades_add_reads_a_whole_record_from_json_and_hashes_against_the_last_run()
     assert!(u.change.files[0].after.is_some());
     // The loop's name alone reads the log from the latest run's frozen copy,
     // which predates the record.
-    let (ok, md) = exec(&["--home", h.as_str(), "upgrades", "show", "graph-coloring"], true);
+    let (ok, md) = exec(
+        &["--home", h.as_str(), "upgrades", "show", "graph-coloring"],
+        true,
+    );
     assert!(ok.is_ok(), "{ok:?}");
     assert!(md.contains("No upgrades recorded."), "{md}");
-    let (none, _) = exec(&["--home", h.as_str(), "upgrades", "show", "no-such-loop"], true);
+    let (none, _) = exec(
+        &["--home", h.as_str(), "upgrades", "show", "no-such-loop"],
+        true,
+    );
     assert!(matches!(none, Err(Error::NoRun(_))));
-    let (bad, _) = exec(&["--home", h.as_str(), "upgrades", "show", "not/a/loop"], true);
+    let (bad, _) = exec(
+        &["--home", h.as_str(), "upgrades", "show", "not/a/loop"],
+        true,
+    );
     assert!(matches!(bad, Err(Error::MissingFile { .. })));
 }
 
@@ -662,9 +733,23 @@ fn upgrades_outcome_judges_the_predictions_against_the_measured_values() {
     let d = dir.to_str().unwrap();
     let (ok, _) = exec(
         &[
-            "--home", h.as_str(), "upgrades", "add", d, "--id", "u-1",
-            "--title", "t", "--author", "operator:o", "--change", "c",
-            "--expect", "busy>=10", "--expect", "p90_s<30",
+            "--home",
+            h.as_str(),
+            "upgrades",
+            "add",
+            d,
+            "--id",
+            "u-1",
+            "--title",
+            "t",
+            "--author",
+            "operator:o",
+            "--change",
+            "c",
+            "--expect",
+            "busy>=10",
+            "--expect",
+            "p90_s<30",
         ],
         true,
     );
@@ -675,18 +760,41 @@ fn upgrades_outcome_judges_the_predictions_against_the_measured_values() {
         exec(&args, true)
     };
     let (ok, out) = outcome(&[
-        "u-1", "--run", "r2", "--metric", "busy=11", "--metric", "p90_s=45",
-        "--author", "assistant:claude-code@claude-opus-5-5", "--rationale", "Busy, but slower.",
+        "u-1",
+        "--run",
+        "r2",
+        "--metric",
+        "busy=11",
+        "--metric",
+        "p90_s=45",
+        "--author",
+        "assistant:claude-code@claude-opus-5-5",
+        "--rationale",
+        "Busy, but slower.",
     ]);
     assert!(ok.is_ok(), "{ok:?}");
     assert_eq!(out.trim(), "recorded outcome of u-1 in run r2: mixed");
-    let (ok, out) = outcome(&["u-1", "--run", "r3", "--verdict", "refuted", "--saw", "stopped early"]);
+    let (ok, out) = outcome(&[
+        "u-1",
+        "--run",
+        "r3",
+        "--verdict",
+        "refuted",
+        "--saw",
+        "stopped early",
+    ]);
     assert!(ok.is_ok(), "{ok:?}");
     assert!(out.ends_with("refuted\n"), "{out}");
     let (unmeasured, _) = outcome(&["u-1", "--run", "r4", "--metric", "other=1"]);
     assert!(matches!(&unmeasured, Err(Error::Field { field, .. }) if field == "--verdict"));
     let (unknown, _) = outcome(&["u-9", "--run", "r4", "--verdict", "confirmed"]);
-    assert!(matches!(&unknown, Err(Error::Reference { kind: "upgrade", .. })));
+    assert!(matches!(
+        &unknown,
+        Err(Error::Reference {
+            kind: "upgrade",
+            ..
+        })
+    ));
     assert_eq!(exit_code(&unknown), 2);
     let (_, md) = exec(&["--home", h.as_str(), "upgrades", "show", d], true);
     for line in [

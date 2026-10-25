@@ -185,7 +185,9 @@ fn allowed(rest: &[&str]) -> Option<PathBuf> {
             .is_some_and(|n| n.parse::<u32>().is_ok())
     };
     match rest {
-        [name @ ("run.json" | "ledger.json" | "budget.json" | "upgrades.md")] => Some(PathBuf::from(name)),
+        [name @ ("run.json" | "ledger.json" | "budget.json" | "upgrades.md")] => {
+            Some(PathBuf::from(name))
+        }
         [e, "brief.md"] if epoch(e) => Some(Path::new(e).join("brief.md")),
         [e, "steps", c, "change.diff"] if epoch(e) && plain(c) => {
             Some(Path::new(e).join("steps").join(c).join("change.diff"))

@@ -72,7 +72,8 @@ pub fn summary(
     changes
         .iter()
         .map(|c| {
-            let lines = |files: &BTreeMap<String, String>| files.get(&c.path).map(|t| t.lines().count());
+            let lines =
+                |files: &BTreeMap<String, String>| files.get(&c.path).map(|t| t.lines().count());
             match (lines(previous), lines(current)) {
                 (None, Some(n)) => format!("{}: added ({n} lines)", c.path),
                 (Some(n), None) => format!("{}: removed ({n} lines)", c.path),
@@ -114,7 +115,11 @@ pub fn previous_run(
         if record.id == run {
             continue;
         }
-        let frozen = store.runs_root().join(loop_name).join(&record.id).join("loop");
+        let frozen = store
+            .runs_root()
+            .join(loop_name)
+            .join(&record.id)
+            .join("loop");
         if frozen.is_dir() {
             return Ok(Some((record.id, manifest::load_dir(&frozen)?)));
         }
@@ -144,9 +149,12 @@ pub fn check_run_start(
         .get(LOG)
         .map_or_else(|| Ok(Vec::new()), |text| parse(text, &log_path))?;
     let previous = previous_run(store, &run.loop_name, &run.id)?;
-    let (previous_id, previous_files) = previous.map_or((None, BTreeMap::new()), |(id, f)| (Some(id), f));
+    let (previous_id, previous_files) =
+        previous.map_or((None, BTreeMap::new()), |(id, f)| (Some(id), f));
     let carried_before: BTreeSet<String> = match previous_files.get(LOG) {
-        Some(text) => upgrades(&parse(text, &log_path)?).map(|u| u.id.clone()).collect(),
+        Some(text) => upgrades(&parse(text, &log_path)?)
+            .map(|u| u.id.clone())
+            .collect(),
         None => BTreeSet::new(),
     };
     let carried: Vec<&Upgrade> = upgrades(&current_log)

@@ -47,7 +47,11 @@ pub struct AddArgs {
     /// Who took part: `operator:NAME`, `assistant:NAME[@MODEL]`, `hive:SEAT`
     /// or `loop:MECHANISM`, each with an optional `=ROLE` (`authored`,
     /// `diagnosed`, `proposed`, `approved`, `applied`). Repeatable.
-    #[arg(long = "author", value_name = "KIND:NAME[@MODEL][=ROLE]", required_unless_present = "from")]
+    #[arg(
+        long = "author",
+        value_name = "KIND:NAME[@MODEL][=ROLE]",
+        required_unless_present = "from"
+    )]
     pub authors: Vec<String>,
     /// The reason in that contributor's own words; the n-th `--rationale`
     /// belongs to the n-th `--author`. Repeatable.
@@ -330,7 +334,10 @@ fn outcome(store: &Store, args: OutcomeArgs, now: u64, out: &mut dyn Write) -> R
         None => upgrades::evaluate(&upgrade.expected, &measured).ok_or_else(|| {
             Error::field(
                 "--verdict",
-                format!("no prediction of {} was measured; pass --verdict", upgrade.id),
+                format!(
+                    "no prediction of {} was measured; pass --verdict",
+                    upgrade.id
+                ),
             )
         })?,
     };

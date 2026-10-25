@@ -104,7 +104,9 @@ fn an_upgrade_with_two_contributors_has_a_pinned_wire_form() {
 
 #[test]
 fn hive_and_loop_authors_and_bare_records_have_pinned_wire_forms() {
-    let hive = Author::Hive { seat: "lead".into() };
+    let hive = Author::Hive {
+        seat: "lead".into(),
+    };
     assert_eq!(
         serde_json::to_value(&hive).unwrap(),
         json!({ "kind": "hive", "seat": "lead" })
@@ -251,7 +253,9 @@ fn the_notation_parses_every_kind_of_author_and_role() {
     );
     assert_eq!(
         notation::contributor("hive:lead=proposed").unwrap().author,
-        Author::Hive { seat: "lead".into() }
+        Author::Hive {
+            seat: "lead".into()
+        }
     );
     assert_eq!(
         notation::contributor("loop:run_start_diff=detected")
@@ -466,10 +470,20 @@ fn a_hive_change_with_no_upgrade_record_is_recorded_as_unexplained() {
         unexplained.change.files[0].before.as_deref(),
         Some(digest(&files[&seat]).as_str())
     );
-    assert!(unexplained.change.diff.as_deref().unwrap().contains("modified"));
+    assert!(
+        unexplained
+            .change
+            .diff
+            .as_deref()
+            .unwrap()
+            .contains("modified")
+    );
     let md = std::fs::read_to_string(run.path.join(RENDERED)).unwrap();
     assert!(md.contains("## Unexplained change since run r1"), "{md}");
-    assert!(md.contains(&format!("No upgrade record explains `{seat}`.")), "{md}");
+    assert!(
+        md.contains(&format!("No upgrade record explains `{seat}`.")),
+        "{md}"
+    );
 }
 
 #[test]
@@ -517,7 +531,10 @@ fn a_hive_change_named_by_a_new_upgrade_is_explained_and_carried() {
 fn a_dir_subject_inside_the_loop_is_not_part_of_the_diff() {
     let home = tempfile::tempdir().unwrap();
     let (_, parsed, _) = example(home.path());
-    assert_eq!(drift::excluded(&parsed), [LOG.to_owned(), "subject/".to_owned()]);
+    assert_eq!(
+        drift::excluded(&parsed),
+        [LOG.to_owned(), "subject/".to_owned()]
+    );
 }
 
 #[test]
@@ -538,7 +555,11 @@ fn collect_reads_the_loop_log_then_each_run_oldest_first() {
         })
     };
     for id in ["a", "b"] {
-        append(&store.runs_root().join(&name).join(id).join(LOG), &entry(id)).unwrap();
+        append(
+            &store.runs_root().join(&name).join(id).join(LOG),
+            &entry(id),
+        )
+        .unwrap();
     }
     let loop_log = vec![Entry::Upgrade(assistant_and_operator())];
     let all = collect(&store, &name, loop_log.clone()).unwrap();
@@ -663,6 +684,12 @@ fn markdown_says_when_an_upgrade_waits_for_the_next_run_or_a_prediction_was_not_
         ],
     );
     assert!(md.contains("· from the next run, epoch 2 ·"), "{md}");
-    assert!(md.contains("**Outcome in run r2: refuted**\n\n- `seats_busy_mean`: not measured"), "{md}");
-    assert!(md.contains("2 files changed since run r1:\n\n- `a.md`\n- `b.md` (01234567 -> none)"), "{md}");
+    assert!(
+        md.contains("**Outcome in run r2: refuted**\n\n- `seats_busy_mean`: not measured"),
+        "{md}"
+    );
+    assert!(
+        md.contains("2 files changed since run r1:\n\n- `a.md`\n- `b.md` (01234567 -> none)"),
+        "{md}"
+    );
 }

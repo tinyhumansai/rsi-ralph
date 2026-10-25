@@ -5,7 +5,9 @@
 
 use std::{collections::BTreeMap, fmt::Write};
 
-use super::{Applied, Author, Contributor, Entry, Evidence, Outcome, Role, Upgrade, measured_value};
+use super::{
+    Applied, Author, Contributor, Entry, Evidence, Outcome, Role, Upgrade, measured_value,
+};
 
 /// Render every entry of a loop's log.
 #[must_use]
@@ -32,7 +34,10 @@ pub fn markdown(loop_name: &str, entries: &[Entry]) -> String {
                     .run
                     .as_deref()
                     .or_else(|| carried_by.get(u.id.as_str()).copied());
-                let judged = outcomes.get(u.id.as_str()).map(Vec::as_slice).unwrap_or_default();
+                let judged = outcomes
+                    .get(u.id.as_str())
+                    .map(Vec::as_slice)
+                    .unwrap_or_default();
                 upgrade(u, from, judged)
             }
             Entry::Applied(a) => applied(a),
@@ -167,7 +172,11 @@ fn upgrade(u: &Upgrade, from: Option<&str>, outcomes: &[&Outcome]) -> String {
     if let Some(diff) = &u.change.diff {
         let _ = write!(out, "\n```text\n{}\n```\n", diff.trim_end());
     }
-    let reasons: Vec<&Contributor> = u.contributors.iter().filter(|c| c.rationale.is_some()).collect();
+    let reasons: Vec<&Contributor> = u
+        .contributors
+        .iter()
+        .filter(|c| c.rationale.is_some())
+        .collect();
     if !reasons.is_empty() {
         out.push_str("\n**Why**\n\n");
         for c in reasons {
@@ -182,7 +191,11 @@ fn upgrade(u: &Upgrade, from: Option<&str>, outcomes: &[&Outcome]) -> String {
     if !u.expected.is_empty() {
         out.push_str("\n**Expected**\n\n");
         for p in &u.expected {
-            let note = p.note.as_ref().map(|n| format!(" ({n})")).unwrap_or_default();
+            let note = p
+                .note
+                .as_ref()
+                .map(|n| format!(" ({n})"))
+                .unwrap_or_default();
             let _ = writeln!(out, "- `{}` {} {}{note}", p.metric, p.op.symbol(), p.value);
         }
     }
@@ -206,7 +219,11 @@ fn outcome(out: &mut String, u: &Upgrade, o: &Outcome) {
     for p in &u.expected {
         match measured_value(&o.measured, &p.metric) {
             Some(v) => {
-                let held = if p.op.holds(v, p.value) { "held" } else { "did not hold" };
+                let held = if p.op.holds(v, p.value) {
+                    "held"
+                } else {
+                    "did not hold"
+                };
                 let _ = writeln!(
                     out,
                     "- `{}` = {v}: expected {} {}, {held}",
@@ -220,11 +237,11 @@ fn outcome(out: &mut String, u: &Upgrade, o: &Outcome) {
             }
         }
     }
-    for e in o
-        .measured
-        .iter()
-        .filter(|e| !e.metric.as_ref().is_some_and(|m| u.expected.iter().any(|p| &p.metric == m)))
-    {
+    for e in o.measured.iter().filter(|e| {
+        !e.metric
+            .as_ref()
+            .is_some_and(|m| u.expected.iter().any(|p| &p.metric == m))
+    }) {
         out.push_str(&evidence(e));
     }
     for c in o.contributors.iter().filter(|c| c.rationale.is_some()) {

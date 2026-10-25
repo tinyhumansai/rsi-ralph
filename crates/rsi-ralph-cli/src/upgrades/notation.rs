@@ -154,10 +154,7 @@ pub fn file(text: &str) -> Result<FileChange> {
         None => (text, Vec::new()),
     };
     let path = path.trim_start_matches("./");
-    if path.is_empty()
-        || path.starts_with('/')
-        || path.split('/').any(|part| part == "..")
-    {
+    if path.is_empty() || path.starts_with('/') || path.split('/').any(|part| part == "..") {
         return Err(Error::field(
             format!("--file {text}"),
             "expected a path inside the loop folder",

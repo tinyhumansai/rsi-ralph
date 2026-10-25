@@ -351,7 +351,10 @@ fn a_loop_folder_runs_end_to_end_through_the_binary() {
         "changed since run e2e with no upgrade record: hive/seats/lead.md"
     );
     let log = std::fs::read_to_string(second.join("upgrades.jsonl")).unwrap();
-    let entries: Vec<Value> = log.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+    let entries: Vec<Value> = log
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
     assert_eq!(entries[0]["previous_run"], "e2e");
     assert_eq!(entries[0]["unexplained"], json!(["hive/seats/lead.md"]));
     assert_eq!(entries[1]["contributors"][0]["author"]["kind"], "loop");
