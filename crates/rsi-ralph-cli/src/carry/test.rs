@@ -15,7 +15,7 @@ fn carry(file_bytes: usize, epoch_bytes: usize) -> Carry {
 
 /// A candidate checkout holding `files`, all of which it changed.
 struct Seat {
-    seat: &'static str,
+    id: &'static str,
     outcome: &'static str,
     dir: tempfile::TempDir,
     changed: Vec<String>,
@@ -29,7 +29,7 @@ fn seat(seat: &'static str, outcome: &'static str, files: &[(&str, &str)]) -> Se
         fs::write(target, text).unwrap();
     }
     Seat {
-        seat,
+        id: seat,
         outcome,
         dir,
         changed: files.iter().map(|(p, _)| (*p).to_owned()).collect(),
@@ -38,12 +38,12 @@ fn seat(seat: &'static str, outcome: &'static str, files: &[(&str, &str)]) -> Se
 
 /// Harvest epoch 1 of `seats` into a fresh epoch folder.
 fn run(spec: &Carry, seats: &[Seat], promoted: Option<&str>) -> (tempfile::TempDir, EpochNotes) {
-    let ids: Vec<String> = seats.iter().map(|s| format!("e1-{}", s.seat)).collect();
+    let ids: Vec<String> = seats.iter().map(|s| format!("e1-{}", s.id)).collect();
     let sources: Vec<Source<'_>> = seats
         .iter()
         .zip(&ids)
         .map(|(s, id)| Source {
-            seat: s.seat,
+            seat: s.id,
             candidate: id,
             outcome: s.outcome,
             checkout: s.dir.path(),
@@ -167,7 +167,7 @@ fn an_epoch_where_no_seat_wrote_notes_harvests_nothing_and_renders_nothing() {
     let a = seat("a", "rejected", &[("src/a.py", "code only")]);
     let empty = seat("b", "empty", &[]);
     let (epoch, notes) = run(&carry(1000, 1000), &[a, empty], Some("e1-a"));
-    assert!(notes.seats.is_empty());
+    assert_eq!(notes.seats, Vec::<SeatNotes>::new());
     assert!(epoch.path().join("notes.json").exists());
     assert!(!epoch.path().join("notes").exists());
     assert_eq!(render(epoch.path(), &notes, 24_000), "");

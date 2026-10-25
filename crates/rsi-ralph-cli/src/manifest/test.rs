@@ -472,7 +472,7 @@ fn pins_the_stored_form_of_carry_with_its_caps_defaulted() {
     let stored = serde_json::to_value(&parsed.manifest).unwrap();
     assert_eq!(
         stored["carry"],
-        json!({ "notes": ["notes/"], "file_bytes": 65536, "epoch_bytes": 524288, "brief_chars": 24000 })
+        json!({ "notes": ["notes/"], "file_bytes": 65_536, "epoch_bytes": 524_288, "brief_chars": 24_000 })
     );
     let back: Manifest = serde_json::from_value(stored).unwrap();
     assert_eq!(back, parsed.manifest);

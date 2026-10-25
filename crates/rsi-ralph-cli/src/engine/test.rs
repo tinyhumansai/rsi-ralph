@@ -664,5 +664,5 @@ fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
     // unchanged in every checkout is not harvested again.
     let second: crate::carry::EpochNotes =
         store::read_json(&run.join("epoch-2/notes.json")).unwrap();
-    assert!(second.seats.is_empty());
+    assert_eq!(second.seats, Vec::<crate::carry::SeatNotes>::new());
 }
