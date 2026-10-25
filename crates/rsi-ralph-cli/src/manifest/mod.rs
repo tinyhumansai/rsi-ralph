@@ -17,7 +17,7 @@ use crate::{Error, Result};
 mod types;
 pub use types::{
     Budget, Creativity, DEFAULT_MODEL, DEFAULT_OPENROUTER_ENV, DecideSpec, DecideTest, GateStep,
-    HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec,
+    HiveMemory, HiveSpec, KeySpec, Loop, Manifest, ModelPrice, Models, Retreat, SCHEMA, ScoreSpec, ScorerSpec,
     StepCwd, SubjectKind, SubjectSpec, ToolKey, VERSION,
 };
 
@@ -238,6 +238,9 @@ fn validate_fields(m: &Manifest) -> Result<()> {
             "wall_secs and turn_secs must be positive",
         ));
     }
+    if let Some(memory) = &m.hive.memory {
+        validate_memory(memory)?;
+    }
     validate_creativity(&m.creativity)?;
     validate_keys(&m.keys)?;
     validate_score(&m.score)?;
@@ -350,6 +353,26 @@ fn validate_creativity(c: &Creativity) -> Result<()> {
                 "use cli, fugue or student",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_memory(memory: &HiveMemory) -> Result<()> {
+    let endpoint = memory.endpoint.trim();
+    if !(endpoint.starts_with("http://") || endpoint.starts_with("https://")) {
+        return Err(Error::field(
+            "hive.memory.endpoint",
+            "must be an http or https URL",
+        ));
+    }
+    if !env_name(&memory.key) {
+        return Err(Error::field(
+            "hive.memory.key",
+            "must name an upper-case environment variable",
+        ));
+    }
+    if memory.root.as_deref().is_some_and(|root| root.trim().is_empty()) {
+        return Err(Error::field("hive.memory.root", "must not be blank"));
     }
     Ok(())
 }
@@ -564,6 +587,9 @@ impl Loop {
                 KeySpec::Env(env) => names.insert(env.clone()),
                 KeySpec::Tool(tool) => names.insert(tool.env.clone()),
             };
+        }
+        if let Some(memory) = &self.manifest.hive.memory {
+            names.insert(memory.key.clone());
         }
         names.into_iter().collect()
     }
