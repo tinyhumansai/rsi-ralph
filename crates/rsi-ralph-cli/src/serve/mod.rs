@@ -9,7 +9,10 @@
 //! | `/` | the UI page |
 //! | `/api/runs` | every run's `run.json`, newest first |
 //! | `/api/runs/<loop>/<run>/events` | `events.jsonl` replayed then tailed, as SSE |
-//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, an epoch's `brief.md`, or a candidate's `change.diff` |
+//! | `/api/runs/<loop>/<run>/meter` | the gateway's `meter.jsonl` (one row per model call), as SSE |
+//! | `/api/runs/<loop>/<run>/epochs` | the run's epoch numbers, ascending |
+//! | `/api/runs/<loop>/<run>/epochs/<n>/hive` | that epoch's swarm trace, `hive/events.jsonl`, as SSE |
+//! | `/api/runs/<loop>/<run>/files/<path>` | `run.json`, `ledger.json`, `budget.json`, an epoch's `brief.md`, or a candidate's `change.diff` |
 //!
 //! Every path segment is validated as a plain name before it touches the
 //! filesystem, so a request cannot leave the store.
@@ -106,7 +109,11 @@ fn handle(store: &Store, mut stream: TcpStream) -> std::io::Result<()> {
             let body = serde_json::to_vec(&runs).unwrap_or_else(|_| b"[]".to_vec());
             respond(&mut stream, 200, "application/json", &body)
         }
-        Route::Events(run) => stream_events(&mut stream, &root.join(run).join("events.jsonl")),
+        Route::Stream(file) => stream_events(&mut stream, &root.join(file)),
+        Route::Epochs(run) => {
+            let body = serde_json::to_vec(&epochs(&root.join(run))).unwrap_or_default();
+            respond(&mut stream, 200, "application/json", &body)
+        }
         Route::File(run, file) => match fs::read(root.join(run).join(&file)) {
             Ok(body) => respond(&mut stream, 200, content_type(&file), &body),
             Err(_) => respond(&mut stream, 404, "text/plain", b"not found"),
@@ -120,7 +127,10 @@ fn handle(store: &Store, mut stream: TcpStream) -> std::io::Result<()> {
 enum Route {
     Page,
     Runs,
-    Events(PathBuf),
+    /// A JSONL trace to replay and tail, relative to the runs root.
+    Stream(PathBuf),
+    /// The epochs of a run.
+    Epochs(PathBuf),
     File(PathBuf, PathBuf),
     NotFound,
 }
@@ -131,7 +141,24 @@ fn route(path: &str) -> Route {
         [""] => Route::Page,
         ["api", "runs"] => Route::Runs,
         ["api", "runs", l, r, "events"] if plain(l) && plain(r) => {
-            Route::Events(Path::new(l).join(r))
+            Route::Stream(Path::new(l).join(r).join("events.jsonl"))
+        }
+        ["api", "runs", l, r, "meter"] if plain(l) && plain(r) => {
+            Route::Stream(Path::new(l).join(r).join("meter.jsonl"))
+        }
+        ["api", "runs", l, r, "epochs"] if plain(l) && plain(r) => {
+            Route::Epochs(Path::new(l).join(r))
+        }
+        ["api", "runs", l, r, "epochs", n, "hive"]
+            if plain(l) && plain(r) && n.parse::<u32>().is_ok() =>
+        {
+            Route::Stream(
+                Path::new(l)
+                    .join(r)
+                    .join(format!("epoch-{n}"))
+                    .join("hive")
+                    .join("events.jsonl"),
+            )
         }
         ["api", "runs", l, r, "files", rest @ ..] if plain(l) && plain(r) => allowed(rest)
             .map_or(Route::NotFound, |file| {
@@ -158,13 +185,35 @@ fn allowed(rest: &[&str]) -> Option<PathBuf> {
             .is_some_and(|n| n.parse::<u32>().is_ok())
     };
     match rest {
-        [name @ ("run.json" | "ledger.json")] => Some(PathBuf::from(name)),
+        [name @ ("run.json" | "ledger.json" | "budget.json")] => Some(PathBuf::from(name)),
         [e, "brief.md"] if epoch(e) => Some(Path::new(e).join("brief.md")),
         [e, "steps", c, "change.diff"] if epoch(e) && plain(c) => {
             Some(Path::new(e).join("steps").join(c).join("change.diff"))
         }
         _ => None,
     }
+}
+
+/// The epoch numbers under a run directory, ascending; empty when it cannot
+/// be read.
+fn epochs(run: &Path) -> Vec<u32> {
+    let mut found: Vec<u32> = fs::read_dir(run)
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|e| e.path().is_dir())
+                .filter_map(|e| {
+                    e.file_name()
+                        .to_str()?
+                        .strip_prefix("epoch-")?
+                        .parse()
+                        .ok()
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    found.sort_unstable();
+    found
 }
 
 fn content_type(file: &Path) -> &'static str {
