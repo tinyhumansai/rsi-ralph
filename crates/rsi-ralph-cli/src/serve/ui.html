@@ -418,9 +418,9 @@ function render() {
   for (const row of document.querySelectorAll("tr[data-cand]")) row.onclick = () => showDiff(row.dataset.epoch, row.dataset.cand);
   // The upgrade log is rendered once, when the run starts; fetch it once per run.
   if (upgradesText === null && current) {
-    const run = current;
+    const shown = current;
     upgradesText = "";
-    text(`/api/runs/${run}/files/upgrades.md`).then((t) => { if (run !== current) return; upgradesText = t; const el = $("#upgrades"); if (el && t) el.textContent = t; });
+    text(`/api/runs/${shown}/files/upgrades.md`).then((t) => { if (shown !== current) return; upgradesText = t; const el = $("#upgrades"); if (el && t) el.textContent = t; });
   }
   // A brief is written once, before its epoch's swarm starts; fetch each one once.
   const epoch = briefEpoch, run = current;
