@@ -67,6 +67,7 @@ mod event;
 mod hooks;
 mod mirror;
 mod package;
+mod programs;
 mod prompt;
 mod relay;
 mod swarm;

@@ -2830,6 +2830,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "tinyhivemind-exec",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
  "tinyhivemind-openhuman",

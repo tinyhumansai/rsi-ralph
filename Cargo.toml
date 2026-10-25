@@ -106,6 +106,8 @@ clap = { version = "4", default-features = false, features = ["std", "derive", "
 # imports `channels::run_channel_turn` without gating it, so a build without the
 # feature does not compile.
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse", "channels"] }
+# Runs a hive package's executable tools for `rsi-ralph-swarm`.
+tinyhivemind-exec = { path = "vendor/tinyhivemind/crates/tinyhivemind-exec" }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
 # coordinator, for `rsi-ralph-swarm`. It names OpenHuman by git source; the
 # `[patch."https://github.com/tinyhumansai/openhuman"]` table below resolves

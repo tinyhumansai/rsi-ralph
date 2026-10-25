@@ -19,6 +19,7 @@ use crate::event::{Redactor, SeatInfo, StopReason, SwarmEvent};
 use crate::hooks::SwarmHooks;
 use crate::mirror::Mirror;
 use crate::package::Hive;
+use crate::programs;
 use crate::relay::{MAX_RELAYS, relay_message, stall};
 use crate::trace::Trace;
 use crate::{Error, Result};
@@ -62,9 +63,14 @@ pub(super) async fn run(
     )
     .await?;
     let hooks = Arc::new(SwarmHooks::new(trace.clone()));
-    let host = OpenHumanHost::new(runtime.runtime_id().into(), coordinator.clone())?
+    let mut host = OpenHumanHost::new(runtime.runtime_id().into(), coordinator.clone())?
         .with_turn_timeout(request.turn)?
         .with_hooks(hooks.clone())?;
+    if let Some(belt) = programs::belt(&hive, run_dir, |plan| {
+        seat::action_dir(plan, &request).to_path_buf()
+    }) {
+        host = host.with_tools(belt)?;
+    }
 
     let seats = register_seats(&hive, &request, &runtime, &host).await?;
     open_desks(&coordinator, lowered).await?;

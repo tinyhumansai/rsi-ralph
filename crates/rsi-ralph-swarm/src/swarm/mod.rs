@@ -20,7 +20,7 @@ pub use types::{ModelUrl, SeatUsage, SwarmOutcome, SwarmRequest};
 
 use crate::event::SwarmEvent;
 use crate::package::Hive;
-use crate::{Error, Result, tools};
+use crate::{Error, Result, programs, tools};
 
 /// The name [`SwarmRequest::model_base_url`] is called with for the
 /// runtime's own model calls; no seat may use it.
@@ -39,7 +39,8 @@ static RUNNING: Mutex<()> = Mutex::new(());
 /// Each seat's system prompt is its seat prompt, its role charter, its
 /// working directory, the package's shared context and the hive rules
 /// ([`crate::HIVE_RULES`]). Its tools are its package allow list plus the
-/// permanent `hivemind_*` tools and any tool-key tools, minus its deny list
+/// permanent `hivemind_*` tools, any tool-key tools and its executable tools
+/// ([`crate::programs`]: `hive.json` `tools`), minus its deny list
 /// and always minus `wait`/`wait_loop`. Editing seats get full access to
 /// their candidate checkout; every other seat reads the incumbent.
 ///
@@ -52,8 +53,8 @@ static RUNNING: Mutex<()> = Mutex::new(());
 /// Request errors before anything starts: [`Error::Package`],
 /// [`Error::UnknownLead`], [`Error::ReservedSeat`],
 /// [`Error::MissingCandidate`], [`Error::UnexpectedCandidate`],
-/// [`Error::Checkout`], [`Error::UnsupportedTool`] and
-/// [`Error::UnknownToolSeat`]. During the run: [`Error::RunDir`],
+/// [`Error::Checkout`], [`Error::UnsupportedTool`],
+/// [`Error::UnknownToolSeat`] and [`Error::PackageProgram`]. During the run: [`Error::RunDir`],
 /// [`Error::Runtime`], [`Error::Agent`], [`Error::Adapter`] and
 /// [`Error::Coordinator`]; and [`Error::Thread`] or [`Error::ThreadPanicked`]
 /// when the swarm thread itself fails.
@@ -105,6 +106,7 @@ fn check(request: &mut SwarmRequest) -> Result<Hive> {
         }
     }
     tools::validate(&request.tools, &seats)?;
+    programs::validate(&hive)?;
     request.incumbent = directory(&request.incumbent)?;
     for path in request.candidates.values_mut() {
         *path = directory(path)?;

@@ -515,3 +515,79 @@ fn seat_shell_calls_run_under_the_seats_access() {
     );
     assert!(!dirs.incumbent.join("LEAD.md").exists());
 }
+
+/// The lead assigns; the implementer calls the package's `note` program.
+async fn program_model() -> MockServer {
+    let server = MockServer::start().await;
+    let assign = json!({"agent_id": "implementer-a", "message_id": "assign-1",
+        "body": "Leave a note with the note tool."});
+    mount(
+        &server,
+        "lead",
+        vec![
+            tool_call("call-lead-1", "hivemind_send_agent", &assign),
+            text("Assigned implementer-a; ending my turn."),
+        ],
+        Duration::ZERO,
+    )
+    .await;
+    mount(
+        &server,
+        "implementer-a",
+        vec![
+            tool_call("call-impl-1", "note", &json!({"text": "from a program"})),
+            text("Left a note."),
+        ],
+        Duration::ZERO,
+    )
+    .await;
+    mount(&server, "runtime", vec![text("ok")], Duration::ZERO).await;
+    server
+}
+
+#[test]
+fn a_seat_calls_its_executable_tool_in_its_candidate_checkout() {
+    let _turn = one_swarm_at_a_time();
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(program_model());
+    let dirs = dirs();
+    let mut request = request(&dirs, &server.uri(), Duration::from_secs(120));
+    let mut manifest: Value = serde_json::from_str(&request.package["hive.json"]).unwrap();
+    // The program writes its argument object, then the seat it ran for.
+    manifest["tools"] = json!([{
+        "id": "note",
+        "description": "Leaves a note in the working directory",
+        "command": ["sh", "-c", "cat > note.json; printf '%s' \"$THM_SEAT\" > seat.txt"],
+        "args": {"type": "object", "properties": {"text": {"type": "string"}},
+                 "required": ["text"]},
+        "side_effects": "write"
+    }]);
+    manifest["toolpacks"] = json!([{"id": "notes", "tools": ["note"]}]);
+    manifest["seats"][1]["toolpacks"] = json!(["notes"]);
+    request
+        .package
+        .insert("hive.json".into(), manifest.to_string());
+    let mut events = Vec::new();
+    let outcome = run_swarm(request, &mut |event| events.push(event)).unwrap();
+
+    assert_eq!(outcome.failed, 0, "{events:?}");
+    assert!(
+        events.iter().any(|event| matches!(event,
+            SwarmEvent::ToolCall { seat, tool, phase: ToolPhase::Completed, success: Some(true), .. }
+                if seat == "implementer-a" && tool == "note")),
+        "the note tool did not run: {events:?}"
+    );
+    let note: Value =
+        serde_json::from_str(&std::fs::read_to_string(dirs.candidate.join("note.json")).unwrap())
+            .unwrap();
+    assert_eq!(note, json!({"text": "from a program"}));
+    assert_eq!(
+        std::fs::read_to_string(dirs.candidate.join("seat.txt")).unwrap(),
+        "implementer-a"
+    );
+    assert!(!dirs.incumbent.join("note.json").exists());
+
+    let requests = server_runtime.block_on(server.received_requests()).unwrap();
+    assert!(offered(&requests, "implementer-a").contains(&"note".to_owned()));
+    assert!(!offered(&requests, "lead").contains(&"note".to_owned()));
+}
