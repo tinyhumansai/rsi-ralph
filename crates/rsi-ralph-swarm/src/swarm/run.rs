@@ -235,23 +235,27 @@ pub(super) fn kickoff(request: &SwarmRequest) -> String {
 }
 
 /// The base config every seat's agent is built from: nothing that reaches
-/// out or spawns on its own. Seats carry no memory engine, so the memory
-/// lifecycle (a recall before and a log after every turn) is off.
-pub(super) fn runtime_config() -> RuntimeConfig {
+/// out or spawns on its own. The memory lifecycle (a recall before and a log
+/// after every turn) runs only when seats carry memory (`memory`), on the
+/// legacy layout a bound root needs.
+pub(super) fn runtime_config(memory: bool) -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
     config.agent.tool_dispatcher = "native".into();
     config.local_ai.runtime_enabled = false;
-    config.memory.recall.enabled = false;
-    config.memory.conversations.enabled = false;
+    config.memory.recall.enabled = memory;
+    config.memory.conversations.enabled = memory;
+    if memory {
+        config.memory.layout = openhuman_embed::MemoryLayoutMode::Legacy;
+    }
     config
 }
 
 /// The shared `OpenHuman` runtime: read-only by default, with the coding
-/// pack's schemas advertised (seats are coding agents), and its own model
-/// calls tagged [`RUNTIME_SEAT`].
+/// pack's schemas advertised (seats are coding agents), its own model calls
+/// tagged [`RUNTIME_SEAT`], and the seats' memory engine when they carry one.
 async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
-    let builder = Runtime::builder()
-        .config(runtime_config())
+    let mut builder = Runtime::builder()
+        .config(runtime_config(request.memory.is_some()))
         .workspace(Workspace::dir(workspace))
         .provider(
             Provider::openai_compatible(
@@ -262,6 +266,9 @@ async fn runtime(request: &SwarmRequest, workspace: &Path) -> Result<Runtime> {
         )
         .access(Access::readonly())
         .tool_groups(ToolGroups::packed().with("coding", GroupMode::Advertised));
+    if let Some(memory) = &request.memory {
+        builder = builder.memory_engine(memory.engine());
+    }
     // The build future is large; keep it off the caller's stack frame.
     Box::pin(builder.build())
         .await
