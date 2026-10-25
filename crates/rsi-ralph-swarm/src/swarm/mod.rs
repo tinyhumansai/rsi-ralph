@@ -40,7 +40,7 @@ static RUNNING: Mutex<()> = Mutex::new(());
 /// working directory, the package's shared context and the hive rules
 /// ([`crate::HIVE_RULES`]). Its tools are its package allow list plus the
 /// permanent `hivemind_*` tools, any tool-key tools and its executable tools
-/// ([`crate::programs`]: `hive.json` `tools`), minus its deny list
+/// (declared under `tools` in `hive.json`), minus its deny list
 /// and always minus `wait`/`wait_loop`. Editing seats get full access to
 /// their candidate checkout; every other seat reads the incumbent.
 ///
