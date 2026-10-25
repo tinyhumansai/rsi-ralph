@@ -25,14 +25,17 @@ use crate::{
 mod types;
 pub use types::{Checkout, Subject};
 
-/// Folders never copied, hashed or compared.
-const SKIPPED: [&str; 6] = [
+/// Folders never copied, hashed or compared. `.lake` is Lean's build
+/// folder: a Lean subject's checks write it into the checkout, and its
+/// outputs are not edits.
+const SKIPPED: [&str; 7] = [
     ".git",
     "target",
     "node_modules",
     "__pycache__",
     ".venv",
     ".pytest_cache",
+    ".lake",
 ];
 
 impl Subject {
