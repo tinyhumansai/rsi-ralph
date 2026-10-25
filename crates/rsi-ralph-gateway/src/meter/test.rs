@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::{Meter, MeterRow, Tags};
 use crate::error::Error;
@@ -65,8 +65,8 @@ fn stores_unreported_cache_and_reasoning_counts_as_null() {
         ..row()
     };
     let value = serde_json::to_value(row).unwrap();
-    assert!(value["cached_tokens"].is_null(), "{value}");
-    assert!(value["reasoning_tokens"].is_null(), "{value}");
+    assert_eq!(value.get("cached_tokens"), Some(&Value::Null), "{value}");
+    assert_eq!(value.get("reasoning_tokens"), Some(&Value::Null), "{value}");
 }
 
 #[test]
