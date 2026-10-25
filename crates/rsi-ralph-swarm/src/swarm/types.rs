@@ -8,6 +8,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::event::{REDACTED, StopReason};
+use crate::memory::SwarmMemory;
 use crate::tools::ToolKey;
 
 /// Maps a seat id (or [`crate::RUNTIME_SEAT`] for the runtime's own calls)
@@ -46,6 +47,8 @@ pub struct SwarmRequest {
     pub temperature: Option<f64>,
     /// Provider keys for seat tools, such as web search.
     pub tools: Vec<ToolKey>,
+    /// Where seats keep their memory; `None` gives them none.
+    pub memory: Option<SwarmMemory>,
     /// The longest the coordinator runs before the swarm stops it.
     pub wall: Duration,
     /// The longest one seat turn may take.
@@ -64,6 +67,7 @@ impl std::fmt::Debug for SwarmRequest {
             .field("default_model", &self.default_model)
             .field("temperature", &self.temperature)
             .field("tools", &self.tools)
+            .field("memory", &self.memory)
             .field("wall", &self.wall)
             .field("turn", &self.turn)
             .finish_non_exhaustive()
