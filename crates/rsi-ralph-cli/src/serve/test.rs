@@ -182,7 +182,7 @@ fn lists_a_runs_epochs_in_order() {
     }
     fs::write(dir.path().join("epoch-3"), "a file, not an epoch").unwrap();
     assert_eq!(epochs(dir.path()), vec![2, 10]);
-    assert!(epochs(&dir.path().join("missing")).is_empty());
+    assert_eq!(epochs(&dir.path().join("missing")), Vec::<u32>::new());
 }
 
 #[test]
