@@ -257,6 +257,7 @@ fn shared_memory_is_one_namespace_for_every_seat_and_every_run() {
 
 #[test]
 fn without_sharing_each_seat_logs_to_its_own_namespace() {
+    let _ = tracing_subscriber::fmt().with_env_filter(tracing_subscriber::EnvFilter::from_default_env()).with_writer(std::io::stderr).try_init(); // DEBUG-TEMP
     let _turn = one_swarm_at_a_time();
     let engine = Arc::new(ReferenceEngine::new());
     let memory = SwarmMemory::new(engine.clone(), ROOT).unwrap();

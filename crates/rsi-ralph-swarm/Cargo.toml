@@ -49,6 +49,7 @@ wiremock = { workspace = true }
 # TinyMemory's in-process reference engine, so the seat-memory test sees what
 # each seat logged without a CortexDB server.
 tinymemory-api = { workspace = true, features = ["conformance"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] } # DEBUG-TEMP
 
 [lints]
 workspace = true
