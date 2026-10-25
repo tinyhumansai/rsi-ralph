@@ -31,6 +31,88 @@ This installs the `rsi-ralph` binary without `sudo`. Pinning a version, the
 container image, building from source and upgrading are in
 [INSTALL.md](INSTALL.md).
 
+## Use cases
+
+If you can score it with a script, you can point RSI Ralph at it. The loop works
+on any folder or git branch where "better" has a number. Each card links to the
+docs for the details.
+
+<table>
+
+<tr>
+
+<td width="50%" valign="top">
+
+<h3>Optimise an algorithm</h3>
+
+<p>Point it at a heuristic and a scorer that counts what you care about: colours used, tour length, error. The agents rewrite the code, and a change is kept only if it beats the current best on the same seeds.</p>
+
+<p>The starter loop does this: <a href="loops/graph-coloring">graph colouring</a></p>
+
+</td>
+
+<td width="50%" valign="top">
+
+<h3>Speed up or shrink code</h3>
+
+<p>Score runtime, memory or binary size with any script that prints <code>METRIC name=value</code>. Edits are limited to the files you mark editable, so the rest of the project stays untouched.</p>
+
+<p><a href="docs/guides/rsi-cli.md">Writing a loop</a></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td width="50%" valign="top">
+
+<h3>Raise a pass rate</h3>
+
+<p>Use a test suite or benchmark as the scorer. Held-out items stop the agents from fitting the examples they were shown.</p>
+
+<p><a href="docs/rsi/scoring-acceptance.md">Scoring and acceptance</a></p>
+
+</td>
+
+<td width="50%" valign="top">
+
+<h3>Tune prompts and rubrics</h3>
+
+<p>Improve a prompt file, a rubric or a config against a judge. A Markdown rubric can act as an LLM judge, but only to hold a candidate back, never to accept one.</p>
+
+<p><a href="docs/rsi/scoring-worked-example.md">Scoring worked example</a></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td width="50%" valign="top">
+
+<h3>Improve a hive</h3>
+
+<p>Let the agents rewrite a tinyhivemind hive's seats, roles, prompts and policies. Changes go through private shadow evaluations and explicit approval, with rollback.</p>
+
+<p><a href="docs/library.md">Library guide</a></p>
+
+</td>
+
+<td width="50%" valign="top">
+
+<h3>Improve the improvers</h3>
+
+<p>Mark the hive that does the editing as editable too. A better team writes better edits to the team, which is the recursive part of RSI.</p>
+
+<p><a href="docs/architecture.md">Architecture</a></p>
+
+</td>
+
+</tr>
+
+</table>
+
 ## Quick start
 
 ```sh
