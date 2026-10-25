@@ -65,6 +65,9 @@ jobs:
       - name: Test independent private benchmark oracles
         run: python3 -m unittest discover -s scripts/benchmarks -p 'test_*.py'
 
+      - name: Test the install script
+        run: python3 -m unittest discover -s scripts/install_tests -p 'test_*.py'
+
       - name: Test private benchmark adapter
         run: cargo test -p rsi-ralph-host --example private_benchmark
 
@@ -152,6 +155,47 @@ jobs:
 
       - name: Build with the declared MSRV
         run: cargo build --all-targets --all-features
+
+  # The release workflow ships `rsi-ralph` for macOS and Windows as well as
+  # Linux. Checking the binary there on every push keeps a release from being
+  # the first build to find a platform-specific break.
+  binary-platforms:
+    name: Binary (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Configure git for Windows checkouts
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          git config --global core.longpaths true
+          git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build and smoke-test rsi-ralph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked -p rsi-ralph-cli
+          target/debug/rsi-ralph --version
+          target/debug/rsi-ralph init --list
+          target/debug/rsi-ralph init target/ci-loop
+          OPENROUTER_API_KEY=ci-placeholder target/debug/rsi-ralph check target/ci-loop
+
+      - name: Parse the PowerShell installer
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: ./scripts/install.ps1 -DryRun
 
   supply-chain:
     name: Supply chain
