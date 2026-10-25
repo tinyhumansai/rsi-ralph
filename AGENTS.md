@@ -298,7 +298,9 @@ an interrupted release after its version commit and tag exist. The workflow
 re-runs the full validation suite, computes the next version, updates
 the root `[workspace.package]` version and `Cargo.lock`, commits and tags
 `vX.Y.Z`, pushes, and creates an immutable GitHub release with generated
-notes. A release is a tagged source version; there are no binary assets.
+notes, then publishes the `rsi-ralph` binary as the `ghcr.io/<owner>/rsi-ralph`
+container image from the `Dockerfile`. A release is a tagged source version;
+there are no other binary assets.
 
 Consequently:
 
