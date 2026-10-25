@@ -56,7 +56,7 @@ unchanged.
 | `brief_chars` | 24000 | Most characters of notes text in one brief. Headings are extra. |
 
 Unknown fields fail, and a zero cap fails `check` with
-`carry.<field>: must be positive`. A carry prefix has to be under
+`invalid carry.<field>: must be positive`. A carry prefix has to be under
 `subject.editable` for a seat to change it without failing the surface
 gate. `check` does not enforce that, because a prefix outside the
 surface simply carries nothing.

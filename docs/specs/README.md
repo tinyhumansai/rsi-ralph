@@ -34,6 +34,8 @@ See [`host-runtime.md`](host-runtime.md) or
   between runs: records, the run-start diff and `rsi-ralph upgrades`.
 - [`score-history.md`](score-history.md) — every score of a loop across runs
   and epochs, scoring wall time, and `rsi-ralph history`.
+- [`carried-notes.md`](carried-notes.md) — every seat's notes harvested into
+  the run store at epoch end and shown in the next brief as `{{notes}}`.
 - [`rsi-viz.md`](rsi-viz.md) — read-only live visualizer for loop traces
   and run snapshots (`apps/rsi-viz/`).
 - [`crate-split.md`](crate-split.md) — score, evolve, core and observe

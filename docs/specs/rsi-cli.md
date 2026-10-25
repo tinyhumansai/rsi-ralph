@@ -80,6 +80,7 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `epochs` | no | Maximum epochs, default 3. |
 | `patience` | no | Epochs without promotion before stopping, default 2. |
 | `env` | no | Extra environment for every step. |
+| `carry` | no | `notes` (path prefixes), `file_bytes`, `epoch_bytes`, `brief_chars`: every seat's changed notes reach the next brief; see [carried notes](carried-notes.md). |
 
 **`subject`.** `kind` is `dir` or `git`. `path` is the subject directory,
 relative to the loop folder. A `dir` path must stay inside the loop folder; a
@@ -253,11 +254,13 @@ exit 0; the last non-empty stderr line is recorded as the reason.
 2. Baseline: score the incumbent, reusing a cached result for the same loop,
    subject revision and scorer definition.
 3. Each epoch: render the brief (`{{incumbent}}`, `{{history}}`,
-   `{{failures}}`, `{{ideas}}`; unused sections are appended), optionally run
+   `{{failures}}`, `{{ideas}}`, `{{notes}}`; unused sections are appended), optionally run
    the retreat, give each editing seat its own candidate checkout, run the hive
    until idle or `wall_secs`, then for each changed candidate: surface check,
    gates, scorers if the `score_reserve_usd` is still affordable, decision.
-4. Promote the accepted candidate with the best deciding score.
+4. Promote the accepted candidate with the best deciding score. With
+   `carry`, harvest every candidate's changed notes into the store for the
+   next brief's `{{notes}}` ([carried notes](carried-notes.md)).
 5. Stop on `goal_reached`, `stalled`, `budget`, `max_epochs`,
    `provider_refused` or `error`.
 
@@ -304,7 +307,8 @@ runs/<loop>/<run-id>/
   ledger.json    every candidate with gate, scores and decision
   upgrades.jsonl what changed since the previous run, and why (upgrade-log.md)
   upgrades.md    the loop's upgrade log rendered when the run started
-  epoch-<n>/     brief.md, ideas.json, swarm/, candidates/, steps/
+  epoch-<n>/     brief.md, ideas.json, swarm/, candidates/, steps/,
+                 notes.json and notes/<seat>/ with carry (carried-notes.md)
 cache/           incumbent score cache
 spend.json       total spend ledger across runs
 retreat/         retreat memory per loop
@@ -345,8 +349,8 @@ replay then tail), `/api/runs/<loop>/<run>/meter` (the gateway's
 `meter.jsonl`, SSE), `/api/runs/<loop>/<run>/epochs` (the epoch numbers),
 `/api/runs/<loop>/<run>/epochs/<n>/hive` (that epoch's swarm trace,
 `epoch-<n>/hive/events.jsonl`, SSE) and `/api/runs/<loop>/<run>/files/<path>`
-for `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md` and a
-candidate's `change.diff`. Besides the score chart and candidates, the page
+for `run.json`, `ledger.json`, `budget.json`, `upgrades.md`, an epoch's `brief.md`,
+`notes.json` and harvested `notes/<seat>/<path>`, and a candidate's `change.diff`. Besides the score chart and candidates, the page
 shows per agent its model calls, tokens (with the share of prompt tokens
 served from the provider's prompt cache, where reported), cost, time to first
 token and call time (from the meter, whole run) and its turns, tool calls and messages (from
