@@ -43,9 +43,10 @@ pub struct Limits {
     pub default_max_tokens: u64,
     /// The largest `max_tokens` the gateway forwards.
     pub max_tokens_cap: u64,
-    /// Reasoning effort (`reasoning.effort`) applied when the client names
-    /// none. Hidden reasoning is billed as completion tokens, so the default
-    /// pins it to `low`; `None` forwards the client's choice untouched.
+    /// Reasoning effort applied when the client names none, sent both as
+    /// `reasoning.effort` and as `reasoning_effort`. Hidden reasoning is
+    /// billed as completion tokens, so the default pins it to `low`; `None`
+    /// forwards the client's choice untouched.
     pub default_reasoning: Option<&'static str>,
 }
 
