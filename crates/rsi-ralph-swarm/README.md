@@ -88,8 +88,9 @@ different keys never share one.
 
 ## Executable tools
 
-A package's `hive.json` `tools` (tinyhivemind's executable tools: a program
-plus an argument schema, `docs/specs/executable-tools.md` there) reach the
+A package's `tools` (in `hive.json`, or in `tools.json` when the manifest is
+split; tinyhivemind's executable tools: a program plus an argument schema,
+`docs/specs/executable-tools.md` there) reach the
 seats whose toolpacks name them. `programs/` builds one host tool source for
 the run: on each turn of such a seat it adds a `tinyhivemind_exec::ProgramTool`
 per program, made visible and added to the seat's allow list. A call runs in
@@ -161,7 +162,7 @@ need it.
 | `event/` | `SwarmEvent` and secret scrubbing |
 | `trace/` | the `events.jsonl` sink |
 | `tools/` | tool keys and web-search wiring |
-| `programs/` | a seat's executable tools (`hive.json` `tools`) as native turn tools |
+| `programs/` | a seat's executable tools (the manifest's `tools`) as native turn tools |
 | `error/` | the crate `Error` |
 
 Tests: unit tests beside each module; `tests/swarm.rs` runs whole swarms
