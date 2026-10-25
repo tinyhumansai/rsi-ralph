@@ -60,6 +60,10 @@ pub struct Manifest {
     /// Extra environment for every step.
     #[serde(default)]
     pub env: BTreeMap<String, String>,
+    /// What every seat's candidate passes on to the next epoch; off when
+    /// absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carry: Option<Carry>,
 }
 
 fn default_epochs() -> u32 {
@@ -68,6 +72,42 @@ fn default_epochs() -> u32 {
 
 fn default_patience() -> u32 {
     2
+}
+
+/// The `carry` section: the notes every seat's candidate passes on.
+///
+/// Only the promoted candidate's checkout reaches the next epoch. With
+/// `carry`, each candidate's changed files under a `notes` prefix are copied
+/// into the run store at the end of the epoch and shown in the next brief, so
+/// a seat that lost still tells the next epoch what it found.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Carry {
+    /// Path prefixes in the subject whose changed files are carried, such as
+    /// `notes/`; matched like `subject.editable`.
+    pub notes: Vec<String>,
+    /// Most bytes of one file kept; the rest is cut.
+    #[serde(default = "default_file_bytes")]
+    pub file_bytes: usize,
+    /// Most bytes kept across every seat in one epoch, shared out so a small
+    /// seat keeps all of its notes before a large one keeps more.
+    #[serde(default = "default_epoch_bytes")]
+    pub epoch_bytes: usize,
+    /// Most characters of notes in one brief, shared out the same way.
+    #[serde(default = "default_brief_chars")]
+    pub brief_chars: usize,
+}
+
+fn default_file_bytes() -> usize {
+    64 * 1024
+}
+
+fn default_epoch_bytes() -> usize {
+    512 * 1024
+}
+
+fn default_brief_chars() -> usize {
+    24_000
 }
 
 /// How candidates are materialized.
