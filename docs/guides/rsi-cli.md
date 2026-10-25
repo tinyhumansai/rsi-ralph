@@ -135,6 +135,7 @@ Afterwards:
 rsi-ralph runs                         # every run, newest first
 rsi-ralph show graph-coloring/<run-id> # one run's outcome, error, warnings and folder
 rsi-ralph serve                        # the UI over all stored runs
+rsi-ralph history graph-coloring       # every score across runs, with scoring time (--csv, --json)
 ```
 
 If the model provider refuses every call of an epoch (a key over its spending

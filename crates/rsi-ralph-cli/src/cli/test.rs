@@ -831,3 +831,59 @@ fn upgrades_outcome_judges_the_predictions_against_the_measured_values() {
         assert!(md.contains(line), "{line} in {md}");
     }
 }
+
+#[test]
+fn history_prints_text_csv_and_json_for_a_stored_loop() {
+    let home = tempfile::tempdir().unwrap();
+    let store = Store::new(home.path());
+    let files = BTreeMap::from([("rsi.json".to_owned(), "{}".to_owned())]);
+    let run = store.create_run("demo", Some("r1"), &files).unwrap();
+    write_json(
+        &run.record_path(),
+        &RunRecord {
+            id: "r1".into(),
+            r#loop: "demo".into(),
+            status: RunStatus::Finished,
+            pid: 1,
+            started_at: 0,
+            finished_at: Some(2),
+            stop_reason: None,
+            incumbent: "abc".into(),
+            incumbent_score: Some(3.0),
+            epochs: 1,
+            spend_usd: 0.0,
+            error: None,
+            warnings: Vec::new(),
+        },
+    )
+    .unwrap();
+    let events = [
+        serde_json::json!({"elapsed_ms":0,"event":{"kind":"measured","epoch":0,"candidate":"abc","mean":3.0,"failures":0,"seeds":1}}),
+        serde_json::json!({"elapsed_ms":0,"event":{"kind":"epoch_started","epoch":1,"incumbent":"abc"}}),
+        serde_json::json!({"elapsed_ms":60_000,"event":{"kind":"measured","epoch":1,"candidate":"e1-lead","mean":4.0,"failures":0,"seeds":1}}),
+        serde_json::json!({"elapsed_ms":180_000,"event":{"kind":"epoch_finished","epoch":1,"incumbent":"abc","incumbent_metric":3.0}}),
+    ]
+    .iter()
+    .map(|v| v.to_string() + "\n")
+    .collect::<String>();
+    std::fs::write(run.events_path(), events).unwrap();
+    let h = home.path().to_str().unwrap();
+    let (ok, text) = exec(&["--home", h, "history", "demo"], true);
+    assert!(ok.is_ok(), "{ok:?}");
+    assert!(
+        text.contains("  epoch 1  from abc (-)  end 3.0000  seats 1.0 min  scoring 2.0 min"),
+        "{text}"
+    );
+    let (ok, csv) = exec(&["--home", h, "history", "demo", "--csv"], true);
+    assert!(ok.is_ok());
+    assert_eq!(
+        csv.lines().nth(2),
+        Some("r1,0,1,candidate,e1-lead,lead,4,0,1,false,abc,,60,120,")
+    );
+    let (ok, json) = exec(&["--home", h, "history", "demo", "--json"], true);
+    assert!(ok.is_ok());
+    let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(value["runs"][0]["baseline"]["mean"], 3.0);
+    let (none, _) = exec(&["--home", h, "history", "nothing"], true);
+    assert!(matches!(none, Err(Error::NoRun(_))));
+}

@@ -114,6 +114,18 @@ pub enum Command {
         /// `<loop>/<run-id>`.
         run: String,
     },
+    /// Print a loop's scores across runs and epochs, with scoring wall time
+    /// and the upgrades between runs.
+    History {
+        /// The loop folder, or a loop name to read from the run store alone.
+        r#loop: PathBuf,
+        /// One CSV row per measured checkout instead of text.
+        #[arg(long, conflicts_with = "json")]
+        csv: bool,
+        /// The history as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Read a loop's upgrade log, or record an upgrade or its outcome.
     Upgrades {
         /// What to do with the log.
@@ -181,6 +193,7 @@ pub fn execute(
         Command::Check { r#loop } => check(&r#loop, lookup, out),
         Command::Runs { r#loop } => runs(&store, r#loop.as_deref(), out),
         Command::Show { run } => show(&store, &run, out),
+        Command::History { r#loop, csv, json } => history(&store, &r#loop, csv, json, out),
         Command::Upgrades { command } => upgrades::execute(command, &store, store::now(), out),
         Command::Serve { port } => {
             let server = serve::start(store, local(port))?;
@@ -326,6 +339,22 @@ fn show(store: &Store, run: &str, out: &mut dyn Write) -> Result<()> {
         say(out, &format!("warning   {warning}"))?;
     }
     say(out, &format!("folder    {}", dir.path.display()))
+}
+
+fn history(store: &Store, target: &Path, csv: bool, json: bool, out: &mut dyn Write) -> Result<()> {
+    let (name, log) = upgrades::loop_log(store, target)?;
+    let entries = crate::upgrades::collect(store, &name, log)?;
+    let history = crate::history::collect(store, &name, &entries)?;
+    let text = if json {
+        serde_json::to_string_pretty(&history).map_err(|e| Error::Json {
+            message: e.to_string(),
+        })? + "\n"
+    } else if csv {
+        crate::history::render::csv(&history)
+    } else {
+        crate::history::render::text(&history)
+    };
+    write!(out, "{text}").map_err(|e| Error::io("write", "stdout", e))
 }
 
 /// The loop folder's files with `overrides` (`KEY=VALUE`) merged into

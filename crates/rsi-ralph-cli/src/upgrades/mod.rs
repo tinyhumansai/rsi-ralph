@@ -130,6 +130,22 @@ pub fn collect(store: &Store, loop_name: &str, loop_log: Vec<Entry>) -> Result<V
     Ok(entries)
 }
 
+/// The loop folder's log as the loop's latest stored run froze it; `None`
+/// when the loop has no stored run.
+///
+/// # Errors
+/// Returns [`Error::Io`] when the store cannot be read and [`Error::Store`]
+/// for a frozen log that does not decode.
+pub fn frozen_log(store: &Store, loop_name: &str) -> Result<Option<Vec<Entry>>> {
+    let Some((_, files)) = drift::previous_run(store, loop_name, "")? else {
+        return Ok(None);
+    };
+    files
+        .get(LOG)
+        .map_or_else(|| Ok(Vec::new()), |text| parse(text, Path::new(LOG)))
+        .map(Some)
+}
+
 /// The upgrades among `entries`.
 pub fn upgrades(entries: &[Entry]) -> impl Iterator<Item = &Upgrade> {
     entries.iter().filter_map(|e| match e {
