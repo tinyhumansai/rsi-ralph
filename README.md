@@ -34,6 +34,18 @@ subject of the work changes.
                                            └───────────────────────────────┘
 ```
 
+| | Ralph loop | Ralph loop with a goal | RSI Ralph |
+| --- | --- | --- | --- |
+| Runs | the same prompt, again and again | the same prompt, until a condition holds | epochs, until the goal or the budget |
+| Stops when | you stop it | the goal condition is met | the goal is met, patience runs out or spend hits the cap |
+| Judged by | you, by eye | a check on the result | your scorer, with a paired test against the current best |
+| Prompt | fixed | fixed | edited (seat prompts, roles, shared context) |
+| Agents | one, fixed | one, fixed | edited (the roster, policies and who talks to whom) |
+| Harness and tools | fixed | fixed | edited (the tools and integrations each seat may use) |
+| Subject | edited | edited | edited |
+| Kept only if better | no | no | yes, a candidate replaces the best only by winning |
+| Guardrails | none | the goal check | scorer outside the agents' reach, `constitution.json`, editable paths |
+
 RSI Ralph keeps the loop and the goal and drops the assumption that the agent
 is fixed. The team that does the editing is a tinyhivemind package of JSON and
 Markdown: roles, seat prompts, shared context, the tools each seat may use,
