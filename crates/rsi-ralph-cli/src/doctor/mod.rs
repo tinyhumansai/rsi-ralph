@@ -66,17 +66,16 @@ pub fn run(
     let path = lookup("PATH").map(OsString::from);
     let mut missing = Vec::new();
     for tool in TOOLS {
-        match find(tool.name, path.as_deref()) {
-            Some(found) => say(&format!("ok      {:<8} {}", tool.name, found.display()))?,
-            None => {
-                let mark = if tool.required { "missing" } else { "absent " };
-                say(&format!(
-                    "{mark} {:<8} needed for {}",
-                    tool.name, tool.used_for
-                ))?;
-                if tool.required {
-                    missing.push(tool.name.to_owned());
-                }
+        if let Some(found) = find(tool.name, path.as_deref()) {
+            say(&format!("ok      {:<8} {}", tool.name, found.display()))?;
+        } else {
+            let mark = if tool.required { "missing" } else { "absent " };
+            say(&format!(
+                "{mark} {:<8} needed for {}",
+                tool.name, tool.used_for
+            ))?;
+            if tool.required {
+                missing.push(tool.name.to_owned());
             }
         }
     }
