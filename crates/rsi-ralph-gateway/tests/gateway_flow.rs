@@ -104,6 +104,19 @@ async fn mock_chat(
                 .body(axum::body::Body::from_stream(first.chain(dropped)))
                 .unwrap()
         }
+        // Surplus Intelligence names the call and the route it took.
+        "routed" => {
+            let ids = [
+                ("x-request-id", "01REQ"),
+                ("x-si-provider-family", "zai"),
+            ];
+            if body["stream"] == json!(true) {
+                let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\ndata: {\"choices\":[],\"usage\":{\"cost\":0.001,\"prompt_tokens\":5,\"completion_tokens\":1}}\n\ndata: [DONE]\n\n";
+                (ids, [("content-type", "text/event-stream")], sse).into_response()
+            } else {
+                (ids, Json(json!({"choices": [], "usage": {"cost": 0.002, "prompt_tokens": 5, "completion_tokens": 1}}))).into_response()
+            }
+        }
         _ if body["stream"] == json!(true) => {
             let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\ndata: {\"choices\":[],\"usage\":{\"cost\":0.001,\"prompt_tokens\":5,\"completion_tokens\":1}}\n\ndata: [DONE]\n\n";
             ([("content-type", "text/event-stream")], sse).into_response()
@@ -355,6 +368,30 @@ async fn meters_unreported_cache_hits_as_null() {
     let row = &h.meter()[0];
     assert_eq!(row.get("cached_tokens"), Some(&Value::Null), "{row}");
     assert_eq!(row.get("reasoning_tokens"), Some(&Value::Null), "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn meters_the_upstream_request_id_and_route() {
+    let h = Harness::start(5.0, 50.0);
+    h.chat("/v1/chat/completions", "routed", json!({})).await;
+    h.chat("/v1/chat/completions", "routed", json!({"stream": true}))
+        .await;
+    h.chat("/v1/chat/completions", "hello", json!({})).await;
+    h.wait_for_meter_rows(3).await;
+    // The stream settles after its last byte, so rows may land in any order.
+    let rows = h.meter();
+    let (named, unnamed): (Vec<_>, Vec<_>) = rows
+        .iter()
+        .partition(|row| !row["upstream_request_id"].is_null());
+    assert_eq!(named.len(), 2, "{rows:?}");
+    assert!(named.iter().any(|row| row["stream"] == true));
+    for row in named {
+        assert_eq!(row["upstream_request_id"], "01REQ", "{row}");
+        assert_eq!(row["upstream_route"], "zai", "{row}");
+    }
+    // An upstream that names nothing leaves both unknown.
+    assert_eq!(unnamed.len(), 1, "{rows:?}");
+    assert!(unnamed[0]["upstream_route"].is_null());
 }
 
 #[tokio::test(flavor = "multi_thread")]

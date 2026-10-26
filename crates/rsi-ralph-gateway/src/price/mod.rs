@@ -31,9 +31,9 @@ pub struct Price {
 /// Counts above four billion tokens never occur for one call; saturating
 /// keeps the conversion exact for every real count.
 /// A [`Price::provider`] that pins no provider: the upstream routes the
-/// request itself. Use it with an upstream that is a router rather than
-/// `OpenRouter` (set with `TINYRSI_UPSTREAM`), which refuses `OpenRouter`'s
-/// `provider` routing object. The price ceilings still bound spend.
+/// request itself. Any other value is sent as `OpenRouter`'s routing object,
+/// or, to Surplus Intelligence (which refuses that object), as its plain
+/// `"provider": [..]` allow-list. The price ceilings still bound spend.
 pub const ANY_PROVIDER: &str = "*";
 
 pub(crate) fn usd(tokens: u64, per_token: f64) -> f64 {
