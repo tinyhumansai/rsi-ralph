@@ -690,7 +690,7 @@ fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSumma
         dir.join("scorers/m.sh"),
         format!(
             "A={log}/active\nN={expected}\ntouch \"$A/$$\"\n\
-             case \"$RSI_LABEL\" in e[0-9]*-s*) i=0;; *) i=200;; esac\nwhile [ $i -lt 200 ]; do\n\
+             n=$(ls \"$A\" | wc -l)\ncase \"$RSI_LABEL\" in e[0-9]*-s*) i=0;; *) i=200;; esac\nwhile [ $i -lt 200 ]; do\n\
              n=$(ls \"$A\" | wc -l)\n\
              if [ \"$n\" -ge \"$N\" ]; then break; fi\n\
              if grep -qx \"$N\" {log}/peaks; then break; fi\n\
