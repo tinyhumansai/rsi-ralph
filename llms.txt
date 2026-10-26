@@ -23,7 +23,6 @@ If a user pointed you here to set up RSI Ralph, do this in order and report each
 ## Run a loop (binary)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
 rsi-ralph doctor                         # git, diff, python3, OPENROUTER_API_KEY
 rsi-ralph init my-loop --template graph-coloring   # or math-problem, upgrade-file; --list shows all
 export OPENROUTER_API_KEY=...            # or put it in my-loop/.env (never commit it)
