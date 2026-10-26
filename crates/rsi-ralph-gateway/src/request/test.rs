@@ -124,6 +124,7 @@ fn embeddings_reserve_prompt_side_only() {
         json!({"model": EMBEDDING, "input": "hello"}),
         &PriceTable::standard(),
         Limits::default(),
+        Routing::OpenRouter,
     )
     .unwrap();
     assert!(prepared.body.get("max_tokens").is_none());
@@ -153,6 +154,7 @@ fn pins_reasoning_effort_unless_the_client_chose() {
         json!({"model": GLM_FLASH, "messages": []}),
         &PriceTable::standard(),
         none,
+        Routing::OpenRouter,
     )
     .unwrap();
     assert!(prepared.body.get("reasoning").is_none());
