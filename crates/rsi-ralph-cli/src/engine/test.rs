@@ -694,7 +694,7 @@ fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSumma
              if [ \"$n\" -ge \"$N\" ]; then break; fi\n\
              if grep -qx \"$N\" {log}/peaks; then break; fi\n\
              i=$((i+1)); sleep 0.05\ndone\n\
-             ls \"$A\" | wc -l >> {log}/peaks\nsleep 0.1\nrm \"$A/$$\"\n\
+             echo \"$n\" >> {log}/peaks\nsleep 0.1\nrm \"$A/$$\"\n\
              echo \"METRIC m=$(cat \"$RSI_CANDIDATE/value.txt\")\"\n",
             log = log.display()
         ),
