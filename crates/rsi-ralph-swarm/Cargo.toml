@@ -23,6 +23,9 @@ web-search = ["openhuman-embed/modules"]
 # every `shell` call from TinyBox's command analysis, served by its module
 # loader. Without it each seat's first shell call fails its whole turn.
 openhuman-embed = { workspace = true, features = ["modules"] }
+# The tool names OpenHuman registers on every seat itself (`builtin`), which a
+# hive tool must not reuse.
+openhuman-core = { workspace = true }
 # The swarm's `events.jsonl` and outcome derive their stored JSON form.
 serde = { workspace = true }
 serde_json = { workspace = true }

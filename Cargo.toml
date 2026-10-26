@@ -109,6 +109,11 @@ clap_complete = { version = "4", default-features = false }
 # imports `channels::run_channel_turn` without gating it, so a build without the
 # feature does not compile.
 openhuman-embed = { path = "vendor/openhuman/crates/openhuman-embed", default-features = false, features = ["langfuse", "channels"] }
+# OpenHuman's core, for `rsi-ralph-swarm` only: it asks the core which tool
+# names it registers on every agent itself, so `rsi-ralph check` refuses a hive
+# tool that would collide with one before the run starts. The copy
+# `openhuman-embed` links (default features off, as there), so no second build.
+openhuman-core = { path = "vendor/openhuman/crates/openhuman-core", package = "openhuman", default-features = false }
 # Runs a hive package's executable tools for `rsi-ralph-swarm`.
 tinyhivemind-exec = { path = "vendor/tinyhivemind/crates/tinyhivemind-exec" }
 # Runs a hive package's seats as OpenHuman agents on a tinyhivemind
