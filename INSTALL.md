@@ -1,8 +1,9 @@
 # Installing RSI Ralph
 
-The [README](README.md) has the one-line install for each platform. This page
-covers everything else: pinning a version, choosing a folder, the container
-image, building from source and upgrading.
+The [README](README.md) has a prompt that has a coding agent install and set up
+RSI Ralph. This page is the manual route: the one-line install for each
+platform, pinning a version, choosing a folder, the container image, building
+from source and upgrading.
 
 ## Prebuilt binaries
 

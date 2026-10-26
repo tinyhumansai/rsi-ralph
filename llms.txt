@@ -10,10 +10,19 @@ Read this first if you are an agent asked to integrate, extend or operate this r
 - **Embed the loop in a Rust program**: depend on the `rsi-ralph` crate (`crates/rsi-ralph`). See docs/library.md.
 - **Change this repository**: follow AGENTS.md. Do not edit `vendor/`.
 
+## Set up for a user
+
+If a user pointed you here to set up RSI Ralph, do this in order and report each outcome:
+
+1. Install the binary. It needs no `sudo` and verifies a SHA-256 before copying anything. On macOS and Linux run `curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh`; flags go after `sh -s --` (`--version v0.3.1`, `--dir FOLDER`, `--dry-run`). On Windows run `irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex`. If the installer says the folder is not on `PATH`, tell the user; do not edit their shell profile unasked. Rerunning the installer upgrades. No prebuilt binary for the machine, or no network: see INSTALL.md (container image, build from source).
+2. Run `rsi-ralph doctor`. It needs `git`, `diff` and `python3` for the bundled loops, and `OPENROUTER_API_KEY`.
+3. Ask the user for the OpenRouter key if it is missing, and have it exported or put in `<loop>/.env`. Never write it into a tracked file, a commit or a report.
+4. Ask what they want to improve, then scaffold with `rsi-ralph init <folder> --template <name>` (the closest of graph-coloring, math-problem, upgrade-file) and adapt the subject, scorer and brief to their task.
+5. Run `rsi-ralph check <folder>`. Do not run `rsi-ralph run` until the user agrees to the spend (`budget.run_usd`).
+
 ## Run a loop (binary)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
 rsi-ralph doctor                         # git, diff, python3, OPENROUTER_API_KEY
 rsi-ralph init my-loop --template graph-coloring   # or math-problem, upgrade-file; --list shows all
 export OPENROUTER_API_KEY=...            # or put it in my-loop/.env (never commit it)
