@@ -109,21 +109,6 @@ docs for the details.
 
 </table>
 
-## Quick start
-
-```sh
-rsi-ralph doctor                    # git, diff, python3 and your API key
-rsi-ralph init my-loop              # a starter loop: colour graphs with fewer colours
-export OPENROUTER_API_KEY=sk-or-...
-rsi-ralph check my-loop             # validate it before spending anything
-rsi-ralph run my-loop               # run it, with a live UI on http://127.0.0.1:8787
-```
-
-The starter loop asks the agents to make a graph-colouring heuristic use fewer
-colours. It scores with a small Python script, runs three epochs and stops at
-$1 of model spend. When it finishes, the best version is in the run folder and
-`rsi-ralph show` tells you where.
-
 ## Ralph loops, goals, and what RSI Ralph adds
 
 A **Ralph loop** is the simplest agent loop there is: hand an agent the same
@@ -163,10 +148,9 @@ each generation of the team is the editor of the next. [How it improves
 itself](#how-it-improves-itself) shows the loop, and the three depths of what
 the agents may edit.
 
-## A hive is defined by a language
+## Agents are defined in JSON and Markdown
 
-The agents are not hard-coded. A hive is a *package* written in the
-[tinyhivemind](https://github.com/tinyhumansai/tinyhivemind) language: plain
+The agents are not hard-coded. A agent hive is a *package* written in plain
 JSON and Markdown files that say who is on the team and how they behave. The
 runtime reads the package and runs it, so changing the files changes the team.
 
