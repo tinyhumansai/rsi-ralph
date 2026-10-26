@@ -887,3 +887,57 @@ fn history_prints_text_csv_and_json_for_a_stored_loop() {
     let (none, _) = exec(&["--home", h, "history", "nothing"], true);
     assert!(matches!(none, Err(Error::NoRun(_))));
 }
+
+/// Copies the example loop to a temp dir and gives its implementer an
+/// executable tool called `tool`, through a toolpack.
+fn loop_with_hive_tool(tool: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    copy_dir(&example(), root.path());
+    let path = root.path().join("hive/hive.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    manifest["tools"] = serde_json::json!([{
+        "id": tool,
+        "description": "Looks something up",
+        "command": ["echo", "hi"],
+        "args": {"type": "object", "properties": {}},
+        "side_effects": "read"
+    }]);
+    manifest["toolpacks"] = serde_json::json!([{"id": "extras", "tools": [tool]}]);
+    manifest["seats"][1]["toolpacks"] = serde_json::json!(["extras"]);
+    std::fs::write(&path, manifest.to_string()).unwrap();
+    root
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            std::fs::create_dir_all(&target).unwrap();
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+#[test]
+fn check_rejects_a_hive_tool_named_like_a_builtin_tool() {
+    let dir = loop_with_hive_tool("web_search");
+    let (result, _) = exec(&["check", dir.path().to_str().unwrap()], true);
+    let error = result.unwrap_err();
+    let message = error.to_string();
+    assert!(message.contains("web_search"), "{message}");
+    assert!(message.contains("already registered"), "{message}");
+    assert!(message.contains("implementer"), "{message}");
+    assert_eq!(exit_code(&Err(error)), 2);
+}
+
+#[test]
+fn check_accepts_a_hive_tool_with_a_unique_name() {
+    let dir = loop_with_hive_tool("lookup_notes");
+    let (result, out) = exec(&["check", dir.path().to_str().unwrap()], true);
+    assert!(result.is_ok(), "{result:?}");
+    assert!(out.starts_with("ok: "), "{out}");
+}

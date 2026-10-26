@@ -153,6 +153,7 @@ pub fn exit_code(result: &Result<()>) -> i32 {
             | Error::Path { .. }
             | Error::Reference { .. }
             | Error::Hive(_)
+            | Error::HiveRuntime(_)
             | Error::MissingKeys { .. }
             | Error::RunExists(_)
             | Error::NoRun(_)
@@ -256,6 +257,7 @@ fn score_text(score: Option<f64>) -> String {
 
 fn check(dir: &Path, lookup: &dyn Fn(&str) -> Option<String>, out: &mut dyn Write) -> Result<()> {
     let parsed = load(dir)?;
+    rsi_ralph_swarm::check_package(&parsed.hive)?;
     Keys::resolve(&parsed, dir, lookup)?;
     Subject::from_spec(&parsed.manifest.subject, dir).verify()?;
     say(out, &check_summary(&parsed.manifest))

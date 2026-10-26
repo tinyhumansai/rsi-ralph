@@ -247,7 +247,9 @@ exit 0; the last non-empty stderr line is recorded as the reason.
 
 ## One run
 
-1. Validate the folder (`check`), snapshot it into the run store, compare it
+1. Validate the folder (`check`; it also refuses a hive tool whose id is a
+   tool the seat runtime registers itself, such as `web_search`, which would
+   otherwise fail the first epoch), snapshot it into the run store, compare it
    with the previous run's snapshot and record the result in the run's
    upgrade log ([upgrade log](upgrade-log.md)), start the gateway and (by
    default) the UI server.

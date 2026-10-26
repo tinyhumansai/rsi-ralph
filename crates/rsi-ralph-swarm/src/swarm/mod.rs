@@ -20,7 +20,7 @@ pub use types::{ModelUrl, SeatUsage, SwarmOutcome, SwarmRequest};
 
 use crate::event::SwarmEvent;
 use crate::package::Hive;
-use crate::{Error, Result, programs, tools};
+use crate::{Error, Result, builtin, programs, tools};
 
 /// The name [`SwarmRequest::model_base_url`] is called with for the
 /// runtime's own model calls; no seat may use it.
@@ -110,6 +110,7 @@ fn check(request: &mut SwarmRequest) -> Result<Hive> {
     }
     tools::validate(&request.tools, &seats)?;
     programs::validate(&hive)?;
+    builtin::validate(&hive)?;
     request.incumbent = directory(&request.incumbent)?;
     for path in request.candidates.values_mut() {
         *path = directory(path)?;
