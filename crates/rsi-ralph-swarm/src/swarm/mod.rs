@@ -20,7 +20,7 @@ pub use types::{ModelUrl, SeatUsage, SwarmOutcome, SwarmRequest};
 
 use crate::event::SwarmEvent;
 use crate::package::Hive;
-use crate::{Error, Result, programs, tools};
+use crate::{Error, Result, builtin, programs, tools};
 
 /// The name [`SwarmRequest::model_base_url`] is called with for the
 /// runtime's own model calls; no seat may use it.
