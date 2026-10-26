@@ -380,7 +380,7 @@ fn the_incumbent_cache_keeps_scores_under_different_env_apart() {
 
 /// Each upstream call in dispatch order, with its refusal if it had one;
 /// shared by a hive that makes calls and the meter that reports them.
-type Calls = std::rc::Rc<std::cell::RefCell<Vec<Option<Refusal>>>>;
+type Calls = std::sync::Arc<std::sync::Mutex<Vec<Option<Refusal>>>>;
 
 /// A hive whose model calls go through a provider: each epoch it makes
 /// `sent` calls, the last `refused` of which the provider refuses.
@@ -398,7 +398,7 @@ impl Proposer for Provided {
     }
 
     fn propose(&mut self, request: &ProposalRequest<'_>) -> Result<ProposalReport> {
-        let mut calls = self.calls.borrow_mut();
+        let mut calls = self.calls.lock().unwrap();
         for i in 0..self.sent {
             let refused = i >= self.sent - self.refused;
             calls.push(refused.then(|| self.refusal.clone()));
@@ -421,11 +421,11 @@ impl Meter for Watched {
     }
 
     fn call_mark(&self) -> CallMark {
-        CallMark(u64::try_from(self.0.borrow().len()).unwrap())
+        CallMark(u64::try_from(self.0.lock().unwrap().len()).unwrap())
     }
 
     fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
-        let calls = self.0.borrow();
+        let calls = self.0.lock().unwrap();
         let later = &calls[usize::try_from(mark.0).unwrap()..];
         let refusals: Vec<&Refusal> = later.iter().flatten().collect();
         UpstreamCalls {
@@ -442,7 +442,7 @@ fn provided(sent: u64, refused: u64, plan: Plan, refusal: Refusal) -> (Provided,
         status: 500,
         message: "before the hive".into(),
     };
-    let calls = Calls::new(std::cell::RefCell::new(vec![None, Some(earlier)]));
+    let calls = Calls::new(std::sync::Mutex::new(vec![None, Some(earlier)]));
     let hive = Provided {
         hive: Scripted {
             seats: vec!["a".into()],
@@ -665,4 +665,92 @@ fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
     let second: crate::carry::EpochNotes =
         store::read_json(&run.join("epoch-2/notes.json")).unwrap();
     assert_eq!(second.seats, Vec::<crate::carry::SeatNotes>::new());
+}
+
+/// A loop whose scorer sleeps and logs how many scorer runs overlap it, with
+/// `seats` candidates writing `values`, scored `parallel` at a time.
+fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSummary, usize) {
+    let (dir, parsed) = fixture(root, |m| {
+        m["epochs"] = serde_json::json!(1);
+        m["score"]["parallel_candidates"] = serde_json::json!(parallel);
+    });
+    let log = root.join("overlap");
+    fs::create_dir_all(log.join("active")).unwrap();
+    fs::write(
+        dir.join("scorers/m.sh"),
+        format!(
+            "A={log}/active\ntouch \"$A/$$\"\nls \"$A\" | wc -l >> {log}/peaks\nsleep 0.3\nrm \"$A/$$\"\n\
+             echo \"METRIC m=$(cat \"$RSI_CANDIDATE/value.txt\")\"\n",
+            log = log.display()
+        ),
+    )
+    .unwrap();
+    let store = Store::new(root.join("home"));
+    let seats: Vec<String> = (0..values.len()).map(|i| format!("s{i}")).collect();
+    let values: Vec<String> = values.iter().map(|v| format!("value.txt:{v}")).collect();
+    let mut hive = Scripted {
+        seats: seats.clone(),
+        plan: Box::new(move |_, seat| {
+            let i = seats.iter().position(|s| s == seat).unwrap();
+            Some(values[i].clone())
+        }),
+        briefs: Vec::new(),
+    };
+    let summary = engine(&parsed, &dir, &store, "r", &mut hive).run().unwrap();
+    let ledger: Ledger = store::read_json(&store.runs_root().join("value/r/ledger.json")).unwrap();
+    let peak = fs::read_to_string(log.join("peaks"))
+        .unwrap()
+        .lines()
+        .map(|l| l.trim().parse::<usize>().unwrap())
+        .max()
+        .unwrap();
+    (ledger, summary, peak)
+}
+
+#[test]
+fn candidates_are_scored_one_at_a_time_by_default() {
+    let root = tempfile::tempdir().unwrap();
+    let (ledger, _, peak) = overlap_run(root.path(), 1, &["7", "5", "8", "6"]);
+    assert_eq!(ledger.candidates.len(), 4);
+    assert_eq!(peak, 1);
+}
+
+#[test]
+fn scores_up_to_the_candidate_limit_at_once_and_no_more() {
+    let root = tempfile::tempdir().unwrap();
+    let (_, _, peak) = overlap_run(root.path(), 4, &["7", "5", "8", "6"]);
+    assert_eq!(peak, 4, "all four overlap");
+    let root = tempfile::tempdir().unwrap();
+    let (_, _, peak) = overlap_run(root.path(), 2, &["7", "5", "8", "6"]);
+    assert_eq!(peak, 2, "never more than the limit");
+}
+
+#[test]
+fn concurrent_scoring_decides_and_promotes_like_sequential_scoring() {
+    let values = ["7", "5", "oops", "12", "5", "6"];
+    let summarise = |parallel| {
+        let root = tempfile::tempdir().unwrap();
+        let (ledger, summary, _) = overlap_run(root.path(), parallel, &values);
+        let rows: Vec<_> = ledger
+            .candidates
+            .iter()
+            .map(|c| {
+                (
+                    c.id.clone(),
+                    c.status,
+                    c.verdict.as_ref().map(|v| (v.decision, v.estimate)),
+                )
+            })
+            .collect();
+        (
+            rows,
+            ledger.epochs[0].promoted.clone(),
+            summary.incumbent,
+            summary.score,
+        )
+    };
+    let sequential = summarise(1);
+    assert_eq!(sequential.1.as_deref(), Some("e1-s1"), "first best wins");
+    assert_eq!(summarise(3), sequential);
+    assert_eq!(summarise(6), sequential);
 }

@@ -301,6 +301,16 @@ pub struct ScoreSpec {
     /// seed order.
     #[serde(default = "one_step")]
     pub parallel: u32,
+    /// Most candidates of one epoch that are scored at the same time; at
+    /// least 1.
+    ///
+    /// The default of 1 scores candidates one after another. Raise it when
+    /// scoring is slow and the model budget would otherwise sit idle. Each
+    /// candidate still runs its scorers and seeds as `parallel` says, and
+    /// decisions are made in seat order against the same incumbent, so they
+    /// match a sequential run.
+    #[serde(default = "one_step")]
+    pub parallel_candidates: u32,
     /// Which scorer decides, and how.
     pub decide: DecideSpec,
 }
