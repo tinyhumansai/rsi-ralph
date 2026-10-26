@@ -243,6 +243,9 @@ fn rejects_out_of_range_fields() {
             m["score"]["scorers"].as_array_mut().unwrap().push(first);
         }),
         ("score.parallel", |m| m["score"]["parallel"] = json!(0)),
+        ("score.parallel_candidates", |m| {
+            m["score"]["parallel_candidates"] = json!(0);
+        }),
         ("score.decide.seeds", |m| {
             m["score"]["decide"]["seeds"] = json!([1, 1]);
         }),
@@ -389,6 +392,16 @@ fn accepts_a_parallel_seed_limit_and_stores_it() {
     assert_eq!(stored["score"]["parallel"], json!(3));
     let defaulted = serde_json::to_value(&parse(&example()).unwrap().manifest).unwrap();
     assert_eq!(defaulted["score"]["parallel"], json!(1));
+}
+
+#[test]
+fn candidates_are_scored_one_at_a_time_unless_the_loop_says_otherwise() {
+    let parsed = parse(&example()).unwrap();
+    assert_eq!(parsed.manifest.score.parallel_candidates, 1);
+    let parsed = parse(&with(|m| m["score"]["parallel_candidates"] = json!(4))).unwrap();
+    assert_eq!(parsed.manifest.score.parallel_candidates, 4);
+    let stored = serde_json::to_value(&parsed.manifest).unwrap();
+    assert_eq!(stored["score"]["parallel_candidates"], json!(4));
 }
 
 #[test]

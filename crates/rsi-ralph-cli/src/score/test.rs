@@ -22,6 +22,7 @@ fn seeds_spec(direction: MetricDirection, scorers: Vec<ScorerSpec>) -> ScoreSpec
     ScoreSpec {
         scorers,
         parallel: 1,
+        parallel_candidates: 1,
         decide: DecideSpec {
             on: "m".into(),
             test: DecideTest::Seeds,
