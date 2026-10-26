@@ -123,6 +123,10 @@ fn leaves_cached_and_reasoning_tokens_unknown_without_details() {
 #[test]
 fn ignores_cache_and_reasoning_counts_when_pricing_at_the_ceiling() {
     let mut body = json!({"usage": surplus_usage()});
+    body["usage"]
+        .as_object_mut()
+        .unwrap()
+        .remove("buyer_cost_micro");
     let plain =
         Usage::from_body(&json!({"usage": {"prompt_tokens": 28831, "completion_tokens": 4}}));
     body["usage"]["prompt_tokens_details"]["cached_tokens"] = json!(28831);
