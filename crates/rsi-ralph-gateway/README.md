@@ -63,7 +63,9 @@ reached. Upstream statuses and bodies otherwise pass through.
 
 1. **Prepare.** The model must be in the `PriceTable`. The body is pinned to
    the model's provider (`provider.only`, `allow_fallbacks: false`,
-   `provider.max_price` at the ceiling), asked to report cost
+   `provider.max_price` at the ceiling; to Surplus Intelligence, which
+   refuses that object, the plain allow-list `"provider": ["<provider>"]`),
+   asked to report cost
    (`usage.include`, and `stream_options.include_usage` for streams),
    `max_tokens` is defaulted and clamped, and `reasoning_effort` is rewritten
    to `reasoning.effort`, defaulting to `low` when the client names none.
@@ -91,7 +93,13 @@ reached. Upstream statuses and bodies otherwise pass through.
    (`usage.completion_tokens_details.reasoning_tokens`), from a buffered
    response or a stream's usage event alike. Either is `null` when the
    provider does not report it, which means unknown, not zero. Neither
-   changes the cost: no cache discount is assumed.
+   changes the cost: no cache discount is assumed. `upstream_request_id`
+   (the `x-request-id` response header) and `upstream_route` (Surplus
+   Intelligence's `x-si-provider-family`, the API family of the seller that
+   served the call) say where the call went; the request id looks the call
+   up in the upstream's own log (Surplus: `GET /v1/requests/{id}`, which
+   names the provider and its cache reads). Both are `null` when the
+   upstream sends no such header.
 6. **Tally** every forwarded call in memory: counted as sent when it is
    forwarded, and as refused once its answer is a non-success status or never
    completes (a failed connection, or a body that broke off, counted as

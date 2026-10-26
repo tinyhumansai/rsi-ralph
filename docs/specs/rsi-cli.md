@@ -109,6 +109,12 @@ role) and `openai/text-embedding-3-small` are built in; any other model a seat,
 judge or the retreat uses needs an entry in `budget.prices`:
 `{ "<model>": { "prompt_per_mtok", "completion_per_mtok", "provider" } }`,
 dollars per million tokens and the one upstream provider it may route to.
+Against `https://openrouter.ai/api/v1` the pin is sent as `OpenRouter`'s
+routing object; against Surplus Intelligence (`*.surplusintelligence.ai`),
+which refuses that object, as its allow-list, `"provider": ["<provider>"]`
+(a provider family such as `zai`). Pinning keeps a seat's calls on one
+provider, so its prompt cache stays warm: Surplus otherwise routes each call
+to the cheapest offer, and a call that lands elsewhere misses the cache.
 `check` fails on a used model with no price. A `provider` of `"*"` pins no
 provider and sends no `OpenRouter` routing object, leaving the choice to the
 upstream; use it when `TINYRSI_UPSTREAM` points the gateway at another
