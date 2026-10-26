@@ -202,6 +202,14 @@ fn surplus_intelligence_is_an_allow_list_upstream() {
         Routing::AllowList
     );
     assert_eq!(
+        Routing::for_upstream("HTTPS://API.SurplusIntelligence.AI:443/v1"),
+        Routing::AllowList
+    );
+    assert_eq!(
+        Routing::for_upstream("https://notsurplusintelligence.ai/v1"),
+        Routing::OpenRouter
+    );
+    assert_eq!(
         Routing::for_upstream("https://openrouter.ai/api/v1"),
         Routing::OpenRouter
     );

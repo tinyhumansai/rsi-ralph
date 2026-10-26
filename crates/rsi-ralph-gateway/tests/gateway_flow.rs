@@ -104,6 +104,15 @@ async fn mock_chat(
                 .body(axum::body::Body::from_stream(first.chain(dropped)))
                 .unwrap()
         }
+        // An upstream that echoes the credential in its response headers.
+        "routed-echo" => (
+            [
+                ("x-request-id", format!("id {auth}")),
+                ("x-si-provider-family", format!("zai {auth}")),
+            ],
+            Json(json!({"choices": [], "usage": {"cost": 0.002, "prompt_tokens": 5, "completion_tokens": 1}})),
+        )
+            .into_response(),
         // Surplus Intelligence names the call and the route it took.
         "routed" => {
             let ids = [
@@ -392,6 +401,29 @@ async fn meters_the_upstream_request_id_and_route() {
     // An upstream that names nothing leaves both unknown.
     assert_eq!(unnamed.len(), 1, "{rows:?}");
     assert!(unnamed[0]["upstream_route"].is_null());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn meters_upstream_headers_with_the_key_redacted() {
+    let h = Harness::start(5.0, 50.0);
+    h.chat("/v1/chat/completions", "routed-echo", json!({})).await;
+    h.wait_for_meter_rows(1).await;
+    let row = &h.meter()[0];
+    assert!(!row.to_string().contains(KEY), "{row}");
+    assert!(
+        row["upstream_request_id"]
+            .as_str()
+            .unwrap()
+            .contains("[redacted]"),
+        "{row}"
+    );
+    assert!(
+        row["upstream_route"]
+            .as_str()
+            .unwrap()
+            .starts_with("zai "),
+        "{row}"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
