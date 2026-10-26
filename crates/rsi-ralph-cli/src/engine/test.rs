@@ -676,6 +676,7 @@ fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
 /// fast the runner starts the processes. A rendezvous that cannot fill (the
 /// limit was not honoured) is released after a bounded wait, 10 s, and logs
 /// whatever it saw, so a regression fails the assertion instead of hanging.
+/// The baseline scoring of the incumbent runs alone, so it skips the wait.
 fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSummary, usize) {
     let (dir, parsed) = fixture(root, |m| {
         m["epochs"] = serde_json::json!(1);
@@ -689,7 +690,7 @@ fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSumma
         dir.join("scorers/m.sh"),
         format!(
             "A={log}/active\nN={expected}\ntouch \"$A/$$\"\n\
-             i=0\nwhile [ $i -lt 200 ]; do\n\
+             case \"$RSI_LABEL\" in e[0-9]*-s*) i=0;; *) i=200;; esac\nwhile [ $i -lt 200 ]; do\n\
              n=$(ls \"$A\" | wc -l)\n\
              if [ \"$n\" -ge \"$N\" ]; then break; fi\n\
              if grep -qx \"$N\" {log}/peaks; then break; fi\n\
