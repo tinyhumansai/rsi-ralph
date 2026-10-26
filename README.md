@@ -248,28 +248,6 @@ run store.
 [Writing a loop](docs/guides/rsi-cli.md) walks through every field of the
 starter loop. [The CLI spec](docs/specs/rsi-cli.md) is the full contract.
 
-## Commands
-
-| Command | What it does |
-| --- | --- |
-| `rsi-ralph init <dir>` | Write a starter loop into a new folder (`--list` shows the templates) |
-| `rsi-ralph doctor` | Check that `git`, `diff`, `python3` and `OPENROUTER_API_KEY` are available |
-| `rsi-ralph check <loop>` | Validate a loop folder and report missing keys |
-| `rsi-ralph run <loop>` | Run it, serving the UI (`--epochs N`, `--no-serve`, `--env K=V`) |
-| `rsi-ralph score <loop>` | Score one checkout with the loop's scorers, outside a run |
-| `rsi-ralph runs` | List stored runs, newest first |
-| `rsi-ralph show <loop>/<run>` | One run's outcome, spend, errors and folder |
-| `rsi-ralph serve` | The UI over every stored run |
-| `rsi-ralph completions <shell>` | Print a completion script for bash, zsh, fish, PowerShell or elvish |
-
-Completions: see [INSTALL.md](INSTALL.md#shell-completions).
-
-Runs live in `~/.tinyrsi/runs/<loop>/<run-id>/`. Set `TINYRSI_HOME` or pass
-`--home` to keep them somewhere else. Each run folder holds a frozen copy of
-the loop, the ledger of every candidate and decision, the event log, and each
-epoch's brief, diffs and step logs. Exit status is 0 on success, 1 when a run
-fails, and 2 when the loop folder or arguments are invalid.
-
 ## Roadmap
 
 The loop machinery is built and tested, and the CLI runs real loops end to end.
