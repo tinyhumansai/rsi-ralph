@@ -4,7 +4,8 @@
 //! revision and scorers), then per epoch render the brief, optionally ask the
 //! retreat for ideas, give each editing seat its own candidate checkout, run
 //! the hive, and for every changed candidate run the surface check, the
-//! gates, the scorers and the decision. The best accepted candidate is
+//! gates, the scorers and the decision (with `score.parallel_candidates`,
+//! several candidates are scored at once). The best accepted candidate is
 //! promoted. With `carry`, every candidate's notes are then harvested into
 //! the store and shown in the next brief. The run stops on `goal_reached`, `stalled`, `budget`,
 //! `max_epochs`, `provider_refused` or `error`, and every step is mirrored

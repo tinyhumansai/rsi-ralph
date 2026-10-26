@@ -74,7 +74,7 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `models` | no | `default`, `judge`, `retreat` model ids (OpenRouter names). |
 | `creativity` | no | `temperature` and `retreat`; see below. |
 | `keys` | no | Capability to env-var name; see below. |
-| `score` | yes | `scorers` (non-empty), `decide`, and `parallel` (default 1). |
+| `score` | yes | `scorers` (non-empty), `decide`, `parallel` (default 1) and `parallel_candidates` (default 1). |
 | `gate` | no | Ordered list of `{ "run", "cwd"?, "timeout_secs"? }`. |
 | `budget` | no | `run_usd`, `total_usd`, `score_reserve_usd`, `prices`, `max_tokens`. |
 | `epochs` | no | Maximum epochs, default 3. |
@@ -211,6 +211,20 @@ failed seed is reported the same way. A command that cannot be started still
 fails the whole scoring of that checkout; no further seeds of that scorer are
 started once one has. Seeds that share outside resources (ports, a GPU, a
 licence) must pick distinct ones from `$RSI_SEED` or `$RSI_OUT`.
+
+**`score.parallel_candidates`.** The most candidates of one epoch that are
+scored at the same time, a whole number of at least 1 (default 1: one candidate
+after another, exactly as before). Surface checks and gates still run one
+candidate after another, first; the candidates that pass are then scored up to
+this many at once, each running its scorers and seeds as `score.parallel` says.
+Decisions are made afterwards, in seat order, each against the same incumbent,
+so verdicts, the ledger and the promoted candidate equal those of a sequential
+run. Before a candidate's scoring starts the engine re-checks the score
+reserve; one it no longer covers is recorded `unaffordable`. Scorers that call
+the model do so through the run's one gateway, which meters and caps all of
+them together. Only the trace order differs: every `ideated` (and gate
+rejection) of the epoch precedes its first `executed`, and each candidate's
+`executed`, `measured` and `scored` events stay together, in seat order.
 
 Other `run` scorers are recorded and shown in the brief, never decided on.
 

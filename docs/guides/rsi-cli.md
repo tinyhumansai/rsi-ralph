@@ -79,6 +79,15 @@ seeds of a scorer at once. Each seed keeps its own `$RSI_OUT`, timeout and
 output cap, and results stay in seed order; make sure seeds do not fight over
 shared resources such as ports (derive them from `$RSI_SEED`).
 
+Candidates are scored one after another too. When an epoch produces many
+candidates and each takes minutes to score, set `"parallel_candidates": 4`
+in `score` to score up to four candidates at once. Decisions are unchanged:
+every candidate is still compared with the same incumbent and they are applied
+in seat order, so the winner is the one a sequential run would pick. Candidates
+share the machine and the run's model budget, so give scorers distinct ports
+and files per `$RSI_CANDIDATE`. With more than one, all of an epoch's `ideated`
+events come before its first `executed`.
+
 A Markdown rubric becomes an LLM judge: `{ "id": "clarity", "judge":
 "scorers/clarity.md", "weight": 0.2 }`. Judges grade the candidate's diff; they
 can hold a candidate back but never accept one on their own.
