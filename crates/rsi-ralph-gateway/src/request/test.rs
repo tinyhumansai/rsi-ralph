@@ -4,7 +4,7 @@
 
 use serde_json::json;
 
-use super::{Endpoint, Limits, PROMPT_SLACK_TOKENS, prepare};
+use super::{Endpoint, Limits, PROMPT_SLACK_TOKENS, Routing, prepare};
 use crate::error::Error;
 use crate::price::{ANY_PROVIDER, EMBEDDING, GLM_FLASH, Price, PriceTable, usd};
 
@@ -14,6 +14,7 @@ fn chat(body: serde_json::Value) -> Result<super::Prepared, Error> {
         body,
         &PriceTable::standard(),
         Limits::default(),
+        Routing::OpenRouter,
     )
 }
 
@@ -50,6 +51,7 @@ fn any_provider_leaves_routing_to_the_upstream() {
         json!({"model": "reasoning", "messages": [{"role": "user", "content": "hi"}]}),
         &prices,
         Limits::default(),
+        Routing::OpenRouter,
     )
     .unwrap();
     assert!(prepared.body.get("provider").is_none(), "{}", prepared.body);
@@ -122,6 +124,7 @@ fn embeddings_reserve_prompt_side_only() {
         json!({"model": EMBEDDING, "input": "hello"}),
         &PriceTable::standard(),
         Limits::default(),
+        Routing::OpenRouter,
     )
     .unwrap();
     assert!(prepared.body.get("max_tokens").is_none());
@@ -151,6 +154,7 @@ fn pins_reasoning_effort_unless_the_client_chose() {
         json!({"model": GLM_FLASH, "messages": []}),
         &PriceTable::standard(),
         none,
+        Routing::OpenRouter,
     )
     .unwrap();
     assert!(prepared.body.get("reasoning").is_none());
@@ -175,5 +179,42 @@ fn sends_the_reasoning_effort_in_both_spellings() {
         prepared.body.get("reasoning_effort").is_none(),
         "{}",
         prepared.body
+    );
+}
+
+#[test]
+fn an_allow_list_upstream_gets_the_provider_as_a_list() {
+    let prepared = prepare(
+        Endpoint::Chat,
+        json!({"model": GLM_FLASH, "messages": [{"role": "user", "content": "hi"}]}),
+        &PriceTable::standard(),
+        Limits::default(),
+        Routing::AllowList,
+    )
+    .unwrap();
+    assert_eq!(prepared.body["provider"], json!(["z-ai"]));
+}
+
+#[test]
+fn surplus_intelligence_is_an_allow_list_upstream() {
+    assert_eq!(
+        Routing::for_upstream("https://api.surplusintelligence.ai/v1"),
+        Routing::AllowList
+    );
+    assert_eq!(
+        Routing::for_upstream("HTTPS://API.SurplusIntelligence.AI:443/v1"),
+        Routing::AllowList
+    );
+    assert_eq!(
+        Routing::for_upstream("https://notsurplusintelligence.ai/v1"),
+        Routing::OpenRouter
+    );
+    assert_eq!(
+        Routing::for_upstream("https://openrouter.ai/api/v1"),
+        Routing::OpenRouter
+    );
+    assert_eq!(
+        Routing::for_upstream("http://127.0.0.1:9/v1"),
+        Routing::OpenRouter
     );
 }

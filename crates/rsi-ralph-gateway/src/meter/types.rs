@@ -50,6 +50,15 @@ pub(crate) struct MeterRow {
     /// event carrying generated output. `None` for a buffered response or a
     /// stream that produced nothing.
     pub(crate) ttft_ms: Option<u128>,
+    /// The upstream's id for the call (its `x-request-id` header), for
+    /// looking the call up in the upstream's own request log. `None` when the
+    /// call never reached the upstream or it sent no id.
+    pub(crate) upstream_request_id: Option<String>,
+    /// The upstream's route for the call: Surplus Intelligence's
+    /// `x-si-provider-family` header, the API family of the seller that
+    /// served it (such as `zai`; an OpenAI-compatible seller reports
+    /// `openai`). `None` when the upstream sent none.
+    pub(crate) upstream_route: Option<String>,
     /// Refusal or failure reason.
     pub(crate) error: Option<String>,
 }

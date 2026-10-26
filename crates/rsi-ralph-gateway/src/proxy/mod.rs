@@ -34,7 +34,7 @@ use crate::error::Error;
 use crate::ledger::{Budgets, LedgerState, Reservation};
 use crate::meter::{Meter, MeterRow, Tags};
 use crate::price::PriceTable;
-use crate::request::{Endpoint, Limits, Prepared, prepare};
+use crate::request::{Endpoint, Limits, Prepared, Routing, prepare};
 use crate::usage::{SseUsage, Usage};
 
 /// Header naming the caller's loop phase.
@@ -423,6 +423,58 @@ struct Outcome {
     error: Option<String>,
     /// Time to first token, for a stream that produced one.
     ttft_ms: Option<u128>,
+    /// What the upstream said about the call in its response headers.
+    upstream: Upstream,
+}
+
+/// The upstream's id and route for one call, from its response headers.
+#[derive(Debug, Default)]
+struct Upstream {
+    /// `x-request-id`.
+    request_id: Option<String>,
+    /// `x-si-provider-family` (Surplus Intelligence).
+    route: Option<String>,
+}
+
+/// Longest header value kept, in characters.
+const UPSTREAM_HEADER_CHARS: usize = 128;
+
+impl Upstream {
+    /// Reads both headers, with the provider key redacted before they are
+    /// cut to length, so a cut can never leave part of the key behind.
+    fn from_headers(proxy: &Proxy, headers: &reqwest::header::HeaderMap) -> Self {
+        let read = |name: &str| {
+            headers
+                .get(name)
+                .and_then(|value| value.to_str().ok())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|value| {
+                    proxy
+                        .redact(value)
+                        .chars()
+                        .take(UPSTREAM_HEADER_CHARS)
+                        .collect()
+                })
+        };
+        Self {
+            request_id: read("x-request-id"),
+            route: read("x-si-provider-family"),
+        }
+    }
+}
+
+/// Parses a client body and prepares it for the configured upstream.
+fn parse(config: &ProxyConfig, endpoint: Endpoint, body: &[u8]) -> crate::error::Result<Prepared> {
+    let value = serde_json::from_slice::<Value>(body)
+        .map_err(|error| Error::BadRequest(format!("invalid JSON: {error}")))?;
+    prepare(
+        endpoint,
+        value,
+        &config.prices,
+        config.limits,
+        Routing::for_upstream(&config.upstream),
+    )
 }
 
 async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes) -> Response {
@@ -444,6 +496,8 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         reasoning_tokens: outcome.usage.reasoning_tokens,
         wall_ms: started.elapsed().as_millis(),
         ttft_ms: outcome.ttft_ms,
+        upstream_request_id: outcome.upstream.request_id,
+        upstream_route: outcome.upstream.route,
         error: outcome.error,
     };
     let refuse = |model: &str, error: &Error| {
@@ -458,14 +512,12 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
                 cost: None,
                 error: Some(error.to_string()),
                 ttft_ms: None,
+                upstream: Upstream::default(),
             },
         ));
         error_response(status, &error.to_string())
     };
-    let parsed = serde_json::from_slice::<Value>(&body)
-        .map_err(|error| Error::BadRequest(format!("invalid JSON: {error}")))
-        .and_then(|value| prepare(endpoint, value, &proxy.config.prices, proxy.config.limits));
-    let prepared = match parsed {
+    let prepared = match parse(&proxy.config, endpoint, &body) {
         Ok(prepared) => prepared,
         Err(error) => return refuse("", &error),
     };
@@ -497,11 +549,13 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
                     cost: None,
                     error: Some(settle_error.unwrap_or_else(|| error.to_string())),
                     ttft_ms: None,
+                    upstream: Upstream::default(),
                 },
             ));
             return error_response(StatusCode::BAD_GATEWAY, &error.to_string());
         }
     };
+    let upstream = Upstream::from_headers(&proxy, response.headers());
     if prepared.stream && response.status().is_success() {
         return stream_through(
             in_flight,
@@ -510,11 +564,15 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
             reservation,
             response,
             started,
-            move |outcome| row(&outcome.0, outcome.1),
+            move |(model, mut outcome)| {
+                outcome.upstream = upstream;
+                row(&model, outcome)
+            },
         );
     }
     let model = prepared.model.clone();
-    let (response, outcome) = buffered(&proxy, call, &prepared, reservation, response).await;
+    let (response, mut outcome) = buffered(&proxy, call, &prepared, reservation, response).await;
+    outcome.upstream = upstream;
     proxy.record(&row(&model, outcome));
     drop(in_flight);
     response
@@ -571,6 +629,7 @@ async fn buffered(
         cost,
         error: settle_error.or(failure),
         ttft_ms: None,
+        upstream: Upstream::default(),
     };
     let response = Response::builder()
         .status(status.as_u16())
@@ -643,6 +702,7 @@ where
                 cost,
                 error: settle_error.or(failure),
                 ttft_ms,
+                upstream: Upstream::default(),
             },
         )));
         drop(in_flight);

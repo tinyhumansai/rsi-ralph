@@ -73,6 +73,39 @@ pub(crate) struct Prepared {
     pub(crate) reserve_usd: f64,
 }
 
+/// How an upstream takes a provider pin ([`crate::Price::provider`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Routing {
+    /// `OpenRouter`'s routing object: `{"only": [..], "allow_fallbacks":
+    /// false, "max_price": {..}}`.
+    OpenRouter,
+    /// A plain allow-list, `"provider": [..]`, as Surplus Intelligence takes
+    /// it. It refuses `OpenRouter`'s object, and has no `max_price`: the price
+    /// ceilings still bound reservations.
+    AllowList,
+}
+
+impl Routing {
+    /// The form `upstream` (a base URL) takes: an allow-list for Surplus
+    /// Intelligence, `OpenRouter`'s object for anything else.
+    pub(crate) fn for_upstream(upstream: &str) -> Self {
+        // Host names are case-insensitive (RFC 3986).
+        let host = upstream
+            .split("://")
+            .nth(1)
+            .unwrap_or(upstream)
+            .split(['/', ':'])
+            .next()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if host == "surplusintelligence.ai" || host.ends_with(".surplusintelligence.ai") {
+            Self::AllowList
+        } else {
+            Self::OpenRouter
+        }
+    }
+}
+
 /// Validates and rewrites `body` for `endpoint`.
 ///
 /// # Errors
@@ -85,6 +118,7 @@ pub(crate) fn prepare(
     body: Value,
     prices: &PriceTable,
     limits: Limits,
+    routing: Routing,
 ) -> Result<Prepared> {
     let Value::Object(mut map) = body else {
         return Err(Error::BadRequest("body must be a JSON object".into()));
@@ -98,14 +132,15 @@ pub(crate) fn prepare(
     let original_bytes = serde_json::to_vec(&map).map_or(0, |bytes| bytes.len()) as u64;
     let prompt_bound = usd(original_bytes + PROMPT_SLACK_TOKENS, price.prompt);
     if price.provider != ANY_PROVIDER {
-        map.insert(
-            "provider".into(),
-            json!({
+        let pin = match routing {
+            Routing::OpenRouter => json!({
                 "only": [price.provider],
                 "allow_fallbacks": false,
                 "max_price": { "prompt": price.prompt * 1e6, "completion": price.completion * 1e6 },
             }),
-        );
+            Routing::AllowList => json!([price.provider]),
+        };
+        map.insert("provider".into(), pin);
     }
     let mut stream = false;
     let mut reserve_usd = prompt_bound;

@@ -27,6 +27,8 @@ fn row() -> MeterRow {
         reasoning_tokens: Some(0),
         wall_ms: 3,
         ttft_ms: Some(2),
+        upstream_request_id: Some("req-1".into()),
+        upstream_route: Some("zai".into()),
         error: None,
     }
 }
@@ -52,6 +54,8 @@ fn pins_the_stored_row_shape() {
             "reasoning_tokens": 0,
             "wall_ms": 3,
             "ttft_ms": 2,
+            "upstream_request_id": "req-1",
+            "upstream_route": "zai",
             "error": null,
         })
     );
