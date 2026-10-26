@@ -31,7 +31,13 @@ fn files_with(tool: &str) -> BTreeMap<String, String> {
 #[test]
 fn the_runtime_lists_the_tools_it_registers_itself() {
     let taken = names();
-    for tool in ["web_search", "web_fetch", "file_read", "shell", "web_search_tool"] {
+    for tool in [
+        "web_search",
+        "web_fetch",
+        "file_read",
+        "shell",
+        "web_search_tool",
+    ] {
         assert!(taken.contains(tool), "{tool} missing from {taken:?}");
     }
     assert!(!taken.contains("lookup_notes"));
@@ -46,7 +52,10 @@ fn a_tool_named_like_a_builtin_is_refused_naming_seat_and_tool() {
         "{error:?}"
     );
     let message = error.to_string();
-    assert!(message.contains("\"web_search\" is already registered"), "{message}");
+    assert!(
+        message.contains("\"web_search\" is already registered"),
+        "{message}"
+    );
 }
 
 #[test]

@@ -55,6 +55,10 @@ pub enum Error {
     /// The hive package is not a valid tinyhivemind package.
     #[error("hive package: {0}")]
     Hive(#[from] tinyhivemind_lang::Error),
+    /// The hive package cannot attach to the seat runtime, such as a tool
+    /// named like one the runtime registers itself.
+    #[error("hive package: {0}")]
+    HiveRuntime(#[from] rsi_ralph_swarm::Error),
     /// Required keys are not set in the environment or `.env`.
     #[error("missing keys: {}", names.join(", "))]
     MissingKeys {

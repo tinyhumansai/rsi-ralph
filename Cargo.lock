@@ -2835,6 +2835,7 @@ dependencies = [
 name = "rsi-ralph-swarm"
 version = "0.3.1"
 dependencies = [
+ "openhuman",
  "openhuman-embed",
  "serde",
  "serde_json",
