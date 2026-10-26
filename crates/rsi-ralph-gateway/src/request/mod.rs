@@ -89,13 +89,15 @@ impl Routing {
     /// The form `upstream` (a base URL) takes: an allow-list for Surplus
     /// Intelligence, `OpenRouter`'s object for anything else.
     pub(crate) fn for_upstream(upstream: &str) -> Self {
+        // Host names are case-insensitive (RFC 3986).
         let host = upstream
             .split("://")
             .nth(1)
             .unwrap_or(upstream)
             .split(['/', ':'])
             .next()
-            .unwrap_or("");
+            .unwrap_or("")
+            .to_ascii_lowercase();
         if host == "surplusintelligence.ai" || host.ends_with(".surplusintelligence.ai") {
             Self::AllowList
         } else {

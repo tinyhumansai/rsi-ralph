@@ -440,14 +440,22 @@ struct Upstream {
 const UPSTREAM_HEADER_CHARS: usize = 128;
 
 impl Upstream {
-    fn from_headers(headers: &reqwest::header::HeaderMap) -> Self {
+    /// Reads both headers, with the provider key redacted before they are
+    /// cut to length, so a cut can never leave part of the key behind.
+    fn from_headers(proxy: &Proxy, headers: &reqwest::header::HeaderMap) -> Self {
         let read = |name: &str| {
             headers
                 .get(name)
                 .and_then(|value| value.to_str().ok())
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
-                .map(|value| value.chars().take(UPSTREAM_HEADER_CHARS).collect())
+                .map(|value| {
+                    proxy
+                        .redact(value)
+                        .chars()
+                        .take(UPSTREAM_HEADER_CHARS)
+                        .collect()
+                })
         };
         Self {
             request_id: read("x-request-id"),
@@ -547,7 +555,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
             return error_response(StatusCode::BAD_GATEWAY, &error.to_string());
         }
     };
-    let upstream = Upstream::from_headers(response.headers());
+    let upstream = Upstream::from_headers(&proxy, response.headers());
     if prepared.stream && response.status().is_success() {
         return stream_through(
             in_flight,

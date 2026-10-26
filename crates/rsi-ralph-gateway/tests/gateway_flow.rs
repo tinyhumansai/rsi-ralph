@@ -406,7 +406,8 @@ async fn meters_the_upstream_request_id_and_route() {
 #[tokio::test(flavor = "multi_thread")]
 async fn meters_upstream_headers_with_the_key_redacted() {
     let h = Harness::start(5.0, 50.0);
-    h.chat("/v1/chat/completions", "routed-echo", json!({})).await;
+    h.chat("/v1/chat/completions", "routed-echo", json!({}))
+        .await;
     h.wait_for_meter_rows(1).await;
     let row = &h.meter()[0];
     assert!(!row.to_string().contains(KEY), "{row}");
@@ -418,10 +419,7 @@ async fn meters_upstream_headers_with_the_key_redacted() {
         "{row}"
     );
     assert!(
-        row["upstream_route"]
-            .as_str()
-            .unwrap()
-            .starts_with("zai "),
+        row["upstream_route"].as_str().unwrap().starts_with("zai "),
         "{row}"
     );
 }
