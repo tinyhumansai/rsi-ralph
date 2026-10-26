@@ -75,8 +75,9 @@ reached. Upstream statuses and bodies otherwise pass through.
    are retried up to twice using fresh connections. Request errors after
    connecting, including a disconnect before response headers, are ambiguous
    and are not replayed; settlement retains their reservation as uncertain.
-4. **Settle** to the reported cost; to the token counts priced at the ceiling
-   if no cost is reported; to zero if the upstream rejected the request with a
+4. **Settle** to the reported cost (`usage.cost` in dollars, else Surplus
+   Intelligence's `usage.buyer_cost_micro` in micro-dollars); to the token
+   counts priced at the ceiling if no cost is reported; to zero if the upstream rejected the request with a
    4xx; and to the whole reservation if nothing is known (crash, unreachable
    upstream). A cost above its reservation sets `breached`, which refuses
    every later call. Settlement runs detached, so it completes even when the

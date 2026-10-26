@@ -1,6 +1,8 @@
 //! Reading what a call actually cost from the upstream response.
 //!
-//! The upstream reports `usage.cost` in dollars when asked. A non-streaming
+//! The upstream reports `usage.cost` in dollars when asked. Surplus
+//! Intelligence sends `usage.buyer_cost_micro` instead, an amount in
+//! micro-dollars, which is used when `usage.cost` is absent. A non-streaming
 //! response carries `usage` at the top level; a stream carries it in one of
 //! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
 //! as they pass through. When the cost is missing but token counts are
@@ -18,7 +20,8 @@ use crate::price::{Price, usd};
 /// Token counts and cost from one response.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct Usage {
-    /// Provider-reported cost in dollars.
+    /// Provider-reported cost in dollars: `usage.cost`, else
+    /// `usage.buyer_cost_micro` converted from micro-dollars.
     pub(crate) cost: Option<f64>,
     /// Prompt tokens.
     pub(crate) prompt_tokens: u64,
@@ -44,7 +47,10 @@ impl Usage {
             return Self::default();
         };
         Self {
-            cost: usage.get("cost").and_then(Value::as_f64),
+            cost: usage
+                .get("cost")
+                .and_then(Value::as_f64)
+                .or_else(|| buyer_cost(usage)),
             prompt_tokens: usage
                 .get("prompt_tokens")
                 .and_then(Value::as_u64)
@@ -73,6 +79,13 @@ impl Usage {
             )
         })
     }
+}
+
+/// `usage.buyer_cost_micro` as dollars, when it is a finite, non-negative
+/// number.
+fn buyer_cost(usage: &Value) -> Option<f64> {
+    let micro = usage.get("buyer_cost_micro").and_then(Value::as_f64)?;
+    (micro.is_finite() && micro >= 0.0).then_some(micro / 1e6)
 }
 
 /// Incremental scanner for the usage event in a server-sent-event stream.
