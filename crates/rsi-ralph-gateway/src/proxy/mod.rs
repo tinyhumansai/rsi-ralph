@@ -456,6 +456,19 @@ impl Upstream {
     }
 }
 
+/// Parses a client body and prepares it for the configured upstream.
+fn parse(config: &ProxyConfig, endpoint: Endpoint, body: &[u8]) -> crate::error::Result<Prepared> {
+    let value = serde_json::from_slice::<Value>(body)
+        .map_err(|error| Error::BadRequest(format!("invalid JSON: {error}")))?;
+    prepare(
+        endpoint,
+        value,
+        &config.prices,
+        config.limits,
+        Routing::for_upstream(&config.upstream),
+    )
+}
+
 async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes) -> Response {
     let in_flight = InFlight::new(&proxy);
     let started = Instant::now();
@@ -496,18 +509,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         ));
         error_response(status, &error.to_string())
     };
-    let parsed = serde_json::from_slice::<Value>(&body)
-        .map_err(|error| Error::BadRequest(format!("invalid JSON: {error}")))
-        .and_then(|value| {
-            prepare(
-                endpoint,
-                value,
-                &proxy.config.prices,
-                proxy.config.limits,
-                Routing::for_upstream(&proxy.config.upstream),
-            )
-        });
-    let prepared = match parsed {
+    let prepared = match parse(&proxy.config, endpoint, &body) {
         Ok(prepared) => prepared,
         Err(error) => return refuse("", &error),
     };
