@@ -132,3 +132,38 @@ fn ignores_cache_and_reasoning_counts_when_pricing_at_the_ceiling() {
         plain.cost_or_ceiling(&price)
     );
 }
+
+#[test]
+fn reads_buyer_cost_micro_when_cost_is_absent() {
+    let usage = Usage::from_body(&json!({"usage": surplus_usage()}));
+    let price = PriceTable::standard().get(GLM_FLASH).unwrap().clone();
+    assert!((usage.cost.unwrap() - 0.000_011).abs() < 1e-12);
+    assert!((usage.cost_or_ceiling(&price).unwrap() - 0.000_011).abs() < 1e-12);
+    let float = Usage::from_body(&json!({"usage": {"buyer_cost_micro": 19.5}}));
+    assert!((float.cost.unwrap() - 0.000_019_5).abs() < 1e-12);
+}
+
+#[test]
+fn reads_buyer_cost_micro_from_the_final_stream_chunk() {
+    let mut scanner = SseUsage::default();
+    scanner.feed(b"data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n");
+    let last = json!({"choices": [], "usage": surplus_usage()});
+    scanner.feed(format!("data: {last}\n\ndata: [DONE]\n\n").as_bytes());
+    let cost = scanner.finish().cost.unwrap();
+    assert!((cost - 0.000_011).abs() < 1e-12);
+}
+
+#[test]
+fn prefers_cost_over_buyer_cost_micro() {
+    let usage = Usage::from_body(&json!({"usage": {"cost": 0.5, "buyer_cost_micro": 19}}));
+    assert_eq!(usage.cost, Some(0.5));
+}
+
+#[test]
+fn ignores_an_unusable_buyer_cost_micro() {
+    for bad in [json!(-3), json!(-0.5), json!("19"), json!(null)] {
+        let usage =
+            Usage::from_body(&json!({"usage": {"prompt_tokens": 1, "buyer_cost_micro": bad}}));
+        assert_eq!(usage.cost, None, "{bad}");
+    }
+}
