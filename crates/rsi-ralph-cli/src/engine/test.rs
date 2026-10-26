@@ -667,8 +667,15 @@ fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
     assert_eq!(second.seats, Vec::<crate::carry::SeatNotes>::new());
 }
 
-/// A loop whose scorer sleeps and logs how many scorer runs overlap it, with
-/// `seats` candidates writing `values`, scored `parallel` at a time.
+/// A loop whose scorer logs how many scorer runs overlap it, with one
+/// candidate per entry of `values`, scored `parallel` at a time.
+///
+/// Each scorer registers in `active/`, then holds at a rendezvous until it has
+/// seen `min(parallel, candidates)` scorers registered at once (or another
+/// scorer has already logged that peak), so the overlap never depends on how
+/// fast the runner starts the processes. A rendezvous that cannot fill (the
+/// limit was not honoured) is released after a bounded wait, 10 s, and logs
+/// whatever it saw, so a regression fails the assertion instead of hanging.
 fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSummary, usize) {
     let (dir, parsed) = fixture(root, |m| {
         m["epochs"] = serde_json::json!(1);
@@ -676,10 +683,18 @@ fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSumma
     });
     let log = root.join("overlap");
     fs::create_dir_all(log.join("active")).unwrap();
+    fs::write(log.join("peaks"), "").unwrap();
+    let expected = (parallel as usize).min(values.len());
     fs::write(
         dir.join("scorers/m.sh"),
         format!(
-            "A={log}/active\ntouch \"$A/$$\"\nls \"$A\" | wc -l >> {log}/peaks\nsleep 0.3\nrm \"$A/$$\"\n\
+            "A={log}/active\nN={expected}\ntouch \"$A/$$\"\n\
+             i=0\nwhile [ $i -lt 200 ]; do\n\
+             n=$(ls \"$A\" | wc -l)\n\
+             if [ \"$n\" -ge \"$N\" ]; then break; fi\n\
+             if grep -qx \"$N\" {log}/peaks; then break; fi\n\
+             i=$((i+1)); sleep 0.05\ndone\n\
+             ls \"$A\" | wc -l >> {log}/peaks\nsleep 0.1\nrm \"$A/$$\"\n\
              echo \"METRIC m=$(cat \"$RSI_CANDIDATE/value.txt\")\"\n",
             log = log.display()
         ),
