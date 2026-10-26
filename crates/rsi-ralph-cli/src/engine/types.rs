@@ -67,7 +67,7 @@ pub trait Ideator {
 }
 
 /// Model spend so far, and what the provider made of the calls.
-pub trait Meter {
+pub trait Meter: Sync {
     /// Dollars spent in this run.
     fn spent_usd(&self) -> f64;
     /// Dollars that may still be spent before a cap trips, if capped.

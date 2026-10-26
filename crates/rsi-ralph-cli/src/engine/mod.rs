@@ -16,6 +16,11 @@
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
+    sync::{
+        Mutex, PoisonError,
+        atomic::{AtomicUsize, Ordering},
+    },
+    thread,
 };
 
 use rsi_ralph_score::ScoreDecision;
@@ -434,13 +439,7 @@ impl Engine<'_> {
         });
 
         let first = state.ledger.candidates.len();
-        let mut accepted: Vec<usize> = Vec::new();
-        for (seat, checkout) in &candidates {
-            if let Some(i) = self.consider(epoch, seat, checkout, subject, state, &dir) {
-                accepted.push(i);
-            }
-            self.save(state)?;
-        }
+        let accepted = self.consider_all(epoch, &candidates, subject, state, &dir)?;
         let changed = state.ledger.candidates[first..]
             .iter()
             .any(|c| !c.changed.is_empty());
@@ -511,30 +510,79 @@ impl Engine<'_> {
         Ok(true)
     }
 
-    /// Gate, score and decide one candidate. Returns its ledger index when
-    /// it was accepted.
-    fn consider(
+    /// Gate, score and decide every candidate of an epoch, in seat order.
+    /// Returns the ledger indices of the accepted ones.
+    ///
+    /// With `score.parallel_candidates` of 1 each candidate is gated, scored
+    /// and decided before the next one starts. With more, every candidate is
+    /// gated first (still one after another), up to that many are then scored
+    /// at once, and the decisions are made afterwards in seat order against
+    /// the same incumbent, so the ledger, the verdicts and the winner are
+    /// those of the sequential path; only the trace differs, in that every
+    /// `ideated` precedes the first `executed` of the epoch.
+    fn consider_all(
         &mut self,
         epoch: u32,
-        seat: &str,
-        checkout: &Checkout,
+        candidates: &BTreeMap<String, Checkout>,
         subject: &Subject,
         state: &mut State,
         dir: &Path,
+    ) -> Result<Vec<usize>> {
+        let limit =
+            usize::try_from(self.parsed.manifest.score.parallel_candidates).unwrap_or(usize::MAX);
+        let mut accepted = Vec::new();
+        if limit <= 1 {
+            for (seat, checkout) in candidates {
+                let mut record = new_record(epoch, seat, checkout);
+                let outcome = self
+                    .prepare(epoch, checkout, subject, state, dir, &mut record)
+                    .and_then(|job| match job {
+                        None => Ok(()),
+                        Some(job) => {
+                            let ctx = self.context(epoch, &state.incumbent);
+                            let card = self.score(&ctx, checkout, &job)?;
+                            self.finish(epoch, state, checkout, &mut record, card)
+                        }
+                    });
+                accepted.extend(self.settle(state, record, outcome));
+                self.save(state)?;
+            }
+            return Ok(accepted);
+        }
+        let mut pending = Vec::new();
+        for (seat, checkout) in candidates {
+            let mut record = new_record(epoch, seat, checkout);
+            let job = self.prepare(epoch, checkout, subject, state, dir, &mut record);
+            pending.push((checkout, record, job));
+        }
+        let ctx = self.context(epoch, &state.incumbent);
+        let cards = self.score_concurrently(&ctx, limit, &pending);
+        for ((checkout, mut record, job), card) in pending.into_iter().zip(cards) {
+            let outcome = match (job, card) {
+                (Err(e), _) | (Ok(Some(_)), Some(Err(e))) => Err(e),
+                (Ok(None), _) | (Ok(Some(_)), None) => Ok(()),
+                (Ok(Some(_)), Some(Ok(None))) => {
+                    record.status = CandidateStatus::Unaffordable;
+                    Ok(())
+                }
+                (Ok(Some(_)), Some(Ok(Some(card)))) => {
+                    self.finish(epoch, state, checkout, &mut record, card)
+                }
+            };
+            accepted.extend(self.settle(state, record, outcome));
+            self.save(state)?;
+        }
+        Ok(accepted)
+    }
+
+    /// Record a candidate's outcome in the ledger. Returns its index when it
+    /// was accepted.
+    fn settle(
+        &self,
+        state: &mut State,
+        mut record: CandidateRecord,
+        outcome: Result<()>,
     ) -> Option<usize> {
-        let mut record = CandidateRecord {
-            id: checkout.label.clone(),
-            epoch,
-            seat: seat.to_owned(),
-            checkout: checkout.path.clone(),
-            changed: Vec::new(),
-            status: CandidateStatus::Empty,
-            gates: Vec::new(),
-            scorecard: None,
-            verdict: None,
-            error: None,
-        };
-        let outcome = self.judge(epoch, checkout, subject, state, dir, &mut record);
         if let Err(e) = outcome {
             record.status = CandidateStatus::Error;
             record.error = Some(store::scrub(
@@ -551,19 +599,22 @@ impl Engine<'_> {
         accepted.then(|| state.ledger.candidates.len() - 1)
     }
 
-    fn judge(
-        &mut self,
+    /// Everything before scoring: the change, the gates and the budget.
+    /// Returns what scoring needs, or `None` when the candidate is settled
+    /// without being scored (empty, gated or unaffordable).
+    fn prepare(
+        &self,
         epoch: u32,
         checkout: &Checkout,
         subject: &Subject,
         state: &mut State,
         dir: &Path,
         record: &mut CandidateRecord,
-    ) -> Result<()> {
+    ) -> Result<Option<ScoreJob>> {
         let manifest = &self.parsed.manifest;
         record.changed = subject.changes(&state.incumbent, checkout)?;
         if record.changed.is_empty() {
-            return Ok(());
+            return Ok(None);
         }
         state.trace.record(LoopEvent::Ideated {
             epoch: epoch.into(),
@@ -596,23 +647,77 @@ impl Engine<'_> {
                 units: rsi_ralph_trace::IntervalUnits::Quality,
             })?;
             record.error.clone_from(&failed.reason);
-            return Ok(());
+            return Ok(None);
         }
         if !self.affordable() {
             record.status = CandidateStatus::Unaffordable;
-            return Ok(());
+            return Ok(None);
         }
         let diff = subject.diff(&state.incumbent, checkout)?;
         store::write_atomic(&steps.join("change.diff"), diff.as_bytes())?;
-        let card = score::score_checkout(
-            &ctx,
-            &manifest.score,
-            checkout,
-            &steps,
-            &self.judges,
-            &self.parsed.rubrics,
-            Some(&diff),
-        )?;
+        Ok(Some(ScoreJob { steps, diff }))
+    }
+
+    /// Score one prepared candidate.
+    fn score(&self, ctx: &StepContext, checkout: &Checkout, job: &ScoreJob) -> Result<Scorecard> {
+        score_job(self.parsed, &self.judges, ctx, checkout, job)
+    }
+
+    /// Score the prepared candidates, up to `limit` at a time, taking them in
+    /// order. A result is `None` for a candidate with nothing to score, and
+    /// `Ok(None)` for one the budget reserve no longer covered when its turn
+    /// came. Scorers that call the model do so through the run's gateway,
+    /// which meters and caps the spend of all of them together.
+    fn score_concurrently(
+        &self,
+        ctx: &StepContext,
+        limit: usize,
+        pending: &[(&Checkout, CandidateRecord, Result<Option<ScoreJob>>)],
+    ) -> Vec<Option<Result<Option<Scorecard>>>> {
+        let next = AtomicUsize::new(0);
+        let slots: Vec<Mutex<Option<Result<Option<Scorecard>>>>> =
+            pending.iter().map(|_| Mutex::new(None)).collect();
+        let (parsed, judges, meter) = (self.parsed, &self.judges, self.meter);
+        thread::scope(|scope| {
+            for _ in 0..limit.min(pending.len()) {
+                scope.spawn(|| {
+                    loop {
+                        let i = next.fetch_add(1, Ordering::SeqCst);
+                        let Some((checkout, _, job)) = pending.get(i) else {
+                            break;
+                        };
+                        let Ok(Some(job)) = job else { continue };
+                        let reserve = parsed.manifest.budget.score_reserve_usd;
+                        let affordable = meter
+                            .and_then(Meter::remaining_usd)
+                            .is_none_or(|remaining| remaining > reserve);
+                        let result = if affordable {
+                            score_job(parsed, judges, ctx, checkout, job).map(Some)
+                        } else {
+                            Ok(None)
+                        };
+                        *slots[i].lock().unwrap_or_else(PoisonError::into_inner) = Some(result);
+                    }
+                });
+            }
+        });
+        slots
+            .into_iter()
+            .map(|slot| slot.into_inner().unwrap_or_else(PoisonError::into_inner))
+            .collect()
+    }
+
+    /// Trace a scored candidate's measurements, decide it against the
+    /// incumbent and record the verdict.
+    fn finish(
+        &self,
+        epoch: u32,
+        state: &mut State,
+        checkout: &Checkout,
+        record: &mut CandidateRecord,
+        card: Scorecard,
+    ) -> Result<()> {
+        let manifest = &self.parsed.manifest;
         emit_measurements(
             &mut state.trace,
             epoch,
@@ -634,6 +739,49 @@ impl Engine<'_> {
         record.scorecard = Some(card);
         record.verdict = Some(verdict);
         Ok(())
+    }
+}
+
+/// What scoring a gated candidate needs.
+struct ScoreJob {
+    /// The candidate's step folder, where scorer runs keep their output.
+    steps: PathBuf,
+    /// The candidate's diff against the incumbent, for judges.
+    diff: String,
+}
+
+/// Score a prepared candidate with the loop's scorers and judges.
+fn score_job(
+    parsed: &Loop,
+    judges: &Judges,
+    ctx: &StepContext,
+    checkout: &Checkout,
+    job: &ScoreJob,
+) -> Result<Scorecard> {
+    score::score_checkout(
+        ctx,
+        &parsed.manifest.score,
+        checkout,
+        &job.steps,
+        judges,
+        &parsed.rubrics,
+        Some(&job.diff),
+    )
+}
+
+/// A candidate before anything has been done to it.
+fn new_record(epoch: u32, seat: &str, checkout: &Checkout) -> CandidateRecord {
+    CandidateRecord {
+        id: checkout.label.clone(),
+        epoch,
+        seat: seat.to_owned(),
+        checkout: checkout.path.clone(),
+        changed: Vec::new(),
+        status: CandidateStatus::Empty,
+        gates: Vec::new(),
+        scorecard: None,
+        verdict: None,
+        error: None,
     }
 }
 
