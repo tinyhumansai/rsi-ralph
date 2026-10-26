@@ -16,7 +16,9 @@ it will install and set up RSI Ralph for you:
 
 ```text
 Read https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/refs/heads/main/llms.txt
-and set up RSI Ralph for me: install the rsi-ralph binary, run `rsi-ralph doctor`,
+and set up RSI Ralph for me.
+
+Install the rsi-ralph binary, run `rsi-ralph doctor`,
 and scaffold a starter loop for what I want to improve. Ask me for anything you
 need, such as my OpenRouter API key, and do not write secrets into tracked files.
 ```
