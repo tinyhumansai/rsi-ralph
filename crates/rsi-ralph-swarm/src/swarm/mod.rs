@@ -110,6 +110,7 @@ fn check(request: &mut SwarmRequest) -> Result<Hive> {
     }
     tools::validate(&request.tools, &seats)?;
     programs::validate(&hive)?;
+    builtin::validate(&hive)?;
     request.incumbent = directory(&request.incumbent)?;
     for path in request.candidates.values_mut() {
         *path = directory(path)?;

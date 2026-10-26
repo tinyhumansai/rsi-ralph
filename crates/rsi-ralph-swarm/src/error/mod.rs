@@ -48,6 +48,17 @@ pub enum Error {
         /// The tool's id.
         tool: String,
     },
+    /// A seat's executable tool is named like a tool `OpenHuman` registers on
+    /// every seat itself, so attaching it would fail the first epoch.
+    #[error(
+        "seat {seat} declares tool {tool}, but tool name {tool:?} is already registered by the seat runtime; rename it in hive.json"
+    )]
+    ToolNameClash {
+        /// The seat declaring it.
+        seat: String,
+        /// The tool's id.
+        tool: String,
+    },
     /// A tool key is scoped to a seat the package does not declare.
     #[error("tool key for {capability} names unknown seat {seat}")]
     UnknownToolSeat {

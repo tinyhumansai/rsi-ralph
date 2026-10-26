@@ -39,6 +39,21 @@ pub fn load_package(dir: &Path) -> Result<BTreeMap<String, String>> {
     Ok(files)
 }
 
+/// Checks, without running anything, that `package` would attach to the
+/// seat runtime: no seat declares an executable tool named like a tool the
+/// runtime registers itself.
+///
+/// This is the part of a run's start-up check that needs no checkouts, so a
+/// host can report it before the run, as `rsi-ralph check` does.
+///
+/// # Errors
+///
+/// [`Error::Package`] when `package` is not a valid hive package, and
+/// [`Error::ToolNameClash`] naming the first seat and tool that collide.
+pub fn check_package(package: &BTreeMap<String, String>) -> Result<()> {
+    crate::builtin::validate(&Hive::open(package)?)
+}
+
 /// The seats whose `config.action_dir` is `"{candidate}"`: each needs its
 /// own editable checkout in `SwarmRequest::candidates`. Sorted by seat id.
 ///

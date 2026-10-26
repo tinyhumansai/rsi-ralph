@@ -66,6 +66,7 @@
 //! `OpenHuman` agent runtime, which hosts that only score or trace should not
 //! compile.
 
+mod builtin;
 mod error;
 mod event;
 mod hooks;
@@ -82,7 +83,7 @@ mod trace;
 pub use error::{Error, Result};
 pub use event::{SeatInfo, StopReason, SwarmEvent, ToolPhase};
 pub use memory::{SHARED_MEMORY_AGENT, SwarmMemory};
-pub use package::{CANDIDATE_DIR, editing_seats, load_package};
+pub use package::{CANDIDATE_DIR, check_package, editing_seats, load_package};
 pub use prompt::HIVE_RULES;
 pub use swarm::{
     EVENTS_FILE, HIVE_DB, ModelUrl, RUNTIME_DIR, RUNTIME_SEAT, SeatUsage, SwarmOutcome,
