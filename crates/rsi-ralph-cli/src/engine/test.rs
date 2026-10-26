@@ -380,7 +380,7 @@ fn the_incumbent_cache_keeps_scores_under_different_env_apart() {
 
 /// Each upstream call in dispatch order, with its refusal if it had one;
 /// shared by a hive that makes calls and the meter that reports them.
-type Calls = std::rc::Rc<std::cell::RefCell<Vec<Option<Refusal>>>>;
+type Calls = std::sync::Arc<std::sync::Mutex<Vec<Option<Refusal>>>>;
 
 /// A hive whose model calls go through a provider: each epoch it makes
 /// `sent` calls, the last `refused` of which the provider refuses.
@@ -398,7 +398,7 @@ impl Proposer for Provided {
     }
 
     fn propose(&mut self, request: &ProposalRequest<'_>) -> Result<ProposalReport> {
-        let mut calls = self.calls.borrow_mut();
+        let mut calls = self.calls.lock().unwrap();
         for i in 0..self.sent {
             let refused = i >= self.sent - self.refused;
             calls.push(refused.then(|| self.refusal.clone()));
@@ -421,11 +421,11 @@ impl Meter for Watched {
     }
 
     fn call_mark(&self) -> CallMark {
-        CallMark(u64::try_from(self.0.borrow().len()).unwrap())
+        CallMark(u64::try_from(self.0.lock().unwrap().len()).unwrap())
     }
 
     fn upstream_calls_since(&self, mark: CallMark) -> UpstreamCalls {
-        let calls = self.0.borrow();
+        let calls = self.0.lock().unwrap();
         let later = &calls[usize::try_from(mark.0).unwrap()..];
         let refusals: Vec<&Refusal> = later.iter().flatten().collect();
         UpstreamCalls {
@@ -442,7 +442,7 @@ fn provided(sent: u64, refused: u64, plan: Plan, refusal: Refusal) -> (Provided,
         status: 500,
         message: "before the hive".into(),
     };
-    let calls = Calls::new(std::cell::RefCell::new(vec![None, Some(earlier)]));
+    let calls = Calls::new(std::sync::Mutex::new(vec![None, Some(earlier)]));
     let hive = Provided {
         hive: Scripted {
             seats: vec!["a".into()],
