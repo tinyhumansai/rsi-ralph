@@ -674,7 +674,7 @@ fn notes_of_a_seat_that_was_not_promoted_reach_the_next_brief() {
 /// seen `min(parallel, candidates)` scorers registered at once (or another
 /// scorer has already logged that peak), so the overlap never depends on how
 /// fast the runner starts the processes. A rendezvous that cannot fill (the
-/// limit was not honoured) is released after a bounded wait, 10 s, and logs
+/// limit was not honoured) is released after a bounded wait, 5 s per scorer, and logs
 /// whatever it saw, so a regression fails the assertion instead of hanging.
 /// The baseline scoring of the incumbent runs alone, so it skips the wait.
 fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSummary, usize) {
@@ -690,7 +690,7 @@ fn overlap_run(root: &Path, parallel: u32, values: &[&str]) -> (Ledger, RunSumma
         dir.join("scorers/m.sh"),
         format!(
             "A={log}/active\nN={expected}\ntouch \"$A/$$\"\n\
-             n=$(ls \"$A\" | wc -l)\ncase \"$RSI_LABEL\" in e[0-9]*-s*) i=0;; *) i=200;; esac\nwhile [ $i -lt 200 ]; do\n\
+             n=$(ls \"$A\" | wc -l)\ncase \"$RSI_LABEL\" in e[0-9]*-s*) i=0;; *) i=100;; esac\nwhile [ $i -lt 100 ]; do\n\
              n=$(ls \"$A\" | wc -l)\n\
              if [ \"$n\" -ge \"$N\" ]; then break; fi\n\
              if grep -qx \"$N\" {log}/peaks; then break; fi\n\
