@@ -11,21 +11,19 @@ the budget runs out.
 
 ## Install
 
-macOS and Linux:
+Paste this into your coding agent (Claude Code, Codex, Cursor or similar) and
+it will install and set up RSI Ralph for you:
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.sh | sh
+```text
+Read https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/refs/heads/main/llms.txt
+and set up RSI Ralph for me: install the rsi-ralph binary, run `rsi-ralph doctor`,
+and scaffold a starter loop for what I want to improve. Ask me for anything you
+need, such as my OpenRouter API key, and do not write secrets into tracked files.
 ```
 
-Windows (PowerShell):
-
-```powershell
-irm https://raw.githubusercontent.com/tinyhumansai/rsi-ralph/main/scripts/install.ps1 | iex
-```
-
-This installs the `rsi-ralph` binary without `sudo`. Pinning a version, the
-container image, building from source and upgrading are in
-[INSTALL.md](INSTALL.md).
+Prefer to do it yourself? [INSTALL.md](INSTALL.md) has the one-line installers
+for macOS, Linux and Windows, pinning a version, the container image, building
+from source and upgrading.
 
 ## Use cases
 
