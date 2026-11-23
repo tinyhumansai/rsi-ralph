@@ -15,7 +15,6 @@ all-features = true
 # extraction is only used by a bundled-asset test. Upgrade OpenHuman's zip
 # dependency to a fixed major version upstream, then remove these exceptions.
 ignore = [
-    "RUSTSEC-2024-0449",
     "RUSTSEC-2026-0367",
     "RUSTSEC-2026-0368",
     "RUSTSEC-2026-0369",
