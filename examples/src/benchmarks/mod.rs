@@ -26,7 +26,7 @@ use crate::{Grader, Replies};
 use rsi_ralph::{
     Composite, JsonlTrace, JudgeLimits, LlmJudge, LoopPolicy, LoopReport, MetricDirection,
     MetricScorer, MetricSpec, ModelPort, MonotonicClock, Projected, RunLocation, Scorer,
-    ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, SupervisorLimits,
+    ScriptCandidate, ScriptCommand, ScriptSubject, ScriptSupervisor, Search, SupervisorLimits,
     run_script_loop_with,
 };
 use std::{error::Error, path::Path, sync::Arc};
@@ -42,6 +42,31 @@ pub enum Benchmark {
     MathProblem,
     /// Bring `slug.py` to a written standard (0 violations), with a judge.
     UpgradeFile,
+}
+
+/// Changes to a benchmark's own loop policy, for comparing search settings
+/// on the same benchmark. Each `None` keeps the benchmark's value.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PolicyOverrides {
+    /// The search mode.
+    pub search: Option<Search>,
+    /// The most epochs.
+    pub max_epochs: Option<u64>,
+    /// Epochs without improvement before stalling (or restarting).
+    pub patience: Option<u32>,
+}
+
+impl PolicyOverrides {
+    /// `policy` with every set override applied.
+    #[must_use]
+    pub fn apply(&self, policy: &LoopPolicy) -> LoopPolicy {
+        LoopPolicy {
+            search: self.search.unwrap_or(policy.search),
+            max_epochs: self.max_epochs.unwrap_or(policy.max_epochs),
+            patience: self.patience.unwrap_or(policy.patience),
+            ..policy.clone()
+        }
+    }
 }
 
 /// The model ports one benchmark run uses.
@@ -161,7 +186,24 @@ impl Benchmark {
         python: &Path,
         models: Models,
     ) -> Result<LoopReport, Box<dyn Error>> {
+        self.run_with(run, python, models, PolicyOverrides::default())
+    }
+
+    /// [`Benchmark::run`] with `overrides` applied to the benchmark's loop
+    /// policy.
+    ///
+    /// # Errors
+    ///
+    /// As [`Benchmark::run`].
+    pub fn run_with(
+        self,
+        run: &RunLocation,
+        python: &Path,
+        models: Models,
+        overrides: PolicyOverrides,
+    ) -> Result<LoopReport, Box<dyn Error>> {
         let definition = self.definition();
+        let policy = overrides.apply(&definition.policy);
         let scorer = self.scorer(definition.editable, models.judge)?;
         let workspace = run.dir.join("workspace");
         std::fs::create_dir_all(&workspace)?;
@@ -189,7 +231,7 @@ impl Benchmark {
             &subject,
             &supervisor,
             &*scorer,
-            &definition.policy,
+            &policy,
             run,
             &mut trace,
         )?)

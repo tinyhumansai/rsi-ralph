@@ -1,7 +1,8 @@
 //! Command-line parsing.
 #![expect(clippy::unwrap_used, reason = "assert deterministic fixtures")]
 use super::options::{Options, USAGE};
-use crate::benchmarks::Benchmark;
+use crate::benchmarks::{Benchmark, PolicyOverrides};
+use rsi_ralph::Search;
 use std::path::PathBuf;
 
 fn parse(args: &[&str]) -> Result<Options, String> {
@@ -64,5 +65,39 @@ fn bad_arguments_are_rejected_with_a_reason() {
     assert_eq!(
         parse(&["--models", " , "]).unwrap_err(),
         "--models needs at least one entry"
+    );
+}
+
+#[test]
+fn search_flags_become_policy_overrides() {
+    let options = parse(&["--search", "restart", "--epochs", "10", "--patience", "2"]).unwrap();
+    assert_eq!(
+        options.overrides,
+        PolicyOverrides {
+            search: Some(Search::Restart),
+            max_epochs: Some(10),
+            patience: Some(2),
+        }
+    );
+    assert_eq!(
+        parse(&["--search", "hill"]).unwrap().overrides.search,
+        Some(Search::Hill)
+    );
+    assert_eq!(
+        parse(&["--search", "hgm"]).unwrap().overrides.search,
+        Some(Search::Hgm)
+    );
+    assert_eq!(
+        parse(&["--search", "hybrid"]).unwrap().overrides.search,
+        Some(Search::Hybrid)
+    );
+    assert_eq!(parse(&[]).unwrap().overrides, PolicyOverrides::default());
+    assert_eq!(
+        parse(&["--search", "beam"]).unwrap_err(),
+        "unknown search beam"
+    );
+    assert_eq!(
+        parse(&["--patience", "0"]).unwrap_err(),
+        "--patience needs a whole number of at least 1"
     );
 }

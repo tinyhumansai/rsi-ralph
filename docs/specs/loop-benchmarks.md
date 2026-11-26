@@ -64,7 +64,8 @@ benchmark with a judge needs a judge port; omitting it is an error
 
 ```sh
 cargo run -p rsi-ralph-examples --example benchmarks -- \
-  [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR]
+  [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR] \
+  [--search hill|restart|hgm|hybrid] [--epochs N] [--patience N]
 ```
 
 | Flag | Default | Meaning |
@@ -74,6 +75,9 @@ cargo run -p rsi-ralph-examples --example benchmarks -- \
 | `--repeats` | 1 | runs per benchmark × model, at least 1 |
 | `--jobs` | 1 | runs executed concurrently, at least 1 |
 | `--out` | `target/rsi-benchmarks/<unix-seconds>` | output root |
+| `--search` | each benchmark's own (`hill`) | `hill`, `restart`, `hgm` or `hybrid` (`Search`), for every run |
+| `--epochs` | each benchmark's own | `max_epochs` for every run, at least 1 |
+| `--patience` | each benchmark's own | `patience` for every run, at least 1 |
 
 Unknown flags, unknown benchmarks, a missing value, an empty list or a zero
 count are errors, reported before any run starts.
