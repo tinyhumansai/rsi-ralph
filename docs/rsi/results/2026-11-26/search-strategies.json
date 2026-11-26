@@ -2812,6 +2812,144 @@
      "repetition_share": 0.0
     }
    ]
+  },
+  {
+   "batch": "gc-sonnet-hybrid",
+   "arm": "hybrid",
+   "benchmark": "graph_coloring",
+   "model": "anthropic_claude-sonnet-4.5",
+   "policy": "Search::Hybrid, 10 epochs, patience 3",
+   "runs": [
+    {
+     "repeat": 1,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 4,
+     "baseline_metric": 17.0,
+     "final_metric": 6.0,
+     "promotions": 3,
+     "restarts": 0,
+     "tokens": 44534,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 2,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 4,
+     "baseline_metric": 17.0,
+     "final_metric": 6.0,
+     "promotions": 3,
+     "restarts": 0,
+     "tokens": 43440,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 3,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 9,
+     "baseline_metric": 17.0,
+     "final_metric": 6.0,
+     "promotions": 7,
+     "restarts": 0,
+     "tokens": 143898,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 4,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 3,
+     "baseline_metric": 17.0,
+     "final_metric": 6.0,
+     "promotions": 3,
+     "restarts": 0,
+     "tokens": 27584,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 5,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 9,
+     "baseline_metric": 17.0,
+     "final_metric": 6.0,
+     "promotions": 3,
+     "restarts": 2,
+     "tokens": 125547,
+     "repetition_share": 0.0
+    }
+   ]
+  },
+  {
+   "batch": "cf-sonnet-hybrid",
+   "arm": "hybrid",
+   "benchmark": "curve_fit",
+   "model": "anthropic_claude-sonnet-4.5",
+   "policy": "Search::Hybrid, 10 epochs, patience 3",
+   "runs": [
+    {
+     "repeat": 1,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 4,
+     "baseline_metric": 0.6437833333333334,
+     "final_metric": 0.05335500000000001,
+     "promotions": 2,
+     "restarts": 0,
+     "tokens": 46433,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 2,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 6,
+     "baseline_metric": 0.6437833333333334,
+     "final_metric": 0.05953733333333333,
+     "promotions": 4,
+     "restarts": 0,
+     "tokens": 81559,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 3,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 6,
+     "baseline_metric": 0.6437833333333334,
+     "final_metric": 0.05966433333333334,
+     "promotions": 2,
+     "restarts": 1,
+     "tokens": 73688,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 4,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 4,
+     "baseline_metric": 0.6437833333333334,
+     "final_metric": 0.05956033333333333,
+     "promotions": 4,
+     "restarts": 0,
+     "tokens": 44269,
+     "repetition_share": 0.0
+    },
+    {
+     "repeat": 5,
+     "stop": "goal_reached",
+     "goal_reached": true,
+     "epochs": 4,
+     "baseline_metric": 0.6437833333333334,
+     "final_metric": 0.054136,
+     "promotions": 2,
+     "restarts": 0,
+     "tokens": 44823,
+     "repetition_share": 0.0
+    }
+   ]
   }
  ]
 }

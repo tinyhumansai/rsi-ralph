@@ -2,7 +2,7 @@
 
 Recorded 2026-11-26. Which version should each proposal edit, and what should
 the loop do when progress stops? This page compares four answers on the live
-benchmark harness: 210 independent runs, about 12.9M measured tokens.
+benchmark harness: 220 independent runs, about 13.6M measured tokens.
 Aggregate receipts (no paths, prompts or sources) are in
 [`results/2026-11-26/search-strategies.json`](results/2026-11-26/search-strategies.json).
 
@@ -18,8 +18,10 @@ Aggregate receipts (no paths, prompts or sources) are in
   a 10-epoch budget. Restarts, three variants of Huxley-Gödel Machine (HGM)
   tree search and a hill/HGM hybrid all landed within noise of plain hill
   climbing.
-- **The hybrid is the safest exploration mode.** Its trend is slightly
-  positive and it was never worse than hill climbing. The evidence is weak.
+- **The hybrid is the best-behaved exploration mode.** It reached the most
+  goals (15/30 against hill-10's 13/30) and was never worse than hill
+  climbing in any cell, but the difference is not significant (Fisher
+  p = 0.80, progress p = 0.59).
 
 ## What was compared
 
@@ -75,37 +77,82 @@ receipts and marked as such.
 
 ## Results
 
-Each cell shows goals reached and mean progress; `n` is runs per arm.
+Every 10-epoch arm ran every cell: 15 runs for graph colouring with
+gpt-4.1-mini (where hill climbing plateaus), 5 for the others. "Hill, default
+policy" is the benchmark's own policy (graph colouring 6 epochs, curve fit 4,
+patience 3) for reference; the p-values compare each arm's progress with
+hill-10 (two-sided permutation test). HGM v1 and v2 are superseded versions,
+kept for the record. A curve-fit goal is an incumbent mean at or below 0.06.
 
-| Arm | Graph colouring, mini (n=15) | Graph colouring, Sonnet (n=5) | Curve fit, mini (n=5) | Curve fit, Sonnet (n=5) |
-| --- | --- | --- | --- | --- |
-| Hill, default policy (n=5) | 0/5, 0.47 | 4/5, 0.96 | 0/5, 0.98 | 2/5, 0.99 |
-| **Hill, 10 epochs** | 1/15, 0.54 | 5/5, 1.00 | 4/5, 1.00 | 3/5, 0.99 |
-| Restart | 1/15, 0.63 | 4/5, 0.95 | 4/5, 1.00 | 4/5, 1.00 |
-| HGM v1 | 2/15, 0.57 | 4/5, 0.96 | 1/5, 0.99 | 4/5, 1.00 |
-| HGM v2 | 1/15, 0.54 | 5/5, 1.00 | 3/5, 0.99 | 4/5, 1.00 |
-| HGM v3 | 0/15, 0.55 | 4/5, 0.89 | 1/5, 0.99 | 4/5, 1.00 |
-| Hybrid | 0/15, 0.61 | not run | 5/5, 1.00 | not run |
+**Graph colouring (start 17 colours, optimum 6), gpt-4.1-mini**
 
-Totals over the four cells, each against hill-10's 13/30 and 0.766:
+| Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hill, default policy | 5 | 0/5 | 0.47 | — | 7, 13, 13, 13, 13 | 20k |
+| Hill-10 (baseline) | 15 | 1/15 | 0.54 | — | 6, 7, 7.7, 8, 11, 11.3, 11.7, 13, 13, 13, 13, 13, 13, 13, 13 | 62k |
+| Restart | 15 | 1/15 | 0.63 | 0.32 | 6, 6.7, 6.7, 7, 7.3, 8, 10.7, 11, 11.3, 12, 13, 13, 13, 13, 13 | 64k |
+| HGM v1 (superseded) | 15 | 2/15 | 0.57 | 0.78 | 6, 6, 7, 7, 8, 11.7, 12, 13, 13, 13, 13, 13, 13, 13, 13 | 65k |
+| HGM v2 (superseded) | 15 | 1/15 | 0.54 | 1.00 | 6, 7.3, 8, 8.7, 11, 11.3, 11.7, 11.7, 12.7, 13, 13, 13, 13, 13, 13 | 63k |
+| HGM v3 (committed) | 15 | 0/15 | 0.55 | 0.85 | 7, 7, 8, 8, 9, 11, 11, 11.7, 13, 13, 13, 13, 13, 13, 13 | 61k |
+| Hybrid | 15 | 0/15 | 0.61 | 0.41 | 7, 7, 7.7, 8, 8, 8.7, 10, 11, 11.3, 11.3, 13, 13, 13, 13, 13 | 63k |
 
-| Arm | Goals | Mean progress | p (progress) |
-| --- | --- | --- | --- |
-| Restart | 13/30 | 0.804 | 0.59 |
-| HGM v1 | 11/30 | 0.773 | 0.93 |
-| HGM v2 | 13/30 | 0.768 | 0.98 |
-| HGM v3 | 9/30 | 0.757 | 0.90 |
+**Graph colouring (start 17 colours, optimum 6), Sonnet 4.5**
 
-The hybrid ran only the two gpt-4.1-mini cells:
+| Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hill, default policy | 5 | 4/5 | 0.96 | — | 6, 6, 6, 6, 8 | 55k |
+| Hill-10 (baseline) | 5 | 5/5 | 1.00 | — | 6, 6, 6, 6, 6 | 64k |
+| Restart | 5 | 4/5 | 0.95 | 1.00 | 6, 6, 6, 6, 8.7 | 45k |
+| HGM v1 (superseded) | 5 | 4/5 | 0.96 | 1.00 | 6, 6, 6, 6, 8.3 | 33k |
+| HGM v2 (superseded) | 5 | 5/5 | 1.00 | 1.00 | 6, 6, 6, 6, 6 | 51k |
+| HGM v3 (committed) | 5 | 4/5 | 0.89 | 1.00 | 6, 6, 6, 6, 12 | 79k |
+| Hybrid | 5 | 5/5 | 1.00 | 1.00 | 6, 6, 6, 6, 6 | 44k |
 
-- graph colouring: progress 0.61 against 0.54 (p = 0.41); final colouring
-  below 13 in 10/15 runs against 7/15 (p = 0.46);
-- curve fit: 5/5 against 4/5 goals.
+**Curve fit (start RMSE 0.644, target 0.06), gpt-4.1-mini**
 
-No difference between any 10-epoch arm and hill-10 is significant. The only
-cell with p < 0.05 is curve fit with gpt-4.1-mini, and it goes *against*
-HGM v1 and v3: their runs ended just above the 0.06 target, where hill's
-ended just below.
+| Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hill, default policy | 5 | 0/5 | 0.98 | — | 0.061, 0.070, 0.070, 0.073, 0.081 | 23k |
+| Hill-10 (baseline) | 5 | 4/5 | 1.00 | — | 0.053, 0.054, 0.054, 0.056, 0.060 | 58k |
+| Restart | 5 | 4/5 | 1.00 | 1.00 | 0.053, 0.054, 0.058, 0.059, 0.073 | 58k |
+| HGM v1 (superseded) | 5 | 1/5 | 0.99 | 0.05 | 0.054, 0.064, 0.067, 0.070, 0.073 | 74k |
+| HGM v2 (superseded) | 5 | 3/5 | 0.99 | 0.45 | 0.053, 0.054, 0.054, 0.066, 0.070 | 56k |
+| HGM v3 (committed) | 5 | 1/5 | 0.99 | 0.05 | 0.054, 0.062, 0.067, 0.070, 0.070 | 72k |
+| Hybrid | 5 | 5/5 | 1.00 | 1.00 | 0.053, 0.054, 0.054, 0.055, 0.059 | 52k |
+
+**Curve fit (start RMSE 0.644, target 0.06), Sonnet 4.5**
+
+| Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hill, default policy | 5 | 2/5 | 0.99 | — | 0.054, 0.054, 0.067, 0.070, 0.075 | 51k |
+| Hill-10 (baseline) | 5 | 3/5 | 0.99 | — | 0.053, 0.054, 0.057, 0.066, 0.078 | 42k |
+| Restart | 5 | 4/5 | 1.00 | 0.45 | 0.053, 0.057, 0.057, 0.057, 0.061 | 44k |
+| HGM v1 (superseded) | 5 | 4/5 | 1.00 | 0.72 | 0.054, 0.054, 0.054, 0.059, 0.074 | 27k |
+| HGM v2 (superseded) | 5 | 4/5 | 1.00 | 0.45 | 0.054, 0.055, 0.059, 0.060, 0.060 | 46k |
+| HGM v3 (committed) | 5 | 4/5 | 1.00 | 0.45 | 0.053, 0.054, 0.056, 0.059, 0.060 | 72k |
+| Hybrid | 5 | 5/5 | 1.00 | 0.45 | 0.053, 0.054, 0.060, 0.060, 0.060 | 46k |
+
+**All four cells pooled (10-epoch arms, 30 runs each)**
+
+| Arm | Goals | Goals p (Fisher) | Mean progress | Progress p | Total tokens |
+| --- | --- | --- | --- | --- | --- |
+| Hill-10 (baseline) | 13/30 | — | 0.766 | — | 1.96M |
+| Restart | 13/30 | 1.00 | 0.804 | 0.59 | 1.95M |
+| HGM v1 (superseded) | 11/30 | 0.79 | 0.773 | 0.93 | 1.93M |
+| HGM v2 (superseded) | 13/30 | 1.00 | 0.768 | 0.98 | 1.90M |
+| HGM v3 (committed) | 9/30 | 0.42 | 0.757 | 0.89 | 2.05M |
+| Hybrid | 15/30 | 0.80 | 0.803 | 0.59 | 1.88M |
+
+No difference between any 10-epoch arm and hill-10 is significant, in any
+cell or pooled. The only cells with p at or below 0.05 are curve fit with
+gpt-4.1-mini for HGM v1 and v3, and they go *against* HGM: its runs ended just
+above the 0.06 target, where hill's ended just below.
+
+**Why Sonnet and gpt-4.1-mini differ.** Sonnet reaches the goal in 2 to 5
+epochs in most runs, usually before any 3-epoch stall, so restart and hybrid
+rarely diverge from hill climbing with it, and every arm sits at 4/5 or 5/5.
+gpt-4.1-mini reaches DSATUR (13 colours) in epoch 1 and then plateaus, which
+is where the strategies differ, so that cell got 15 runs.
 
 ### Where the stalls are, and what rescues them
 
@@ -125,6 +172,8 @@ show:
 | Restart, graph colouring, mini | 15 | 6 runs improved via a branch, including 13 to 6.7 twice and 7 to 6 (optimum) |
 | Hybrid, graph colouring, mini | 15 (20 detours) | 2 (13 to 8, 13 to 11.3) |
 | Hybrid, curve fit, mini | 1 (1 detour) | 1 (0.07 to 0.054) |
+| Hybrid, graph colouring, Sonnet | 1 (1 detour) | 0 |
+| Hybrid, curve fit, Sonnet | 1 (1 detour) | 1 (0.165 to 0.06) |
 
 Removing the branch-derived promotions from the restart runs brings their
 mean progress from 0.63 to 0.50, level with hill-10's 0.54. So the restart
@@ -162,8 +211,9 @@ this by exploring only after a stall.
    (or no stall stop at all) over the current 2 to 3 epochs. This is the only
    change here with a clear effect.
 2. **Keep hill climbing as the default.**
-3. **Offer `Hybrid` as the exploration option.** It is cost-neutral and was
-   never worse than hill climbing in these runs.
+3. **Offer `Hybrid` as the exploration option.** It reached the most goals,
+   used the fewest tokens of the 10-epoch arms (1.88M against 1.96M) and was
+   never worse than hill climbing in any cell.
 4. **Treat `Restart` and `Hgm` as experimental.** `Hgm` probably needs a
    budget an order of magnitude larger, which these runs did not test.
 
@@ -179,8 +229,8 @@ this by exploring only after a stall.
   results were not re-scored on held-out seeds.
 - **Short budget.** 10 epochs of 2 proposals. HGM's advantage in the
   literature comes at a far larger scale.
-- **Uneven coverage.** The hybrid was run only with gpt-4.1-mini, and
-  superseded variants were run before their replacements.
+- **Run order.** Superseded variants ran before their replacements, and
+  the Sonnet hybrid cells ran last, on the same day and harness.
 
 ## Reproduce
 

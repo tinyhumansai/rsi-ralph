@@ -50,7 +50,7 @@ recorded separately.
 - [Script loop roadmap](script-loop-roadmap.md): ranked next improvements with
   the failure each targets and how to measure it.
 - [Search strategies](search-strategies.md): hill climbing, restarts, HGM
-  tree search and a hill/HGM hybrid over 210 live runs. Not stopping early
+  tree search and a hill/HGM hybrid over 220 live runs. Not stopping early
   doubles goals reached; the choice of what to edit next made no significant
   difference at a 10-epoch budget.
 - [Script loop live run](script-loop-results.md): an LLM-supervised curve-fit
