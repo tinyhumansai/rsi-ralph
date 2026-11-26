@@ -109,3 +109,24 @@ fn the_file_upgrade_reaches_its_goal_offline() {
     assert_eq!(report.incumbent_metric, 0.0);
     assert_eq!((report.promotions, report.rejected), (2, 1));
 }
+
+#[test]
+fn overrides_change_only_the_fields_they_set() {
+    let base = LoopPolicy {
+        max_epochs: 6,
+        patience: 3,
+        ..LoopPolicy::default()
+    };
+    assert_eq!(PolicyOverrides::default().apply(&base), base);
+    let changed = PolicyOverrides {
+        search: Some(Search::Restart),
+        max_epochs: Some(10),
+        patience: Some(2),
+    }
+    .apply(&base);
+    assert_eq!(
+        (changed.search, changed.max_epochs, changed.patience),
+        (Search::Restart, 10, 2)
+    );
+    assert_eq!(changed.proposals_per_epoch, base.proposals_per_epoch);
+}

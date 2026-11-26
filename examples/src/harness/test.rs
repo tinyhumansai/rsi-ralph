@@ -64,6 +64,7 @@ fn ledger() -> ScriptLedger {
         seeds: vec![1],
         tokens: 1234,
         stop: Some(StopReason::Stalled),
+        restarts: vec![],
         incumbents: vec![
             IncumbentEntry {
                 epoch: 0,

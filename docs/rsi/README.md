@@ -49,6 +49,10 @@ recorded separately.
   4.5 reaches the graph-colouring optimum in 3 epochs; gpt-4.1-mini still stalls.
 - [Script loop roadmap](script-loop-roadmap.md): ranked next improvements with
   the failure each targets and how to measure it.
+- [Search strategies](search-strategies.md): hill climbing, restarts, HGM
+  tree search and a hill/HGM hybrid over 220 live runs. Not stopping early
+  doubles goals reached; the choice of what to edit next made no significant
+  difference at a 10-epoch budget.
 - [Script loop live run](script-loop-results.md): an LLM-supervised curve-fit
   loop cut RMSE 0.644 → 0.258 in three promotions, then stalled short of its
   0.06 target; why, and the ranked next improvements.

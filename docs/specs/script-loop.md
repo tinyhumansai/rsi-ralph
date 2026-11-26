@@ -38,8 +38,41 @@ language model, if the library could run that cycle end to end.
   (epochs without promotion before stopping), `token_budget` (measured
   supervisor tokens, plus scorer tokens under `run_script_loop_with`), `rejected_context` (how many rejected proposals the
   supervisor sees), `approach_context` (how many tried approaches the
-  supervisor sees), `slots` (one `SlotDirective` per slot, cycled), and the
-  `EvalPolicy` used for scoring (margin zero by default).
+  supervisor sees), `slots` (one `SlotDirective` per slot, cycled), the
+  `EvalPolicy` used for scoring (margin zero by default), and `search`
+  (below).
+- **Search** (`Search`): `Hill` (the default) builds every proposal on the
+  champion and stops as `stalled` after `patience` epochs without a
+  promotion. `Restart` builds proposals on a *parent*, which starts as the
+  champion. A candidate accepted against its parent becomes the new parent,
+  and also the champion when it beats the champion in the same paired test.
+  After `patience` epochs without the parent improving, a restart branch
+  returns to the champion, so the best lineage keeps being refined between
+  explorations; a stalled champion restarts from the best fully measured
+  candidate that was never a parent and whose per-seed metrics differ from
+  every parent's (so a lookalike of a stalled idea is skipped). The run stops
+  as `stalled` only when the champion stalls with none left. `Hgm` is
+  Huxley-Gödel Machine tree search: every measured candidate is a node, and
+  before each proposal the loop draws `Beta(tau (1 + s), tau (1 + f))` for
+  the baseline and every node whose mean beats the baseline's, where `s` and
+  `f` pool the seeds of the node and all its descendants that did and did not
+  beat the champion of their time (the incumbent before their epoch) on that
+  seed (ties count half, a failed seed is a failure): how often the family
+  reaches the frontier, and edits the node with the largest draw. `tau = E / (E - e + 1)`
+  cools the draws from exploring in epoch 1 to refining in epoch `E`
+  (`max_epochs`). Proposals are still judged against the champion. Draws are
+  deterministic per run id, epoch and slot. `patience` does not stop an `Hgm`
+  run. A proposal that edits a node other than the champion carries a
+  "Starting point" section and that node's sources and diagnostics. `Hybrid` hill
+  climbs the champion and, after `patience` epochs without a promotion,
+  detours to the node an `Hgm` draw picks outside the champion chain (the
+  incumbents so far). The detour's improvements move its parent and become
+  the champion only by beating it; a detour that stalls returns to the
+  champion; with no node to detour to, hill climbing continues. A `Hybrid`
+  run never stops as `stalled`. Detours are `restarts` entries in the ledger. Each
+  restart is a `restarts` entry in the ledger (`epoch`, `from`, `to`,
+  `metric`), and the branch's prompts carry a "Restart branch" section and
+  the parent's sources and diagnostics.
 - **Execute:** each candidate is materialized into
   `<run>/candidates/<content-id>/` by copying the workspace (symlinks and the
   run directory itself are skipped) and writing every editable file with the
@@ -92,7 +125,8 @@ language model, if the library could run that cycle end to end.
   attempts and the loop continues. A transport failure ends the run.
 - **Stop:** `goal_reached` when the incumbent meets the target (checked after
   the baseline and after each epoch), `stalled` after `patience` epochs without
-  promotion, `budget` when measured supervisor (and scorer) tokens reach `token_budget`
+  promotion (under `Restart`: the champion stalled with no candidate left to
+  restart from), `budget` when measured supervisor (and scorer) tokens reach `token_budget`
   before an ideation call, `max_epochs` otherwise, and `error` when the run
   fails (the error is returned after `run_finished` is written).
 - **Ledger:** `<run>/ledger.json`, rewritten atomically (temporary file,
@@ -109,7 +143,9 @@ New errors: `InvalidScriptSubject`, `ScriptBaselineFailed`, `ScriptTimeout`,
 
 - A candidate is promoted only on an `Accept` (from `compare`, or by
   per-seed dominance over an inconclusive interval) with zero failed seeds,
-  on exactly the seeds the incumbent was measured on.
+  on exactly the seeds the incumbent was measured on. Under `Restart` it must
+  win that test against its parent and again against the champion; the
+  champion, the incumbent chain and the reported result never get worse.
 - The baseline must succeed on every seed, or the run ends with
   `ScriptBaselineFailed`.
 - Identical content is never executed twice; a duplicate proposal is rejected.

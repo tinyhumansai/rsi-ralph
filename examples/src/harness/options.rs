@@ -2,6 +2,7 @@
 //!
 //! ```text
 //! benchmarks [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR]
+//!            [--search hill|restart|hgm|hybrid] [--epochs N] [--patience N]
 //! ```
 //!
 //! # Example
@@ -13,13 +14,16 @@
 //! assert_eq!(options.benchmarks.len(), 1);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
-use crate::benchmarks::Benchmark;
+use crate::benchmarks::{Benchmark, PolicyOverrides};
+use rsi_ralph::Search;
 use std::error::Error;
 use std::path::PathBuf;
 
 /// How to invoke the runner, printed with a parse error.
 pub const USAGE: &str = "usage: benchmarks [--benchmarks a,b] [--models m1,m2] [--repeats N] \
-[--jobs N] [--out DIR]\nbenchmarks: curve_fit, graph_coloring, math_problem, upgrade_file";
+[--jobs N] [--out DIR] [--search hill|restart|hgm|hybrid] [--epochs N] \
+[--patience N]\n\
+benchmarks: curve_fit, graph_coloring, math_problem, upgrade_file";
 
 /// Parsed runner settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,6 +38,9 @@ pub struct Options {
     pub jobs: usize,
     /// Output root from `--out`, if given.
     pub out: Option<PathBuf>,
+    /// `--search`, `--epochs` and `--patience`, applied to every benchmark's
+    /// own policy.
+    pub overrides: PolicyOverrides,
 }
 
 impl Default for Options {
@@ -44,6 +51,7 @@ impl Default for Options {
             repeats: 1,
             jobs: 1,
             out: None,
+            overrides: PolicyOverrides::default(),
         }
     }
 }
@@ -61,7 +69,8 @@ impl Options {
         let mut args = args.into_iter();
         while let Some(flag) = args.next() {
             let value = match flag.as_str() {
-                "--benchmarks" | "--models" | "--repeats" | "--jobs" | "--out" => {
+                "--benchmarks" | "--models" | "--repeats" | "--jobs" | "--out" | "--search"
+                | "--epochs" | "--patience" => {
                     args.next().ok_or_else(|| format!("{flag} needs a value"))?
                 }
                 _ => return Err(format!("unknown argument {flag}").into()),
@@ -79,6 +88,17 @@ impl Options {
                 "--models" => options.models = Some(list(&flag, &value)?),
                 "--repeats" => options.repeats = count(&flag, &value)?,
                 "--jobs" => options.jobs = usize::try_from(count(&flag, &value)?)?,
+                "--search" => {
+                    options.overrides.search = Some(match value.as_str() {
+                        "hill" => Search::Hill,
+                        "restart" => Search::Restart,
+                        "hgm" => Search::Hgm,
+                        "hybrid" => Search::Hybrid,
+                        _ => return Err(format!("unknown search {value}").into()),
+                    });
+                }
+                "--epochs" => options.overrides.max_epochs = Some(count(&flag, &value)?.into()),
+                "--patience" => options.overrides.patience = Some(count(&flag, &value)?),
                 _ => options.out = Some(PathBuf::from(value)),
             }
         }

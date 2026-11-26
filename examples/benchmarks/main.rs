@@ -2,8 +2,12 @@
 //!
 //! ```sh
 //! cargo run -p rsi-ralph-examples --example benchmarks -- \
-//!   [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR]
+//!   [--benchmarks a,b] [--models m1,m2] [--repeats N] [--jobs N] [--out DIR] \
+//!   [--search hill|restart|hgm|hybrid] [--epochs N] [--patience N]
 //! ```
+//!
+//! `--search`, `--epochs` and `--patience` override every selected
+//! benchmark's own loop policy, so search modes compare on equal terms.
 //!
 //! Every benchmark × model × repeat is one independent run of the script
 //! loop, written to `<out>/<benchmark>/<model>/<repeat>/` (`events.jsonl`,
@@ -53,7 +57,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         PathBuf::from("target/rsi-benchmarks").join(stamp.to_string())
     };
-    let jobs = plan(&options.benchmarks, &models, options.repeats, &out);
+    let mut jobs = plan(&options.benchmarks, &models, options.repeats, &out);
+    for job in &mut jobs {
+        job.overrides = options.overrides;
+    }
     println!("{} runs under {}", jobs.len(), out.display());
     let records = execute(jobs, &python()?, options.jobs, &|r| {
         println!(
@@ -71,7 +78,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
     });
     let header = format!(
-        "# Loop benchmarks\n\n- Mode: {}\n- Benchmarks: {}\n- Models: {}\n- Repeats: {}",
+        "# Loop benchmarks\n\n- Mode: {}\n- Benchmarks: {}\n- Models: {}\n- Repeats: {}\n\
+         - Policy overrides: {:?}",
         if live() { "live" } else { "offline" },
         options
             .benchmarks
@@ -85,6 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .collect::<Vec<_>>()
             .join(", "),
         options.repeats,
+        options.overrides,
     );
     let summary = Summary {
         rows: aggregate(&records),

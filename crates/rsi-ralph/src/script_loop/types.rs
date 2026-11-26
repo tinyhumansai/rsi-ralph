@@ -79,6 +79,47 @@ pub struct LoopPolicy {
     /// resolve an uneven gain with the paired interval alone; for a
     /// deterministic script, per-seed dominance is exact on those seeds.
     pub accept_dominant: bool,
+    /// What the loop does when `patience` epochs pass without improvement.
+    pub search: Search,
+}
+
+/// How the loop searches: what it builds proposals from, and what it does
+/// when that stops improving.
+///
+/// In both modes the *champion* (the ledger's incumbent chain, and what the
+/// run reports) changes only when a candidate beats it in the paired test.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Search {
+    /// Every proposal edits the champion; after `patience` epochs without a
+    /// promotion the run stops as stalled. This is the loop's original
+    /// behavior.
+    #[default]
+    Hill,
+    /// Proposals edit a *parent*, which starts as the champion. A candidate
+    /// that beats its parent becomes the new parent, and also the champion
+    /// when it beats the champion too. After `patience` epochs without the
+    /// parent improving, a restart branch returns to the champion, and the
+    /// champion's lineage restarts from the best earlier candidate that
+    /// behaved differently (per-seed metrics unlike every parent so far) and
+    /// was never a parent. The run stops as stalled only when the champion
+    /// stalls with no such candidate left.
+    Restart,
+    /// Huxley-Gödel Machine tree search (Wang et al., 2025): every measured
+    /// candidate is a node, and each proposal edits the node chosen by
+    /// Thompson sampling on its clade's record (the node and all its
+    /// descendants): how often each seed beat the champion of its time. Draws narrow as
+    /// the epochs run out (cooling), shifting from exploring to refining. Candidates are still judged against the
+    /// champion, which changes only on a paired win. `patience` is ignored:
+    /// the run ends on the goal, the budget or `max_epochs`.
+    Hgm,
+    /// Hill climbing with HGM detours: proposals edit the champion until
+    /// `patience` epochs pass without a promotion, then a detour edits the
+    /// node a cooled HGM draw picks outside the champion chain (as
+    /// [`Search::Hgm`] scores clades). A detour's improvements move its
+    /// parent, and become the champion only by beating it; a detour that
+    /// stalls in turn returns to the champion. With no node to detour to,
+    /// hill climbing continues. The run never stops as stalled.
+    Hybrid,
 }
 
 impl Default for LoopPolicy {
@@ -99,6 +140,7 @@ impl Default for LoopPolicy {
                 ..EvalPolicy::default()
             },
             accept_dominant: true,
+            search: Search::Hill,
         }
     }
 }
@@ -257,7 +299,7 @@ pub struct LedgerCandidate {
     /// units, so ledgers written by the default scorer are unchanged.
     #[serde(default, skip_serializing_if = "IntervalUnits::is_metric")]
     pub units: IntervalUnits,
-    /// True once it became the incumbent.
+    /// True once it became the incumbent (the champion).
     pub promoted: bool,
     /// Why an invalid proposal was refused, or the scorer's error.
     pub note: Option<String>,
@@ -306,6 +348,25 @@ pub struct ScriptLedger {
     pub incumbents: Vec<IncumbentEntry>,
     /// Every candidate, in evaluation order.
     pub candidates: Vec<LedgerCandidate>,
+    /// Restarts of [`Search::Restart`], in order. Omitted when empty, as in
+    /// every hill-climbing ledger.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub restarts: Vec<RestartEntry>,
+}
+
+/// One restart: the parent the loop gave up on and the candidate it
+/// continued from (an earlier candidate, or the champion when a branch
+/// stalled).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RestartEntry {
+    /// The epoch after which the loop restarted.
+    pub epoch: u64,
+    /// Content id of the parent that stopped improving.
+    pub from: String,
+    /// Content id of the new parent.
+    pub to: String,
+    /// The new parent's mean metric.
+    pub metric: f64,
 }
 
 /// Summary returned by a finished run.

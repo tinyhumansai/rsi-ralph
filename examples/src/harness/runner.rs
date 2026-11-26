@@ -6,7 +6,7 @@
 //! returns their records in matrix order. [`write_summary`] writes
 //! `summary.json` and `summary.md` beside the run directories.
 use super::{RunCell, RunRecord, Summary, model_label, record, render_markdown};
-use crate::benchmarks::{Benchmark, Models};
+use crate::benchmarks::{Benchmark, Models, PolicyOverrides};
 use rsi_ralph::{RunLocation, ScriptLedger};
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -62,6 +62,8 @@ pub struct Job {
     pub repeat: u32,
     /// Run id and directory.
     pub run: RunLocation,
+    /// Changes to the benchmark's loop policy.
+    pub overrides: PolicyOverrides,
 }
 
 /// Every benchmark × model × repeat, in that nesting order, under `out`.
@@ -88,6 +90,7 @@ pub fn plan(
                             .join(&label)
                             .join(repeat.to_string()),
                     },
+                    overrides: PolicyOverrides::default(),
                 });
             }
         }
@@ -99,10 +102,10 @@ pub fn plan(
 #[must_use]
 pub fn run_job(job: &Job, python: &Path) -> RunRecord {
     let start = Instant::now();
-    let outcome = job
-        .model
-        .models(job.benchmark)
-        .and_then(|models| job.benchmark.run(&job.run, python, models));
+    let outcome = job.model.models(job.benchmark).and_then(|models| {
+        job.benchmark
+            .run_with(&job.run, python, models, job.overrides)
+    });
     let wall_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
     let ledger = std::fs::read(job.run.dir.join("ledger.json"))
         .ok()
