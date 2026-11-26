@@ -408,10 +408,11 @@ fn prompt_shows_goal_history_rejections_and_sources() {
             metric: 0.515,
         }],
         candidates: vec![baseline, rejected],
+        restarts: vec![],
     };
     let sources = read_sources(&s).unwrap();
     let first = Slot { epoch: 2, index: 0 };
-    let text = prompt(&s, &ledger, &sources, &LoopPolicy::default(), first);
+    let text = prompt(&s, &ledger, &sources, &LoopPolicy::default(), first, None);
     for needle in [
         "Minimize the loss.",
         "target: 0.1",
@@ -433,7 +434,7 @@ fn prompt_shows_goal_history_rejections_and_sources() {
         candidates: vec![],
         ..ledger
     };
-    let text = prompt(&s, &empty, &sources, &LoopPolicy::default(), first);
+    let text = prompt(&s, &empty, &sources, &LoopPolicy::default(), first, None);
     assert!(text.contains("None yet."));
     assert!(text.contains("No diagnostics recorded"));
 }

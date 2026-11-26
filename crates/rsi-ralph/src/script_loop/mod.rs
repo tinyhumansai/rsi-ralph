@@ -12,6 +12,7 @@
 //! `README.md` and `docs/specs/script-loop.md`.
 mod approaches;
 mod execute;
+mod hgm;
 mod prompt;
 mod score;
 mod types;
@@ -26,6 +27,7 @@ use rsi_ralph_evolve::{EvolveContext, Evolver, ScriptBrief, ScriptProposal};
 use rsi_ralph_score::{Assessment, MetricScorer, Scorer, decide, dominates};
 use rsi_ralph_types::Goal;
 use std::{
+    collections::BTreeMap,
     fs::File,
     io::Write,
     path::{Path, PathBuf},
@@ -114,6 +116,7 @@ pub fn run_script_loop_with(
             stop: None,
             incumbents: vec![],
             candidates: vec![],
+            restarts: vec![],
         },
         incumbent: Incumbent {
             id: content_id(&sources),
@@ -122,6 +125,10 @@ pub fn run_script_loop_with(
             mean: 0.0,
             assessment: None,
         },
+        champion: None,
+        archive: BTreeMap::new(),
+        parents: vec![],
+        node: None,
         epochs: 0,
     };
     state.emit(LoopEvent::RunStarted {
@@ -186,8 +193,27 @@ struct LoopState<'a> {
     skip: PathBuf,
     trace: &'a mut dyn TraceSink,
     ledger: ScriptLedger,
+    /// What proposals edit and are compared against: the champion itself,
+    /// except on a [`Search::Restart`] branch.
     incumbent: Incumbent,
+    /// The best candidate so far while a restart branch explores from
+    /// another parent; `None` whenever the parent is the champion.
+    champion: Option<Incumbent>,
+    /// Sources of every fully measured candidate, kept for restarts.
+    archive: BTreeMap<String, Sources>,
+    /// Per-seed metrics of every parent so far, baseline first, so a restart
+    /// never resumes from a candidate that behaves like one of them.
+    parents: Vec<(String, Vec<f64>)>,
+    /// Under [`Search::Hgm`], the node the current proposal edits.
+    node: Option<Node>,
     epochs: u64,
+}
+
+/// A tree node chosen for one proposal under [`Search::Hgm`].
+struct Node {
+    id: String,
+    sources: Sources,
+    mean: f64,
 }
 
 /// A candidate's decision, its `(estimate, lower, upper)` interval and their
@@ -204,6 +230,18 @@ type Judged = (
 /// The ledger note on a candidate accepted by per-seed dominance.
 const DOMINANCE_NOTE: &str =
     "accepted by per-seed dominance: no worse on any seed, better on at least one";
+
+/// The ledger note on a candidate that improved a restart branch's parent.
+const BRANCH_NOTE: &str = "improved the restart branch's parent";
+
+/// Whether two per-seed metric lists are equal within rounding: the same
+/// behavior on the same seeds.
+fn same_metrics(a: &[f64], b: &[f64]) -> bool {
+    a.len() == b.len()
+        && a.iter()
+            .zip(b)
+            .all(|(x, y)| (x - y).abs() <= 1e-9 * x.abs().max(y.abs()).max(1.0))
+}
 
 /// What one evaluated candidate produced.
 struct Measured {
@@ -236,8 +274,20 @@ impl LoopState<'_> {
                 return Ok(StopReason::Budget);
             }
             stall = if promoted { 0 } else { stall + 1 };
+            // HGM keeps expanding the tree until the goal, budget or epoch
+            // limit; it has no stall stop.
             if stall >= self.policy.patience {
-                return Ok(StopReason::Stalled);
+                match self.policy.search {
+                    Search::Hill => return Ok(StopReason::Stalled),
+                    Search::Restart => {
+                        if !self.restart(epoch)? {
+                            return Ok(StopReason::Stalled);
+                        }
+                    }
+                    Search::Hybrid => self.detour(epoch)?,
+                    Search::Hgm => {}
+                }
+                stall = 0;
             }
         }
         Ok(StopReason::MaxEpochs)
@@ -247,7 +297,12 @@ impl LoopState<'_> {
         let metric = &self.subject.metric;
         metric
             .target
-            .is_some_and(|t| MetricScorer::new(metric.direction).reaches(self.incumbent.mean, t))
+            .is_some_and(|t| MetricScorer::new(metric.direction).reaches(self.best().mean, t))
+    }
+
+    /// The champion: the best candidate so far.
+    fn best(&self) -> &Incumbent {
+        self.champion.as_ref().unwrap_or(&self.incumbent)
     }
 
     fn baseline(&mut self) -> Result<()> {
@@ -284,6 +339,10 @@ impl LoopState<'_> {
         if let (true, Some(mean)) = (ok, measured.mean) {
             // The baseline is assessed lazily, on the first comparison, so a
             // baseline that already meets the target costs no scorer call.
+            self.parents.push((id.clone(), metrics.clone()));
+            if self.policy.search == Search::Hgm {
+                self.archive.insert(id.clone(), sources);
+            }
             self.incumbent.metrics = metrics;
             self.incumbent.mean = mean;
             self.ledger.incumbents.push(IncumbentEntry {
@@ -298,7 +357,8 @@ impl LoopState<'_> {
         }
     }
 
-    /// Runs one epoch and reports whether it promoted a candidate.
+    /// Runs one epoch and reports whether it improved on the parent: on the
+    /// champion itself, the original promotion.
     fn epoch(&mut self, epoch: u64) -> Result<bool> {
         let parent = self.incumbent.id.clone();
         self.emit(LoopEvent::EpochStarted {
@@ -323,10 +383,20 @@ impl LoopState<'_> {
             if self.ledger.tokens >= self.policy.token_budget {
                 break;
             }
+            self.node = if self.policy.search == Search::Hgm {
+                self.pick(epoch, k, &[])
+            } else {
+                None
+            };
+            let parent = self
+                .node
+                .as_ref()
+                .map_or_else(|| parent.clone(), |n| n.id.clone());
             if let Some(found) = self.propose(epoch, k, &parent)? {
                 accepted.push(found);
             }
         }
+        self.node = None;
         let metric = MetricScorer::new(self.subject.metric.direction);
         let best = accepted.into_iter().reduce(|a, b| {
             match (
@@ -339,12 +409,17 @@ impl LoopState<'_> {
         });
         let promoted = best.is_some();
         if let Some((row, sources, assessment)) = best {
-            self.promote(epoch, row, sources, assessment)?;
+            if self.champion.is_some() {
+                self.advance(epoch, row, sources, assessment)?;
+            } else {
+                self.promote(epoch, row, sources, assessment)?;
+            }
         }
+        let (id, mean) = (self.best().id.clone(), self.best().mean);
         self.emit(LoopEvent::EpochFinished {
             epoch,
-            incumbent: self.incumbent.id.clone(),
-            incumbent_metric: Some(self.incumbent.mean),
+            incumbent: id,
+            incumbent_metric: Some(mean),
         })?;
         Ok(promoted)
     }
@@ -383,24 +458,14 @@ impl LoopState<'_> {
         };
         let proposal = match checked {
             Ok(proposal) => proposal,
-            Err(error) => {
-                row.note = Some(error.to_string());
-                self.emit(LoopEvent::Ideated {
-                    epoch,
-                    proposal_id,
-                    parent: parent.to_owned(),
-                    candidate: None,
-                    rationale: format!("invalid proposal: {error}"),
-                    hypothesis: String::new(),
-                    approach: None,
-                })?;
-                self.ledger.candidates.push(row);
-                self.save()?;
-                return Ok(None);
-            }
+            Err(error) => return self.invalid(epoch, proposal_id, row, &error).map(|()| None),
         };
         describe(&mut row, &proposal);
-        let sources = apply(&proposal, &self.incumbent.sources);
+        let base = self
+            .node
+            .as_ref()
+            .map_or(&self.incumbent.sources, |n| &n.sources);
+        let sources = apply(&proposal, base);
         let id = content_id(&sources);
         self.emit(LoopEvent::Ideated {
             epoch,
@@ -421,6 +486,9 @@ impl LoopState<'_> {
             return self.duplicate(epoch, &id, row).map(|()| None);
         }
         let measured = self.measure(epoch, &id, &sources)?;
+        if self.policy.search != Search::Hill && measured.failures == 0 {
+            self.archive.insert(id.clone(), sources.clone());
+        }
         let judged = self.judge(&sources, &measured);
         row.runs = measured.runs;
         row.mean = measured.mean;
@@ -458,6 +526,28 @@ impl LoopState<'_> {
         })
     }
 
+    /// Records a proposal the supervisor returned malformed or out of bounds.
+    fn invalid(
+        &mut self,
+        epoch: u64,
+        proposal_id: String,
+        mut row: LedgerCandidate,
+        error: &Error,
+    ) -> Result<()> {
+        row.note = Some(error.to_string());
+        self.emit(LoopEvent::Ideated {
+            epoch,
+            proposal_id,
+            parent: row.parent.clone().unwrap_or_default(),
+            candidate: None,
+            rationale: format!("invalid proposal: {error}"),
+            hypothesis: String::new(),
+            approach: None,
+        })?;
+        self.ledger.candidates.push(row);
+        self.save()
+    }
+
     /// Asks the evolver for slot `k`'s proposal, charging its measured
     /// tokens. The inner result is the proposal or the reason it was
     /// rejected; the outer error is a failed evolver call, which ends the run.
@@ -467,13 +557,34 @@ impl LoopState<'_> {
         k: u32,
         temperature: Option<f64>,
     ) -> Result<Result<ScriptProposal>> {
+        let node = self.node.as_ref().filter(|n| n.id != self.incumbent.id);
+        let branch = match node {
+            Some(n) => Some(prompt::Branch {
+                parent: &n.id,
+                parent_metric: n.mean,
+                champion_metric: self.incumbent.mean,
+                reason: prompt::BranchReason::Search,
+            }),
+            None => self.champion.as_ref().map(|champion| prompt::Branch {
+                parent: &self.incumbent.id,
+                parent_metric: self.incumbent.mean,
+                champion_metric: champion.mean,
+                reason: if self.policy.search == Search::Hybrid {
+                    prompt::BranchReason::Search
+                } else {
+                    prompt::BranchReason::Restart
+                },
+            }),
+        };
+        let sources = node.map_or(&self.incumbent.sources, |n| &n.sources);
         let brief = ScriptBrief {
             prompt: prompt::prompt(
                 self.subject,
                 &self.ledger,
-                &self.incumbent.sources,
+                sources,
                 self.policy,
                 prompt::Slot { epoch, index: k },
+                branch,
             ),
             editable: self.subject.editable.clone(),
             temperature,
@@ -622,6 +733,7 @@ impl LoopState<'_> {
         let id = candidate.id.clone().ok_or(Error::InvalidRecord)?;
         let mean = candidate.mean.ok_or(Error::InvalidRecord)?;
         let metrics: Vec<f64> = candidate.runs.iter().filter_map(|r| r.metric).collect();
+        self.parents.push((id.clone(), metrics.clone()));
         let from = std::mem::replace(
             &mut self.incumbent,
             Incumbent {
@@ -645,6 +757,237 @@ impl LoopState<'_> {
             metric: mean,
         })?;
         self.save()
+    }
+
+    /// On a restart branch, moves the parent to the accepted candidate in
+    /// `row`, and promotes it to champion too when it also beats the champion
+    /// in the paired test.
+    fn advance(
+        &mut self,
+        epoch: u64,
+        row: usize,
+        sources: Sources,
+        assessment: Assessment,
+    ) -> Result<()> {
+        let candidate = &self.ledger.candidates[row];
+        let id = candidate.id.clone().ok_or(Error::InvalidRecord)?;
+        let mean = candidate.mean.ok_or(Error::InvalidRecord)?;
+        let metrics: Vec<f64> = candidate.runs.iter().filter_map(|r| r.metric).collect();
+        let note = match candidate.note.as_deref() {
+            Some(note) => format!("{note}; {BRANCH_NOTE}"),
+            None => BRANCH_NOTE.to_owned(),
+        };
+        self.ledger.candidates[row].note = Some(note);
+        self.parents.push((id.clone(), metrics.clone()));
+        let beats = self.beats_champion(&assessment)?;
+        self.incumbent = Incumbent {
+            id: id.clone(),
+            sources,
+            assessment: Some(assessment),
+            metrics,
+            mean,
+        };
+        if beats {
+            let from = self.champion.take().ok_or(Error::InvalidRecord)?.id;
+            self.ledger.candidates[row].promoted = true;
+            self.ledger.incumbents.push(IncumbentEntry {
+                epoch,
+                id: id.clone(),
+                metric: mean,
+            });
+            self.emit(LoopEvent::Improved {
+                epoch,
+                from,
+                to: id,
+                metric: mean,
+            })?;
+        }
+        self.save()
+    }
+
+    /// Whether `candidate` beats the champion in the paired test, with the
+    /// same dominance rule as [`LoopState::judge`]; `false` without a
+    /// separate champion.
+    fn beats_champion(&mut self, candidate: &Assessment) -> Result<bool> {
+        let Some(mut champion) = self.champion.take() else {
+            return Ok(false);
+        };
+        let assessed = if let Some(cached) = champion.assessment.take() {
+            Ok(cached)
+        } else {
+            let (sources, metrics) = (champion.sources.clone(), champion.metrics.clone());
+            self.assess(&sources, &metrics)
+        };
+        let beats = assessed.and_then(|incumbent| {
+            let decided = decide(
+                &incumbent,
+                candidate,
+                &self.subject.seeds,
+                &self.policy.eval,
+            );
+            let dominant = self.policy.accept_dominant && dominates(&incumbent, candidate);
+            champion.assessment = Some(incumbent);
+            decided.map_err(Error::from).map(|d| {
+                d.decision == ScoreDecision::Accept
+                    || (d.decision == ScoreDecision::Inconclusive && dominant)
+            })
+        });
+        self.champion = Some(champion);
+        beats
+    }
+
+    /// The node slot `k` of `epoch` edits under [`Search::Hgm`] (and a
+    /// [`Search::Hybrid`] detour): a cooled Thompson draw over clade outcomes
+    /// (see `hgm.rs`) among the baseline and every fully measured candidate
+    /// whose mean beats the baseline's, less `exclude`.
+    fn pick(&self, epoch: u64, k: u32, exclude: &[&str]) -> Option<Node> {
+        let metric = MetricScorer::new(self.subject.metric.direction);
+        let base = self.ledger.candidates.first()?;
+        let base_mean = base.mean?;
+        let mut expandable: Vec<&str> = vec![];
+        for c in &self.ledger.candidates {
+            let (Some(id), Some(mean)) = (c.id.as_deref(), c.mean) else {
+                continue;
+            };
+            let useful =
+                c.decision == CandidateDecision::Baseline || metric.better(mean, base_mean);
+            if useful
+                && self.archive.contains_key(id)
+                && !expandable.contains(&id)
+                && !exclude.contains(&id)
+            {
+                expandable.push(id);
+            }
+        }
+        let clades = hgm::clades(&self.ledger);
+        let tau = hgm::cooling(epoch, self.policy.max_epochs);
+        let id = hgm::select(
+            &clades,
+            &expandable,
+            hgm::draw_seed(&self.run.id, epoch, k),
+            tau,
+        )?;
+        let mean = self
+            .ledger
+            .candidates
+            .iter()
+            .find(|c| c.id.as_deref() == Some(id))
+            .and_then(|c| c.mean)?;
+        Some(Node {
+            id: id.to_owned(),
+            sources: self.archive.get(id)?.clone(),
+            mean,
+        })
+    }
+
+    /// [`Search::Hybrid`] after `patience` quiet epochs. A stalled detour
+    /// returns to the champion. A stalled champion detours to the node a
+    /// cooled HGM draw picks outside the champion chain (see [`Self::pick`]);
+    /// with no such node the loop keeps hill climbing the champion.
+    fn detour(&mut self, epoch: u64) -> Result<()> {
+        if self.champion.is_some() {
+            return self.restart(epoch).map(|_| ());
+        }
+        let chain: Vec<String> = self
+            .ledger
+            .incumbents
+            .iter()
+            .map(|i| i.id.clone())
+            .collect();
+        let exclude: Vec<&str> = chain.iter().map(String::as_str).collect();
+        let Some(node) = self.pick(epoch, u32::MAX, &exclude) else {
+            return Ok(());
+        };
+        let metrics: Vec<f64> = self
+            .ledger
+            .candidates
+            .iter()
+            .find(|c| c.id.as_deref() == Some(node.id.as_str()))
+            .map(|c| c.runs.iter().filter_map(|r| r.metric).collect())
+            .unwrap_or_default();
+        self.parents.push((node.id.clone(), metrics.clone()));
+        let previous = std::mem::replace(
+            &mut self.incumbent,
+            Incumbent {
+                id: node.id.clone(),
+                sources: node.sources,
+                assessment: None,
+                metrics,
+                mean: node.mean,
+            },
+        );
+        self.ledger.restarts.push(RestartEntry {
+            epoch,
+            from: previous.id.clone(),
+            to: node.id,
+            metric: node.mean,
+        });
+        self.champion = Some(previous);
+        self.save()
+    }
+
+    /// Moves the parent after it stalled. A stalled restart branch returns to
+    /// the champion, so the best lineage keeps being refined; a stalled
+    /// champion continues from the best earlier candidate that was never a
+    /// parent and whose per-seed metrics differ from every parent's so far.
+    /// Returns `false`, changing nothing, when the champion stalled and no
+    /// such candidate is left.
+    fn restart(&mut self, epoch: u64) -> Result<bool> {
+        if let Some(champion) = self.champion.take() {
+            let from = std::mem::replace(&mut self.incumbent, champion).id;
+            self.ledger.restarts.push(RestartEntry {
+                epoch,
+                from,
+                to: self.incumbent.id.clone(),
+                metric: self.incumbent.mean,
+            });
+            self.save()?;
+            return Ok(true);
+        }
+        let metric = MetricScorer::new(self.subject.metric.direction);
+        let mut pick: Option<(String, Vec<f64>, f64)> = None;
+        for c in &self.ledger.candidates {
+            let (Some(id), Some(mean)) = (c.id.as_ref(), c.mean) else {
+                continue;
+            };
+            let metrics: Vec<f64> = c.runs.iter().filter_map(|r| r.metric).collect();
+            let fresh = self.archive.contains_key(id)
+                && metrics.len() == c.runs.len()
+                && !self
+                    .parents
+                    .iter()
+                    .any(|(seen, before)| seen == id || same_metrics(before, &metrics));
+            if fresh && pick.as_ref().is_none_or(|p| metric.better(mean, p.2)) {
+                pick = Some((id.clone(), metrics, mean));
+            }
+        }
+        let Some((id, metrics, mean)) = pick else {
+            return Ok(false);
+        };
+        let sources = self.archive.get(&id).cloned().ok_or(Error::InvalidRecord)?;
+        let previous = std::mem::replace(
+            &mut self.incumbent,
+            Incumbent {
+                id: id.clone(),
+                sources,
+                assessment: None,
+                metrics: metrics.clone(),
+                mean,
+            },
+        );
+        let from = previous.id.clone();
+        if self.champion.is_none() {
+            self.champion = Some(previous);
+        }
+        self.parents.push((id.clone(), metrics));
+        self.ledger.restarts.push(RestartEntry {
+            epoch,
+            from,
+            to: id,
+            metric: mean,
+        });
+        self.save()?;
+        Ok(true)
     }
 
     fn candidate_dir(&self, id: &str) -> PathBuf {
@@ -689,10 +1032,11 @@ impl LoopState<'_> {
     fn finish(&mut self, reason: StopReason) -> Result<LoopReport> {
         self.ledger.stop = Some(reason);
         let measured = !self.ledger.incumbents.is_empty();
+        let (id, mean) = (self.best().id.clone(), self.best().mean);
         self.emit(LoopEvent::RunFinished {
             reason,
-            incumbent: self.incumbent.id.clone(),
-            incumbent_metric: measured.then_some(self.incumbent.mean),
+            incumbent: id,
+            incumbent_metric: measured.then_some(mean),
         })?;
         self.save()?;
         let rejected = self
@@ -711,8 +1055,8 @@ impl LoopState<'_> {
             reason,
             baseline: baseline.id.clone(),
             baseline_metric: baseline.metric,
-            incumbent: self.incumbent.id.clone(),
-            incumbent_metric: self.incumbent.mean,
+            incumbent: self.best().id.clone(),
+            incumbent_metric: self.best().mean,
             epochs: self.epochs,
             promotions: count(self.ledger.incumbents.len().saturating_sub(1)),
             rejected: count(rejected),
@@ -770,4 +1114,10 @@ mod test;
 #[cfg(test)]
 mod test_approaches;
 #[cfg(test)]
+mod test_hgm;
+#[cfg(test)]
+mod test_hybrid;
+#[cfg(test)]
 mod test_loop;
+#[cfg(test)]
+mod test_search;

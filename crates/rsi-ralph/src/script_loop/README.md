@@ -27,7 +27,14 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 - `LoopPolicy`: epochs, proposals per epoch, patience, token budget, how many
   rejected proposals and tried approaches the supervisor sees, the per-slot
   `SlotDirective`s (instruction plus optional temperature,
-  `SlotDirective::defaults()` by default), and the paired `EvalPolicy`.
+  `SlotDirective::defaults()` by default), the paired `EvalPolicy`, and the
+  `Search` mode: `Hill` (default) or `Restart`, which continues from an
+  earlier, differently behaving candidate instead of stopping when progress
+  stalls, and returns to the champion when that branch stalls in turn
+  (`RestartEntry` rows in the ledger), or `Hgm`, Huxley-Gödel Machine tree
+  search: each proposal edits the node chosen by Thompson sampling over its
+  clade's record (`hgm.rs`), or `Hybrid`: hill climbing that detours to an
+  HGM-chosen node when the champion stalls.
 - The model side lives in `rsi-ralph-evolve`: `ScriptSupervisor`,
   `SupervisorLimits`, `ScriptBrief`, and `ScriptProposal` / `ProposedFile`
   (the forced tool call's schema, with `ScriptProposal::validate` enforcing
@@ -48,7 +55,8 @@ user-facing guide is [`docs/guides/script-loop.md`](../../../../docs/guides/scri
 | `score.rs` | the default metric scorer and the interval of a failed candidate |
 | `prompt.rs` | the supervisor prompt rendered from the ledger and incumbent sources |
 | `approaches.rs` | the hypothesis ledger: approaches already tried, earlier proposals this epoch |
-| `test.rs`, `test_loop.rs`, `test_approaches.rs` | unit tests, end-to-end loop tests, hypothesis-ledger and slot tests |
+| `hgm.rs` | `Search::Hgm`: clade statistics and Thompson-sampled parent selection |
+| `test.rs`, `test_loop.rs`, `test_approaches.rs`, `test_search.rs`, `test_hgm.rs`, `test_hybrid.rs` | unit tests, end-to-end loop tests, hypothesis-ledger and slot tests, restart, HGM and hybrid search tests |
 
 ## Run directory
 

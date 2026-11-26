@@ -18,14 +18,39 @@ pub(super) struct Slot {
     pub index: u32,
 }
 
+/// A restart branch: the earlier candidate proposals now edit, and how it
+/// compares with the champion.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Branch<'a> {
+    /// Content id of the parent the proposals edit.
+    pub parent: &'a str,
+    /// The parent's mean metric.
+    pub parent_metric: f64,
+    /// The champion's mean metric.
+    pub champion_metric: f64,
+    /// Why proposals edit this candidate rather than the champion.
+    pub reason: BranchReason,
+}
+
+/// Why a branch edits a candidate other than the champion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum BranchReason {
+    /// `Search::Restart`: the champion stopped improving.
+    Restart,
+    /// `Search::Hgm`: the tree search chose this candidate.
+    Search,
+}
+
 /// Builds the supervisor prompt for one slot from the subject, ledger,
-/// incumbent and policy.
+/// the sources proposals edit, the policy and, on a restart branch, the
+/// branch.
 pub(super) fn prompt(
     subject: &ScriptSubject,
     ledger: &ScriptLedger,
     sources: &Sources,
     policy: &LoopPolicy,
     slot: Slot,
+    branch: Option<Branch<'_>>,
 ) -> String {
     let metric = &subject.metric;
     let mut text = String::new();
@@ -58,12 +83,17 @@ pub(super) fn prompt(
             entry.epoch, entry.id, entry.metric
         );
     }
+    text.push_str(&branch_section(branch));
     let _ = writeln!(text, "\n# Incumbent diagnostics (DIAG lines per seed)");
-    let incumbent = ledger.incumbents.last().and_then(|i| {
+    let shown = branch.map_or_else(
+        || ledger.incumbents.last().map(|i| i.id.as_str()),
+        |b| Some(b.parent),
+    );
+    let incumbent = shown.and_then(|id| {
         ledger
             .candidates
             .iter()
-            .find(|c| c.id.as_deref() == Some(&i.id))
+            .find(|c| c.id.as_deref() == Some(id))
     });
     match incumbent {
         Some(c) if c.runs.iter().any(|r| !r.diagnostics.is_empty()) => {
@@ -100,6 +130,36 @@ pub(super) fn prompt(
             policy.proposals_per_epoch,
             directive.instruction.trim()
         );
+    }
+    text
+}
+
+/// The "Restart branch" or "Starting point" section for a proposal that
+/// edits a candidate other than the champion; empty otherwise.
+fn branch_section(branch: Option<Branch<'_>>) -> String {
+    let mut text = String::new();
+    match branch {
+        Some(b) if b.reason == BranchReason::Restart => {
+            let _ = writeln!(
+                text,
+                "\n# Restart branch\nThe best so far ({}) stopped improving, so these proposals \
+                 edit an earlier candidate, {} (mean {}), that behaved differently. A change is \
+                 kept when it beats {} and becomes the new best only when it also beats {}. The \
+                 sources and diagnostics below are {}'s.",
+                b.champion_metric, b.parent, b.parent_metric, b.parent, b.champion_metric, b.parent
+            );
+        }
+        Some(b) => {
+            let _ = writeln!(
+                text,
+                "\n# Starting point\nThis proposal edits candidate {} (mean {}), not the best so \
+                 far ({}): the search chose it because it and the candidates built on it have \
+                 done well. Your change becomes the new best only when it beats {}. The sources \
+                 and diagnostics below are {}'s.",
+                b.parent, b.parent_metric, b.champion_metric, b.champion_metric, b.parent
+            );
+        }
+        None => {}
     }
     text
 }

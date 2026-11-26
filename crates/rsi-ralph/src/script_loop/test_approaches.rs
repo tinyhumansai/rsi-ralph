@@ -67,6 +67,7 @@ fn ledger_of(candidates: Vec<LedgerCandidate>) -> ScriptLedger {
             metric: 0.5,
         }],
         candidates,
+        restarts: vec![],
     }
 }
 
@@ -261,7 +262,14 @@ fn the_prompt_orders_tried_approaches_before_rejections_and_ends_with_the_direct
         proposals_per_epoch: 3,
         ..LoopPolicy::default()
     };
-    let text = prompt(&s, &ledger, &sources, &policy, Slot { epoch: 2, index: 1 });
+    let text = prompt(
+        &s,
+        &ledger,
+        &sources,
+        &policy,
+        Slot { epoch: 2, index: 1 },
+        None,
+    );
     let at = |needle: &str| text.find(needle).unwrap();
     assert!(at("# Incumbent diagnostics") < at("# Approaches already tried"));
     assert!(at("\"sleep sort\": 1 attempt") < at("# Earlier proposals this epoch"));
@@ -269,7 +277,14 @@ fn the_prompt_orders_tried_approaches_before_rejections_and_ends_with_the_direct
     assert!(at("# Incumbent editable sources") < at("# This proposal (slot 2 of 3)"));
     assert!(text.trim_end().ends_with(&policy.slots[1].instruction));
     // A fourth slot cycles back to the first directive.
-    let fourth = prompt(&s, &ledger, &sources, &policy, Slot { epoch: 2, index: 3 });
+    let fourth = prompt(
+        &s,
+        &ledger,
+        &sources,
+        &policy,
+        Slot { epoch: 2, index: 3 },
+        None,
+    );
     assert!(fourth.contains("# This proposal (slot 4 of 3)"));
     assert!(fourth.trim_end().ends_with(&policy.slots[0].instruction));
 
@@ -278,7 +293,14 @@ fn the_prompt_orders_tried_approaches_before_rejections_and_ends_with_the_direct
         approach_context: 0,
         ..LoopPolicy::default()
     };
-    let text = prompt(&s, &ledger, &sources, &bare, Slot { epoch: 3, index: 0 });
+    let text = prompt(
+        &s,
+        &ledger,
+        &sources,
+        &bare,
+        Slot { epoch: 3, index: 0 },
+        None,
+    );
     for absent in [
         "# Approaches already tried",
         "Do not resubmit",

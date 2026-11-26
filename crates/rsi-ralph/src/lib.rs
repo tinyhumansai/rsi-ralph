@@ -121,6 +121,6 @@ pub use rsi_ralph_trace::{
 };
 pub use script_loop::{
     CandidateDecision, IncumbentEntry, LedgerCandidate, LoopPolicy, LoopReport, MetricSpec,
-    RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, SeedRun,
-    SlotDirective, parse_metric, run_script_loop, run_script_loop_with,
+    RestartEntry, RunLocation, ScriptCandidate, ScriptCommand, ScriptLedger, ScriptSubject, Search,
+    SeedRun, SlotDirective, parse_metric, run_script_loop, run_script_loop_with,
 };
