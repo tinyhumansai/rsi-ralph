@@ -25,6 +25,33 @@ Aggregate receipts (no paths, prompts or sources) are in
 
 ## What was compared
 
+**The arms in plain words.**
+
+Every arm runs the same loop. Each epoch, the model is shown one version of the script and writes 2 new versions. Each new version is run on 3 seeds and compared with the current best in a paired test. **The best version (the champion) only changes when a new version wins that test, in every arm.** The arms differ in two things only: **which version the model is asked to improve**, and **what happens when nothing improves for a while**.
+
+The examples are graph colouring: start at 17 colours, aim for 6.
+
+- **Hill (default policy)** is what rsi-ralph does today.
+  - It always edits the current best.
+  - It stops after 3 epochs in a row without a new best.
+  - It also stops at the benchmark's own epoch cap: 6 for graph colouring, 4 for curve fit.
+  - Shown for reference only: its budget is smaller, so it isn't a fair comparison.
+- **Hill-10 (baseline)** is the same hill climbing, but it never stops early and always runs 10 epochs. Every other arm gets the same 10 epochs, so this is the fair baseline.
+- **Restart** is hill climbing with a fallback.
+  - It climbs as usual. After 3 quiet epochs, it switches to the best earlier version that behaved differently, e.g. a rejected 15-colour attempt that used another method, and improves that instead.
+  - If that branch produces something better than the best, it becomes the new best.
+  - If the branch also stalls, it goes back to the best.
+- **HGM** ([Huxley-Gödel Machine](https://arxiv.org/abs/2510.21614), Schmidhuber's group, 2025) never simply "edits the best".
+  - Every version is a node in a family tree. Before **every** proposal, a weighted random draw picks which version to edit.
+  - The draw favours versions whose descendants keep producing new bests.
+  - Early draws are loose and explore widely; later draws, after "cooling", concentrate on the most productive family.
+- **Hybrid** is Hill-10 most of the time, with HGM used only when stuck.
+  - After 3 quiet epochs, it uses HGM's draw to pick a detour, excluding the best and earlier bests.
+  - It goes back to the best if the detour stalls.
+
+In short: **Hill** always refines the best. **Restart** and **Hybrid** refine the best but take a detour when stuck: Restart picks the detour by a simple rule, Hybrid by HGM's family record. **HGM** spreads its effort across the whole tree all the time.
+
+**The modes in code.** 
 All modes are `LoopPolicy::search` values ([spec](../specs/script-loop.md)).
 In every mode a candidate becomes the champion only by winning the paired
 test against it, so the reported result never gets worse.
@@ -81,55 +108,48 @@ Every 10-epoch arm ran every cell: 15 runs for graph colouring with
 gpt-4.1-mini (where hill climbing plateaus), 5 for the others. "Hill, default
 policy" is the benchmark's own policy (graph colouring 6 epochs, curve fit 4,
 patience 3) for reference; the p-values compare each arm's progress with
-hill-10 (two-sided permutation test). HGM v1 and v2 are superseded versions,
-kept for the record. A curve-fit goal is an incumbent mean at or below 0.06.
+hill-10 (two-sided permutation test). HGM is the committed version; the
+superseded HGM signals and restart v1 are in the receipts JSON only. A
+curve-fit goal is an incumbent mean at or below 0.06.
 
 **Graph colouring (start 17 colours, optimum 6), gpt-4.1-mini**
 
 | Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
 | --- | --- | --- | --- | --- | --- | --- |
-| Hill, default policy | 5 | 0/5 | 0.47 | — | 7, 13, 13, 13, 13 | 20k |
+| Hill (default policy) | 5 | 0/5 | 0.47 | — | 7, 13, 13, 13, 13 | 20k |
 | Hill-10 (baseline) | 15 | 1/15 | 0.54 | — | 6, 7, 7.7, 8, 11, 11.3, 11.7, 13, 13, 13, 13, 13, 13, 13, 13 | 62k |
 | Restart | 15 | 1/15 | 0.63 | 0.32 | 6, 6.7, 6.7, 7, 7.3, 8, 10.7, 11, 11.3, 12, 13, 13, 13, 13, 13 | 64k |
-| HGM v1 (superseded) | 15 | 2/15 | 0.57 | 0.78 | 6, 6, 7, 7, 8, 11.7, 12, 13, 13, 13, 13, 13, 13, 13, 13 | 65k |
-| HGM v2 (superseded) | 15 | 1/15 | 0.54 | 1.00 | 6, 7.3, 8, 8.7, 11, 11.3, 11.7, 11.7, 12.7, 13, 13, 13, 13, 13, 13 | 63k |
-| HGM v3 (committed) | 15 | 0/15 | 0.55 | 0.85 | 7, 7, 8, 8, 9, 11, 11, 11.7, 13, 13, 13, 13, 13, 13, 13 | 61k |
+| HGM | 15 | 0/15 | 0.55 | 0.85 | 7, 7, 8, 8, 9, 11, 11, 11.7, 13, 13, 13, 13, 13, 13, 13 | 61k |
 | Hybrid | 15 | 0/15 | 0.61 | 0.41 | 7, 7, 7.7, 8, 8, 8.7, 10, 11, 11.3, 11.3, 13, 13, 13, 13, 13 | 63k |
 
 **Graph colouring (start 17 colours, optimum 6), Sonnet 4.5**
 
 | Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
 | --- | --- | --- | --- | --- | --- | --- |
-| Hill, default policy | 5 | 4/5 | 0.96 | — | 6, 6, 6, 6, 8 | 55k |
+| Hill (default policy) | 5 | 4/5 | 0.96 | — | 6, 6, 6, 6, 8 | 55k |
 | Hill-10 (baseline) | 5 | 5/5 | 1.00 | — | 6, 6, 6, 6, 6 | 64k |
 | Restart | 5 | 4/5 | 0.95 | 1.00 | 6, 6, 6, 6, 8.7 | 45k |
-| HGM v1 (superseded) | 5 | 4/5 | 0.96 | 1.00 | 6, 6, 6, 6, 8.3 | 33k |
-| HGM v2 (superseded) | 5 | 5/5 | 1.00 | 1.00 | 6, 6, 6, 6, 6 | 51k |
-| HGM v3 (committed) | 5 | 4/5 | 0.89 | 1.00 | 6, 6, 6, 6, 12 | 79k |
+| HGM | 5 | 4/5 | 0.89 | 1.00 | 6, 6, 6, 6, 12 | 79k |
 | Hybrid | 5 | 5/5 | 1.00 | 1.00 | 6, 6, 6, 6, 6 | 44k |
 
 **Curve fit (start RMSE 0.644, target 0.06), gpt-4.1-mini**
 
 | Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
 | --- | --- | --- | --- | --- | --- | --- |
-| Hill, default policy | 5 | 0/5 | 0.98 | — | 0.061, 0.070, 0.070, 0.073, 0.081 | 23k |
+| Hill (default policy) | 5 | 0/5 | 0.98 | — | 0.061, 0.070, 0.070, 0.073, 0.081 | 23k |
 | Hill-10 (baseline) | 5 | 4/5 | 1.00 | — | 0.053, 0.054, 0.054, 0.056, 0.060 | 58k |
 | Restart | 5 | 4/5 | 1.00 | 1.00 | 0.053, 0.054, 0.058, 0.059, 0.073 | 58k |
-| HGM v1 (superseded) | 5 | 1/5 | 0.99 | 0.05 | 0.054, 0.064, 0.067, 0.070, 0.073 | 74k |
-| HGM v2 (superseded) | 5 | 3/5 | 0.99 | 0.45 | 0.053, 0.054, 0.054, 0.066, 0.070 | 56k |
-| HGM v3 (committed) | 5 | 1/5 | 0.99 | 0.05 | 0.054, 0.062, 0.067, 0.070, 0.070 | 72k |
+| HGM | 5 | 1/5 | 0.99 | 0.05 | 0.054, 0.062, 0.067, 0.070, 0.070 | 72k |
 | Hybrid | 5 | 5/5 | 1.00 | 1.00 | 0.053, 0.054, 0.054, 0.055, 0.059 | 52k |
 
 **Curve fit (start RMSE 0.644, target 0.06), Sonnet 4.5**
 
 | Arm | Runs | Goals | Mean progress | p vs hill-10 | Final results | Median tokens/run |
 | --- | --- | --- | --- | --- | --- | --- |
-| Hill, default policy | 5 | 2/5 | 0.99 | — | 0.054, 0.054, 0.067, 0.070, 0.075 | 51k |
+| Hill (default policy) | 5 | 2/5 | 0.99 | — | 0.054, 0.054, 0.067, 0.070, 0.075 | 51k |
 | Hill-10 (baseline) | 5 | 3/5 | 0.99 | — | 0.053, 0.054, 0.057, 0.066, 0.078 | 42k |
 | Restart | 5 | 4/5 | 1.00 | 0.45 | 0.053, 0.057, 0.057, 0.057, 0.061 | 44k |
-| HGM v1 (superseded) | 5 | 4/5 | 1.00 | 0.72 | 0.054, 0.054, 0.054, 0.059, 0.074 | 27k |
-| HGM v2 (superseded) | 5 | 4/5 | 1.00 | 0.45 | 0.054, 0.055, 0.059, 0.060, 0.060 | 46k |
-| HGM v3 (committed) | 5 | 4/5 | 1.00 | 0.45 | 0.053, 0.054, 0.056, 0.059, 0.060 | 72k |
+| HGM | 5 | 4/5 | 1.00 | 0.45 | 0.053, 0.054, 0.056, 0.059, 0.060 | 72k |
 | Hybrid | 5 | 5/5 | 1.00 | 0.45 | 0.053, 0.054, 0.060, 0.060, 0.060 | 46k |
 
 **All four cells pooled (10-epoch arms, 30 runs each)**
@@ -138,15 +158,13 @@ kept for the record. A curve-fit goal is an incumbent mean at or below 0.06.
 | --- | --- | --- | --- | --- | --- |
 | Hill-10 (baseline) | 13/30 | — | 0.766 | — | 1.96M |
 | Restart | 13/30 | 1.00 | 0.804 | 0.59 | 1.95M |
-| HGM v1 (superseded) | 11/30 | 0.79 | 0.773 | 0.93 | 1.93M |
-| HGM v2 (superseded) | 13/30 | 1.00 | 0.768 | 0.98 | 1.90M |
-| HGM v3 (committed) | 9/30 | 0.42 | 0.757 | 0.89 | 2.05M |
+| HGM | 9/30 | 0.42 | 0.757 | 0.89 | 2.05M |
 | Hybrid | 15/30 | 0.80 | 0.803 | 0.59 | 1.88M |
 
 No difference between any 10-epoch arm and hill-10 is significant, in any
-cell or pooled. The only cells with p at or below 0.05 are curve fit with
-gpt-4.1-mini for HGM v1 and v3, and they go *against* HGM: its runs ended just
-above the 0.06 target, where hill's ended just below.
+cell or pooled. The only cell with p at or below 0.05 is curve fit with
+gpt-4.1-mini for HGM, and it goes *against* HGM: its runs ended just above the
+0.06 target, where hill's ended just below.
 
 **Why Sonnet and gpt-4.1-mini differ.** Sonnet reaches the goal in 2 to 5
 epochs in most runs, usually before any 3-epoch stall, so restart and hybrid
@@ -187,7 +205,7 @@ mislead here.
 ### Why pure HGM does not help at this budget
 
 HGM edits a node other than the champion most of the time, and more so late
-in the run. HGM v3 with graph colouring and gpt-4.1-mini:
+in the run. HGM with graph colouring and gpt-4.1-mini:
 
 - epochs 1 to 5: 86 of 150 proposals were off the champion;
 - epochs 6 to 10: 128 of 150.
