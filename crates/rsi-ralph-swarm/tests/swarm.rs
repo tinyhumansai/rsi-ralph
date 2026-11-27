@@ -167,6 +167,8 @@ fn request(dirs: &Dirs, server_uri: &str, wall: Duration) -> SwarmRequest {
         memory: None,
         wall,
         turn: Duration::from_secs(60),
+        seat_harnesses: std::collections::BTreeMap::new(),
+        harnesses: rsi_ralph_swarm::HarnessInstalls::default(),
     }
 }
 
@@ -658,4 +660,29 @@ fn a_seat_calls_its_executable_tool_in_its_candidate_checkout() {
     let requests = server_runtime.block_on(server.received_requests()).unwrap();
     assert!(offered(&requests, "implementer-a").contains(&"note".to_owned()));
     assert!(!offered(&requests, "lead").contains(&"note".to_owned()));
+}
+
+#[test]
+fn a_process_seat_whose_harness_is_not_installed_fails_the_run_and_leaves_nothing() {
+    let _turn = one_swarm_at_a_time();
+    let dirs = dirs();
+    let mut request = request(&dirs, "http://127.0.0.1:9", Duration::from_secs(5));
+    request.seat_harnesses = BTreeMap::from([(
+        "implementer-a".to_owned(),
+        rsi_ralph_swarm::HarnessKind::Codex,
+    )]);
+    let mut events = Vec::new();
+    let error = run_swarm(request, &mut |event| events.push(event)).unwrap_err();
+    assert!(
+        matches!(error, rsi_ralph_swarm::Error::Harness(_)),
+        "{error:?}"
+    );
+    // Refused before any process started or any desk opened.
+    assert!(!dirs.run.join(rsi_ralph_swarm::HARNESS_DIR).exists());
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SwarmEvent::SwarmStarted { .. })),
+        "{events:?}"
+    );
 }

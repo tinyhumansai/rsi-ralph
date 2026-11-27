@@ -2841,9 +2841,11 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "tinyhivemind-deploy",
  "tinyhivemind-exec",
  "tinyhivemind-hives",
  "tinyhivemind-lang",
+ "tinyhivemind-mcp",
  "tinyhivemind-openhuman",
  "tinymemory-api",
  "tinymemory-integrations",
@@ -3850,12 +3852,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyhivemind-acp"
+version = "0.2.1"
+dependencies = [
+ "serde_json",
+ "thiserror",
+ "tinyhivemind-hives",
+ "tinyhivemind-host",
+ "tinyhivemind-lang",
+ "tokio",
+]
+
+[[package]]
 name = "tinyhivemind-core"
 version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "tinyhivemind-deploy"
+version = "0.2.1"
+dependencies = [
+ "getrandom 0.3.4",
+ "thiserror",
+ "tinyhivemind-acp",
+ "tinyhivemind-hives",
+ "tinyhivemind-host",
+ "tinyhivemind-lang",
+ "tinyhivemind-mcp",
+ "tinyhivemind-openhuman-process",
 ]
 
 [[package]]
@@ -3885,6 +3913,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyhivemind-host"
+version = "0.2.1"
+dependencies = [
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tinyhivemind-core",
+ "tinyhivemind-hives",
+ "tinyhivemind-lang",
+ "tinytools",
+ "tokio",
+]
+
+[[package]]
 name = "tinyhivemind-lang"
 version = "0.2.1"
 dependencies = [
@@ -3893,6 +3936,24 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror",
  "tinyhivemind-core",
+]
+
+[[package]]
+name = "tinyhivemind-mcp"
+version = "0.2.1"
+dependencies = [
+ "getrandom 0.3.4",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "serde_json",
+ "subtle",
+ "thiserror",
+ "tinyhivemind-exec",
+ "tinyhivemind-hives",
+ "tinyhivemind-host",
+ "tinyhivemind-lang",
+ "tokio",
 ]
 
 [[package]]
@@ -3911,10 +3972,24 @@ dependencies = [
  "tinyhivemind-core",
  "tinyhivemind-exec",
  "tinyhivemind-hives",
+ "tinyhivemind-host",
  "tinyhivemind-lang",
  "tinymemory-api",
  "tinymemory-tools",
  "tinytools",
+ "tokio",
+]
+
+[[package]]
+name = "tinyhivemind-openhuman-process"
+version = "0.2.1"
+dependencies = [
+ "reqwest",
+ "serde_json",
+ "thiserror",
+ "tinyhivemind-hives",
+ "tinyhivemind-host",
+ "tinyhivemind-lang",
  "tokio",
 ]
 

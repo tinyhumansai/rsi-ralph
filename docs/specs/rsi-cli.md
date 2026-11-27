@@ -70,7 +70,7 @@ Unknown fields fail. `$schema` and `version` must match exactly.
 | `name` | yes | Loop name, `[a-z0-9-]`, names the run-store folder. |
 | `subject` | yes | What is improved; see below. |
 | `brief` | yes | Markdown prompt template. |
-| `hive` | yes | `package` (folder), `lead` (seat that receives the brief), `wall_secs` (default 3600), `turn_secs` (default 1200), `memory` (seat memory; see below). |
+| `hive` | yes | `package` (folder), `lead` (seat that receives the brief), `wall_secs` (default 3600), `turn_secs` (default 1200), `memory` (seat memory; see below), `harnesses` (seats on a process harness; see below). |
 | `models` | no | `default`, `judge`, `retreat` model ids (OpenRouter names). |
 | `creativity` | no | `temperature` and `retreat`; see below. |
 | `keys` | no | Capability to env-var name; see below. |
@@ -227,6 +227,36 @@ rejection) of the epoch precedes its first `executed`, and each candidate's
 `executed`, `measured` and `scored` events stay together, in seat order.
 
 Other `run` scorers are recorded and shown in the brief, never decided on.
+
+### `hive.harnesses`
+
+```json
+"harnesses": { "implementer": "codex", "reviewer": "claude-code" }
+```
+
+Each named seat runs on a process harness instead of in-process: `openhuman`,
+`claude-code`, `codex` or `openclaw`. The other seats run in-process, and one
+hive may mix both. A name that is not a seat of the package fails `check`.
+
+- **Programs:** the run finds each harness's program through a variable:
+  - `TINYRSI_NODE` runs the ACP programs;
+  - `TINYRSI_OPENHUMAN_CORE` is `openhuman-core`;
+  - `TINYRSI_CLAUDE_CODE_ACP` is `claude-agent-acp`'s `dist/index.js`;
+  - `TINYRSI_CODEX_ACP` is `codex-acp`'s, with `TINYRSI_CODEX` the Codex
+    binary;
+  - `TINYRSI_OPENCLAW` is `openclaw.mjs`.
+
+  A named seat whose harness has no program fails the run before any seat
+  starts.
+- **Models:** the gateway serves each harness's model API (chat, Anthropic's
+  Messages, `OpenAI`'s Responses), so the seat's calls are capped and metered
+  like any other. Its model must be priced like any other.
+- **Not available:** a seat on a process harness cannot have seat memory or
+  a tool key.
+- **Unix only:** process harnesses run on Linux and macOS hosts. On Windows
+  a run with a named seat fails before any seat starts.
+- **No usage report:** its turns' tokens and cost are not in the proposal
+  report. The meter has them, tagged with the seat.
 
 ## Step contract
 

@@ -42,6 +42,7 @@ fn renders_lowercase_messages_that_name_no_secret() {
         },
         Error::Thread(io()),
         Error::ThreadPanicked,
+        Error::HarnessPlatform("x".into()),
     ];
     for error in errors {
         let message = error.to_string();

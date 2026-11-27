@@ -122,6 +122,12 @@ tinyhivemind-exec = { path = "vendor/tinyhivemind/crates/tinyhivemind-exec" }
 # that onto `vendor/openhuman`, so the swarm and `rsi-ralph-langfuse` link one
 # OpenHuman. Its `offline` fixture feature is enabled only by the swarm's tests.
 tinyhivemind-openhuman = { path = "vendor/tinyhivemind/crates/tinyhivemind-openhuman" }
+# Starts the seats whose hive package entry names a process harness, for
+# `rsi-ralph-swarm`: OpenHuman, Claude Code, Codex or OpenClaw as a supervised
+# program, each reaching its tools over loopback MCP. It links no harness.
+tinyhivemind-deploy = { path = "vendor/tinyhivemind/crates/tinyhivemind-deploy" }
+# Serves a process seat its hive and host tools, for `rsi-ralph-swarm`.
+tinyhivemind-mcp = { path = "vendor/tinyhivemind/crates/tinyhivemind-mcp" }
 # Builds the CortexDB engine a loop's `hive.memory` names, for seat memory in
 # `rsi-ralph-swarm`. The copy OpenHuman vendors and links, so the engine is the
 # one `MemoryEngine` trait its runtime installs. Only the `cortex` engine.

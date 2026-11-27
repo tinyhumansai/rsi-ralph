@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError, mpsc};
 
 pub use run::{EVENTS_FILE, HIVE_DB, RUNTIME_DIR};
+pub(crate) use seat::action_dir;
 pub use types::{ModelUrl, SeatUsage, SwarmOutcome, SwarmRequest};
 
 use crate::event::SwarmEvent;
@@ -110,6 +111,7 @@ fn check(request: &mut SwarmRequest) -> Result<Hive> {
     }
     tools::validate(&request.tools, &seats)?;
     programs::validate(&hive)?;
+    crate::process::validate(&hive, request)?;
     builtin::validate(&hive)?;
     request.incumbent = directory(&request.incumbent)?;
     for path in request.candidates.values_mut() {

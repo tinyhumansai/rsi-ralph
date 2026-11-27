@@ -44,6 +44,16 @@ tinymemory-integrations = { workspace = true }
 # The swarm's own runtime; `sync` carries tool-call progress out of turns.
 tokio = { workspace = true, features = ["sync"] }
 
+# Process harnesses run on Unix hosts only: tinyhivemind starts and supervises
+# them with Unix process and permission APIs.
+[target.'cfg(unix)'.dependencies]
+# Starts the seats whose package entry names a process harness (OpenHuman,
+# Claude Code, Codex or OpenClaw as a program) and registers them with the
+# swarm's coordinator.
+tinyhivemind-deploy = { workspace = true }
+# Serves a process seat its hive and host tools: `SeatTools`, `Services`.
+tinyhivemind-mcp = { workspace = true }
+
 [dev-dependencies]
 tempfile = { workspace = true }
 # A loopback OpenAI-compatible model that scripts each seat's replies, so the

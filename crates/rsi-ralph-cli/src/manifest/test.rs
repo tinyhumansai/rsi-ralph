@@ -170,6 +170,8 @@ fn rejects_unknown_seats_and_scorers() {
         parse(&files),
         Err(Error::Reference { kind: "seat", .. })
     ));
+    let files = with(|m| m["hive"]["harnesses"] = json!({ "ghost": "codex" }));
+    assert!(matches!(parse(&files), Err(Error::Reference { kind: "seat", id }) if id == "ghost"));
     let files = with(|m| m["score"]["decide"]["on"] = json!("ghost"));
     assert!(matches!(
         parse(&files),
@@ -524,4 +526,32 @@ fn rejects_a_carry_without_paths_with_unsafe_paths_or_with_zero_caps() {
     }
     let files = with(|m| m["carry"] = json!({ "notes": ["notes/"], "folder": "x" }));
     assert!(matches!(parse(&files), Err(Error::Json { .. })));
+}
+
+#[test]
+fn reads_which_seats_run_on_a_process_harness() {
+    let files = with(|m| {
+        m["hive"]["harnesses"] = json!({ "implementer": "codex", "lead": "claude-code" });
+    });
+    let parsed = parse(&files).unwrap();
+    let harnesses = &parsed.manifest.hive.harnesses;
+    assert_eq!(
+        harnesses["implementer"],
+        tinyhivemind_lang::HarnessKind::Codex
+    );
+    assert_eq!(
+        harnesses["lead"],
+        tinyhivemind_lang::HarnessKind::ClaudeCode
+    );
+    let files = with(|m| m["hive"]["harnesses"] = json!({ "implementer": "cursor" }));
+    assert!(parse(&files).is_err());
+    // Absent, every seat runs in-process.
+    assert!(
+        parse(&example())
+            .unwrap()
+            .manifest
+            .hive
+            .harnesses
+            .is_empty()
+    );
 }

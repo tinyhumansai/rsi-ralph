@@ -189,7 +189,8 @@ pub(super) fn run(
     )?;
     let gateway = gateway(parsed, &keys, store, &run, lookup)?;
     let meter = GatewayMeter(&gateway);
-    let mut hive = Hive::new(parsed, &keys, &gateway.base_url())?;
+    let mut hive = Hive::new(parsed, &keys, &gateway.base_url())?
+        .with_harnesses(rsi_ralph_swarm::harness_installs(lookup));
     let mut retreat = Retreat::new(parsed, store, &gateway)?;
     let engine = Engine {
         parsed,
