@@ -4,11 +4,15 @@
 //! content the run configuration does not support (images), bounds the
 //! completion length, pins the provider and its price ceiling, asks
 //! the upstream to report cost, and computes the worst-case dollar cost the
-//! call reserves before it is sent.
+//! call reserves before it is sent. Three generation APIs are taken: Chat
+//! Completions, Anthropic's Messages (Claude Code) and `OpenAI`'s Responses
+//! (Codex), whose grouped `namespace` tools are offered upstream as plain
+//! functions ([`crate::namespace`]).
 
 use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
+use crate::namespace;
 use crate::price::{ANY_PROVIDER, PriceTable, usd};
 
 /// Prompt-side slack added to the byte count when bounding a call's cost.
@@ -23,6 +27,10 @@ pub(crate) enum Endpoint {
     Chat,
     /// `/v1/embeddings`.
     Embeddings,
+    /// `/v1/messages`: Anthropic's Messages API.
+    Messages,
+    /// `/v1/responses`: `OpenAI`'s Responses API.
+    Responses,
 }
 
 impl Endpoint {
@@ -32,11 +40,15 @@ impl Endpoint {
         match self {
             Self::Chat => "chat/completions",
             Self::Embeddings => "embeddings",
+            Self::Messages => "messages",
+            Self::Responses => "responses",
         }
     }
 }
 
-/// Completion-length limits applied to chat requests.
+/// Completion-length limits applied to generation requests (`max_tokens`,
+/// or `max_output_tokens` for Responses), and the reasoning default for
+/// chat.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
     /// Used when the client sets no `max_tokens`.
@@ -71,6 +83,10 @@ pub(crate) struct Prepared {
     pub(crate) stream: bool,
     /// The worst-case cost in dollars.
     pub(crate) reserve_usd: f64,
+    /// The tool namespaces flattened into plain functions, whose calls the
+    /// response must name back in the client's form; empty for every API
+    /// but Responses.
+    pub(crate) namespaces: Vec<String>,
 }
 
 /// How an upstream takes a provider pin ([`crate::Price::provider`]).
@@ -111,8 +127,8 @@ impl Routing {
 /// # Errors
 ///
 /// Returns [`Error::BadRequest`] for a body that is not a JSON object, has no
-/// model, or carries non-text content, and [`Error::UnknownModel`] for a model
-/// not in `prices`.
+/// model, lacks the API's messages or input, or carries content the run does
+/// not support, and [`Error::UnknownModel`] for a model not in `prices`.
 pub(crate) fn prepare(
     endpoint: Endpoint,
     body: Value,
@@ -144,6 +160,28 @@ pub(crate) fn prepare(
     }
     let mut stream = false;
     let mut reserve_usd = prompt_bound;
+    let mut namespaces = Vec::new();
+    if endpoint == Endpoint::Messages {
+        reject_images(map.get("messages"), "messages", "image")?;
+        let max_tokens = bounded(map.get("max_tokens"), limits);
+        map.insert("max_tokens".into(), json!(max_tokens));
+        stream = map.get("stream").and_then(Value::as_bool).unwrap_or(false);
+        reserve_usd += usd(max_tokens, price.completion);
+    }
+    if endpoint == Endpoint::Responses {
+        match map.get("input") {
+            Some(Value::String(_)) => {}
+            input => reject_images(input, "input", "input_image")?,
+        }
+        let max_tokens = bounded(map.get("max_output_tokens"), limits);
+        map.insert("max_output_tokens".into(), json!(max_tokens));
+        // The upstream keeps no state between calls: a stored response, or
+        // one that continues another, is refused.
+        map.insert("store".into(), json!(false));
+        namespaces = namespace::flatten(&mut map);
+        stream = map.get("stream").and_then(Value::as_bool).unwrap_or(false);
+        reserve_usd += usd(max_tokens, price.completion);
+    }
     if endpoint == Endpoint::Chat {
         reject_non_text(map.get("messages"))?;
         let requested = map
@@ -190,7 +228,38 @@ pub(crate) fn prepare(
         model,
         stream,
         reserve_usd,
+        namespaces,
     })
+}
+
+/// The completion length a Messages or Responses call may take: the
+/// client's, else the default, within `1..=` the cap.
+fn bounded(requested: Option<&Value>, limits: Limits) -> u64 {
+    requested
+        .and_then(Value::as_u64)
+        .unwrap_or(limits.default_max_tokens)
+        .clamp(1, limits.max_tokens_cap)
+}
+
+/// Requires `items` to be the API's array of messages or input items, none
+/// of whose content parts is of the image type `image`. Tool calls, tool
+/// results and reasoning pass.
+fn reject_images(items: Option<&Value>, field: &str, image: &str) -> Result<()> {
+    let Some(items) = items.and_then(Value::as_array) else {
+        return Err(Error::BadRequest(format!("requests need a {field} array")));
+    };
+    let parts = items
+        .iter()
+        .filter_map(|item| item.get("content").and_then(Value::as_array))
+        .flatten();
+    for part in parts {
+        if part.get("type").and_then(Value::as_str) == Some(image) {
+            return Err(Error::BadRequest(
+                "only text content is supported in this run configuration".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn reject_non_text(messages: Option<&Value>) -> Result<()> {

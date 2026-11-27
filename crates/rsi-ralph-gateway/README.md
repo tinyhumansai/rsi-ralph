@@ -49,6 +49,20 @@ off. Override any field before calling `start`.
 
 - `POST /v1/chat/completions`, `POST /v1/embeddings` — tagged by the
   `x-tinyrsi-phase`, `x-tinyrsi-seat` and `x-tinyrsi-candidate` headers.
+- `POST /v1/messages` (Anthropic's Messages API, which Claude Code speaks)
+  and `POST /v1/responses` (`OpenAI`'s Responses API, which Codex speaks),
+  tagged the same way. Both are priced, capped and metered like chat:
+  - The completion length (`max_tokens`, or `max_output_tokens` for
+    Responses) is bounded by the same limits.
+  - Images are refused; tool calls and results pass.
+  - The usage each API reports, including a Messages stream's split counts,
+    settles the call.
+  - A Messages call carries its `anthropic-version` and `anthropic-beta`
+    headers upstream, and no other client header.
+  - A Responses call is sent stateless (`store: false`).
+  - Codex's grouped `namespace` tools, which `OpenRouter` drops, are offered
+    as plain `<namespace>__<tool>` functions. Calls to them come back in
+    Codex's form, whole or streamed (`src/namespace/`).
 - The same under `/__tag/{phase}/{seat}/v1/...`, for clients that can only be
   given a base URL. `x-tinyrsi-candidate` still applies.
 - `GET /v1/models` (also under the tag prefix) — the allowlist.

@@ -171,3 +171,67 @@ fn ignores_an_unusable_buyer_cost_micro() {
         assert_eq!(usage.cost, None, "{bad}");
     }
 }
+
+#[test]
+fn reads_anthropic_messages_usage_with_its_cache_counts() {
+    let usage = Usage::from_body(&json!({"type": "message", "usage": {
+        "input_tokens": 10, "output_tokens": 7,
+        "cache_read_input_tokens": 100, "cache_creation_input_tokens": 5,
+    }}));
+    // Anthropic counts cached input apart from `input_tokens`.
+    assert_eq!((usage.prompt_tokens, usage.completion_tokens), (115, 7));
+    assert_eq!(usage.cached_tokens, Some(100));
+    assert_eq!(usage.reasoning_tokens, None);
+}
+
+#[test]
+fn joins_a_messages_stream_split_between_start_and_delta() {
+    let mut scanner = SseUsage::default();
+    let start = json!({"type": "message_start", "message": {"usage": {"input_tokens": 40, "output_tokens": 1}}});
+    let delta =
+        json!({"type": "content_block_delta", "delta": {"type": "text_delta", "text": "hi"}});
+    let end = json!({"type": "message_delta", "usage": {"output_tokens": 25}});
+    for event in [start, delta, end] {
+        scanner.feed(format!("event: x\ndata: {event}\n\n").as_bytes());
+    }
+    assert!(scanner.saw_token());
+    let usage = scanner.finish();
+    assert_eq!((usage.prompt_tokens, usage.completion_tokens), (40, 25));
+}
+
+#[test]
+fn reads_responses_usage_from_a_body_and_its_completed_event() {
+    let usage = json!({
+        "input_tokens": 30, "output_tokens": 12,
+        "input_tokens_details": {"cached_tokens": 8},
+        "output_tokens_details": {"reasoning_tokens": 4},
+        "cost": 0.002,
+    });
+    let body = Usage::from_body(&json!({"object": "response", "usage": usage}));
+    assert_eq!((body.prompt_tokens, body.completion_tokens), (30, 12));
+    assert_eq!(
+        (body.cached_tokens, body.reasoning_tokens),
+        (Some(8), Some(4))
+    );
+    assert_eq!(body.cost, Some(0.002));
+    let mut scanner = SseUsage::default();
+    let created = json!({"type": "response.created", "response": {"usage": null}});
+    let text = json!({"type": "response.output_text.delta", "delta": "ok"});
+    let done = json!({"type": "response.completed", "response": {"usage": usage}});
+    scanner.feed(format!("data: {created}\n\n").as_bytes());
+    assert!(!scanner.saw_token());
+    scanner.feed(format!("data: {text}\n\ndata: {done}\n\n").as_bytes());
+    assert!(scanner.saw_token());
+    assert_eq!(scanner.finish(), body);
+}
+
+#[test]
+fn an_empty_responses_delta_is_not_a_token() {
+    let mut scanner = SseUsage::default();
+    let empty = json!({"type": "response.output_text.delta", "delta": ""});
+    let args = json!({"type": "response.function_call_arguments.delta", "delta": "{\""});
+    scanner.feed(format!("data: {empty}\n\n").as_bytes());
+    assert!(!scanner.saw_token());
+    scanner.feed(format!("data: {args}\n\n").as_bytes());
+    assert!(scanner.saw_token());
+}

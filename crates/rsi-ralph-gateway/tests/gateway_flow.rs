@@ -134,6 +134,73 @@ async fn mock_chat(
     }
 }
 
+/// Anthropic's Messages API: records the call with its auth and version
+/// headers, and answers a stream split as Anthropic splits its usage, or a
+/// whole message.
+async fn mock_messages(
+    State(seen): State<Seen>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> Response {
+    let header = |name: &str| {
+        headers
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_owned()
+    };
+    let tag = format!(
+        "{} | {}",
+        header("authorization"),
+        header("anthropic-version")
+    );
+    seen.lock().unwrap().push((tag, body.clone()));
+    if body["stream"] == json!(true) {
+        let events = [
+            json!({"type": "message_start", "message": {"usage": {"input_tokens": 1000, "output_tokens": 1}}}),
+            json!({"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "hi"}}),
+            json!({"type": "message_delta", "usage": {"output_tokens": 1000}}),
+        ];
+        let mut sse = String::new();
+        for event in &events {
+            let kind = event["type"].as_str().unwrap();
+            std::fmt::Write::write_fmt(&mut sse, format_args!("event: {kind}\ndata: {event}\n\n"))
+                .unwrap();
+        }
+        return ([("content-type", "text/event-stream")], sse).into_response();
+    }
+    Json(
+        json!({"type": "message", "content": [{"type": "text", "text": "ok"}],
+        "usage": {"input_tokens": 1000, "output_tokens": 1000}}),
+    )
+    .into_response()
+}
+
+/// `OpenAI`'s Responses API: records the call and calls the first tool it
+/// was offered, whole or streamed.
+async fn mock_responses(State(seen): State<Seen>, Json(body): Json<Value>) -> Response {
+    seen.lock().unwrap().push((String::new(), body.clone()));
+    let tool = body["tools"][0]["name"]
+        .as_str()
+        .unwrap_or("none")
+        .to_owned();
+    let call = json!({"type": "function_call", "name": tool, "arguments": "{}", "call_id": "c1"});
+    let usage = json!({"input_tokens": 1000, "output_tokens": 1000, "cost": 0.0042});
+    if body["stream"] == json!(true) {
+        let events = [
+            json!({"type": "response.function_call_arguments.delta", "delta": "{}"}),
+            json!({"type": "response.output_item.done", "item": call}),
+            json!({"type": "response.completed", "response": {"output": [call], "usage": usage}}),
+        ];
+        let mut sse = String::new();
+        for event in &events {
+            std::fmt::Write::write_fmt(&mut sse, format_args!("data: {event}\n\n")).unwrap();
+        }
+        return ([("content-type", "text/event-stream")], sse).into_response();
+    }
+    Json(json!({"object": "response", "output": [call], "usage": usage})).into_response()
+}
+
 async fn mock_embeddings(Json(_body): Json<Value>) -> Response {
     Json(json!({"data": [{"embedding": [0.0]}], "usage": {"cost": 0.00001, "prompt_tokens": 2}}))
         .into_response()
@@ -167,6 +234,8 @@ impl Upstream {
         let app = axum::Router::new()
             .route("/v1/chat/completions", post(mock_chat))
             .route("/v1/embeddings", post(mock_embeddings))
+            .route("/v1/messages", post(mock_messages))
+            .route("/v1/responses", post(mock_responses))
             .route("/v1/models", axum::routing::get(mock_models))
             .with_state(seen.clone());
         let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
@@ -1041,5 +1110,107 @@ async fn the_model_listing_carries_the_upstreams_context_window() {
         let flash = entries.iter().find(|m| m["id"] == GLM_FLASH).unwrap();
         assert_eq!(flash["context_length"], 262_144);
         assert!(flash.get("pricing").is_none());
+    }
+}
+
+/// Posts `body` to the tagged `api` path of seat `seat` with `headers`.
+async fn post_api(
+    h: &Harness,
+    seat: &str,
+    api: &str,
+    headers: &[(&str, &str)],
+    body: &Value,
+) -> (u16, String) {
+    let tagged = h.gateway.tagged_url("swarm", seat);
+    let mut request = h
+        .client
+        .post(format!("{tagged}/{api}"))
+        .bearer_auth("thm-no-key");
+    for (name, value) in headers {
+        request = request.header(*name, *value);
+    }
+    let response = request.json(body).send().await.unwrap();
+    (response.status().as_u16(), response.text().await.unwrap())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn meters_a_messages_stream_and_passes_the_anthropic_version() {
+    let h = Harness::start(5.0, 50.0);
+    let body = json!({"model": GLM_FLASH, "max_tokens": 100, "stream": true,
+        "messages": [{"role": "user", "content": "hi"}]});
+    let headers = [
+        ("anthropic-version", "2023-06-01"),
+        ("x-api-key", "client-secret"),
+    ];
+    let (status, text) = post_api(&h, "claude", "messages", &headers, &body).await;
+    assert_eq!(status, 200);
+    assert!(text.contains("message_delta"), "{text}");
+    let seen = h.upstream.seen.lock().unwrap().clone();
+    // The real key and the API version go upstream; the client's key does not.
+    assert_eq!(seen[0].0, format!("Bearer {KEY} | 2023-06-01"));
+    assert_eq!(seen[0].1["max_tokens"], json!(100));
+    h.wait_for_meter_rows(1).await;
+    let row = &h.meter()[0];
+    assert_eq!(row["endpoint"], "messages");
+    assert_eq!(row["seat"], "claude");
+    assert_eq!(
+        (
+            row["prompt_tokens"].as_u64(),
+            row["completion_tokens"].as_u64()
+        ),
+        (Some(1000), Some(1000))
+    );
+    // No cost reported: the tokens are priced at the ceiling, 0.30 + 1.00 per M.
+    assert!(
+        (row["cost_usd"].as_f64().unwrap() - 0.0013).abs() < 1e-9,
+        "{row}"
+    );
+    assert!(row["ttft_ms"].is_u64(), "{row}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn settles_a_whole_messages_call() {
+    let h = Harness::start(5.0, 50.0);
+    let body = json!({"model": GLM_FLASH, "max_tokens": 50, "messages": [{"role": "user", "content": "hi"}]});
+    let (status, text) = post_api(&h, "claude", "messages", &[], &body).await;
+    assert_eq!(status, 200, "{text}");
+    let seen = h.upstream.seen.lock().unwrap().clone();
+    assert_eq!(seen[0].0, format!("Bearer {KEY} | "));
+    h.wait_for_meter_rows(1).await;
+    assert_eq!(h.meter()[0]["completion_tokens"], json!(1000));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn round_trips_codex_namespace_tools_whole_and_streamed() {
+    let h = Harness::start(5.0, 50.0);
+    let mut body = json!({"model": GLM_FLASH, "input": [{"role": "user", "content": "go"}],
+        "tools": [{"type": "namespace", "name": "mcp__hive",
+                   "tools": [{"type": "function", "name": "read_file", "parameters": {}}]}]});
+    let (status, text) = post_api(&h, "codex", "responses", &[], &body).await;
+    assert_eq!(status, 200, "{text}");
+    let answer: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(answer["output"][0]["name"], "read_file");
+    assert_eq!(answer["output"][0]["namespace"], "mcp__hive");
+    body["stream"] = json!(true);
+    let (status, text) = post_api(&h, "codex", "responses", &[], &body).await;
+    assert_eq!(status, 200);
+    assert!(!text.contains("mcp__hive__read_file"), "{text}");
+    assert_eq!(
+        text.matches(r#""namespace":"mcp__hive""#).count(),
+        2,
+        "{text}"
+    );
+    let seen = h.upstream.seen.lock().unwrap().clone();
+    // Upstream saw plain functions and a stateless call.
+    for (_, sent) in &seen {
+        assert_eq!(sent["tools"][0]["type"], "function");
+        assert_eq!(sent["tools"][0]["name"], "mcp__hive__read_file");
+        assert_eq!(sent["store"], json!(false));
+    }
+    h.wait_for_meter_rows(2).await;
+    for row in h.meter() {
+        assert_eq!(row["endpoint"], "responses");
+        assert_eq!(row["cost_usd"], json!(0.0042));
+        assert_eq!(row["completion_tokens"], json!(1000));
     }
 }
