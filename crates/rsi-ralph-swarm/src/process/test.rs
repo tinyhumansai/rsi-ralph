@@ -239,3 +239,52 @@ fn every_host_tool_declares_a_valid_executable_tool() {
         assert_eq!(writes, tool.writes, "{}", tool.id);
     }
 }
+
+fn block_on<T>(future: impl std::future::Future<Output = T>) -> T {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(future)
+}
+
+async fn coordinator(dir: &Path) -> Coordinator {
+    Coordinator::new(
+        "runtime".into(),
+        std::sync::Arc::new(tinyhivemind_hives::SqliteStorage::open(dir.join("hive.db")).unwrap()),
+        tinyhivemind_hives::CoordinatorOptions::default(),
+    )
+    .await
+    .unwrap()
+}
+
+#[test]
+fn no_process_seats_start_nothing_and_stop_cleanly() {
+    let root = tempfile::tempdir().unwrap();
+    let request = request(HarnessKind::Codex, root.path());
+    block_on(async {
+        let coordinator = coordinator(root.path()).await;
+        let started = start(&coordinator, Vec::new(), &request, &request.run_dir).await;
+        assert!(started.unwrap().is_none());
+        stop(None).await.unwrap();
+    });
+    assert!(!request.run_dir.join(HARNESS_DIR).exists());
+}
+
+#[test]
+fn a_seat_whose_harness_is_not_installed_starts_nothing() {
+    let root = tempfile::tempdir().unwrap();
+    let request = request(HarnessKind::Codex, root.path());
+    let hive = Hive::open(&request.package).unwrap();
+    let (process_seat, _) = seat(plan(&hive, "implementer-a"), &request, &hive).unwrap();
+    block_on(async {
+        let coordinator = coordinator(root.path()).await;
+        let started = start(&coordinator, vec![process_seat], &request, &request.run_dir).await;
+        assert!(
+            matches!(started, Err(Error::Harness(ref source)) if source.to_string().contains("codex")),
+            "{:?}",
+            started.map(|seats| seats.is_some())
+        );
+        assert_eq!(coordinator.list_agents().unwrap(), Vec::<String>::new());
+    });
+}
