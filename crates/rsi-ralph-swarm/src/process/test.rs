@@ -188,6 +188,17 @@ fn the_installs_come_from_the_environment() {
     assert!(installs.claude_code.is_none());
     assert!(installs.openhuman.is_none());
     assert!(installs.openclaw.is_none());
+    let every = BTreeMap::from([
+        (OPENHUMAN_ENV, "/opt/openhuman-core"),
+        (CLAUDE_CODE_ENV, "/opt/claude-acp.js"),
+        (OPENCLAW_ENV, "/opt/openclaw.mjs"),
+    ]);
+    let installs = harness_installs(&|name| every.get(name).map(|v| (*v).to_owned()));
+    assert_eq!(installs.openhuman.unwrap().version, OPENHUMAN_VERSION);
+    assert_eq!(installs.claude_code.unwrap().version, CLAUDE_CODE_VERSION);
+    assert_eq!(installs.openclaw.unwrap().version, OPENCLAW_VERSION);
+    // Codex needs both its adapter and its binary.
+    assert!(installs.codex.is_none());
     let none = harness_installs(&|_| None);
     assert_eq!(none, tinyhivemind_deploy::Installs::default());
 }
