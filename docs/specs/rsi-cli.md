@@ -253,6 +253,8 @@ hive may mix both. A name that is not a seat of the package fails `check`.
   like any other. Its model must be priced like any other.
 - **Not available:** a seat on a process harness cannot have seat memory or
   a tool key.
+- **Unix only:** process harnesses run on Linux and macOS hosts. On Windows
+  a run with a named seat fails before any seat starts.
 - **No usage report:** its turns' tokens and cost are not in the proposal
   report. The meter has them, tagged with the seat.
 

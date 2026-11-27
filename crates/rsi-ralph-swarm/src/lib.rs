@@ -51,7 +51,7 @@
 //!         wall: Duration::from_secs(3600),
 //!         turn: Duration::from_secs(1200),
 //!         seat_harnesses: std::collections::BTreeMap::new(),
-//!         harnesses: rsi_ralph_swarm::Installs::default(),
+//!         harnesses: rsi_ralph_swarm::HarnessInstalls::default(),
 //!     },
 //!     &mut |event| println!("{event:?}"),
 //! )?;
@@ -89,13 +89,13 @@ pub use memory::{SHARED_MEMORY_AGENT, SwarmMemory};
 pub use package::{CANDIDATE_DIR, check_package, editing_seats, load_package};
 pub use process::{
     CLAUDE_CODE_ENV, CLAUDE_CODE_VERSION, CODEX_ACP_ENV, CODEX_ACP_VERSION, CODEX_ENV, HARNESS_DIR,
-    NODE_ENV, OPENCLAW_ENV, OPENCLAW_VERSION, OPENHUMAN_ENV, OPENHUMAN_VERSION, harness_installs,
+    HarnessInstalls, NODE_ENV, OPENCLAW_ENV, OPENCLAW_VERSION, OPENHUMAN_ENV, OPENHUMAN_VERSION,
+    harness_installs,
 };
 pub use prompt::HIVE_RULES;
 pub use swarm::{
     EVENTS_FILE, HIVE_DB, ModelUrl, RUNTIME_DIR, RUNTIME_SEAT, SeatUsage, SwarmOutcome,
     SwarmRequest, run_swarm,
 };
-pub use tinyhivemind_deploy::{CodexInstall, Installs, Pinned};
 pub use tinyhivemind_lang::HarnessKind;
 pub use tools::{SEARCH_PROVIDERS, SEARCH_TOOLS, ToolKey, WEB_SEARCH};

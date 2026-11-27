@@ -4,13 +4,13 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tinyhivemind_deploy::Installs;
 use tinyhivemind_lang::HarnessKind;
 
 use serde::{Deserialize, Serialize};
 
 use crate::event::{REDACTED, StopReason};
 use crate::memory::SwarmMemory;
+use crate::process::HarnessInstalls;
 use crate::tools::ToolKey;
 
 /// Maps a seat id (or [`crate::RUNTIME_SEAT`] for the runtime's own calls)
@@ -63,7 +63,7 @@ pub struct SwarmRequest {
     /// Where each process harness is installed. A seat whose harness has no
     /// install here is refused before anything starts; in-process seats need
     /// none.
-    pub harnesses: Installs,
+    pub harnesses: HarnessInstalls,
 }
 
 impl std::fmt::Debug for SwarmRequest {

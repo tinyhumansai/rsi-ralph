@@ -39,7 +39,12 @@ pub enum Error {
     /// The request puts a seat the package lacks on a process harness.
     #[error("seat {0} is given a process harness but is not a seat of the hive package")]
     UnknownHarnessSeat(String),
+    /// The request puts a seat on a process harness on a host that cannot
+    /// start one: process harnesses run on Unix hosts only.
+    #[error("seat {0} runs on a process harness, which only a unix host can start")]
+    HarnessPlatform(String),
     /// The process harness seats could not be started or stopped.
+    #[cfg(unix)]
     #[error("process harness seats")]
     Harness(#[source] tinyhivemind_deploy::Error),
     /// The requested lead is not a seat of the package.

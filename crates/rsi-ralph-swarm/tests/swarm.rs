@@ -168,7 +168,7 @@ fn request(dirs: &Dirs, server_uri: &str, wall: Duration) -> SwarmRequest {
         wall,
         turn: Duration::from_secs(60),
         seat_harnesses: std::collections::BTreeMap::new(),
-        harnesses: rsi_ralph_swarm::Installs::default(),
+        harnesses: rsi_ralph_swarm::HarnessInstalls::default(),
     }
 }
 

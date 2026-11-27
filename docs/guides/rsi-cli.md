@@ -110,8 +110,9 @@ two-seat example. Multi-seat hives should widen `coordinator.round_width`
 (and `policies.routing`/`division`), whose defaults of 1 run one turn at a
 time. rsi-ralph adds the hive tools and the turn-taking rules itself.
 
-Seats run on OpenHuman in-process by default. To run one on Claude Code,
-Codex, `OpenClaw` or an `OpenHuman` process instead, name it in `rsi.json`:
+Seats run on OpenHuman in-process by default. On a Linux or macOS host, you
+can run one on Claude Code, Codex, `OpenClaw` or an `OpenHuman` process
+instead by naming it in `rsi.json`:
 
 ```json
 "hive": { "package": "hive", "lead": "lead",

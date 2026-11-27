@@ -48,7 +48,7 @@ impl Dirs {
             wall: Duration::from_secs(1),
             turn: Duration::from_secs(1),
             seat_harnesses: std::collections::BTreeMap::new(),
-            harnesses: tinyhivemind_deploy::Installs::default(),
+            harnesses: crate::HarnessInstalls::default(),
         }
     }
 }

@@ -11,7 +11,6 @@ use openhuman_embed::{
     Access, GroupMode, Provider, Runtime, RuntimeBuilder, RuntimeConfig, RuntimeError, ToolGroups,
     Workspace,
 };
-use tinyhivemind_deploy::ProcessSeat;
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
@@ -163,7 +162,7 @@ async fn register_seats(
     request: &SwarmRequest,
     runtime: &Runtime,
     host: &OpenHumanHost,
-) -> Result<(Vec<SeatInfo>, Vec<ProcessSeat>)> {
+) -> Result<(Vec<SeatInfo>, Vec<process::Pending>)> {
     let mut seats = Vec::new();
     let mut process_seats = Vec::new();
     for plan in &hive.seats {

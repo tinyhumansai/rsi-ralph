@@ -6,6 +6,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use tinyhivemind_hives::Coordinator;
+use tinyhivemind_lang::{HarnessKind, ProviderKind};
+
 use super::*;
 use crate::{ToolKey, load_package};
 
@@ -30,7 +33,7 @@ fn request(kind: HarnessKind, root: &Path) -> SwarmRequest {
         wall: std::time::Duration::from_secs(1),
         turn: std::time::Duration::from_secs(1),
         seat_harnesses: BTreeMap::from([("implementer-a".into(), kind)]),
-        harnesses: tinyhivemind_deploy::Installs::default(),
+        harnesses: HarnessInstalls::default(),
     }
 }
 
@@ -179,7 +182,10 @@ fn the_installs_come_from_the_environment() {
         (CODEX_ENV, "/opt/codex"),
         (CLAUDE_CODE_ENV, ""),
     ]);
-    let installs = harness_installs(&|name| env.get(name).map(|v| (*v).to_owned()));
+    let found = harness_installs(&|name| env.get(name).map(|v| (*v).to_owned()));
+    assert_eq!(found.codex, Some(PathBuf::from("/opt/codex")));
+    assert_eq!(found.claude_code, None);
+    let installs = found.pinned();
     assert_eq!(installs.node, Some(PathBuf::from("/opt/node")));
     let codex = installs.codex.unwrap();
     assert_eq!(codex.adapter.version, CODEX_ACP_VERSION);
@@ -193,14 +199,15 @@ fn the_installs_come_from_the_environment() {
         (CLAUDE_CODE_ENV, "/opt/claude-acp.js"),
         (OPENCLAW_ENV, "/opt/openclaw.mjs"),
     ]);
-    let installs = harness_installs(&|name| every.get(name).map(|v| (*v).to_owned()));
+    let installs = harness_installs(&|name| every.get(name).map(|v| (*v).to_owned())).pinned();
     assert_eq!(installs.openhuman.unwrap().version, OPENHUMAN_VERSION);
     assert_eq!(installs.claude_code.unwrap().version, CLAUDE_CODE_VERSION);
     assert_eq!(installs.openclaw.unwrap().version, OPENCLAW_VERSION);
     // Codex needs both its adapter and its binary.
     assert!(installs.codex.is_none());
     let none = harness_installs(&|_| None);
-    assert_eq!(none, tinyhivemind_deploy::Installs::default());
+    assert_eq!(none, HarnessInstalls::default());
+    assert_eq!(none.pinned(), tinyhivemind_deploy::Installs::default());
 }
 
 #[test]

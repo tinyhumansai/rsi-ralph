@@ -168,6 +168,9 @@ What it does not get:
 
 - **Memory and tool keys:** a seat with seat memory or a tool key is refused
   before anything starts.
+- **Windows:** process harnesses run on Unix hosts only. Elsewhere every
+  process seat is refused with `Error::HarnessPlatform` before anything
+  starts.
 - **Usage:** its turns are not seen by the swarm's hooks, so its `SeatUsage`
   is left incomplete. The gateway's meter records its calls, tagged with
   the seat.
