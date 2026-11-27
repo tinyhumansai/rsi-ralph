@@ -94,6 +94,10 @@ pub struct SeatInfo {
     /// carry memory; shared memory gives every seat the same one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory: Option<String>,
+    /// The process harness it runs on (`openhuman`, `claude-code`, `codex`
+    /// or `openclaw`); absent for a seat that runs in-process.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub harness: Option<String>,
 }
 
 /// The two ends of a tool call.

@@ -124,6 +124,14 @@ pub fn parse(files: &BTreeMap<String, String>) -> Result<Loop> {
             id: manifest.hive.lead.clone(),
         });
     }
+    for seat in manifest.hive.harnesses.keys() {
+        if !seats.contains(seat.as_str()) {
+            return Err(Error::Reference {
+                kind: "seat",
+                id: seat.clone(),
+            });
+        }
+    }
     for spec in manifest.keys.values() {
         if let KeySpec::Tool(tool) = spec {
             for seat in tool.seats.iter().flatten() {

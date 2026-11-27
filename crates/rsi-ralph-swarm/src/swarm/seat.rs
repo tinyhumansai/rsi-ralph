@@ -138,6 +138,7 @@ pub(crate) fn spec(
             .memory
             .as_ref()
             .map(|memory| memory.namespace(&seat.id)),
+        harness: None,
     };
     (spec, info)
 }

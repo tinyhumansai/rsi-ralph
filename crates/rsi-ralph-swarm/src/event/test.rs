@@ -73,6 +73,7 @@ fn pins_the_stored_form_of_every_event_kind() {
                 action_dir: PathBuf::from("/incumbent"),
                 editing: false,
                 memory: None,
+                harness: None,
             },
             SeatInfo {
                 id: "scout".into(),
@@ -81,6 +82,7 @@ fn pins_the_stored_form_of_every_event_kind() {
                 action_dir: PathBuf::from("/incumbent"),
                 editing: false,
                 memory: Some("team:pair/agent:hive".into()),
+                harness: Some("codex".into()),
             },
         ],
     };
@@ -91,7 +93,7 @@ fn pins_the_stored_form_of_every_event_kind() {
                 "action_dir": "/incumbent", "editing": false},
                 {"id": "scout", "role": "scout", "model": "m",
                 "action_dir": "/incumbent", "editing": false,
-                "memory": "team:pair/agent:hive"}]})
+                "memory": "team:pair/agent:hive", "harness": "codex"}]})
     );
     let message = SwarmEvent::AgentMessage {
         sequence: 3,

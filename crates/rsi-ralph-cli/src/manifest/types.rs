@@ -158,6 +158,11 @@ pub struct HiveSpec {
     /// Where seats keep memory; absent, they keep none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory: Option<HiveMemory>,
+    /// The seats that run on a process harness instead of in-process, by
+    /// seat id: `openhuman`, `claude-code`, `codex` or `openclaw`. Each
+    /// harness's program is named by a `TINYRSI_*` variable.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub harnesses: BTreeMap<String, tinyhivemind_lang::HarnessKind>,
 }
 
 /// The `hive.memory` section: a `CortexDB` server the seats remember in.

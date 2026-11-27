@@ -27,6 +27,21 @@ pub enum Error {
     /// The package does not parse, validate or lower in the hive language.
     #[error("invalid hive package")]
     Package(#[from] tinyhivemind_lang::Error),
+    /// A seat on a process harness asks for what only an in-process seat
+    /// has.
+    #[error("seat {seat} runs on a process harness, which has no {what}")]
+    HarnessUnsupported {
+        /// The seat.
+        seat: String,
+        /// What it asks for: `seat memory` or `tool keys`.
+        what: &'static str,
+    },
+    /// The request puts a seat the package lacks on a process harness.
+    #[error("seat {0} is given a process harness but is not a seat of the hive package")]
+    UnknownHarnessSeat(String),
+    /// The process harness seats could not be started or stopped.
+    #[error("process harness seats")]
+    Harness(#[source] tinyhivemind_deploy::Error),
     /// The requested lead is not a seat of the package.
     #[error("lead {0} is not a seat of the hive package")]
     UnknownLead(String),

@@ -11,6 +11,7 @@ use openhuman_embed::{
     Access, GroupMode, Provider, Runtime, RuntimeBuilder, RuntimeConfig, RuntimeError, ToolGroups,
     Workspace,
 };
+use tinyhivemind_deploy::ProcessSeat;
 use tinyhivemind_hives::{
     Coordinator, Destination, HiveInfo, RunReport, SendMessage, SqliteStorage,
 };
@@ -22,6 +23,7 @@ use crate::event::{Redactor, SeatInfo, StopReason, SwarmEvent};
 use crate::hooks::SwarmHooks;
 use crate::mirror::Mirror;
 use crate::package::Hive;
+use crate::process;
 use crate::programs;
 use crate::relay::{MAX_RELAYS, relay_message, stall};
 use crate::trace::Trace;
@@ -86,30 +88,25 @@ pub(super) async fn run(
         host = host.with_tools(belt)?;
     }
 
-    let seats = register_seats(&hive, &request, &runtime, &host).await?;
-    open_desks(&coordinator, lowered).await?;
-    trace.emit(SwarmEvent::SwarmStarted {
-        hive: lowered.id.clone(),
-        lead: request.lead.clone(),
-        desks: lowered.desks.iter().map(|desk| desk.id.clone()).collect(),
-        seats,
-    });
-    coordinator
-        .send_as_host(SendMessage {
-            message_id: BRIEF_ID.into(),
-            sender: String::new(),
-            // A direct message, not a desk episode: the epoch then runs as a
-            // conversation of seat-to-seat messages, and the coordinator goes
-            // idle when the lead stops sending. An episode would re-nudge the
-            // lead every round while it waits for an implementer.
-            destination: Destination::Agent(request.lead.clone()),
-            body: kickoff(&request),
-            thread: None,
-            only_for: Vec::new(),
-            starters: Vec::new(),
-        })
-        .await?;
-    let (stop, report) = drain(&coordinator, &trace, &request.lead, request.wall).await?;
+    let (seats, process_seats) = register_seats(&hive, &request, &runtime, &host).await?;
+    // Every seat is registered before a desk names it as a member.
+    let mut processes = process::start(&coordinator, process_seats, &request, run_dir).await?;
+    let ran = async {
+        open_desks(&coordinator, lowered).await?;
+        trace.emit(SwarmEvent::SwarmStarted {
+            hive: lowered.id.clone(),
+            lead: request.lead.clone(),
+            desks: lowered.desks.iter().map(|desk| desk.id.clone()).collect(),
+            seats,
+        });
+        brief_and_drain(&coordinator, &trace, &request).await
+    }
+    .await;
+    // Process seats are stopped whether or not the run went well: a seat the
+    // coordinator holds would otherwise outlive the swarm.
+    let stopped = process::stop(processes.as_mut()).await;
+    let (stop, report) = ran?;
+    stopped?;
     trace.emit(SwarmEvent::SwarmFinished {
         stop,
         completed: report.completed,
@@ -118,7 +115,8 @@ pub(super) async fn run(
     });
     trace.finish()?;
 
-    let seats = usage(&hive, hooks.usage());
+    let seats = usage(&hive, &request, hooks.usage());
+    drop(processes);
     // Release every handle on the runtime before the next swarm builds one.
     drop(host);
     drop(coordinator);
@@ -132,15 +130,48 @@ pub(super) async fn run(
     })
 }
 
-/// Builds and registers one agent per seat, in manifest order.
+/// Sends the brief to the lead and runs the coordinator until idle or the
+/// wall clock.
+async fn brief_and_drain(
+    coordinator: &Coordinator,
+    trace: &Arc<Trace>,
+    request: &SwarmRequest,
+) -> Result<(StopReason, RunReport)> {
+    coordinator
+        .send_as_host(SendMessage {
+            message_id: BRIEF_ID.into(),
+            sender: String::new(),
+            // A direct message, not a desk episode: the epoch then runs as a
+            // conversation of seat-to-seat messages, and the coordinator goes
+            // idle when the lead stops sending. An episode would re-nudge the
+            // lead every round while it waits for an implementer.
+            destination: Destination::Agent(request.lead.clone()),
+            body: kickoff(request),
+            thread: None,
+            only_for: Vec::new(),
+            starters: Vec::new(),
+        })
+        .await?;
+    drain(coordinator, trace, &request.lead, request.wall).await
+}
+
+/// Builds and registers one in-process agent per seat that names no
+/// harness, and lays out the rest as process seats for [`process::start`];
+/// every seat's announcement comes back in manifest order.
 async fn register_seats(
     hive: &Hive,
     request: &SwarmRequest,
     runtime: &Runtime,
     host: &OpenHumanHost,
-) -> Result<Vec<SeatInfo>> {
+) -> Result<(Vec<SeatInfo>, Vec<ProcessSeat>)> {
     let mut seats = Vec::new();
+    let mut process_seats = Vec::new();
     for plan in &hive.seats {
+        if let Some((process_seat, info)) = process::seat(plan, request, hive) {
+            process_seats.push(process_seat);
+            seats.push(info);
+            continue;
+        }
         let (spec, info) = seat::spec(plan, request, &hive.lowered.context);
         let agent = runtime.agent(spec).map_err(|source| Error::Agent {
             seat: plan.seat.id.clone(),
@@ -149,7 +180,7 @@ async fn register_seats(
         host.register_agent(agent).await?;
         seats.push(info);
     }
-    Ok(seats)
+    Ok((seats, process_seats))
 }
 
 /// Creates every desk of the package with its members.
@@ -223,12 +254,20 @@ async fn drain(
 }
 
 /// Every seat's tally, with a zero entry for seats that never ran.
-fn usage(hive: &Hive, mut tally: BTreeMap<String, SeatUsage>) -> BTreeMap<String, SeatUsage> {
+fn usage(
+    hive: &Hive,
+    request: &SwarmRequest,
+    mut tally: BTreeMap<String, SeatUsage>,
+) -> BTreeMap<String, SeatUsage> {
     hive.seats
         .iter()
         .map(|plan| {
             let id = plan.seat.id.clone();
-            let seat = tally.remove(&id).unwrap_or_default();
+            let seat = if process::is_process(plan, request) {
+                process::unknown_usage()
+            } else {
+                tally.remove(&id).unwrap_or_default()
+            };
             (id, seat)
         })
         .collect()

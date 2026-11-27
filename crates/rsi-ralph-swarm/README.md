@@ -135,6 +135,49 @@ default (`Cli`), so the label changes what is remembered, not what a seat may
 do. `tests/memory.rs` runs whole swarms against TinyMemory's reference engine,
 in its own test binary because the installed engine is process-wide.
 
+## Process harness seats
+
+A seat can run on a process harness instead of in-process: `OpenHuman`,
+Claude Code, Codex or `OpenClaw` as a separate program, started by
+tinyhivemind's `ProcessSeats`. `SwarmRequest::seat_harnesses` names them by
+seat id; every other seat runs in-process as before, and one hive may mix
+both. The choice is the host's: the package stays an ordinary hive, which
+the seats may edit, and the swarm puts the named seats on their harness.
+(A package that names harnesses itself is judged by tinyhivemind's harness
+capability table, which refuses the `config`, tool lists and inherited
+models every rsi-ralph seat relies on.)
+
+What a process seat gets:
+
+- **Prompt:** the same system prompt an in-process seat gets.
+- **Model:** its model at `model_base_url(seat)`, in the API its harness
+  speaks. Claude Code gets the URL without `/v1`; the spend gateway serves
+  Messages and Responses beside chat.
+- **Tools:** the host tools of `process/tools.rs`, run in its checkout under
+  its access:
+  - `read_file`, `list_files` and `search_files`;
+  - and, for an editing seat, `write_file`, `edit_file` and `shell`.
+
+  Its package `tools.allow` names `OpenHuman`'s tools, and each host tool
+  stands in for the matching ones (`file_read` grants `read_file`, `edit`
+  and `apply_patch` grant `edit_file`, and so on). An empty list grants
+  every tool its access allows. The seat's executable tools come too.
+  `edit_file` needs `python3`.
+
+What it does not get:
+
+- **Memory and tool keys:** a seat with seat memory or a tool key is refused
+  before anything starts.
+- **Usage:** its turns are not seen by the swarm's hooks, so its `SeatUsage`
+  is left incomplete. The gateway's meter records its calls, tagged with
+  the seat.
+
+`SwarmRequest::harnesses` says where each harness is installed;
+`harness_installs` reads it from `TINYRSI_NODE`, `TINYRSI_OPENHUMAN_CORE`,
+`TINYRSI_CLAUDE_CODE_ACP`, `TINYRSI_CODEX_ACP` with `TINYRSI_CODEX`, and
+`TINYRSI_OPENCLAW`. Each program must report the version the constants pin.
+The harnesses keep their state under `<run_dir>/harnesses/`.
+
 ## Pin requirement
 
 Read-only seats message through the `hivemind_*` tools, so those tools must
@@ -169,6 +212,7 @@ need it.
 | `trace/` | the `events.jsonl` sink |
 | `tools/` | tool keys and web-search wiring |
 | `programs/` | a seat's executable tools (the manifest's `tools`) as native turn tools |
+| [`process/`](src/process/README.md) | seats on a process harness: which run there, their seat and host tools, start and stop |
 | `error/` | the crate `Error` |
 
 Tests: unit tests beside each module; `tests/swarm.rs` runs whole swarms

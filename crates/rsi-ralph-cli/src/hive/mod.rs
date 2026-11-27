@@ -9,7 +9,7 @@
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use rsi_ralph_swarm::{SwarmMemory, SwarmRequest, ToolKey};
+use rsi_ralph_swarm::{HarnessKind, Installs, SwarmMemory, SwarmRequest, ToolKey};
 
 use crate::{
     Error, Result,
@@ -30,6 +30,8 @@ pub struct Hive {
     wall: Duration,
     turn: Duration,
     base_url: String,
+    seat_harnesses: BTreeMap<String, HarnessKind>,
+    harnesses: Installs,
 }
 
 impl std::fmt::Debug for Hive {
@@ -95,7 +97,18 @@ impl Hive {
             wall: Duration::from_secs(m.hive.wall_secs),
             turn: Duration::from_secs(m.hive.turn_secs),
             base_url: base_url.trim_end_matches('/').to_owned(),
+            seat_harnesses: m.hive.harnesses.clone(),
+            harnesses: Installs::default(),
         })
+    }
+}
+
+impl Hive {
+    /// The same hive, its process harness seats run on `harnesses`.
+    #[must_use]
+    pub fn with_harnesses(mut self, harnesses: Installs) -> Self {
+        self.harnesses = harnesses;
+        self
     }
 }
 
@@ -126,6 +139,8 @@ impl Proposer for Hive {
                 memory: self.memory.clone(),
                 wall: self.wall,
                 turn: self.turn,
+                seat_harnesses: self.seat_harnesses.clone(),
+                harnesses: self.harnesses.clone(),
             },
             &mut |_| {},
         )

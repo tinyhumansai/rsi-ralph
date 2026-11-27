@@ -110,6 +110,20 @@ two-seat example. Multi-seat hives should widen `coordinator.round_width`
 (and `policies.routing`/`division`), whose defaults of 1 run one turn at a
 time. rsi-ralph adds the hive tools and the turn-taking rules itself.
 
+Seats run on OpenHuman in-process by default. To run one on Claude Code,
+Codex, `OpenClaw` or an `OpenHuman` process instead, name it in `rsi.json`:
+
+```json
+"hive": { "package": "hive", "lead": "lead",
+          "harnesses": { "implementer": "codex" } }
+```
+
+Then point the matching `TINYRSI_*` variables at the installed programs, as
+the [spec](../specs/rsi-cli.md#hiveharnesses) lists them. Price the seat's
+model in `budget.prices`, as for any model. A process seat works through
+host tools in its checkout. Its package tool list (`file_read`, `edit`,
+`shell`, ...) chooses which.
+
 Only the promoted candidate's checkout reaches the next epoch. If your seats
 keep notes, carry them so the losing seats' findings are not lost:
 

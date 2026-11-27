@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tinyhivemind_deploy::Installs;
+use tinyhivemind_lang::HarnessKind;
 
 use serde::{Deserialize, Serialize};
 
@@ -53,6 +55,15 @@ pub struct SwarmRequest {
     pub wall: Duration,
     /// The longest one seat turn may take.
     pub turn: Duration,
+    /// The seats that run on a process harness, by seat id; every other
+    /// seat runs in-process. The choice is the host's, not the package's: the
+    /// package stays an ordinary hive the seats may edit, and the swarm puts
+    /// these seats on their harness.
+    pub seat_harnesses: BTreeMap<String, HarnessKind>,
+    /// Where each process harness is installed. A seat whose harness has no
+    /// install here is refused before anything starts; in-process seats need
+    /// none.
+    pub harnesses: Installs,
 }
 
 impl std::fmt::Debug for SwarmRequest {
@@ -70,6 +81,8 @@ impl std::fmt::Debug for SwarmRequest {
             .field("memory", &self.memory)
             .field("wall", &self.wall)
             .field("turn", &self.turn)
+            .field("seat_harnesses", &self.seat_harnesses)
+            .field("harnesses", &self.harnesses)
             .finish_non_exhaustive()
     }
 }
