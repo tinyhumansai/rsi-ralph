@@ -33,6 +33,7 @@ use crate::calls::CallTally;
 use crate::error::Error;
 use crate::ledger::{Budgets, LedgerState, Reservation};
 use crate::meter::{Meter, MeterRow, Tags};
+use crate::namespace::{self, Rewriter};
 use crate::price::PriceTable;
 use crate::request::{Endpoint, Limits, Prepared, Routing, prepare};
 use crate::usage::{SseUsage, Usage};
@@ -112,6 +113,8 @@ impl Proxy {
         Router::new()
             .route("/v1/chat/completions", post(chat))
             .route("/v1/embeddings", post(embeddings))
+            .route("/v1/messages", post(messages))
+            .route("/v1/responses", post(responses))
             .route("/v1/models", get(models))
             .route(
                 "/__tag/{phase}/{seat}/v1/chat/completions",
@@ -121,6 +124,8 @@ impl Proxy {
                 "/__tag/{phase}/{seat}/v1/embeddings",
                 post(tagged_embeddings),
             )
+            .route("/__tag/{phase}/{seat}/v1/messages", post(tagged_messages))
+            .route("/__tag/{phase}/{seat}/v1/responses", post(tagged_responses))
             .route("/__tag/{phase}/{seat}/v1/models", get(models))
             .route("/status", get(status))
             // Long agent sessions resend their whole history every call.
@@ -266,47 +271,101 @@ fn redact(text: &str, secret: &str) -> String {
 type Shared = State<Arc<Proxy>>;
 
 async fn chat(State(proxy): Shared, headers: HeaderMap, body: Bytes) -> Response {
-    detached(forward(proxy, Endpoint::Chat, header_tags(&headers), body)).await
+    untagged(proxy, Endpoint::Chat, &headers, body).await
 }
 
 async fn embeddings(State(proxy): Shared, headers: HeaderMap, body: Bytes) -> Response {
-    detached(forward(
-        proxy,
-        Endpoint::Embeddings,
-        header_tags(&headers),
-        body,
-    ))
-    .await
+    untagged(proxy, Endpoint::Embeddings, &headers, body).await
+}
+
+async fn messages(State(proxy): Shared, headers: HeaderMap, body: Bytes) -> Response {
+    untagged(proxy, Endpoint::Messages, &headers, body).await
+}
+
+async fn responses(State(proxy): Shared, headers: HeaderMap, body: Bytes) -> Response {
+    untagged(proxy, Endpoint::Responses, &headers, body).await
 }
 
 async fn tagged_chat(
     State(proxy): Shared,
-    Path((phase, seat)): Path<(String, String)>,
+    path: TagPath,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
-    detached(forward(
-        proxy,
-        Endpoint::Chat,
-        path_tags(&headers, phase, seat),
-        body,
-    ))
-    .await
+    tagged(proxy, Endpoint::Chat, path, &headers, body).await
 }
 
 async fn tagged_embeddings(
     State(proxy): Shared,
-    Path((phase, seat)): Path<(String, String)>,
+    path: TagPath,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
-    detached(forward(
-        proxy,
-        Endpoint::Embeddings,
-        path_tags(&headers, phase, seat),
-        body,
-    ))
-    .await
+    tagged(proxy, Endpoint::Embeddings, path, &headers, body).await
+}
+
+async fn tagged_messages(
+    State(proxy): Shared,
+    path: TagPath,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    tagged(proxy, Endpoint::Messages, path, &headers, body).await
+}
+
+async fn tagged_responses(
+    State(proxy): Shared,
+    path: TagPath,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    tagged(proxy, Endpoint::Responses, path, &headers, body).await
+}
+
+/// The phase and seat a tagged route names.
+type TagPath = Path<(String, String)>;
+
+/// Forwards a call tagged by its headers.
+async fn untagged(
+    proxy: Arc<Proxy>,
+    endpoint: Endpoint,
+    headers: &HeaderMap,
+    body: Bytes,
+) -> Response {
+    let passed = passed_headers(endpoint, headers);
+    detached(forward(proxy, endpoint, header_tags(headers), passed, body)).await
+}
+
+/// Forwards a call tagged by its path.
+async fn tagged(
+    proxy: Arc<Proxy>,
+    endpoint: Endpoint,
+    Path((phase, seat)): TagPath,
+    headers: &HeaderMap,
+    body: Bytes,
+) -> Response {
+    let passed = passed_headers(endpoint, headers);
+    let tags = path_tags(headers, phase, seat);
+    detached(forward(proxy, endpoint, tags, passed, body)).await
+}
+
+/// Client headers a Messages call carries upstream: the API version and
+/// beta features the client speaks. No other header is forwarded, the
+/// client's credential least of all.
+const PASSED_HEADERS: [&str; 2] = ["anthropic-version", "anthropic-beta"];
+
+/// The [`PASSED_HEADERS`] a call to `endpoint` carries, as name and value.
+fn passed_headers(endpoint: Endpoint, headers: &HeaderMap) -> Vec<(&'static str, String)> {
+    if endpoint != Endpoint::Messages {
+        return Vec::new();
+    }
+    PASSED_HEADERS
+        .iter()
+        .filter_map(|name| {
+            let value = headers.get(*name)?.to_str().ok()?;
+            Some((*name, value.to_owned()))
+        })
+        .collect()
 }
 
 async fn models(State(proxy): Shared) -> Response {
@@ -321,19 +380,24 @@ async fn status(State(proxy): Shared) -> Response {
 /// Maximum retries for failures during connection establishment.
 const FRESH_RETRIES: usize = 2;
 
-/// Posts `body` to `url` with the upstream key.
+/// Posts `body` to `url` with the upstream key and the `passed` headers.
 ///
 /// Only connection-establishment failures prove the POST was not delivered.
 /// Those failures get up to [`FRESH_RETRIES`] attempts on fresh connections.
 /// Request errors after connecting are ambiguous and must not replay a paid
 /// request, even when no response headers arrived.
-async fn send(proxy: &Proxy, url: &str, body: &Value) -> reqwest::Result<reqwest::Response> {
+async fn send(
+    proxy: &Proxy,
+    url: &str,
+    passed: &[(&'static str, String)],
+    body: &Value,
+) -> reqwest::Result<reqwest::Response> {
     let post = |client: &reqwest::Client| {
-        client
-            .post(url)
-            .bearer_auth(&proxy.config.api_key)
-            .json(body)
-            .send()
+        let mut request = client.post(url).bearer_auth(&proxy.config.api_key);
+        for (name, value) in passed {
+            request = request.header(*name, value);
+        }
+        request.json(body).send()
     };
     let mut sent = post(&proxy.client).await;
     for _ in 0..FRESH_RETRIES {
@@ -477,7 +541,13 @@ fn parse(config: &ProxyConfig, endpoint: Endpoint, body: &[u8]) -> crate::error:
     )
 }
 
-async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes) -> Response {
+async fn forward(
+    proxy: Arc<Proxy>,
+    endpoint: Endpoint,
+    tags: Tags,
+    passed: Vec<(&'static str, String)>,
+    body: Bytes,
+) -> Response {
     let in_flight = InFlight::new(&proxy);
     let started = Instant::now();
     let capture_tags = tags.clone();
@@ -532,7 +602,7 @@ async fn forward(proxy: Arc<Proxy>, endpoint: Endpoint, tags: Tags, body: Bytes)
         endpoint.path()
     );
     let call = proxy.calls.dispatched();
-    let sent = send(&proxy, &url, &prepared.body).await;
+    let sent = send(&proxy, &url, &passed, &prepared.body).await;
     let response = match sent {
         Ok(response) => response,
         Err(error) => {
@@ -631,6 +701,7 @@ async fn buffered(
         ttft_ms: None,
         upstream: Upstream::default(),
     };
+    let bytes = namespace::unflatten_body(bytes, &prepared.namespaces);
     let response = Response::builder()
         .status(status.as_u16())
         .header(header::CONTENT_TYPE, "application/json")
@@ -657,6 +728,7 @@ where
     tokio::spawn(async move {
         let proxy = &in_flight.0;
         let mut scanner = SseUsage::default();
+        let mut rewriter = Rewriter::new(prepared.namespaces.clone());
         let mut upstream = response.bytes_stream();
         let mut failure = None;
         let mut ttft_ms = None;
@@ -669,7 +741,10 @@ where
                     }
                     // Keep draining after the client goes away: the usage
                     // event arrives last and the call is billed regardless.
-                    let _ = tx.send(Ok(chunk)).await;
+                    let out = rewriter.feed(chunk);
+                    if !out.is_empty() {
+                        let _ = tx.send(Ok(out)).await;
+                    }
                 }
                 Err(error) => {
                     let message = proxy.redact(&error.to_string());
@@ -678,6 +753,10 @@ where
                     break;
                 }
             }
+        }
+        let rest = rewriter.finish();
+        if !rest.is_empty() {
+            let _ = tx.send(Ok(rest)).await;
         }
         drop(tx);
         // Only now is it known: a stream that broke off was never answered.

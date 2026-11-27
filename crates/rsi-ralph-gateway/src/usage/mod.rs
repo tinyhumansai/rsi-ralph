@@ -3,9 +3,15 @@
 //! The upstream reports `usage.cost` in dollars when asked. Surplus
 //! Intelligence sends `usage.buyer_cost_micro` instead, an amount in
 //! micro-dollars, which is used when `usage.cost` is absent. A non-streaming
-//! response carries `usage` at the top level; a stream carries it in one of
-//! its final `data:` events, which [`SseUsage`] finds by scanning the bytes
-//! as they pass through. When the cost is missing but token counts are
+//! response carries `usage` at the top level; a stream carries it in its
+//! `data:` events, which [`SseUsage`] finds by scanning the bytes as they
+//! pass through. Chat Completions names the counts `prompt_tokens` and
+//! `completion_tokens`; Anthropic's Messages and `OpenAI`'s Responses name
+//! them `input_tokens` and `output_tokens`. A Responses stream reports usage
+//! inside `response`, and a Messages stream splits it: the input count in
+//! `message_start`'s `message`, the output count in `message_delta`. The
+//! scanner keeps the largest of each count it sees, which joins the split
+//! and is the final count for every API. When the cost is missing but token counts are
 //! present, [`Usage::cost_or_ceiling`] prices the tokens at the model's
 //! ceiling, which is still an upper bound. Cached and reasoning token counts
 //! are recorded when the provider reports them and left unknown otherwise;
@@ -40,33 +46,54 @@ pub(crate) struct Usage {
 }
 
 impl Usage {
-    /// Reads `usage` from a response body or a stream event.
+    /// Reads `usage` from a response body or a stream event: at the top
+    /// level, or inside a Responses event's `response` or a Messages
+    /// event's `message`.
     #[must_use]
     pub(crate) fn from_body(body: &Value) -> Self {
-        let Some(usage) = body.get("usage").filter(|u| u.is_object()) else {
+        let Some(usage) = ["/usage", "/response/usage", "/message/usage"]
+            .iter()
+            .find_map(|at| body.pointer(at).filter(|u| u.is_object()))
+        else {
             return Self::default();
         };
+        let count = |keys: &[&str]| {
+            keys.iter()
+                .find_map(|key| usage.pointer(key).and_then(Value::as_u64))
+        };
+        // Anthropic counts cache reads and writes apart from `input_tokens`.
+        let anthropic_cache = count(&["/cache_read_input_tokens"]).unwrap_or(0)
+            + count(&["/cache_creation_input_tokens"]).unwrap_or(0);
         Self {
             cost: usage
                 .get("cost")
                 .and_then(Value::as_f64)
                 .or_else(|| buyer_cost(usage)),
-            prompt_tokens: usage
-                .get("prompt_tokens")
-                .and_then(Value::as_u64)
-                .unwrap_or(0),
-            completion_tokens: usage
-                .get("completion_tokens")
-                .and_then(Value::as_u64)
-                .unwrap_or(0),
-            cached_tokens: usage
-                .pointer("/prompt_tokens_details/cached_tokens")
-                .and_then(Value::as_u64),
-            reasoning_tokens: usage
-                .pointer("/completion_tokens_details/reasoning_tokens")
-                .and_then(Value::as_u64),
+            prompt_tokens: count(&["/prompt_tokens", "/input_tokens"]).unwrap_or(0)
+                + anthropic_cache,
+            completion_tokens: count(&["/completion_tokens", "/output_tokens"]).unwrap_or(0),
+            cached_tokens: count(&[
+                "/prompt_tokens_details/cached_tokens",
+                "/input_tokens_details/cached_tokens",
+                "/cache_read_input_tokens",
+            ]),
+            reasoning_tokens: count(&[
+                "/completion_tokens_details/reasoning_tokens",
+                "/output_tokens_details/reasoning_tokens",
+            ]),
             seen: true,
         }
+    }
+
+    /// The largest of each count in `self` and `other`, and `other`'s cost
+    /// when it has one.
+    fn merge(&mut self, other: &Self) {
+        self.cost = other.cost.or(self.cost);
+        self.prompt_tokens = self.prompt_tokens.max(other.prompt_tokens);
+        self.completion_tokens = self.completion_tokens.max(other.completion_tokens);
+        self.cached_tokens = self.cached_tokens.max(other.cached_tokens);
+        self.reasoning_tokens = self.reasoning_tokens.max(other.reasoning_tokens);
+        self.seen = true;
     }
 
     /// The reported cost, else the tokens priced at the ceiling, else `None`.
@@ -114,7 +141,8 @@ impl SseUsage {
         self.token
     }
 
-    /// Finishes the stream and returns the last usage seen.
+    /// Finishes the stream and returns its usage: the largest of each count
+    /// seen, and the last cost.
     #[must_use]
     pub(crate) fn finish(mut self) -> Usage {
         let rest = std::mem::take(&mut self.pending);
@@ -133,14 +161,26 @@ impl SseUsage {
             self.token = self.token || carries_token(&event);
             let usage = Usage::from_body(&event);
             if usage.seen {
-                self.usage = usage;
+                self.usage.merge(&usage);
             }
         }
     }
 }
 
-/// Whether a stream event's first choice delta holds any generated output.
+/// Whether a stream event holds any generated output: a chat delta with
+/// content, reasoning or tool calls, a Messages content block delta, or a
+/// Responses text, reasoning or call-argument delta.
 fn carries_token(event: &Value) -> bool {
+    let kind = event.get("type").and_then(Value::as_str).unwrap_or("");
+    if kind == "content_block_delta" {
+        return true;
+    }
+    if kind.starts_with("response.") && kind.rsplit('.').next() == Some("delta") {
+        return event
+            .get("delta")
+            .and_then(Value::as_str)
+            .is_some_and(|s| !s.is_empty());
+    }
     let Some(delta) = event.pointer("/choices/0/delta") else {
         return false;
     };

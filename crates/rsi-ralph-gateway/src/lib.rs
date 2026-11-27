@@ -50,8 +50,11 @@
 //!
 //! # HTTP surface
 //!
-//! - `POST /v1/chat/completions` and `POST /v1/embeddings`, tagged by the
-//!   `x-tinyrsi-phase`, `x-tinyrsi-seat` and `x-tinyrsi-candidate` headers;
+//! - `POST /v1/chat/completions` and `POST /v1/embeddings`, and the two
+//!   APIs process harnesses speak: `POST /v1/messages` (Anthropic's Messages,
+//!   for Claude Code) and `POST /v1/responses` (`OpenAI`'s Responses, for
+//!   Codex). Each is tagged by the `x-tinyrsi-phase`, `x-tinyrsi-seat` and
+//!   `x-tinyrsi-candidate` headers;
 //! - the same under `/__tag/{phase}/{seat}/v1/...` for clients that cannot
 //!   set headers;
 //! - `GET /v1/models` (also under the tag prefix): the allowlist;
@@ -72,6 +75,7 @@ mod gateway;
 mod ledger;
 mod lock;
 mod meter;
+mod namespace;
 mod price;
 mod proxy;
 mod request;

@@ -218,3 +218,110 @@ fn surplus_intelligence_is_an_allow_list_upstream() {
         Routing::OpenRouter
     );
 }
+
+fn api(endpoint: Endpoint, body: serde_json::Value) -> Result<super::Prepared, Error> {
+    prepare(
+        endpoint,
+        body,
+        &PriceTable::standard(),
+        Limits::default(),
+        Routing::OpenRouter,
+    )
+}
+
+#[test]
+fn bounds_and_reserves_a_messages_call_with_tool_blocks() {
+    let body = json!({
+        "model": GLM_FLASH,
+        "max_tokens": 1_000_000,
+        "stream": true,
+        "messages": [
+            {"role": "user", "content": "go"},
+            {"role": "assistant", "content": [{"type": "tool_use", "id": "t", "name": "f", "input": {}}]},
+            {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t", "content": "ok"}]},
+        ],
+    });
+    let prepared = api(Endpoint::Messages, body).unwrap();
+    let cap = Limits::default().max_tokens_cap;
+    assert_eq!(prepared.body["max_tokens"], json!(cap));
+    assert!(prepared.stream);
+    assert_eq!(prepared.body["provider"]["only"], json!(["z-ai"]));
+    // Chat-only rewrites stay off the Messages body.
+    for chat_only in ["usage", "reasoning", "reasoning_effort", "stream_options"] {
+        assert!(prepared.body.get(chat_only).is_none(), "{chat_only}");
+    }
+    assert!(prepared.reserve_usd >= usd(cap, 1.0e-6));
+    assert_eq!(prepared.namespaces, Vec::<String>::new());
+    assert_eq!(Endpoint::Messages.path(), "messages");
+    // Without a length, the default applies.
+    let short = api(
+        Endpoint::Messages,
+        json!({"model": GLM_FLASH, "messages": []}),
+    )
+    .unwrap();
+    assert_eq!(
+        short.body["max_tokens"],
+        json!(Limits::default().default_max_tokens)
+    );
+    assert!(!short.stream);
+}
+
+#[test]
+fn refuses_a_messages_call_without_messages_or_with_an_image() {
+    let missing = api(Endpoint::Messages, json!({"model": GLM_FLASH})).unwrap_err();
+    assert!(
+        matches!(missing, Error::BadRequest(ref m) if m.contains("messages array")),
+        "{missing}"
+    );
+    let image = json!({"model": GLM_FLASH, "messages": [{"role": "user", "content": [
+        {"type": "image", "source": {"type": "base64", "data": "x"}}
+    ]}]});
+    assert!(matches!(
+        api(Endpoint::Messages, image),
+        Err(Error::BadRequest(ref m)) if m.contains("only text")
+    ));
+}
+
+#[test]
+fn prepares_a_responses_call_statelessly_with_flat_tools() {
+    let body = json!({
+        "model": GLM_FLASH,
+        "store": true,
+        "stream": true,
+        "input": [{"type": "message", "role": "user", "content": [{"type": "input_text", "text": "go"}]}],
+        "tools": [{"type": "namespace", "name": "mcp__hive", "tools": [{"type": "function", "name": "read_file"}]}],
+    });
+    let prepared = api(Endpoint::Responses, body).unwrap();
+    assert_eq!(prepared.body["store"], json!(false));
+    assert_eq!(
+        prepared.body["max_output_tokens"],
+        json!(Limits::default().default_max_tokens)
+    );
+    assert_eq!(prepared.body["tools"][0]["name"], "mcp__hive__read_file");
+    assert_eq!(prepared.namespaces, vec!["mcp__hive".to_owned()]);
+    assert!(prepared.stream);
+    assert_eq!(Endpoint::Responses.path(), "responses");
+    // A plain string input passes, and the client's length is bounded.
+    let text = api(
+        Endpoint::Responses,
+        json!({"model": GLM_FLASH, "input": "hi", "max_output_tokens": 0}),
+    )
+    .unwrap();
+    assert_eq!(text.body["max_output_tokens"], json!(1));
+}
+
+#[test]
+fn refuses_a_responses_call_without_input_or_with_an_image() {
+    let missing = api(Endpoint::Responses, json!({"model": GLM_FLASH})).unwrap_err();
+    assert!(
+        matches!(missing, Error::BadRequest(ref m) if m.contains("input array")),
+        "{missing}"
+    );
+    let image = json!({"model": GLM_FLASH, "input": [{"role": "user", "content": [
+        {"type": "input_image", "image_url": "data:x"}
+    ]}]});
+    assert!(matches!(
+        api(Endpoint::Responses, image),
+        Err(Error::BadRequest(ref m)) if m.contains("only text")
+    ));
+}

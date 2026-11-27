@@ -3885,6 +3885,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyhivemind-host"
+version = "0.2.1"
+dependencies = [
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tinyhivemind-core",
+ "tinyhivemind-hives",
+ "tinyhivemind-lang",
+ "tinytools",
+ "tokio",
+]
+
+[[package]]
 name = "tinyhivemind-lang"
 version = "0.2.1"
 dependencies = [
@@ -3911,6 +3926,7 @@ dependencies = [
  "tinyhivemind-core",
  "tinyhivemind-exec",
  "tinyhivemind-hives",
+ "tinyhivemind-host",
  "tinyhivemind-lang",
  "tinymemory-api",
  "tinymemory-tools",
